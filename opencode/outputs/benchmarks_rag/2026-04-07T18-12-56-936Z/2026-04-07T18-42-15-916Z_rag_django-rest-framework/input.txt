@@ -1,0 +1,3439 @@
+
+
+# FILE: tox.ini
+[tox]
+envlist =
+       {py310}-{django42,django51,django52}
+       {py311}-{django42,django51,django52}
+       {py312}-{django42,django51,django52,django60,djangomain}
+       {py313}-{django51,django52,django60,djangomain}
+       {py314}-{django52,django60,djangomain}
+       base
+       dist
+       docs
+
+[testenv]
+commands = pytest --cov --cov-report xml {posargs}
+envdir = {toxworkdir}/venvs/{envname}
+setenv =
+       PYTHONDONTWRITEBYTECODE=1
+       PYTHONWARNINGS=once
+dependency_groups =
+       test
+       optional
+       django42: django42
+       django50: django50
+       django51: django51
+       django52: django52
+       django60: django60
+       djangomain: djangomain
+
+[testenv:base]
+; Ensure optional dependencies are not required
+dependency_groups =
+       test
+deps =
+
+[testenv:dist]
+commands = python -W error::DeprecationWarning -W error::PendingDeprecationWarning runtests.py --no-pkgroot --staticfiles {posargs}
+dependency_groups =
+       test
+       optional
+
+[testenv:docs]
+skip_install = true
+commands =
+       mkdocs build
+dependency_groups =
+       test
+       docs
+
+[testenv:py312-djangomain]
+ignore_outcome = true
+
+[testenv:py313-djangomain]
+ignore_outcome = true
+
+[testenv:py314-djangomain]
+ignore_outcome = true
+
+
+# FILE: runtests.py
+#! /usr/bin/env python3
+import os
+import sys
+
+import pytest
+
+
+def split_class_and_function(string):
+    class_string, function_string = string.split('.', 1)
+    return "%s and %s" % (class_string, function_string)
+
+
+def is_function(string):
+    # `True` if it looks like a test function is included in the string.
+    return string.startswith('test_') or '.test_' in string
+
+
+def is_class(string):
+    # `True` if first character is uppercase - assume it's a class name.
+    return string[0] == string[0].upper()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        pytest_args = sys.argv[1:]
+        first_arg = pytest_args[0]
+
+        try:
+            pytest_args.remove('--coverage')
+        except ValueError:
+            pass
+        else:
+            pytest_args = [
+                '--cov', '.',
+                '--cov-report', 'xml',
+            ] + pytest_args
+
+        try:
+            pytest_args.remove('--no-pkgroot')
+        except ValueError:
+            pass
+        else:
+            sys.path.pop(0)
+
+            # import rest_framework before pytest re-adds the package root directory.
+            import rest_framework
+            package_dir = os.path.join(os.getcwd(), 'rest_framework')
+            assert not rest_framework.__file__.startswith(package_dir)
+
+        if first_arg.startswith('-'):
+            # `runtests.py [flags]`
+            pytest_args = ['tests'] + pytest_args
+        elif is_class(first_arg) and is_function(first_arg):
+            # `runtests.py TestCase.test_function [flags]`
+            expression = split_class_and_function(first_arg)
+            pytest_args = ['tests', '-k', expression] + pytest_args[1:]
+        elif is_class(first_arg) or is_function(first_arg):
+            # `runtests.py TestCase [flags]`
+            # `runtests.py test_function [flags]`
+            pytest_args = ['tests', '-k', pytest_args[0]] + pytest_args[1:]
+    else:
+        pytest_args = []
+
+    sys.exit(pytest.main(pytest_args))
+
+
+# FILE: pyproject.toml
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=77.0.3" ]
+
+[project]
+name = "djangorestframework"
+description = "Web APIs for Django, made easy."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = [ "LICENSE.md" ]
+authors = [ { name = "Tom Christie", email = "tom@tomchristie.com" } ]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 4.2",
+  "Framework :: Django :: 5.0",
+  "Framework :: Django :: 5.1",
+  "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.0",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Internet :: WWW/HTTP",
+]
+dynamic = [ "version" ]
+dependencies = [ "django>=4.2" ]
+urls.Changelog = "https://www.django-rest-framework.org/community/release-notes/"
+urls.Funding = "https://fund.django-rest-framework.org/topics/funding/"
+urls.Homepage = "https://www.django-rest-framework.org"
+urls.Source = "https://github.com/encode/django-rest-framework"
+
+[dependency-groups]
+dev = [
+  { include-group = "docs" },
+  { include-group = "optional" },
+  { include-group = "test" },
+]
+test = [
+  "importlib-metadata<10.0",
+  # Pytest for running the tests.
+  "pytest==9.*",
+  "pytest-cov==7.*",
+  "pytest-django>=4.5.2,<5",
+
+  # Remove when dropping support for Django<5.0
+  "pytz",
+]
+docs = [
+  # MkDocs to build our documentation.
+  "mkdocs==1.6.1",
+  "mkdocs-material[imaging]==9.7.6",
+  # pylinkvalidator to check for broken links in documentation.
+  "pylinkvalidator==0.3",
+]
+optional = [
+  # Optional packages which may be used with REST framework.
+  "django-filter",
+  "django-guardian>=2.4.0,<3.4",
+  "inflection==0.5.1",
+  "legacy-cgi; python_version>='3.13'",
+  "markdown>=3.3.7",
+  "psycopg[binary]>=3.1.8",
+  "pygments>=2.17,<2.20",
+  "pyyaml>=5.3.1,<6.1",
+  "requests",
+  "uritemplate",
+]
+django42 = [ "django>=4.2,<5.0" ]
+django50 = [ "django>=5.0,<5.1" ]
+django51 = [ "django>=5.1,<5.2" ]
+django52 = [ "django>=5.2,<6.0" ]
+django60 = [ "django>=6.0,<6.1" ]
+djangomain = [ "django @ https://github.com/django/django/archive/main.tar.gz" ]
+
+[tool.setuptools]
+
+[tool.setuptools.dynamic]
+version = { attr = "rest_framework.__version__" }
+
+[tool.setuptools.packages.find]
+include = [ "rest_framework*" ]
+
+[tool.setuptools.package-data]
+"rest_framework" = [
+  "templates/**/*",
+  "static/**/*",
+  "locale/**/*.mo",
+]
+
+[tool.isort]
+skip = [ ".tox" ]
+atomic = true
+multi_line_output = 5
+extra_standard_library = [ "types" ]
+known_third_party = [ "pytest", "_pytest", "django", "pytz", "uritemplate" ]
+known_first_party = [ "rest_framework", "tests" ]
+
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = "*/kickstarter-announcement.md,*.js,*.map,*.po,*.css,locale"
+ignore-words = "codespell-ignore-words.txt"
+builtin = "clear,rare,code,names,en-GB_to_en-US"
+
+[tool.pyproject-fmt]
+max_supported_python = "3.14"
+keep_full_version = true
+
+[tool.pytest.ini_options]
+addopts = "--tb=short --strict-markers -ra"
+testpaths = [ "tests" ]
+filterwarnings = [
+  "ignore:'cgi' is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+# NOTE: source is ignored with pytest-cov (but uses the same).
+source = [ "." ]
+include = [ "rest_framework/*", "tests/*" ]
+branch = true
+
+[tool.coverage.report]
+include = [ "rest_framework/*", "tests/*" ]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+]
+
+
+# FILE: mkdocs.yml
+site_name: Django REST framework
+site_url: https://www.django-rest-framework.org/
+site_description: Django REST framework - Web APIs for Django
+
+repo_url: https://github.com/encode/django-rest-framework
+
+theme:
+  name: material
+  custom_dir: docs/theme
+  favicon: theme/img/favicon.ico
+  logo: theme/img/logo.png
+  palette:
+    - media: "(prefers-color-scheme)"
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-auto
+        name: "Switch to light mode"
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: "Switch to dark mode"
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: "Switch to system preference"
+  features:
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - toc.follow
+
+extra_css:
+  - theme/stylesheets/extra.css
+  - theme/stylesheets/prettify.css
+extra_javascript:
+  - theme/js/prettify-1.0.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: 'index.md'
+  - Tutorial:
+    - 'Quickstart': 'tutorial/quickstart.md'
+    - '1 - Serialization': 'tutorial/1-serialization.md'
+    - '2 - Requests and responses': 'tutorial/2-requests-and-responses.md'
+    - '3 - Class based views': 'tutorial/3-class-based-views.md'
+    - '4 - Authentication and permissions': 'tutorial/4-authentication-and-permissions.md'
+    - '5 - Relationships and hyperlinked APIs': 'tutorial/5-relationships-and-hyperlinked-apis.md'
+    - '6 - Viewsets and routers': 'tutorial/6-viewsets-and-routers.md'
+  - API Guide:
+    - 'Requests': 'api-guide/requests.md'
+    - 'Responses': 'api-guide/responses.md'
+    - 'Views': 'api-guide/views.md'
+    - 'Generic views': 'api-guide/generic-views.md'
+    - 'Viewsets': 'api-guide/viewsets.md'
+    - 'Routers': 'api-guide/routers.md'
+    - 'Parsers': 'api-guide/parsers.md'
+    - 'Renderers': 'api-guide/renderers.md'
+    - 'Serializers': 'api-guide/serializers.md'
+    - 'Serializer fields': 'api-guide/fields.md'
+    - 'Serializer relations': 'api-guide/relations.md'
+    - 'Validators': 'api-guide/validators.md'
+    - 'Authentication': 'api-guide/authentication.md'
+    - 'Permissions': 'api-guide/permissions.md'
+    - 'Caching': 'api-guide/caching.md'
+    - 'Throttling': 'api-guide/throttling.md'
+    - 'Filtering': 'api-guide/filtering.md'
+    - 'Pagination': 'api-guide/pagination.md'
+    - 'Versioning': 'api-guide/versioning.md'
+    - 'Content negotiation': 'api-guide/content-negotiation.md'
+    - 'Metadata': 'api-guide/metadata.md'
+    - 'Schemas': 'api-guide/schemas.md'
+    - 'Format suffixes': 'api-guide/format-suffixes.md'
+    - 'Returning URLs': 'api-guide/reverse.md'
+    - 'Exceptions': 'api-guide/exceptions.md'
+    - 'Status codes': 'api-guide/status-codes.md'
+    - 'Testing': 'api-guide/testing.md'
+    - 'Settings': 'api-guide/settings.md'
+  - Topics:
+     - 'Documenting your API': 'topics/documenting-your-api.md'
+     - 'Internationalization': 'topics/internationalization.md'
+     - 'AJAX, CSRF & CORS': 'topics/ajax-csrf-cors.md'
+     - 'HTML & Forms': 'topics/html-and-forms.md'
+     - 'Browser Enhancements': 'topics/browser-enhancements.md'
+     - 'The Browsable API': 'topics/browsable-api.md'
+     - 'REST, Hypermedia & HATEOAS': 'topics/rest-hypermedia-hateoas.md'
+  - Community:
+     - 'Tutorials and Resources': 'community/tutorials-and-resources.md'
+     - 'Third Party Packages': 'community/third-party-packages.md'
+     - 'Contributing to REST framework': 'community/contributing.md'
+     - 'Project management': 'community/project-management.md'
+     - 'Release Notes': 'community/release-notes.md'
+     - '3.16 Announcement': 'community/3.16-announcement.md'
+     - '3.15 Announcement': 'community/3.15-announcement.md'
+     - '3.14 Announcement': 'community/3.14-announcement.md'
+     - '3.13 Announcement': 'community/3.13-announcement.md'
+     - '3.12 Announcement': 'community/3.12-announcement.md'
+     - '3.11 Announcement': 'community/3.11-announcement.md'
+     - '3.10 Announcement': 'community/3.10-announcement.md'
+     - '3.9 Announcement': 'community/3.9-announcement.md'
+     - '3.8 Announcement': 'community/3.8-announcement.md'
+     - '3.7 Announcement': 'community/3.7-announcement.md'
+     - '3.6 Announcement': 'community/3.6-announcement.md'
+     - '3.5 Announcement': 'community/3.5-announcement.md'
+     - '3.4 Announcement': 'community/3.4-announcement.md'
+     - '3.3 Announcement': 'community/3.3-announcement.md'
+     - '3.2 Announcement': 'community/3.2-announcement.md'
+     - '3.1 Announcement': 'community/3.1-announcement.md'
+     - '3.0 Announcement': 'community/3.0-announcement.md'
+     - 'Kickstarter Announcement': 'community/kickstarter-announcement.md'
+     - 'Mozilla Grant': 'community/mozilla-grant.md'
+     - 'Jobs': 'community/jobs.md'
+
+
+# FILE: codespell-ignore-words.txt
+Tim
+assertIn
+IAM
+endcode
+deque
+thead
+lets
+fo
+malcom
+ser
+
+# FILE: codecov.yml
+coverage:
+  precision: 2
+  round: down
+  range: "80...100"
+
+  status:
+    project: yes
+    patch: no
+    changes: no
+
+comment: off
+
+
+# FILE: SECURITY.md
+# Security Policy
+
+## Reporting a Vulnerability
+
+**Please report security issues by emailing security@encode.io**.
+
+The project maintainers will then work with you to resolve any issues where required, prior to any public disclosure.
+
+
+# FILE: README.md
+# [Django REST framework][docs]
+
+[![build-status-image]][build-status]
+[![coverage-status-image]][codecov]
+[![pypi-version]][pypi]
+
+**Awesome web-browsable Web APIs.**
+
+Full documentation for the project is available at [https://www.django-rest-framework.org/][docs].
+
+---
+
+# Overview
+
+Django REST framework is a powerful and flexible toolkit for building Web APIs.
+
+Some reasons you might want to use REST framework:
+
+* The Web browsable API is a huge usability win for your developers.
+* [Authentication policies][authentication] including optional packages for [OAuth1a][oauth1-section] and [OAuth2][oauth2-section].
+* [Serialization][serializers] that supports both [ORM][modelserializer-section] and [non-ORM][serializer-section] data sources.
+* Customizable all the way down - just use [regular function-based views][functionview-section] if you don't need the [more][generic-views] [powerful][viewsets] [features][routers].
+* [Extensive documentation][docs], and [great community support][group].
+
+**Below**: *Screenshot from the browsable API*
+
+![Screenshot][image]
+
+----
+
+# Requirements
+
+* Python 3.10+
+* Django 4.2, 5.0, 5.1, 5.2, 6.0
+
+We **highly recommend** and only officially support the latest patch release of
+each Python and Django series.
+
+# Installation
+
+Install using `pip`...
+
+    pip install djangorestframework
+
+Add `'rest_framework'` to your `INSTALLED_APPS` setting.
+
+```python
+INSTALLED_APPS = [
+    # ...
+    "rest_framework",
+]
+```
+
+# Example
+
+Let's take a look at a quick example of using REST framework to build a simple model-backed API for accessing users and groups.
+
+Start up a new project like so...
+
+    pip install django
+    pip install djangorestframework
+    django-admin startproject example .
+    ./manage.py migrate
+    ./manage.py createsuperuser
+
+
+Now edit the `example/urls.py` module in your project:
+
+```python
+from django.contrib.auth.models import User
+from django.urls import include, path
+from rest_framework import routers, serializers, viewsets
+
+
+# Serializers define the API representation.
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = User
+        fields = ["url", "username", "email", "is_staff"]
+
+
+# ViewSets define the view behavior.
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+# Routers provide a way of automatically determining the URL conf.
+router = routers.DefaultRouter()
+router.register(r"users", UserViewSet)
+
+# Wire up our API using automatic URL routing.
+# Additionally, we include login URLs for the browsable API.
+urlpatterns = [
+    path("", include(router.urls)),
+    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
+]
+```
+
+We'd also like to configure a couple of settings for our API.
+
+Add the following to your `settings.py` module:
+
+```python
+INSTALLED_APPS = [
+    # ... make sure to include the default installed apps here.
+    "rest_framework",
+]
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
+    ]
+}
+```
+
+That's it, we're done!
+
+    ./manage.py runserver
+
+You can now open the API in your browser at `http://127.0.0.1:8000/`, and view your new 'users' API. If you use the `Login` control in the top right corner you'll also be able to add, create and delete users from the system.
+
+You can also interact with the API using command line tools such as [`curl`](https://curl.haxx.se/). For example, to list the users endpoint:
+
+    $ curl -H 'Accept: application/json; indent=4' -u admin:password http://127.0.0.1:8000/users/
+    [
+        {
+            "url": "http://127.0.0.1:8000/users/1/",
+            "username": "admin",
+            "email": "admin@example.com",
+            "is_staff": true,
+        }
+    ]
+
+Or to create a new user:
+
+    $ curl -X POST -d username=new -d email=new@example.com -d is_staff=false -H 'Accept: application/json; indent=4' -u admin:password http://127.0.0.1:8000/users/
+    {
+        "url": "http://127.0.0.1:8000/users/2/",
+        "username": "new",
+        "email": "new@example.com",
+        "is_staff": false,
+    }
+
+# Documentation & Support
+
+Full documentation for the project is available at [https://www.django-rest-framework.org/][docs].
+
+For questions and support, use the [REST framework discussion group][group], or `#restframework` on libera.chat IRC.
+
+# Security
+
+Please see the [security policy][security-policy].
+
+[build-status-image]: https://github.com/encode/django-rest-framework/actions/workflows/main.yml/badge.svg
+[build-status]: https://github.com/encode/django-rest-framework/actions/workflows/main.yml
+[coverage-status-image]: https://img.shields.io/codecov/c/github/encode/django-rest-framework/main.svg
+[codecov]: https://codecov.io/github/encode/django-rest-framework?branch=main
+[pypi-version]: https://img.shields.io/pypi/v/djangorestframework.svg
+[pypi]: https://pypi.org/project/djangorestframework/
+[group]: https://groups.google.com/forum/?fromgroups#!forum/django-rest-framework
+
+[funding]: https://fund.django-rest-framework.org/topics/funding/
+[sponsors]: https://fund.django-rest-framework.org/topics/funding/#our-sponsors
+
+[oauth1-section]: https://www.django-rest-framework.org/api-guide/authentication/#django-rest-framework-oauth
+[oauth2-section]: https://www.django-rest-framework.org/api-guide/authentication/#django-oauth-toolkit
+[serializer-section]: https://www.django-rest-framework.org/api-guide/serializers/#serializers
+[modelserializer-section]: https://www.django-rest-framework.org/api-guide/serializers/#modelserializer
+[functionview-section]: https://www.django-rest-framework.org/api-guide/views/#function-based-views
+[generic-views]: https://www.django-rest-framework.org/api-guide/generic-views/
+[viewsets]: https://www.django-rest-framework.org/api-guide/viewsets/
+[routers]: https://www.django-rest-framework.org/api-guide/routers/
+[serializers]: https://www.django-rest-framework.org/api-guide/serializers/
+[authentication]: https://www.django-rest-framework.org/api-guide/authentication/
+[image]: https://www.django-rest-framework.org/img/quickstart.png
+
+[docs]: https://www.django-rest-framework.org/
+[security-policy]: https://github.com/encode/django-rest-framework/security/policy
+
+
+# FILE: PULL_REQUEST_TEMPLATE.md
+*Note*: Before submitting a code change, please review our [contributing guidelines](https://www.django-rest-framework.org/community/contributing/#pull-requests).
+
+## Description
+
+Please describe your pull request. If it fixes a bug or resolves a feature request, be sure to link to that issue. When linking to an issue, please use `refs #...` in the description of the pull request.
+
+
+# FILE: LICENSE.md
+# License
+
+Copyright © 2011-present, [Encode OSS Ltd](https://www.encode.io/).
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+# FILE: CONTRIBUTING.md
+# Contributing to REST framework
+
+At this point in its lifespan we consider Django REST framework to be essentially feature-complete. We may accept pull requests that track the continued development of Django versions, but would prefer not to accept new features or code formatting changes.
+
+Apart from minor documentation changes, the [GitHub discussions page](https://github.com/encode/django-rest-framework/discussions) should generally be your starting point. Please only open a pull request if you've been recommended to do so **after discussion**.
+
+The [Contributing guide in the documentation](https://www.django-rest-framework.org/community/contributing/) gives some more information on our process and code of conduct.
+
+
+# FILE: licenses/jquery.json-view.md
+https://github.com/bazh/jquery.json-view/
+
+The MIT License (MIT)
+
+Copyright (c) 2014 bazh. (https://github.com/bazh)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+# FILE: licenses/bootstrap.md
+https://github.com/twbs/bootstrap/
+
+The MIT License (MIT)
+
+Copyright (c) 2011-2016 Twitter, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+
+
+# FILE: tests/utils.py
+from operator import attrgetter
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.urls import NoReverseMatch
+
+
+class MockObject:
+    def __init__(self, **kwargs):
+        self._kwargs = kwargs
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+    def __str__(self):
+        kwargs_str = ', '.join([
+            '%s=%s' % (key, value)
+            for key, value in sorted(self._kwargs.items())
+        ])
+        return '<MockObject %s>' % kwargs_str
+
+
+class MockQueryset:
+    def __init__(self, iterable):
+        self.items = iterable
+
+    def __getitem__(self, val):
+        return self.items[val]
+
+    def get(self, **lookup):
+        for item in self.items:
+            if all([
+                attrgetter(key.replace('__', '.'))(item) == value
+                for key, value in lookup.items()
+            ]):
+                return item
+        raise ObjectDoesNotExist()
+
+
+class BadType:
+    """
+    When used as a lookup with a `MockQueryset`, these objects
+    will raise a `TypeError`, as occurs in Django when making
+    queryset lookups with an incorrect type for the lookup value.
+    """
+
+    def __eq__(self):
+        raise TypeError()
+
+
+def mock_reverse(view_name, args=None, kwargs=None, request=None, format=None):
+    args = args or []
+    kwargs = kwargs or {}
+    value = (args + list(kwargs.values()) + ['-'])[0]
+    prefix = 'http://example.org' if request else ''
+    suffix = ('.' + format) if (format is not None) else ''
+    return '%s/%s/%s%s/' % (prefix, view_name, value, suffix)
+
+
+def fail_reverse(view_name, args=None, kwargs=None, request=None, format=None):
+    raise NoReverseMatch()
+
+
+# FILE: tests/urls.py
+urlpatterns = []
+
+
+# FILE: tests/test_write_only_fields.py
+from django.test import TestCase
+
+from rest_framework import serializers
+
+
+class WriteOnlyFieldTests(TestCase):
+    def setUp(self):
+        class ExampleSerializer(serializers.Serializer):
+            email = serializers.EmailField()
+            password = serializers.CharField(write_only=True)
+
+        self.Serializer = ExampleSerializer
+
+    def test_write_only_fields_are_present_on_input(self):
+        data = {
+            'email': 'foo@example.com',
+            'password': '123'
+        }
+        serializer = self.Serializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == data
+
+    def test_write_only_fields_are_not_present_on_output(self):
+        instance = {
+            'email': 'foo@example.com',
+            'password': '123'
+        }
+        serializer = self.Serializer(instance)
+        assert serializer.data == {'email': 'foo@example.com'}
+
+
+# FILE: tests/test_viewsets.py
+import unittest
+from functools import wraps
+
+import pytest
+from django import VERSION as DJANGO_VERSION
+from django.db import models
+from django.test import TestCase, override_settings
+from django.urls import include, path
+
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.routers import SimpleRouter
+from rest_framework.test import APIRequestFactory
+from rest_framework.viewsets import GenericViewSet
+
+factory = APIRequestFactory()
+
+
+class BasicViewSet(GenericViewSet):
+    def list(self, request, *args, **kwargs):
+        return Response({'ACTION': 'LIST'})
+
+
+class InstanceViewSet(GenericViewSet):
+
+    def dispatch(self, request, *args, **kwargs):
+        return self.dummy(request, *args, **kwargs)
+
+    def dummy(self, request, *args, **kwargs):
+        return Response({'view': self})
+
+
+class Action(models.Model):
+    pass
+
+
+def decorate(fn):
+    @wraps(fn)
+    def wrapper(self, request, *args, **kwargs):
+        return fn(self, request, *args, **kwargs)
+    return wrapper
+
+
+class ActionViewSet(GenericViewSet):
+    queryset = Action.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        response = Response()
+        response.view = self
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        response = Response()
+        response.view = self
+        return response
+
+    @action(detail=False)
+    def list_action(self, request, *args, **kwargs):
+        response = Response()
+        response.view = self
+        return response
+
+    @action(detail=False, url_name='list-custom')
+    def custom_list_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True)
+    def detail_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, url_name='detail-custom')
+    def custom_detail_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, url_path=r'unresolvable/(?P<arg>\w+)', url_name='unresolvable')
+    def unresolvable_detail_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=False)
+    @decorate
+    def wrapped_list_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True)
+    @decorate
+    def wrapped_detail_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+
+class ActionNamesViewSet(GenericViewSet):
+
+    def retrieve(self, request, *args, **kwargs):
+        response = Response()
+        response.view = self
+        return response
+
+    @action(detail=True)
+    def unnamed_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, name='Custom Name')
+    def named_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, suffix='Custom Suffix')
+    def suffixed_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+
+class ThingWithMapping:
+    def __init__(self):
+        self.mapping = {}
+
+
+class ActionViewSetWithMapping(ActionViewSet):
+    mapper = ThingWithMapping()
+
+
+router = SimpleRouter()
+router.register(r'actions', ActionViewSet)
+router.register(r'actions-alt', ActionViewSet, basename='actions-alt')
+router.register(r'names', ActionNamesViewSet, basename='names')
+router.register(r'mapping', ActionViewSetWithMapping, basename='mapping')
+
+
+urlpatterns = [
+    path('api/', include(router.urls)),
+]
+
+
+class InitializeViewSetsTestCase(TestCase):
+    def test_initialize_view_set_with_actions(self):
+        request = factory.get('/', '', content_type='application/json')
+        my_view = BasicViewSet.as_view(actions={
+            'get': 'list',
+        })
+
+        response = my_view(request)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'ACTION': 'LIST'}
+
+    def test_head_request_against_viewset(self):
+        request = factory.head('/', '', content_type='application/json')
+        my_view = BasicViewSet.as_view(actions={
+            'get': 'list',
+        })
+
+        response = my_view(request)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_initialize_view_set_with_empty_actions(self):
+        with pytest.raises(TypeError) as excinfo:
+            BasicViewSet.as_view()
+
+        assert str(excinfo.value) == (
+            "The `actions` argument must be provided "
+            "when calling `.as_view()` on a ViewSet. "
+            "For example `.as_view({'get': 'list'})`")
+
+    def test_initialize_view_set_with_both_name_and_suffix(self):
+        with pytest.raises(TypeError) as excinfo:
+            BasicViewSet.as_view(name='', suffix='', actions={
+                'get': 'list',
+            })
+
+        assert str(excinfo.value) == (
+            "BasicViewSet() received both `name` and `suffix`, "
+            "which are mutually exclusive arguments.")
+
+    def test_args_kwargs_request_action_map_on_self(self):
+        """
+        Test a view only has args, kwargs, request, action_map
+        once `as_view` has been called.
+        """
+        bare_view = InstanceViewSet()
+        view = InstanceViewSet.as_view(actions={
+            'get': 'dummy',
+        })(factory.get('/')).data['view']
+
+        for attribute in ('args', 'kwargs', 'request', 'action_map'):
+            self.assertNotIn(attribute, dir(bare_view))
+            self.assertIn(attribute, dir(view))
+
+    def test_viewset_action_attr(self):
+        view = ActionViewSet.as_view(actions={'get': 'list'})
+
+        get = view(factory.get('/'))
+        head = view(factory.head('/'))
+        assert get.view.action == 'list'
+        assert head.view.action == 'list'
+
+    def test_viewset_action_attr_for_extra_action(self):
+        view = ActionViewSet.as_view(actions=dict(ActionViewSet.list_action.mapping))
+
+        get = view(factory.get('/'))
+        head = view(factory.head('/'))
+        assert get.view.action == 'list_action'
+        assert head.view.action == 'list_action'
+
+    @unittest.skipUnless(DJANGO_VERSION >= (5, 1), 'Only for Django 5.1+')
+    def test_login_required_middleware_compat(self):
+        view = ActionViewSet.as_view(actions={'get': 'list'})
+        assert view.login_required is False
+
+
+class GetExtraActionsTests(TestCase):
+
+    def test_extra_actions(self):
+        view = ActionViewSet()
+        actual = [action.__name__ for action in view.get_extra_actions()]
+        expected = [
+            'custom_detail_action',
+            'custom_list_action',
+            'detail_action',
+            'list_action',
+            'unresolvable_detail_action',
+            'wrapped_detail_action',
+            'wrapped_list_action',
+        ]
+
+        self.assertEqual(actual, expected)
+
+    def test_should_only_return_decorated_methods(self):
+        view = ActionViewSetWithMapping()
+        actual = [action.__name__ for action in view.get_extra_actions()]
+        expected = [
+            'custom_detail_action',
+            'custom_list_action',
+            'detail_action',
+            'list_action',
+            'unresolvable_detail_action',
+            'wrapped_detail_action',
+            'wrapped_list_action',
+        ]
+        self.assertEqual(actual, expected)
+
+    def test_attr_name_check(self):
+        def decorate(fn):
+            def wrapper(self, request, *args, **kwargs):
+                return fn(self, request, *args, **kwargs)
+            return wrapper
+
+        class ActionViewSet(GenericViewSet):
+            queryset = Action.objects.all()
+
+            @action(detail=False)
+            @decorate
+            def wrapped_list_action(self, request, *args, **kwargs):
+                raise NotImplementedError
+
+        view = ActionViewSet()
+        with pytest.raises(AssertionError) as excinfo:
+            view.get_extra_actions()
+
+        assert str(excinfo.value) == (
+            'Expected function (`wrapper`) to match its attribute name '
+            '(`wrapped_list_action`). If using a decorator, ensure the inner '
+            'function is decorated with `functools.wraps`, or that '
+            '`wrapper.__name__` is otherwise set to `wrapped_list_action`.')
+
+
+@override_settings(ROOT_URLCONF='tests.test_viewsets')
+class GetExtraActionUrlMapTests(TestCase):
+
+    def test_list_view(self):
+        response = self.client.get('/api/actions/')
+        view = response.view
+
+        expected = {
+            'Custom list action': 'http://testserver/api/actions/custom_list_action/',
+            'List action': 'http://testserver/api/actions/list_action/',
+            'Wrapped list action': 'http://testserver/api/actions/wrapped_list_action/',
+        }
+
+        self.assertEqual(view.get_extra_action_url_map(), expected)
+
+    def test_detail_view(self):
+        response = self.client.get('/api/actions/1/')
+        view = response.view
+
+        expected = {
+            'Custom detail action': 'http://testserver/api/actions/1/custom_detail_action/',
+            'Detail action': 'http://testserver/api/actions/1/detail_action/',
+            'Wrapped detail action': 'http://testserver/api/actions/1/wrapped_detail_action/',
+            # "Unresolvable detail action" excluded, since it's not resolvable
+        }
+
+        self.assertEqual(view.get_extra_action_url_map(), expected)
+
+    def test_uninitialized_view(self):
+        self.assertEqual(ActionViewSet().get_extra_action_url_map(), {})
+
+    def test_action_names(self):
+        # Action 'name' and 'suffix' kwargs should be respected
+        response = self.client.get('/api/names/1/')
+        view = response.view
+
+        expected = {
+            'Custom Name': 'http://testserver/api/names/1/named_action/',
+            'Action Names Custom Suffix': 'http://testserver/api/names/1/suffixed_action/',
+            'Unnamed action': 'http://testserver/api/names/1/unnamed_action/',
+        }
+
+        self.assertEqual(view.get_extra_action_url_map(), expected)
+
+
+@override_settings(ROOT_URLCONF='tests.test_viewsets')
+class ReverseActionTests(TestCase):
+    def test_default_basename(self):
+        view = ActionViewSet()
+        view.basename = router.get_default_basename(ActionViewSet)
+        view.request = None
+
+        assert view.reverse_action('list') == '/api/actions/'
+        assert view.reverse_action('list-action') == '/api/actions/list_action/'
+        assert view.reverse_action('list-custom') == '/api/actions/custom_list_action/'
+
+        assert view.reverse_action('detail', args=['1']) == '/api/actions/1/'
+        assert view.reverse_action('detail-action', args=['1']) == '/api/actions/1/detail_action/'
+        assert view.reverse_action('detail-custom', args=['1']) == '/api/actions/1/custom_detail_action/'
+
+    def test_custom_basename(self):
+        view = ActionViewSet()
+        view.basename = 'actions-alt'
+        view.request = None
+
+        assert view.reverse_action('list') == '/api/actions-alt/'
+        assert view.reverse_action('list-action') == '/api/actions-alt/list_action/'
+        assert view.reverse_action('list-custom') == '/api/actions-alt/custom_list_action/'
+
+        assert view.reverse_action('detail', args=['1']) == '/api/actions-alt/1/'
+        assert view.reverse_action('detail-action', args=['1']) == '/api/actions-alt/1/detail_action/'
+        assert view.reverse_action('detail-custom', args=['1']) == '/api/actions-alt/1/custom_detail_action/'
+
+    def test_request_passing(self):
+        view = ActionViewSet()
+        view.basename = router.get_default_basename(ActionViewSet)
+        view.request = factory.get('/')
+
+        # Passing the view's request object should result in an absolute URL.
+        assert view.reverse_action('list') == 'http://testserver/api/actions/'
+
+        # Users should be able to explicitly not pass the view's request.
+        assert view.reverse_action('list', request=None) == '/api/actions/'
+
+
+# FILE: tests/test_views.py
+import copy
+import unittest
+
+from django import VERSION as DJANGO_VERSION
+from django.test import TestCase
+
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.settings import APISettings, api_settings
+from rest_framework.test import APIRequestFactory
+from rest_framework.views import APIView
+
+factory = APIRequestFactory()
+
+JSON_ERROR = 'JSON parse error - Expecting value:'
+
+
+class BasicView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response({'method': 'GET'})
+
+    def post(self, request, *args, **kwargs):
+        return Response({'method': 'POST', 'data': request.data})
+
+
+@api_view(['GET', 'POST', 'PUT', 'PATCH'])
+def basic_view(request):
+    if request.method == 'GET':
+        return {'method': 'GET'}
+    elif request.method == 'POST':
+        return {'method': 'POST', 'data': request.data}
+    elif request.method == 'PUT':
+        return {'method': 'PUT', 'data': request.data}
+    elif request.method == 'PATCH':
+        return {'method': 'PATCH', 'data': request.data}
+
+
+class ErrorView(APIView):
+    def get(self, request, *args, **kwargs):
+        raise Exception
+
+
+def custom_handler(exc, context):
+    if isinstance(exc, SyntaxError):
+        return Response({'error': 'SyntaxError'}, status=400)
+    return Response({'error': 'UnknownError'}, status=500)
+
+
+class OverriddenSettingsView(APIView):
+    settings = APISettings({'EXCEPTION_HANDLER': custom_handler})
+
+    def get(self, request, *args, **kwargs):
+        raise SyntaxError('request is invalid syntax')
+
+
+@api_view(['GET'])
+def error_view(request):
+    raise Exception
+
+
+def sanitise_json_error(error_dict):
+    """
+    Exact contents of JSON error messages depend on the installed version
+    of json.
+    """
+    ret = copy.copy(error_dict)
+    chop = len(JSON_ERROR)
+    ret['detail'] = ret['detail'][:chop]
+    return ret
+
+
+class ClassBasedViewIntegrationTests(TestCase):
+    def setUp(self):
+        self.view = BasicView.as_view()
+
+    def test_400_parse_error(self):
+        request = factory.post('/', 'f00bar', content_type='application/json')
+        response = self.view(request)
+        expected = {
+            'detail': JSON_ERROR
+        }
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert sanitise_json_error(response.data) == expected
+
+
+class FunctionBasedViewIntegrationTests(TestCase):
+    def setUp(self):
+        self.view = basic_view
+
+    def test_400_parse_error(self):
+        request = factory.post('/', 'f00bar', content_type='application/json')
+        response = self.view(request)
+        expected = {
+            'detail': JSON_ERROR
+        }
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert sanitise_json_error(response.data) == expected
+
+
+class TestCustomExceptionHandler(TestCase):
+    def setUp(self):
+        self.DEFAULT_HANDLER = api_settings.EXCEPTION_HANDLER
+
+        def exception_handler(exc, request):
+            return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
+
+        api_settings.EXCEPTION_HANDLER = exception_handler
+
+    def tearDown(self):
+        api_settings.EXCEPTION_HANDLER = self.DEFAULT_HANDLER
+
+    def test_class_based_view_exception_handler(self):
+        view = ErrorView.as_view()
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        expected = 'Error!'
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == expected
+
+    def test_function_based_view_exception_handler(self):
+        view = error_view
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        expected = 'Error!'
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == expected
+
+
+class TestCustomSettings(TestCase):
+    def setUp(self):
+        self.view = OverriddenSettingsView.as_view()
+
+    def test_get_exception_handler(self):
+        request = factory.get('/', content_type='application/json')
+        response = self.view(request)
+        assert response.status_code == 400
+        assert response.data == {'error': 'SyntaxError'}
+
+
+@unittest.skipUnless(DJANGO_VERSION >= (5, 1), 'Only for Django 5.1+')
+class TestLoginRequiredMiddlewareCompat(TestCase):
+    def test_class_based_view_opted_out(self):
+        class_based_view = BasicView.as_view()
+        assert class_based_view.login_required is False
+
+    def test_function_based_view_opted_out(self):
+        assert basic_view.login_required is False
+
+
+# FILE: tests/test_versioning.py
+import pytest
+from django.test import override_settings
+from django.urls import ResolverMatch, include, path, re_path
+
+from rest_framework import serializers, status, versioning
+from rest_framework.decorators import APIView
+from rest_framework.relations import PKOnlyObject
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.test import (
+    APIRequestFactory, APITestCase, URLPatternsTestCase
+)
+from rest_framework.versioning import NamespaceVersioning
+
+
+class RequestVersionView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response({'version': request.version})
+
+
+class ReverseView(APIView):
+    def get(self, request, *args, **kwargs):
+        return Response({'url': reverse('another', request=request)})
+
+
+class AllowedVersionsView(RequestVersionView):
+    def determine_version(self, request, *args, **kwargs):
+        scheme = self.versioning_class()
+        scheme.allowed_versions = ('v1', 'v2')
+        return (scheme.determine_version(request, *args, **kwargs), scheme)
+
+
+class AllowedAndDefaultVersionsView(RequestVersionView):
+    def determine_version(self, request, *args, **kwargs):
+        scheme = self.versioning_class()
+        scheme.allowed_versions = ('v1', 'v2')
+        scheme.default_version = 'v2'
+        return (scheme.determine_version(request, *args, **kwargs), scheme)
+
+
+class AllowedWithNoneVersionsView(RequestVersionView):
+    def determine_version(self, request, *args, **kwargs):
+        scheme = self.versioning_class()
+        scheme.allowed_versions = ('v1', 'v2', None)
+        return (scheme.determine_version(request, *args, **kwargs), scheme)
+
+
+class AllowedWithNoneAndDefaultVersionsView(RequestVersionView):
+    def determine_version(self, request, *args, **kwargs):
+        scheme = self.versioning_class()
+        scheme.allowed_versions = ('v1', 'v2', None)
+        scheme.default_version = 'v2'
+        return (scheme.determine_version(request, *args, **kwargs), scheme)
+
+
+factory = APIRequestFactory()
+
+
+def dummy_view(request):
+    pass
+
+
+def dummy_pk_view(request, pk):
+    pass
+
+
+class TestRequestVersion:
+    def test_unversioned(self):
+        view = RequestVersionView.as_view()
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'version': None}
+
+    def test_query_param_versioning(self):
+        scheme = versioning.QueryParameterVersioning
+        view = RequestVersionView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/?version=1.2.3')
+        response = view(request)
+        assert response.data == {'version': '1.2.3'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'version': None}
+
+    @override_settings(ALLOWED_HOSTS=['*'])
+    def test_host_name_versioning(self):
+        scheme = versioning.HostNameVersioning
+        view = RequestVersionView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_HOST='v1.example.org')
+        response = view(request)
+        assert response.data == {'version': 'v1'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'version': None}
+
+    def test_accept_header_versioning(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = RequestVersionView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json; version=1.2.3')
+        response = view(request)
+        assert response.data == {'version': '1.2.3'}
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='*/*; version=1.2.3')
+        response = view(request)
+        assert response.data == {'version': '1.2.3'}
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json')
+        response = view(request)
+        assert response.data == {'version': None}
+
+    def test_url_path_versioning(self):
+        scheme = versioning.URLPathVersioning
+        view = RequestVersionView.as_view(versioning_class=scheme)
+
+        request = factory.get('/1.2.3/endpoint/')
+        response = view(request, version='1.2.3')
+        assert response.data == {'version': '1.2.3'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'version': None}
+
+    def test_namespace_versioning(self):
+        class FakeResolverMatch(ResolverMatch):
+            namespace = 'v1'
+
+        scheme = versioning.NamespaceVersioning
+        view = RequestVersionView.as_view(versioning_class=scheme)
+
+        request = factory.get('/v1/endpoint/')
+        request.resolver_match = FakeResolverMatch
+        response = view(request, version='v1')
+        assert response.data == {'version': 'v1'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'version': None}
+
+
+class TestURLReversing(URLPatternsTestCase, APITestCase):
+    included = [
+        path('namespaced/', dummy_view, name='another'),
+        path('example/<int:pk>/', dummy_pk_view, name='example-detail')
+    ]
+
+    urlpatterns = [
+        path('v1/', include((included, 'v1'), namespace='v1')),
+        path('another/', dummy_view, name='another'),
+        re_path(r'^(?P<version>[v1|v2]+)/another/$', dummy_view, name='another'),
+        re_path(r'^(?P<foo>.+)/unversioned/$', dummy_view, name='unversioned'),
+
+    ]
+
+    def test_reverse_unversioned(self):
+        view = ReverseView.as_view()
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/'}
+
+    def test_reverse_query_param_versioning(self):
+        scheme = versioning.QueryParameterVersioning
+        view = ReverseView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/?version=v1')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/?version=v1'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/'}
+
+    @override_settings(ALLOWED_HOSTS=['*'])
+    def test_reverse_host_name_versioning(self):
+        scheme = versioning.HostNameVersioning
+        view = ReverseView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_HOST='v1.example.org')
+        response = view(request)
+        assert response.data == {'url': 'http://v1.example.org/another/'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/'}
+
+    def test_reverse_url_path_versioning(self):
+        scheme = versioning.URLPathVersioning
+        view = ReverseView.as_view(versioning_class=scheme)
+
+        request = factory.get('/v1/endpoint/')
+        response = view(request, version='v1')
+        assert response.data == {'url': 'http://testserver/v1/another/'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/'}
+
+        # Test fallback when kwargs is not None
+        request = factory.get('/v1/endpoint/')
+        request.versioning_scheme = scheme()
+        request.version = 'v1'
+
+        reversed_url = reverse('unversioned', request=request, kwargs={'foo': 'bar'})
+        assert reversed_url == 'http://testserver/bar/unversioned/'
+
+    def test_reverse_namespace_versioning(self):
+        class FakeResolverMatch(ResolverMatch):
+            namespace = 'v1'
+
+        scheme = versioning.NamespaceVersioning
+        view = ReverseView.as_view(versioning_class=scheme)
+
+        request = factory.get('/v1/endpoint/')
+        request.resolver_match = FakeResolverMatch
+        response = view(request, version='v1')
+        assert response.data == {'url': 'http://testserver/v1/namespaced/'}
+
+        request = factory.get('/endpoint/')
+        response = view(request)
+        assert response.data == {'url': 'http://testserver/another/'}
+
+
+class TestInvalidVersion:
+    def test_invalid_query_param_versioning(self):
+        scheme = versioning.QueryParameterVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/?version=v3')
+        response = view(request)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @override_settings(ALLOWED_HOSTS=['*'])
+    def test_invalid_host_name_versioning(self):
+        scheme = versioning.HostNameVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_HOST='v3.example.org')
+        response = view(request)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_invalid_accept_header_versioning(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json; version=v3')
+        response = view(request)
+        assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
+
+    def test_invalid_url_path_versioning(self):
+        scheme = versioning.URLPathVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/v3/endpoint/')
+        response = view(request, version='v3')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_invalid_namespace_versioning(self):
+        class FakeResolverMatch(ResolverMatch):
+            namespace = 'v3'
+
+        scheme = versioning.NamespaceVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/v3/endpoint/')
+        request.resolver_match = FakeResolverMatch
+        response = view(request, version='v3')
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestAllowedAndDefaultVersion:
+    def test_missing_without_default(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
+
+    def test_missing_with_default(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedAndDefaultVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'version': 'v2'}
+
+    def test_with_default(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedAndDefaultVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/',
+                              HTTP_ACCEPT='application/json; version=v2')
+        response = view(request)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_missing_without_default_but_none_allowed(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedWithNoneVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'version': None}
+
+    def test_missing_with_default_and_none_allowed(self):
+        scheme = versioning.AcceptHeaderVersioning
+        view = AllowedWithNoneAndDefaultVersionsView.as_view(versioning_class=scheme)
+
+        request = factory.get('/endpoint/', HTTP_ACCEPT='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {'version': 'v2'}
+
+
+class TestHyperlinkedRelatedField(URLPatternsTestCase, APITestCase):
+    included = [
+        path('namespaced/<int:pk>/', dummy_pk_view, name='namespaced'),
+    ]
+
+    urlpatterns = [
+        path('v1/', include((included, 'v1'), namespace='v1')),
+        path('v2/', include((included, 'v2'), namespace='v2'))
+    ]
+
+    def setUp(self):
+        super().setUp()
+
+        class MockQueryset:
+            def get(self, pk):
+                return 'object %s' % pk
+
+        self.field = serializers.HyperlinkedRelatedField(
+            view_name='namespaced',
+            queryset=MockQueryset()
+        )
+        request = factory.get('/')
+        request.versioning_scheme = NamespaceVersioning()
+        request.version = 'v1'
+        self.field._context = {'request': request}
+
+    def test_bug_2489(self):
+        assert self.field.to_internal_value('/v1/namespaced/3/') == 'object 3'
+        with pytest.raises(serializers.ValidationError):
+            self.field.to_internal_value('/v2/namespaced/3/')
+
+
+class TestNamespaceVersioningHyperlinkedRelatedFieldScheme(URLPatternsTestCase, APITestCase):
+    nested = [
+        path('namespaced/<int:pk>/', dummy_pk_view, name='nested'),
+    ]
+    included = [
+        path('namespaced/<int:pk>/', dummy_pk_view, name='namespaced'),
+        path('nested/', include((nested, 'nested-namespace'), namespace='nested-namespace'))
+    ]
+
+    urlpatterns = [
+        path('v1/', include((included, 'restframeworkv1'), namespace='v1')),
+        path('v2/', include((included, 'restframeworkv2'), namespace='v2')),
+        path('non-api/<int:pk>/', dummy_pk_view, name='non-api-view')
+    ]
+
+    def _create_field(self, view_name, version):
+        request = factory.get("/")
+        request.versioning_scheme = NamespaceVersioning()
+        request.version = version
+
+        field = serializers.HyperlinkedRelatedField(
+            view_name=view_name,
+            read_only=True)
+        field._context = {'request': request}
+        return field
+
+    def test_api_url_is_properly_reversed_with_v1(self):
+        field = self._create_field('namespaced', 'v1')
+        assert field.to_representation(PKOnlyObject(3)) == 'http://testserver/v1/namespaced/3/'
+
+    def test_api_url_is_properly_reversed_with_v2(self):
+        field = self._create_field('namespaced', 'v2')
+        assert field.to_representation(PKOnlyObject(5)) == 'http://testserver/v2/namespaced/5/'
+
+    def test_api_url_is_properly_reversed_with_nested(self):
+        field = self._create_field('nested', 'v1:nested-namespace')
+        assert field.to_representation(PKOnlyObject(3)) == 'http://testserver/v1/nested/namespaced/3/'
+
+    def test_non_api_url_is_properly_reversed_regardless_of_the_version(self):
+        """
+        Regression test for #2711
+        """
+        field = self._create_field('non-api-view', 'v1')
+        assert field.to_representation(PKOnlyObject(10)) == 'http://testserver/non-api/10/'
+
+        field = self._create_field('non-api-view', 'v2')
+        assert field.to_representation(PKOnlyObject(10)) == 'http://testserver/non-api/10/'
+
+
+# FILE: tests/test_validators.py
+import datetime
+import re
+from unittest.mock import MagicMock, patch
+
+import pytest
+from django import VERSION as django_version
+from django.db import DataError, models
+from django.test import TestCase
+
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.validators import (
+    BaseUniqueForValidator, UniqueTogetherValidator, UniqueValidator, qs_exists
+)
+
+
+def dedent(blocktext):
+    return '\n'.join([line[12:] for line in blocktext.splitlines()[1:-1]])
+
+
+# Tests for `UniqueValidator`
+# ---------------------------
+
+class UniquenessModel(models.Model):
+    username = models.CharField(unique=True, max_length=100)
+
+
+class UniquenessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniquenessModel
+        fields = '__all__'
+
+
+class RelatedModel(models.Model):
+    user = models.OneToOneField(UniquenessModel, on_delete=models.CASCADE)
+    email = models.CharField(unique=True, max_length=80)
+
+
+class RelatedModelSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username',
+        validators=[UniqueValidator(queryset=UniquenessModel.objects.all(), lookup='iexact')])  # NOQA
+
+    class Meta:
+        model = RelatedModel
+        fields = ('username', 'email')
+
+
+class RelatedModelUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RelatedModel
+        fields = ('user',)
+
+
+class AnotherUniquenessModel(models.Model):
+    code = models.IntegerField(unique=True)
+
+
+class AnotherUniquenessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnotherUniquenessModel
+        fields = '__all__'
+
+
+class IntegerFieldModel(models.Model):
+    integer = models.IntegerField()
+
+
+class UniquenessIntegerSerializer(serializers.Serializer):
+    # Note that this field *deliberately* does not correspond with the model field.
+    # This allows us to ensure that `ValueError`, `TypeError` or `DataError` etc
+    # raised by a uniqueness check does not trigger a deceptive "this field is not unique"
+    # validation failure.
+    integer = serializers.CharField(validators=[UniqueValidator(queryset=IntegerFieldModel.objects.all())])
+
+
+class TestUniquenessValidation(TestCase):
+    def setUp(self):
+        self.instance = UniquenessModel.objects.create(username='existing')
+
+    def test_repr(self):
+        serializer = UniquenessSerializer()
+        expected = dedent("""
+            UniquenessSerializer():
+                id = IntegerField(label='ID', read_only=True)
+                username = CharField(max_length=100, validators=[<UniqueValidator(queryset=UniquenessModel.objects.all())>])
+        """)
+        assert repr(serializer) == expected
+
+    def test_is_not_unique(self):
+        data = {'username': 'existing'}
+        serializer = UniquenessSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {'username': ['uniqueness model with this username already exists.']}
+
+    def test_relation_is_not_unique(self):
+        RelatedModel.objects.create(user=self.instance)
+        data = {'user': self.instance.pk}
+        serializer = RelatedModelUserSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {'user': ['related model with this user already exists.']}
+
+    def test_is_unique(self):
+        data = {'username': 'other'}
+        serializer = UniquenessSerializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {'username': 'other'}
+
+    def test_updated_instance_excluded(self):
+        data = {'username': 'existing'}
+        serializer = UniquenessSerializer(self.instance, data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {'username': 'existing'}
+
+    def test_doesnt_pollute_model(self):
+        instance = AnotherUniquenessModel.objects.create(code='100')
+        serializer = AnotherUniquenessSerializer(instance)
+        assert all(
+            ["Unique" not in repr(v) for v in AnotherUniquenessModel._meta.get_field('code').validators]
+        )
+
+        # Accessing data shouldn't effect validators on the model
+        serializer.data
+        assert all(
+            ["Unique" not in repr(v) for v in AnotherUniquenessModel._meta.get_field('code').validators]
+        )
+
+    def test_related_model_is_unique(self):
+        data = {'username': 'Existing', 'email': 'new-email@example.com'}
+        rs = RelatedModelSerializer(data=data)
+        assert not rs.is_valid()
+        assert rs.errors == {'username': ['This field must be unique.']}
+        data = {'username': 'new-username', 'email': 'new-email@example.com'}
+        rs = RelatedModelSerializer(data=data)
+        assert rs.is_valid()
+
+    def test_value_error_treated_as_not_unique(self):
+        serializer = UniquenessIntegerSerializer(data={'integer': 'abc'})
+        assert serializer.is_valid()
+
+
+# Tests for `UniqueTogetherValidator`
+# -----------------------------------
+
+class UniquenessTogetherModel(models.Model):
+    race_name = models.CharField(max_length=100)
+    position = models.IntegerField()
+
+    class Meta:
+        unique_together = ('race_name', 'position')
+
+
+class NullUniquenessTogetherModel(models.Model):
+    """
+    Used to ensure that null values are not included when checking
+    unique_together constraints.
+
+    Ignoring items which have a null in any of the validated fields is the same
+    behavior that database backends will use when they have the
+    unique_together constraint added.
+
+    Example case: a null position could indicate a non-finisher in the race,
+    there could be many non-finishers in a race, but all non-NULL
+    values *should* be unique against the given `race_name`.
+    """
+    date_of_birth = models.DateField(null=True)  # Not part of the uniqueness constraint
+    race_name = models.CharField(max_length=100)
+    position = models.IntegerField(null=True)
+
+    class Meta:
+        unique_together = ('race_name', 'position')
+
+
+class UniquenessTogetherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniquenessTogetherModel
+        fields = '__all__'
+
+
+class NullUniquenessTogetherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NullUniquenessTogetherModel
+        fields = '__all__'
+
+
+class TestUniquenessTogetherValidation(TestCase):
+    def setUp(self):
+        self.instance = UniquenessTogetherModel.objects.create(
+            race_name='example',
+            position=1
+        )
+        UniquenessTogetherModel.objects.create(
+            race_name='example',
+            position=2
+        )
+        UniquenessTogetherModel.objects.create(
+            race_name='other',
+            position=1
+        )
+
+    def test_repr(self):
+        serializer = UniquenessTogetherSerializer()
+        expected = dedent(r"""
+            UniquenessTogetherSerializer\(\):
+                id = IntegerField\(label='ID', read_only=True\)
+                race_name = CharField\(max_length=100, required=True\)
+                position = IntegerField\(.*required=True\)
+                class Meta:
+                    validators = \[<UniqueTogetherValidator\(queryset=UniquenessTogetherModel.objects.all\(\), fields=\('race_name', 'position'\)\)>\]
+        """)
+        assert re.search(expected, repr(serializer)) is not None
+
+    def test_is_not_unique_together(self):
+        """
+        Failing unique together validation should result in non field errors.
+        """
+        data = {'race_name': 'example', 'position': 2}
+        serializer = UniquenessTogetherSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'non_field_errors': [
+                'The fields race_name, position must make a unique set.'
+            ]
+        }
+
+    def test_is_unique_together(self):
+        """
+        In a unique together validation, one field may be non-unique
+        so long as the set as a whole is unique.
+        """
+        data = {'race_name': 'other', 'position': 2}
+        serializer = UniquenessTogetherSerializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'race_name': 'other',
+            'position': 2
+        }
+
+    def test_updated_instance_excluded_from_unique_together(self):
+        """
+        When performing an update, the existing instance does not count
+        as a match against uniqueness.
+        """
+        data = {'race_name': 'example', 'position': 1}
+        serializer = UniquenessTogetherSerializer(self.instance, data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'race_name': 'example',
+            'position': 1
+        }
+
+    def test_unique_together_is_required(self):
+        """
+        In a unique together validation, all fields are required.
+        """
+        data = {'position': 2}
+        serializer = UniquenessTogetherSerializer(data=data, partial=True)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'race_name': ['This field is required.']
+        }
+
+    def test_ignore_excluded_fields(self):
+        """
+        When model fields are not included in a serializer, then uniqueness
+        validators should not be added for that field.
+        """
+        class ExcludedFieldSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ('id', 'race_name',)
+        serializer = ExcludedFieldSerializer()
+        expected = dedent("""
+            ExcludedFieldSerializer():
+                id = IntegerField(label='ID', read_only=True)
+                race_name = CharField(max_length=100)
+        """)
+        assert repr(serializer) == expected
+
+    def test_ignore_read_only_fields(self):
+        """
+        When serializer fields are read only, then uniqueness
+        validators should not be added for that field.
+        """
+        class ReadOnlyFieldSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ('id', 'race_name', 'position')
+                read_only_fields = ('race_name',)
+
+        serializer = ReadOnlyFieldSerializer()
+        expected = dedent(r"""
+            ReadOnlyFieldSerializer\(\):
+                id = IntegerField\(label='ID', read_only=True\)
+                race_name = CharField\(read_only=True\)
+                position = IntegerField\(.*required=True\)
+        """)
+        assert re.search(expected, repr(serializer)) is not None
+
+    def test_read_only_fields_with_default(self):
+        """
+        Special case of read_only + default DOES validate unique_together.
+        """
+        class ReadOnlyFieldWithDefaultSerializer(serializers.ModelSerializer):
+            race_name = serializers.CharField(max_length=100, read_only=True, default='example')
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ('id', 'race_name', 'position')
+
+        data = {'position': 2}
+        serializer = ReadOnlyFieldWithDefaultSerializer(data=data)
+
+        assert len(serializer.validators) == 1
+        assert isinstance(serializer.validators[0], UniqueTogetherValidator)
+        assert serializer.validators[0].fields == ('race_name', 'position')
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'non_field_errors': [
+                'The fields race_name, position must make a unique set.'
+            ]
+        }
+
+    def test_read_only_fields_with_default_and_source(self):
+        class ReadOnlySerializer(serializers.ModelSerializer):
+            name = serializers.CharField(source='race_name', default='test', read_only=True)
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ['name', 'position']
+                validators = [
+                    UniqueTogetherValidator(
+                        queryset=UniquenessTogetherModel.objects.all(),
+                        fields=['name', 'position']
+                    )
+                ]
+
+        serializer = ReadOnlySerializer(data={'position': 1})
+        assert serializer.is_valid(raise_exception=True)
+
+    def test_writeable_fields_with_source(self):
+        class WriteableSerializer(serializers.ModelSerializer):
+            name = serializers.CharField(source='race_name')
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ['name', 'position']
+                validators = [
+                    UniqueTogetherValidator(
+                        queryset=UniquenessTogetherModel.objects.all(),
+                        fields=['name', 'position']
+                    )
+                ]
+
+        serializer = WriteableSerializer(data={'name': 'test', 'position': 1})
+        assert serializer.is_valid(raise_exception=True)
+
+        # Validation error should use seriazlier field name, not source
+        serializer = WriteableSerializer(data={'position': 1})
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'name': [
+                'This field is required.'
+            ]
+        }
+
+    def test_default_validator_with_fields_with_source(self):
+        class TestSerializer(serializers.ModelSerializer):
+            name = serializers.CharField(source='race_name')
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ['name', 'position']
+
+        serializer = TestSerializer()
+        expected = dedent(r"""
+            TestSerializer\(\):
+                name = CharField\(source='race_name'\)
+                position = IntegerField\(.*\)
+                class Meta:
+                    validators = \[<UniqueTogetherValidator\(queryset=UniquenessTogetherModel.objects.all\(\), fields=\('name', 'position'\)\)>\]
+        """)
+        assert re.search(expected, repr(serializer)) is not None
+
+    def test_default_validator_with_multiple_fields_with_same_source(self):
+        class TestSerializer(serializers.ModelSerializer):
+            name = serializers.CharField(source='race_name')
+            other_name = serializers.CharField(source='race_name')
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ['name', 'other_name', 'position']
+
+        serializer = TestSerializer(data={
+            'name': 'foo',
+            'other_name': 'foo',
+            'position': 1,
+        })
+        with pytest.raises(AssertionError) as excinfo:
+            serializer.is_valid()
+
+        expected = (
+            "Unable to create `UniqueTogetherValidator` for "
+            "`UniquenessTogetherModel.race_name` as `TestSerializer` has "
+            "multiple fields (name, other_name) that map to this model field. "
+            "Either remove the extra fields, or override `Meta.validators` "
+            "with a `UniqueTogetherValidator` using the desired field names.")
+        assert str(excinfo.value) == expected
+
+    def test_allow_explicit_override(self):
+        """
+        Ensure validators can be explicitly removed..
+        """
+        class NoValidatorsSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ('id', 'race_name', 'position')
+                validators = []
+
+        serializer = NoValidatorsSerializer()
+        expected = dedent(r"""
+            NoValidatorsSerializer\(\):
+                id = IntegerField\(label='ID', read_only=True.*\)
+                race_name = CharField\(max_length=100\)
+                position = IntegerField\(.*\)
+        """)
+        assert re.search(expected, repr(serializer)) is not None
+
+    def test_ignore_validation_for_null_fields(self):
+        # None values that are on fields which are part of the uniqueness
+        # constraint cause the instance to ignore uniqueness validation.
+        NullUniquenessTogetherModel.objects.create(
+            date_of_birth=datetime.date(2000, 1, 1),
+            race_name='Paris Marathon',
+            position=None
+        )
+        data = {
+            'date': datetime.date(2000, 1, 1),
+            'race_name': 'Paris Marathon',
+            'position': None
+        }
+        serializer = NullUniquenessTogetherSerializer(data=data)
+        assert serializer.is_valid()
+
+    def test_ignore_validation_for_missing_nullable_fields(self):
+        data = {
+            'date': datetime.date(2000, 1, 1),
+            'race_name': 'Paris Marathon',
+        }
+        serializer = NullUniquenessTogetherSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_do_not_ignore_validation_for_null_fields(self):
+        # None values that are not on fields part of the uniqueness constraint
+        # do not cause the instance to skip validation.
+        NullUniquenessTogetherModel.objects.create(
+            date_of_birth=datetime.date(2000, 1, 1),
+            race_name='Paris Marathon',
+            position=1
+        )
+        data = {'date': None, 'race_name': 'Paris Marathon', 'position': 1}
+        serializer = NullUniquenessTogetherSerializer(data=data)
+        assert not serializer.is_valid()
+
+    def test_ignore_validation_for_unchanged_fields(self):
+        """
+        If all fields in the unique together constraint are unchanged,
+        then the instance should skip uniqueness validation.
+        """
+        instance = UniquenessTogetherModel.objects.create(
+            race_name="Paris Marathon", position=1
+        )
+        data = {"race_name": "Paris Marathon", "position": 1}
+        serializer = UniquenessTogetherSerializer(data=data, instance=instance)
+        with patch(
+            "rest_framework.validators.qs_exists"
+        ) as mock:
+            assert serializer.is_valid()
+            assert not mock.called
+
+    @patch("rest_framework.validators.qs_exists")
+    def test_unique_together_with_source(self, mock_qs_exists):
+        class UniqueTogetherWithSourceSerializer(serializers.ModelSerializer):
+            name = serializers.CharField(source="race_name")
+            pos = serializers.IntegerField(source="position")
+
+            class Meta:
+                model = UniquenessTogetherModel
+                fields = ["name", "pos"]
+
+        data = {"name": "Paris Marathon", "pos": 1}
+        instance = UniquenessTogetherModel.objects.create(
+            race_name="Paris Marathon", position=1
+        )
+        serializer = UniqueTogetherWithSourceSerializer(data=data)
+        assert not serializer.is_valid()
+        assert mock_qs_exists.called
+        mock_qs_exists.reset_mock()
+        serializer = UniqueTogetherWithSourceSerializer(data=data, instance=instance)
+        assert serializer.is_valid()
+        assert not mock_qs_exists.called
+
+    def test_filter_queryset_do_not_skip_existing_attribute(self):
+        """
+        filter_queryset should add value from existing instance attribute
+        if it is not provided in attributes dict
+        """
+        class MockQueryset:
+            def filter(self, **kwargs):
+                self.called_with = kwargs
+
+        data = {'race_name': 'bar'}
+        queryset = MockQueryset()
+        serializer = UniquenessTogetherSerializer(instance=self.instance)
+        validator = UniqueTogetherValidator(queryset, fields=('race_name',
+                                                              'position'))
+        validator.filter_queryset(attrs=data, queryset=queryset, serializer=serializer)
+        assert queryset.called_with == {'race_name': 'bar', 'position': 1}
+
+    def test_uniq_together_validation_uses_model_fields_method_field(self):
+        class TestSerializer(serializers.ModelSerializer):
+            position = serializers.SerializerMethodField()
+
+            def get_position(self, obj):
+                return obj.position or 0
+
+            class Meta:
+                model = NullUniquenessTogetherModel
+                fields = ['race_name', 'position']
+
+        serializer = TestSerializer()
+        expected = dedent("""
+            TestSerializer():
+                race_name = CharField(max_length=100)
+                position = SerializerMethodField()
+        """)
+        assert repr(serializer) == expected
+
+    def test_uniq_together_validation_uses_model_fields_with_source_field(self):
+        class TestSerializer(serializers.ModelSerializer):
+            pos = serializers.IntegerField(source='position')
+
+            class Meta:
+                model = NullUniquenessTogetherModel
+                fields = ['race_name', 'pos']
+
+        serializer = TestSerializer()
+        expected = dedent("""
+            TestSerializer():
+                race_name = CharField(max_length=100, required=True)
+                pos = IntegerField(source='position')
+                class Meta:
+                    validators = [<UniqueTogetherValidator(queryset=NullUniquenessTogetherModel.objects.all(), fields=('race_name', 'pos'))>]
+        """)
+        assert repr(serializer) == expected
+
+
+class UniqueConstraintModel(models.Model):
+    race_name = models.CharField(max_length=100)
+    position = models.IntegerField()
+    global_id = models.IntegerField()
+    fancy_conditions = models.IntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_constraint_model_global_id_uniq",
+                fields=('global_id',),
+            ),
+            models.UniqueConstraint(
+                name="unique_constraint_model_fancy_1_uniq",
+                fields=('fancy_conditions',),
+                condition=models.Q(global_id__lte=1)
+            ),
+            models.UniqueConstraint(
+                name="unique_constraint_model_fancy_3_uniq",
+                fields=('fancy_conditions',),
+                condition=models.Q(global_id__gte=3)
+            ),
+            models.UniqueConstraint(
+                name="unique_constraint_model_together_uniq",
+                fields=('race_name', 'position'),
+                condition=models.Q(race_name='example'),
+            ),
+            models.UniqueConstraint(
+                name='unique_constraint_model_together_uniq2',
+                fields=('race_name', 'position'),
+                condition=models.Q(fancy_conditions__gte=10),
+            ),
+        ]
+
+
+class UniqueConstraintReadOnlyFieldModel(models.Model):
+    state = models.CharField(max_length=100, default="new")
+    position = models.IntegerField()
+    something = models.IntegerField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_constraint_%(class)s",
+                fields=("position", "something"),
+                condition=models.Q(state="new"),
+            ),
+        ]
+
+
+class UniqueConstraintNullableModel(models.Model):
+    title = models.CharField(max_length=100)
+    age = models.IntegerField(null=True)
+    tag = models.CharField(max_length=100, null=True)
+
+    class Meta:
+        constraints = [
+            # Unique constraint on 2 nullable fields
+            models.UniqueConstraint(name='unique_constraint', fields=('age', 'tag'))
+        ]
+
+
+class UniqueConstraintCustomMessageCodeModel(models.Model):
+    username = models.CharField(max_length=32)
+    company_id = models.IntegerField()
+    role = models.CharField(max_length=32)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("username", "company_id"),
+                name="unique_username_company_custom_msg",
+                violation_error_message="Username must be unique within a company.",
+                **(dict(violation_error_code="duplicate_username") if django_version[0] >= 5 else {}),
+            ),
+            models.UniqueConstraint(
+                fields=("company_id", "role"),
+                name="unique_company_role_default_msg",
+            ),
+        ]
+
+
+class UniqueConstraintSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueConstraintModel
+        fields = '__all__'
+
+
+class UniqueConstraintNullableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueConstraintNullableModel
+        fields = ('title', 'age', 'tag')
+
+
+class UniqueConstraintCustomMessageCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueConstraintCustomMessageCodeModel
+        fields = ('username', 'company_id', 'role')
+
+
+class TestUniqueConstraintValidation(TestCase):
+    def setUp(self):
+        self.instance = UniqueConstraintModel.objects.create(
+            race_name='example',
+            position=1,
+            global_id=1,
+            fancy_conditions=1
+        )
+        UniqueConstraintModel.objects.create(
+            race_name='example',
+            position=2,
+            global_id=2,
+            fancy_conditions=1
+        )
+        UniqueConstraintModel.objects.create(
+            race_name='other',
+            position=1,
+            global_id=3,
+            fancy_conditions=1
+        )
+
+    def test_repr(self):
+        serializer = UniqueConstraintSerializer()
+        # the order of validators isn't deterministic so delete
+        # fancy_conditions field that has two of them
+        del serializer.fields['fancy_conditions']
+        expected = dedent(r"""
+            UniqueConstraintSerializer\(\):
+                id = IntegerField\(label='ID', read_only=True\)
+                race_name = CharField\(max_length=100, required=True\)
+                position = IntegerField\(.*required=True\)
+                global_id = IntegerField\(.*validators=\[<UniqueValidator\(queryset=UniqueConstraintModel.objects.all\(\)\)>\]\)
+                class Meta:
+                    validators = \[<UniqueTogetherValidator\(queryset=UniqueConstraintModel.objects.all\(\), fields=\('race_name', 'position'\), condition=<Q: \(AND: \('race_name', 'example'\)\)>\)>\]
+        """)
+        assert re.search(expected, repr(serializer)) is not None
+
+    def test_unique_together_condition(self):
+        """
+        Fields used in UniqueConstraint's condition must be included
+        into queryset existence check
+        """
+        UniqueConstraintModel.objects.create(
+            race_name='condition',
+            position=1,
+            global_id=10,
+            fancy_conditions=10,
+        )
+        serializer = UniqueConstraintSerializer(data={
+            'race_name': 'condition',
+            'position': 1,
+            'global_id': 11,
+            'fancy_conditions': 9,
+        })
+        assert serializer.is_valid()
+        serializer = UniqueConstraintSerializer(data={
+            'race_name': 'condition',
+            'position': 1,
+            'global_id': 11,
+            'fancy_conditions': 11,
+        })
+        assert not serializer.is_valid()
+
+    def test_unique_together_condition_fields_required(self):
+        """
+        Fields used in UniqueConstraint's condition must be present in serializer
+        """
+        serializer = UniqueConstraintSerializer(data={
+            'race_name': 'condition',
+            'position': 1,
+            'global_id': 11,
+        })
+        assert not serializer.is_valid()
+        assert serializer.errors == {'fancy_conditions': ['This field is required.']}
+
+        class NoFieldsSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniqueConstraintModel
+                fields = ('race_name', 'position', 'global_id')
+
+        serializer = NoFieldsSerializer()
+        assert len(serializer.validators) == 1
+
+    def test_single_field_uniq_validators(self):
+        """
+        UniqueConstraint with single field must be transformed into
+        field's UniqueValidator
+        """
+        # Django 5 includes Max and Min values validators for IntegerField
+        extra_validators_qty = 2 if django_version[0] >= 5 else 0
+        serializer = UniqueConstraintSerializer()
+        assert len(serializer.validators) == 2
+        validators = serializer.fields['global_id'].validators
+        assert len(validators) == 1 + extra_validators_qty
+        assert validators[0].queryset == UniqueConstraintModel.objects
+
+        validators = serializer.fields['fancy_conditions'].validators
+        assert len(validators) == 2 + extra_validators_qty
+        ids_in_qs = {frozenset(v.queryset.values_list('id', flat=True)) for v in validators if hasattr(v, "queryset")}
+        assert ids_in_qs == {frozenset([1]), frozenset([3])}
+
+    def test_nullable_unique_constraint_fields_are_not_required(self):
+        serializer = UniqueConstraintNullableSerializer(data={'title': 'Bob'})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        result = serializer.save()
+        self.assertIsInstance(result, UniqueConstraintNullableModel)
+
+    def test_unique_constraint_source(self):
+        class SourceUniqueConstraintSerializer(serializers.ModelSerializer):
+            raceName = serializers.CharField(source="race_name")
+
+            class Meta:
+                model = UniqueConstraintModel
+                fields = ("raceName", "position", "global_id", "fancy_conditions")
+
+        serializer = SourceUniqueConstraintSerializer(
+            data={
+                "raceName": "example",
+                "position": 5,
+                "global_id": 11,
+                "fancy_conditions": 11,
+            }
+        )
+        assert serializer.is_valid()
+
+    def test_uniq_constraint_condition_read_only_create(self):
+        class UniqueConstraintReadOnlyFieldModelSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniqueConstraintReadOnlyFieldModel
+                read_only_fields = ("state",)
+                fields = ("position", "something", *read_only_fields)
+        serializer = UniqueConstraintReadOnlyFieldModelSerializer(
+            data={"position": 1, "something": 1}
+        )
+        assert serializer.is_valid()
+
+    def test_uniq_constraint_condition_read_only_partial(self):
+        class UniqueConstraintReadOnlyFieldModelSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = UniqueConstraintReadOnlyFieldModel
+                read_only_fields = ("state",)
+                fields = ("position", "something", *read_only_fields)
+        instance = UniqueConstraintReadOnlyFieldModel.objects.create(position=1, something=1)
+        serializer = UniqueConstraintReadOnlyFieldModelSerializer(
+            instance=instance,
+            data={"position": 1, "something": 1},
+            partial=True
+        )
+        assert serializer.is_valid()
+
+    def test_unique_constraint_custom_message_code(self):
+        UniqueConstraintCustomMessageCodeModel.objects.create(username="Alice", company_id=1, role="member")
+        expected_code = "duplicate_username" if django_version[0] >= 5 else UniqueTogetherValidator.code
+
+        serializer = UniqueConstraintCustomMessageCodeSerializer(data={
+            "username": "Alice",
+            "company_id": 1,
+            "role": "admin",
+        })
+        assert not serializer.is_valid()
+        assert serializer.errors == {"non_field_errors": ["Username must be unique within a company."]}
+        assert serializer.errors["non_field_errors"][0].code == expected_code
+
+    def test_unique_constraint_default_message_code(self):
+        UniqueConstraintCustomMessageCodeModel.objects.create(username="Alice", company_id=1, role="member")
+        serializer = UniqueConstraintCustomMessageCodeSerializer(data={
+            "username": "John",
+            "company_id": 1,
+            "role": "member",
+        })
+        expected_message = UniqueTogetherValidator.message.format(field_names=', '.join(("company_id", "role")))
+        assert not serializer.is_valid()
+        assert serializer.errors == {"non_field_errors": [expected_message]}
+        assert serializer.errors["non_field_errors"][0].code == UniqueTogetherValidator.code
+
+
+# Tests for `UniqueForDateValidator`
+# ----------------------------------
+
+class UniqueForDateModel(models.Model):
+    slug = models.CharField(max_length=100, unique_for_date='published')
+    published = models.DateField()
+
+
+class UniqueForDateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueForDateModel
+        fields = '__all__'
+
+
+class TestUniquenessForDateValidation(TestCase):
+    def setUp(self):
+        self.instance = UniqueForDateModel.objects.create(
+            slug='existing',
+            published='2000-01-01'
+        )
+
+    def test_repr(self):
+        serializer = UniqueForDateSerializer()
+        expected = dedent("""
+            UniqueForDateSerializer():
+                id = IntegerField(label='ID', read_only=True)
+                slug = CharField(max_length=100)
+                published = DateField(required=True)
+                class Meta:
+                    validators = [<UniqueForDateValidator(queryset=UniqueForDateModel.objects.all(), field='slug', date_field='published')>]
+        """)
+        assert repr(serializer) == expected
+
+    def test_is_not_unique_for_date(self):
+        """
+        Failing unique for date validation should result in field error.
+        """
+        data = {'slug': 'existing', 'published': '2000-01-01'}
+        serializer = UniqueForDateSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'slug': ['This field must be unique for the "published" date.']
+        }
+
+    def test_is_unique_for_date(self):
+        """
+        Passing unique for date validation.
+        """
+        data = {'slug': 'existing', 'published': '2000-01-02'}
+        serializer = UniqueForDateSerializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'slug': 'existing',
+            'published': datetime.date(2000, 1, 2)
+        }
+
+    def test_updated_instance_excluded_from_unique_for_date(self):
+        """
+        When performing an update, the existing instance does not count
+        as a match against unique_for_date.
+        """
+        data = {'slug': 'existing', 'published': '2000-01-01'}
+        serializer = UniqueForDateSerializer(instance=self.instance, data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'slug': 'existing',
+            'published': datetime.date(2000, 1, 1)
+        }
+
+# Tests for `UniqueForMonthValidator`
+# ----------------------------------
+
+
+class UniqueForMonthModel(models.Model):
+    slug = models.CharField(max_length=100, unique_for_month='published')
+    published = models.DateField()
+
+
+class UniqueForMonthSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueForMonthModel
+        fields = '__all__'
+
+
+class UniqueForMonthTests(TestCase):
+
+    def setUp(self):
+        self.instance = UniqueForMonthModel.objects.create(
+            slug='existing', published='2017-01-01'
+        )
+
+    def test_not_unique_for_month(self):
+        data = {'slug': 'existing', 'published': '2017-01-01'}
+        serializer = UniqueForMonthSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'slug': ['This field must be unique for the "published" month.']
+        }
+
+    def test_unique_for_month(self):
+        data = {'slug': 'existing', 'published': '2017-02-01'}
+        serializer = UniqueForMonthSerializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'slug': 'existing',
+            'published': datetime.date(2017, 2, 1)
+        }
+
+# Tests for `UniqueForYearValidator`
+# ----------------------------------
+
+
+class UniqueForYearModel(models.Model):
+    slug = models.CharField(max_length=100, unique_for_year='published')
+    published = models.DateField()
+
+
+class UniqueForYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UniqueForYearModel
+        fields = '__all__'
+
+
+class UniqueForYearTests(TestCase):
+
+    def setUp(self):
+        self.instance = UniqueForYearModel.objects.create(
+            slug='existing', published='2017-01-01'
+        )
+
+    def test_not_unique_for_year(self):
+        data = {'slug': 'existing', 'published': '2017-01-01'}
+        serializer = UniqueForYearSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'slug': ['This field must be unique for the "published" year.']
+        }
+
+    def test_unique_for_year(self):
+        data = {'slug': 'existing', 'published': '2018-01-01'}
+        serializer = UniqueForYearSerializer(data=data)
+        assert serializer.is_valid()
+        assert serializer.validated_data == {
+            'slug': 'existing',
+            'published': datetime.date(2018, 1, 1)
+        }
+
+
+class HiddenFieldUniqueForDateModel(models.Model):
+    slug = models.CharField(max_length=100, unique_for_date='published')
+    published = models.DateTimeField(auto_now_add=True)
+
+
+class TestHiddenFieldUniquenessForDateValidation(TestCase):
+    def test_repr_date_field_not_included(self):
+        class TestSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = HiddenFieldUniqueForDateModel
+                fields = ('id', 'slug')
+
+        serializer = TestSerializer()
+        expected = dedent("""
+            TestSerializer():
+                id = IntegerField(label='ID', read_only=True)
+                slug = CharField(max_length=100)
+                published = HiddenField(default=CreateOnlyDefault(<function now>))
+                class Meta:
+                    validators = [<UniqueForDateValidator(queryset=HiddenFieldUniqueForDateModel.objects.all(), field='slug', date_field='published')>]
+        """)
+        assert repr(serializer) == expected
+
+    def test_repr_date_field_included(self):
+        class TestSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = HiddenFieldUniqueForDateModel
+                fields = ('id', 'slug', 'published')
+
+        serializer = TestSerializer()
+        expected = dedent("""
+            TestSerializer():
+                id = IntegerField(label='ID', read_only=True)
+                slug = CharField(max_length=100)
+                published = DateTimeField(default=CreateOnlyDefault(<function now>), read_only=True)
+                class Meta:
+                    validators = [<UniqueForDateValidator(queryset=HiddenFieldUniqueForDateModel.objects.all(), field='slug', date_field='published')>]
+        """)
+        assert repr(serializer) == expected
+
+
+class ValidatorsTests(TestCase):
+
+    def test_qs_exists_handles_type_error(self):
+        class TypeErrorQueryset:
+            def exists(self):
+                raise TypeError
+        assert qs_exists(TypeErrorQueryset()) is False
+
+    def test_qs_exists_handles_value_error(self):
+        class ValueErrorQueryset:
+            def exists(self):
+                raise ValueError
+        assert qs_exists(ValueErrorQueryset()) is False
+
+    def test_qs_exists_handles_data_error(self):
+        class DataErrorQueryset:
+            def exists(self):
+                raise DataError
+        assert qs_exists(DataErrorQueryset()) is False
+
+    def test_validator_raises_error_if_not_all_fields_are_provided(self):
+        validator = BaseUniqueForValidator(queryset=object(), field='foo',
+                                           date_field='bar')
+        attrs = {'foo': 'baz'}
+        with pytest.raises(ValidationError):
+            validator.enforce_required_fields(attrs)
+
+    def test_validator_raises_error_when_abstract_method_called(self):
+        validator = BaseUniqueForValidator(queryset=object(), field='foo',
+                                           date_field='bar')
+        with pytest.raises(NotImplementedError):
+            validator.filter_queryset(
+                attrs=None, queryset=None, field_name='', date_field_name=''
+            )
+
+    def test_equality_operator(self):
+        mock_queryset = MagicMock()
+        validator = BaseUniqueForValidator(queryset=mock_queryset, field='foo',
+                                           date_field='bar')
+        validator2 = BaseUniqueForValidator(queryset=mock_queryset, field='foo',
+                                            date_field='bar')
+        assert validator == validator2
+        validator2.date_field = "bar2"
+        assert validator != validator2
+
+
+# FILE: tests/test_validation_error.py
+from django.test import TestCase
+
+from rest_framework import serializers, status
+from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.settings import api_settings
+from rest_framework.test import APIRequestFactory
+from rest_framework.views import APIView
+
+factory = APIRequestFactory()
+
+
+class ExampleSerializer(serializers.Serializer):
+    char = serializers.CharField()
+    integer = serializers.IntegerField()
+
+
+class ErrorView(APIView):
+    def get(self, request, *args, **kwargs):
+        ExampleSerializer(data={}).is_valid(raise_exception=True)
+
+
+@api_view(['GET'])
+def error_view(request):
+    ExampleSerializer(data={}).is_valid(raise_exception=True)
+
+
+class TestValidationErrorWithFullDetails(TestCase):
+    def setUp(self):
+        self.DEFAULT_HANDLER = api_settings.EXCEPTION_HANDLER
+
+        def exception_handler(exc, request):
+            data = exc.get_full_details()
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+        api_settings.EXCEPTION_HANDLER = exception_handler
+
+        self.expected_response_data = {
+            'char': [{
+                'message': 'This field is required.',
+                'code': 'required',
+            }],
+            'integer': [{
+                'message': 'This field is required.',
+                'code': 'required'
+            }],
+        }
+
+    def tearDown(self):
+        api_settings.EXCEPTION_HANDLER = self.DEFAULT_HANDLER
+
+    def test_class_based_view_exception_handler(self):
+        view = ErrorView.as_view()
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == self.expected_response_data
+
+    def test_function_based_view_exception_handler(self):
+        view = error_view
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == self.expected_response_data
+
+
+class TestValidationErrorWithCodes(TestCase):
+    def setUp(self):
+        self.DEFAULT_HANDLER = api_settings.EXCEPTION_HANDLER
+
+        def exception_handler(exc, request):
+            data = exc.get_codes()
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+        api_settings.EXCEPTION_HANDLER = exception_handler
+
+        self.expected_response_data = {
+            'char': ['required'],
+            'integer': ['required'],
+        }
+
+    def tearDown(self):
+        api_settings.EXCEPTION_HANDLER = self.DEFAULT_HANDLER
+
+    def test_class_based_view_exception_handler(self):
+        view = ErrorView.as_view()
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == self.expected_response_data
+
+    def test_function_based_view_exception_handler(self):
+        view = error_view
+
+        request = factory.get('/', content_type='application/json')
+        response = view(request)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == self.expected_response_data
+
+
+class TestValidationErrorConvertsTuplesToLists(TestCase):
+    def test_validation_error_details(self):
+        error = ValidationError(detail=('message1', 'message2'))
+        assert isinstance(error.detail, list)
+        assert len(error.detail) == 2
+        assert str(error.detail[0]) == 'message1'
+        assert str(error.detail[1]) == 'message2'
+
+
+# FILE: tests/test_validation.py
+import re
+
+from django.core.validators import MaxValueValidator, RegexValidator
+from django.db import models
+from django.test import TestCase
+
+from rest_framework import generics, serializers, status
+from rest_framework.test import APIRequestFactory
+
+factory = APIRequestFactory()
+
+
+# Regression for #666
+
+class ValidationModel(models.Model):
+    blank_validated_field = models.CharField(max_length=255)
+
+
+class ValidationModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationModel
+        fields = ('blank_validated_field',)
+        read_only_fields = ('blank_validated_field',)
+
+
+class UpdateValidationModel(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ValidationModel.objects.all()
+    serializer_class = ValidationModelSerializer
+
+
+# Regression for #653
+
+class ShouldValidateModel(models.Model):
+    should_validate_field = models.CharField(max_length=255)
+
+
+class ShouldValidateModelSerializer(serializers.ModelSerializer):
+    renamed = serializers.CharField(source='should_validate_field', required=False)
+
+    def validate_renamed(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError('Minimum 3 characters.')
+        return value
+
+    class Meta:
+        model = ShouldValidateModel
+        fields = ('renamed',)
+
+
+class TestNestedValidationError(TestCase):
+    def test_nested_validation_error_detail(self):
+        """
+        Ensure nested validation error detail is rendered correctly.
+        """
+        e = serializers.ValidationError({
+            'nested': {
+                'field': ['error'],
+            }
+        })
+
+        assert serializers.as_serializer_error(e) == {
+            'nested': {
+                'field': ['error'],
+            }
+        }
+
+
+class TestPreSaveValidationExclusionsSerializer(TestCase):
+    def test_renamed_fields_are_model_validated(self):
+        """
+        Ensure fields with 'source' applied do get still get model validation.
+        """
+        # We've set `required=False` on the serializer, but the model
+        # does not have `blank=True`, so this serializer should not validate.
+        serializer = ShouldValidateModelSerializer(data={'renamed': ''})
+        assert serializer.is_valid() is False
+        assert 'renamed' in serializer.errors
+        assert 'should_validate_field' not in serializer.errors
+
+
+class TestCustomValidationMethods(TestCase):
+    def test_custom_validation_method_is_executed(self):
+        serializer = ShouldValidateModelSerializer(data={'renamed': 'fo'})
+        assert not serializer.is_valid()
+        assert 'renamed' in serializer.errors
+
+    def test_custom_validation_method_passing(self):
+        serializer = ShouldValidateModelSerializer(data={'renamed': 'foo'})
+        assert serializer.is_valid()
+
+
+class ValidationSerializer(serializers.Serializer):
+    foo = serializers.CharField()
+
+    def validate_foo(self, attrs, source):
+        raise serializers.ValidationError("foo invalid")
+
+    def validate(self, attrs):
+        raise serializers.ValidationError("serializer invalid")
+
+
+class TestAvoidValidation(TestCase):
+    """
+    If serializer was initialized with invalid data (None or non dict-like), it
+    should avoid validation layer (validate_<field> and validate methods)
+    """
+    def test_serializer_errors_has_only_invalid_data_error(self):
+        serializer = ValidationSerializer(data='invalid data')
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'non_field_errors': [
+                'Invalid data. Expected a dictionary, but got str.',
+            ]
+        }
+
+
+# regression tests for issue: 1493
+
+class ValidationMaxValueValidatorModel(models.Model):
+    number_value = models.PositiveIntegerField(validators=[MaxValueValidator(100)])
+
+
+class ValidationMaxValueValidatorModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationMaxValueValidatorModel
+        fields = '__all__'
+
+
+class UpdateMaxValueValidationModel(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ValidationMaxValueValidatorModel.objects.all()
+    serializer_class = ValidationMaxValueValidatorModelSerializer
+
+
+class TestMaxValueValidatorValidation(TestCase):
+
+    def test_max_value_validation_serializer_success(self):
+        serializer = ValidationMaxValueValidatorModelSerializer(data={'number_value': 99})
+        assert serializer.is_valid()
+
+    def test_max_value_validation_serializer_fails(self):
+        serializer = ValidationMaxValueValidatorModelSerializer(data={'number_value': 101})
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'number_value': [
+                'Ensure this value is less than or equal to 100.'
+            ]
+        }
+
+    def test_max_value_validation_success(self):
+        obj = ValidationMaxValueValidatorModel.objects.create(number_value=100)
+        request = factory.patch(f'/{obj.pk}', {'number_value': 98}, format='json')
+        view = UpdateMaxValueValidationModel().as_view()
+        response = view(request, pk=obj.pk).render()
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_max_value_validation_fail(self):
+        obj = ValidationMaxValueValidatorModel.objects.create(number_value=100)
+        request = factory.patch(f'/{obj.pk}', {'number_value': 101}, format='json')
+        view = UpdateMaxValueValidationModel().as_view()
+        response = view(request, pk=obj.pk).render()
+        assert response.content == b'{"number_value":["Ensure this value is less than or equal to 100."]}'
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# regression tests for issue: 1533
+
+class TestChoiceFieldChoicesValidate(TestCase):
+    CHOICES = [
+        (0, 'Small'),
+        (1, 'Medium'),
+        (2, 'Large'),
+    ]
+
+    SINGLE_CHOICES = [0, 1, 2]
+
+    CHOICES_NESTED = [
+        ('Category', (
+            (1, 'First'),
+            (2, 'Second'),
+            (3, 'Third'),
+        )),
+        (4, 'Fourth'),
+    ]
+
+    MIXED_CHOICES = [
+        ('Category', (
+            (1, 'First'),
+            (2, 'Second'),
+        )),
+        3,
+        (4, 'Fourth'),
+    ]
+
+    def test_choices(self):
+        """
+        Make sure a value for choices works as expected.
+        """
+        f = serializers.ChoiceField(choices=self.CHOICES)
+        value = self.CHOICES[0][0]
+        try:
+            f.to_internal_value(value)
+        except serializers.ValidationError:
+            self.fail("Value %s does not validate" % str(value))
+
+    def test_single_choices(self):
+        """
+        Make sure a single value for choices works as expected.
+        """
+        f = serializers.ChoiceField(choices=self.SINGLE_CHOICES)
+        value = self.SINGLE_CHOICES[0]
+        try:
+            f.to_internal_value(value)
+        except serializers.ValidationError:
+            self.fail("Value %s does not validate" % str(value))
+
+    def test_nested_choices(self):
+        """
+        Make sure a nested value for choices works as expected.
+        """
+        f = serializers.ChoiceField(choices=self.CHOICES_NESTED)
+        value = self.CHOICES_NESTED[0][1][0][0]
+        try:
+            f.to_internal_value(value)
+        except serializers.ValidationError:
+            self.fail("Value %s does not validate" % str(value))
+
+    def test_mixed_choices(self):
+        """
+        Make sure mixed values for choices works as expected.
+        """
+        f = serializers.ChoiceField(choices=self.MIXED_CHOICES)
+        value = self.MIXED_CHOICES[1]
+        try:
+            f.to_internal_value(value)
+        except serializers.ValidationError:
+            self.fail("Value %s does not validate" % str(value))
+
+
+class RegexSerializer(serializers.Serializer):
+    pin = serializers.CharField(
+        validators=[RegexValidator(regex=re.compile('^[0-9]{4,6}$'),
+                                   message='A PIN is 4-6 digits')])
+
+
+expected_repr = """
+RegexSerializer():
+    pin = CharField(validators=[<django.core.validators.RegexValidator object>])
+""".strip()
+
+
+class TestRegexSerializer(TestCase):
+    def test_regex_repr(self):
+        serializer_repr = repr(RegexSerializer())
+        assert serializer_repr == expected_repr
+
+
+# FILE: tests/test_utils.py
+from unittest import mock
+
+from django.test import TestCase, override_settings
+from django.urls import path
+
+from rest_framework.decorators import action
+from rest_framework.routers import SimpleRouter
+from rest_framework.serializers import ModelSerializer
+from rest_framework.utils import json
+from rest_framework.utils.breadcrumbs import get_breadcrumbs
+from rest_framework.utils.formatting import lazy_format
+from rest_framework.utils.model_meta import FieldInfo, RelationInfo
+from rest_framework.utils.urls import remove_query_param, replace_query_param
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+from tests.models import BasicModel
+
+
+class Root(APIView):
+    pass
+
+
+class ResourceRoot(APIView):
+    pass
+
+
+class ResourceInstance(APIView):
+    pass
+
+
+class NestedResourceRoot(APIView):
+    pass
+
+
+class NestedResourceInstance(APIView):
+    pass
+
+
+class CustomNameResourceInstance(APIView):
+    def get_view_name(self):
+        return "Foo"
+
+
+class ResourceViewSet(ModelViewSet):
+    serializer_class = ModelSerializer
+    queryset = BasicModel.objects.all()
+
+    @action(detail=False)
+    def list_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True)
+    def detail_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, name='Custom Name')
+    def named_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+    @action(detail=True, suffix='Custom Suffix')
+    def suffixed_action(self, request, *args, **kwargs):
+        raise NotImplementedError
+
+
+router = SimpleRouter()
+router.register(r'resources', ResourceViewSet)
+urlpatterns = [
+    path('', Root.as_view()),
+    path('resource/', ResourceRoot.as_view()),
+    path('resource/customname', CustomNameResourceInstance.as_view()),
+    path('resource/<int:key>', ResourceInstance.as_view()),
+    path('resource/<int:key>/', NestedResourceRoot.as_view()),
+    path('resource/<int:key>/<str:other>', NestedResourceInstance.as_view()),
+]
+urlpatterns += router.urls
+
+
+@override_settings(ROOT_URLCONF='tests.test_utils')
+class BreadcrumbTests(TestCase):
+    """
+    Tests the breadcrumb functionality used by the HTML renderer.
+    """
+    def test_root_breadcrumbs(self):
+        url = '/'
+        assert get_breadcrumbs(url) == [('Root', '/')]
+
+    def test_resource_root_breadcrumbs(self):
+        url = '/resource/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'), ('Resource Root', '/resource/')
+        ]
+
+    def test_resource_instance_breadcrumbs(self):
+        url = '/resource/123'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource Root', '/resource/'),
+            ('Resource Instance', '/resource/123')
+        ]
+
+    def test_resource_instance_customname_breadcrumbs(self):
+        url = '/resource/customname'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource Root', '/resource/'),
+            ('Foo', '/resource/customname')
+        ]
+
+    def test_nested_resource_breadcrumbs(self):
+        url = '/resource/123/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource Root', '/resource/'),
+            ('Resource Instance', '/resource/123'),
+            ('Nested Resource Root', '/resource/123/')
+        ]
+
+    def test_nested_resource_instance_breadcrumbs(self):
+        url = '/resource/123/abc'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource Root', '/resource/'),
+            ('Resource Instance', '/resource/123'),
+            ('Nested Resource Root', '/resource/123/'),
+            ('Nested Resource Instance', '/resource/123/abc')
+        ]
+
+    def test_broken_url_breadcrumbs_handled_gracefully(self):
+        url = '/foobar'
+        assert get_breadcrumbs(url) == [('Root', '/')]
+
+    def test_modelviewset_resource_instance_breadcrumbs(self):
+        url = '/resources/1/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource List', '/resources/'),
+            ('Resource Instance', '/resources/1/')
+        ]
+
+    def test_modelviewset_list_action_breadcrumbs(self):
+        url = '/resources/list_action/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource List', '/resources/'),
+            ('List action', '/resources/list_action/'),
+        ]
+
+    def test_modelviewset_detail_action_breadcrumbs(self):
+        url = '/resources/1/detail_action/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource List', '/resources/'),
+            ('Resource Instance', '/resources/1/'),
+            ('Detail action', '/resources/1/detail_action/'),
+        ]
+
+    def test_modelviewset_action_name_kwarg(self):
+        url = '/resources/1/named_action/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource List', '/resources/'),
+            ('Resource Instance', '/resources/1/'),
+            ('Custom Name', '/resources/1/named_action/'),
+        ]
+
+    def test_modelviewset_action_suffix_kwarg(self):
+        url = '/resources/1/suffixed_action/'
+        assert get_breadcrumbs(url) == [
+            ('Root', '/'),
+            ('Resource List', '/resources/'),
+            ('Resource Instance', '/resources/1/'),
+            ('Resource Custom Suffix', '/resources/1/suffixed_action/'),
+        ]
+
+
+class JsonFloatTests(TestCase):
+    """
+    Internally, wrapped json functions should adhere to strict float handling
+    """
+
+    def test_dumps(self):
+        with self.assertRaises(ValueError):
+            json.dumps(float('inf'))
+
+        with self.assertRaises(ValueError):
+            json.dumps(float('nan'))
+
+    def test_loads(self):
+        with self.assertRaises(ValueError):
+            json.loads("Infinity")
+
+        with self.assertRaises(ValueError):
+            json.loads("NaN")
+
+
+@override_settings(REST_FRAMEWORK={'STRICT_JSON': False})
+class NonStrictJsonFloatTests(JsonFloatTests):
+    """
+    'STRICT_JSON = False' should not somehow affect internal json behavior
+    """
+
+
+class UrlsReplaceQueryParamTests(TestCase):
+    """
+    Tests the replace_query_param functionality.
+    """
+    def test_valid_unicode_preserved(self):
+        # Encoded string: '查询'
+        q = '/?q=%E6%9F%A5%E8%AF%A2'
+        new_key = 'page'
+        new_value = 2
+        value = '%E6%9F%A5%E8%AF%A2'
+
+        assert new_key in replace_query_param(q, new_key, new_value)
+        assert value in replace_query_param(q, new_key, new_value)
+
+    def test_valid_unicode_replaced(self):
+        q = '/?page=1'
+        value = '1'
+        new_key = 'q'
+        new_value = '%E6%9F%A5%E8%AF%A2'
+
+        assert new_key in replace_query_param(q, new_key, new_value)
+        assert value in replace_query_param(q, new_key, new_value)
+
+    def test_invalid_unicode(self):
+        # Encoded string: '��<script>alert(313)</script>=1'
+        q = '/e/?%FF%FE%3C%73%63%72%69%70%74%3E%61%6C%65%72%74%28%33%31%33%29%3C%2F%73%63%72%69%70%74%3E=1'
+        key = 'from'
+        value = 'login'
+
+        assert key in replace_query_param(q, key, value)
+
+
+class UrlsRemoveQueryParamTests(TestCase):
+    """
+    Tests the remove_query_param functionality.
+    """
+    def test_valid_unicode_removed(self):
+        q = '/?page=2345&q=%E6%9F%A5%E8%AF%A2'
+        key = 'page'
+        value = '2345'
+        removed_key = 'q'
+
+        assert key in remove_query_param(q, removed_key)
+        assert value in remove_query_param(q, removed_key)
+        assert '%' not in remove_query_param(q, removed_key)
+
+    def test_invalid_unicode(self):
+        q = '/?from=login&page=2&%FF%FE%3C%73%63%72%69%70%74%3E%61%6C%65%72%74%28%33%31%33%29%3C%2F%73%63%72%69%70%74%3E=1'
+        key = 'from'
+        removed_key = 'page'
+
+        assert key in remove_query_param(q, removed_key)
+
+
+class LazyFormatTests(TestCase):
+    def test_it_formats_correctly(self):
+        formatted = lazy_format('Does {} work? {answer}: %s', 'it', answer='Yes')
+        assert str(formatted) == 'Does it work? Yes: %s'
+        assert formatted % 'it does' == 'Does it work? Yes: it does'
+
+    def test_it_formats_lazily(self):
+        message = mock.Mock(wraps='message')
+        formatted = lazy_format(message)
+        assert message.format.call_count == 0
+        str(formatted)
+        assert message.format.call_co

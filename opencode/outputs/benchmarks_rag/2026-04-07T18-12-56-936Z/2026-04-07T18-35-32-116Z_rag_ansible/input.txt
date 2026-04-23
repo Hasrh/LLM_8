@@ -1,0 +1,3375 @@
+
+
+# FILE: requirements.txt
+# Note: this requirements.txt file is used to specify what dependencies are
+# needed to make the package run rather than for deployment of a tested set of
+# packages.  Thus, this should be the loosest set possible (only required
+# packages, not optional ones, and with the widest range of versions that could
+# be suitable)
+jinja2 >= 3.1.0  # Jinja2 native macro support fixed in 3.1.0
+PyYAML >= 5.1  # PyYAML 5.1 is required for Python 3.8+ support
+cryptography
+packaging
+# NOTE: resolvelib 0.x version bumps should be considered major/breaking
+# NOTE: and we should update the upper cap with care, at least until 1.0
+# NOTE: Ref: https://github.com/sarugaku/resolvelib/issues/69
+# NOTE: When updating the upper bound, also update the latest version used
+# NOTE: in the ansible-galaxy-collection test suite.
+resolvelib >= 0.8.0, < 2.0.0  # dependency resolver used by ansible-galaxy
+
+
+# FILE: pyproject.toml
+[build-system]
+requires = ["setuptools >= 77.0.3, <= 80.3.1"]  # lower bound to support license/license-files (PEP 639), upper bound for latest version tested at release
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.12"
+name = "ansible-core"
+authors = [
+    {name = "Ansible Project"},
+]
+description = "Radically simple IT automation"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = [
+    "COPYING",
+    "licenses/*.txt",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: System :: Installation/Setup",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+"Homepage" = "https://ansible.com/"
+"Source Code" = "https://github.com/ansible/ansible/"
+"Bug Tracker" = "https://github.com/ansible/ansible/issues/"
+"CI: Azure Pipelines" = "https://dev.azure.com/ansible/ansible/"
+"Documentation" = "https://docs.ansible.com/ansible-core/"
+"Code of Conduct" = "https://docs.ansible.com/ansible/latest/community/code_of_conduct.html"
+
+[tool.setuptools.dynamic]
+version = {attr = "ansible.release.__version__"}
+dependencies = {file = "requirements.txt"}
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["lib", "test/lib"]
+
+[tool.setuptools.package-data]
+ansible = [
+    "_internal/ansible_collections/*/*/plugins/*/*.yml",
+    "_internal/ansible_collections/*/*/*.md",
+    "config/*.yml",
+    "executor/powershell/*.ps1",
+    "galaxy/data/COPYING",
+    "galaxy/data/*.yml",
+    "galaxy/data/*/*.j2",
+    "galaxy/data/*/*.md",
+    "galaxy/data/*/*/*.cfg",
+    "galaxy/data/*/*/*.j2",
+    "galaxy/data/*/*/*.md",
+    "galaxy/data/*/*/*/*.j2",
+    "galaxy/data/*/*/*/*.yml",
+    "galaxy/data/*/*/*/.git_keep",
+    "galaxy/data/*/*/*/inventory",
+    "galaxy/data/*/*/.git_keep",
+    "galaxy/data/*/*/inventory",
+    "keyword_desc.yml",
+    "module_utils/csharp/*.cs",
+    "module_utils/powershell/*.psm1",
+    "plugins/*/*.yml",
+]
+ansible_test = [
+    "_data/*/*.in",
+    "_data/*/*.ps1",
+    "_data/*/*.txt",
+    "_data/*/*.yml",
+    "_data/*/*/*.ini",
+    "_data/ansible.cfg",
+    "_data/coveragerc",
+    "_util/*/*/*.ps1",
+    "_util/*/*/*.py",
+    "_util/*/*/*.sh",
+    "_util/*/*/*/*.ini",
+    "_util/*/*/*/*.json",
+    "_util/*/*/*/*.ps1",
+    "_util/*/*/*/*.psd1",
+    "_util/*/*/*/*.py",
+    "_util/*/*/*/*.txt",
+    "_util/*/*/*/*/*.cfg",
+    "_util/*/*/*/*/*.ps1",
+    "_util/*/*/*/*/*.py",
+    "_util/*/*/*/*/*.yml",
+    "config/*.template",
+    "config/*.yml",
+]
+
+[project.scripts]
+ansible = "ansible.cli.adhoc:main"
+ansible-config = "ansible.cli.config:main"
+ansible-console = "ansible.cli.console:main"
+ansible-doc = "ansible.cli.doc:main"
+ansible-galaxy = "ansible.cli.galaxy:main"
+ansible-inventory = "ansible.cli.inventory:main"
+ansible-playbook = "ansible.cli.playbook:main"
+ansible-pull = "ansible.cli.pull:main"
+ansible-vault = "ansible.cli.vault:main"
+ansible-test = "ansible_test._util.target.cli.ansible_test_cli_stub:main"
+
+
+# FILE: README.md
+[![PyPI version](https://img.shields.io/pypi/v/ansible-core.svg)](https://pypi.org/project/ansible-core)
+[![Docs badge](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://docs.ansible.com/ansible/latest/)
+[![Chat badge](https://img.shields.io/badge/chat-IRC-brightgreen.svg)](https://docs.ansible.com/ansible/devel/community/communication.html)
+[![Build Status](https://dev.azure.com/ansible/ansible/_apis/build/status/CI?branchName=devel)](https://dev.azure.com/ansible/ansible/_build/latest?definitionId=20&branchName=devel)
+[![Ansible Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Ansible-silver.svg)](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html)
+[![Ansible mailing lists](https://img.shields.io/badge/mailing%20lists-Ansible-orange.svg)](https://docs.ansible.com/ansible/devel/community/communication.html#mailing-list-information)
+[![Repository License](https://img.shields.io/badge/license-GPL%20v3.0-brightgreen.svg)][copying]
+[![Ansible CII Best Practices certification](https://bestpractices.coreinfrastructure.org/projects/2372/badge)](https://bestpractices.coreinfrastructure.org/projects/2372)
+
+# Ansible
+
+Ansible is a radically simple IT automation system. It handles
+configuration management, application deployment, cloud provisioning,
+ad-hoc task execution, network automation, and multi-node orchestration. Ansible makes complex
+changes like zero-downtime rolling updates with load balancers easy. More information on the Ansible [website](https://ansible.com/).
+
+## Design Principles
+
+* Have an extremely simple setup process with a minimal learning curve.
+* Manage machines quickly and in parallel.
+* Avoid custom-agents and additional open ports, be agentless by
+  leveraging the existing SSH daemon.
+* Describe infrastructure in a language that is both machine and human
+  friendly.
+* Focus on security and easy auditability/review/rewriting of content.
+* Manage new remote machines instantly, without bootstrapping any
+  software.
+* Allow module development in any dynamic language, not just Python.
+* Be usable as non-root.
+* Be the easiest IT automation system to use, ever.
+
+## Use Ansible
+
+You can install a released version of Ansible with `pip` or a package manager. See our
+[installation guide](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) for details on installing Ansible
+on a variety of platforms.
+
+Power users and developers can run the `devel` branch, which has the latest
+features and fixes, directly. Although it is reasonably stable, you are more likely to encounter
+breaking changes when running the `devel` branch. We recommend getting involved
+in the Ansible community if you want to run the `devel` branch.
+
+## Communication
+
+Join the Ansible forum to ask questions, get help, and interact with the
+community.
+
+* [Get Help](https://forum.ansible.com/c/help/6): Find help or share your Ansible knowledge to help others.
+  Use tags to filter and subscribe to posts, such as the following:
+  * Posts tagged with [ansible](https://forum.ansible.com/tag/ansible)
+  * Posts tagged with [ansible-core](https://forum.ansible.com/tag/ansible-core)
+  * Posts tagged with [playbook](https://forum.ansible.com/tag/playbook)
+* [Social Spaces](https://forum.ansible.com/c/chat/4): Meet and interact with fellow enthusiasts.
+* [News & Announcements](https://forum.ansible.com/c/news/5): Track project-wide announcements including social events.
+* [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): Get release announcements and important changes.
+
+For more ways to get in touch, see [Communicating with the Ansible community](https://docs.ansible.com/ansible/devel/community/communication.html).
+
+## Contribute to Ansible
+
+* Check out the [Contributor's Guide](https://github.com/ansible/ansible/blob/devel/.github/CONTRIBUTING.md).
+* Read [Community Information](https://docs.ansible.com/ansible/devel/community) for all
+  kinds of ways to contribute to and interact with the project,
+  including how to submit bug reports and code to Ansible.
+* Submit a proposed code update through a pull request to the `devel` branch.
+* Talk to us before making larger changes
+  to avoid duplicate efforts. This not only helps everyone
+  know what is going on, but it also helps save time and effort if we decide
+  some changes are needed.
+
+## Coding Guidelines
+
+We document our Coding Guidelines in the [Developer Guide](https://docs.ansible.com/ansible/devel/dev_guide/). We particularly suggest you review:
+
+* [Contributing your module to Ansible](https://docs.ansible.com/ansible/devel/dev_guide/developing_modules_checklist.html)
+* [Conventions, tips, and pitfalls](https://docs.ansible.com/ansible/devel/dev_guide/developing_modules_best_practices.html)
+
+## Branch Info
+
+* The `devel` branch corresponds to the release actively under development.
+* The `stable-2.X` branches correspond to stable releases.
+* Create a branch based on `devel` and set up a [dev environment](https://docs.ansible.com/ansible/devel/dev_guide/developing_modules_general.html#common-environment-setup) if you want to open a PR.
+* See the [Ansible release and maintenance](https://docs.ansible.com/ansible/devel/reference_appendices/release_and_maintenance.html) page for information about active branches.
+
+## Roadmap
+
+Based on team and community feedback, an initial roadmap will be published for a major or minor version (ex: 2.7, 2.8).
+The [Ansible Roadmap page](https://docs.ansible.com/ansible/devel/roadmap/) details what is planned and how to influence the roadmap.
+
+## Authors
+
+Ansible was created by [Michael DeHaan](https://github.com/mpdehaan)
+and has contributions from over 5000 users (and growing). Thanks everyone!
+
+[Ansible](https://www.ansible.com) is sponsored by [Red Hat, Inc.](https://www.redhat.com)
+
+## License
+
+GNU General Public License v3.0 or later
+
+See [COPYING] to see the full text.
+
+[copying]: https://github.com/ansible/ansible/blob/devel/COPYING
+
+
+# FILE: CLAUDE.md
+- @AGENTS.md
+- @~/.claude/ansible.md
+- @CLAUDE.local.md
+
+
+# FILE: AGENTS.md
+# AGENTS.md
+
+This file provides guidance to Claude Code (claude.ai/code) and other compatible agentic tools when working with code in this repository.
+
+**Note:** This file is for AI assistant use only. For human developers, see the [Ansible Developer Guide](https://docs.ansible.com/ansible-core/devel/dev_guide/index.html).
+
+## ⚠️ IMPORTANT: Always Start Here
+
+**BEFORE starting any PR review or development task:**
+
+1. **Read this file first** - Don't work from memory or assumptions
+2. **Use TodoWrite** to create a task list and track progress systematically
+3. **Follow the numbered steps** in the relevant process sections
+4. **Reference Quick Reference** for correct commands and patterns
+
+## ⚠️ CRITICAL: Licensing Requirements
+
+**NEVER suggest, recommend, or approve code that violates these requirements:**
+
+- **ansible-core**: All code must be **GPLv3 compatible**
+- **lib/ansible/module_utils/**: Defaults to **BSD-2-Clause** (more permissive)
+- **External dependencies**: Only recommend libraries compatible with these licenses
+- **PR reviews**: Always verify any new dependencies or suggested libraries are license-compatible
+- **When in doubt**: Ask about licensing compatibility rather than assuming
+
+**This is non-negotiable** - licensing violations can create serious legal issues for the project.
+
+## Quick Reference
+
+Most commonly used commands and patterns:
+
+```bash
+# Testing
+ansible-test sanity -v --docker default                   # Run all sanity tests
+ansible-test sanity -v --docker default --test <test>     # Run specific sanity test
+ansible-test units -v --docker default                    # Run unit tests
+ansible-test integration -v --docker ubuntu2404           # Run integration tests
+
+# PR Review and CI
+gh pr view <number>                                       # Get PR details
+gh pr view <number> --comments                            # Check for ansibot CI failures
+gh pr checks <number>                                     # Get Azure Pipelines URLs
+gh pr checkout <number>                                   # Switch to PR branch
+gh pr diff <number>                                       # See all changes
+```
+
+**Container Selection:**
+
+- Sanity/Unit tests: `--docker default`
+- Integration tests: `--docker ubuntu2204`, `--docker ubuntu2404`, etc. (NOT default/base)
+
+**Critical Reminders:**
+
+- **Licensing**: See [Licensing Requirements](#️-critical-licensing-requirements) - GPLv3/BSD-2-Clause only
+
+## Development Environment Setup
+
+Ansible development typically uses an editable install after forking and cloning:
+
+```bash
+# After forking and cloning the repository
+pip install -e .
+```
+
+**Note:** ansible-core and all CLIs (including ansible-test) require a POSIX OS. On Windows, use WSL (Windows Subsystem for Linux).
+
+## Testing and CI
+
+### Basic Testing Commands
+
+```bash
+# Run sanity tests - these are linting/static analysis (pylint, mypy, pep8, etc.)
+ansible-test sanity -v --docker default
+
+# List available sanity tests
+ansible-test sanity --list-tests
+
+# Run specific sanity tests
+ansible-test sanity -v --docker default --test pep8 --test pylint
+
+# Run sanity on specific files (paths relative to repo root)
+ansible-test sanity -v --docker default lib/ansible/modules/command.py
+
+# Run unit tests (recommended with Docker)
+ansible-test units -v --docker default
+
+# Run specific unit test (paths relative to repo root, targets in test/units/)
+ansible-test units -v --docker default test/units/modules/test_command.py
+
+# Run integration tests (choose appropriate container - NOT base/default)
+ansible-test integration -v --docker ubuntu2404
+
+# Run specific integration target (directory name in test/integration/targets/)
+ansible-test integration -v --docker ubuntu2404 setup_remote_tmp_dir
+
+# Run with coverage
+ansible-test units -v --docker default --coverage
+
+# Alternative: use --venv if Docker/Podman unavailable (less reliable for units/integration)
+ansible-test sanity -v --venv
+```
+
+Available Docker containers for testing can be found in `./test/lib/ansible_test/_data/completion/docker.txt`.
+The `base` and `default` containers are for sanity/unit tests only. For integration tests, use distro-specific
+containers, depending on the modules being tested.
+
+**Test isolation options:**
+
+- `--docker` (supports Docker or Podman) - preferred for reliable, isolated testing
+- `--venv` - fallback when containers unavailable, but unit tests may be unreliable due to host environment differences
+
+### Helping Developers with CI Failures
+
+When developers submit PRs and encounter CI failures, use these approaches to help diagnose and resolve issues:
+
+**1. Check for ansibot comments:**
+
+```bash
+# Get all PR comments to find ansibot CI failure reports
+gh pr view <number> --comments
+```
+
+Look for comments from `ansibot` that contain:
+- Test failure details with specific error messages
+- File paths and line numbers for failures
+- Links to sanity test documentation (e.g., `[explain](https://docs.ansible.com/...`)
+
+**2. Get CI check status and URLs:**
+
+```bash
+# See all CI check results with Azure Pipelines URLs
+gh pr checks <number>
+```
+
+This shows:
+- Overall CI status (pass/fail) with timing
+- Direct links to Azure DevOps build results
+- Individual job results (Sanity Test 1/2, Docker tests, Units, etc.)
+
+**3. Common CI failure patterns:**
+
+- **Sanity failures**: Usually have specific fixes (trailing whitespace, import errors, etc.)
+- **Integration test failures**: May require platform-specific containers or test adjustments
+- **Unit test failures**: Often indicate actual code issues that need debugging
+
+**4. CI failure analysis workflow:**
+
+1. Check ansibot comments first for immediate error details
+2. Use `gh pr checks <number>` to get Azure Pipelines URLs for detailed logs
+3. Focus on failed jobs (marked as `fail`) and examine their specific error output
+4. For sanity test failures, the error messages usually indicate exactly what needs to be fixed
+5. For test failures, run the same tests locally using `ansible-test` to reproduce and debug
+
+## PR Review Guidelines
+
+### PR Review Checklist
+
+Use this checklist for EVERY PR review:
+
+```text
+□ Created TodoWrite list for review steps
+□ Step 1: Get PR details with gh pr view <number>
+□ Step 2: Get PR diff with gh pr diff <number>
+□ Step 3: Check required components (changelog, tests)
+□ Step 4: Checkout PR branch with gh pr checkout <number>
+□ Step 5: Review existing feedback with gh pr view <number> --comments
+□ Step 6: Verify all issues addressed
+□ Step 7: Call out any unresolved feedback
+□ Mark each TodoWrite item as completed when done
+```
+
+When assisting with PR reviews, verify:
+
+### Required Components
+
+- Changelog fragment exists in `changelogs/fragments/`
+- Appropriate tests are included and cover the changed code
+  - Unit tests should be pytest style, and functional rather than tightly coupled to mocking
+  - Integration tests required for almost all plugin changes (tests the public API)
+  - Tests should exercise the actual changed code, not just add random coverage
+
+### Review Process
+
+Follow these steps in order for thorough PR reviews:
+
+1. **Get PR details**: Use `gh pr view <number>` to understand the PR scope and description
+2. **Get PR diff**: Use `gh pr diff <number>` to see all changes
+3. **Check required components FIRST**:
+   - Verify changelog fragment exists and uses correct section (check `changelogs/config.yaml` for valid sections)
+   - Verify tests exist and specifically cover the changed code paths
+4. **Checkout PR branch**: Use `gh pr checkout <number>` to examine code holistically with changes applied
+5. **Review existing feedback**: Use `gh pr view <number> --comments` to see all comments and previous review feedback
+6. **Verify all issues addressed**: Ensure all bot failures, reviewer requests, and discussion points are resolved
+7. **Call out any unresolved review feedback**: Explicitly mention any discussions or requests that remain unaddressed
+
+### Common Review Issues to Check
+
+- **Changelog section errors**: Verify changelog uses valid section from `changelogs/config.yaml`. Fragment structure follows sections defined there.
+- **Test scope**: Ensure tests exercise the actual changed code, not just add random coverage.
+  Integration tests required for almost all plugin changes (tests the public API).
+  Tests should be functional rather than tightly coupled to mocking.
+
+### Review Task Management
+
+- Use TodoWrite tool to track review steps for complex PRs
+- Mark tasks as in_progress when actively working on them
+- Complete tasks immediately after finishing each step
+- This provides visibility to users about review progress
+
+### Review Tools
+
+- `gh pr view <number>` - Get PR details and description
+- `gh pr view <number> --comments` - See all comments and review feedback
+- `gh pr diff <number>` - Get complete diff of changes
+- `gh pr checkout <number>` - Switch to PR branch for holistic examination
+- `Read` tool - Examine specific changed files in detail
+- `Grep` tool - Search for related code patterns or test coverage (uses ripgrep/rg)
+
+## Development Guidelines
+
+### Code Style Notes
+
+- Line limit is 160 characters (not 80)
+- E402 (module level import not at top) is ignored
+- In `lib/ansible/modules/`, imports must come after DOCUMENTATION, EXAMPLES, and RETURN definitions
+- Don't add obvious comments about code
+- Use native type hints with `from __future__ import annotations` (converts to strings at runtime)
+- Don't document module parameters in docstrings - migrate to type hints instead
+- **No trailing whitespace**: Always clean up trailing spaces on lines, especially when editing existing files
+
+### Python Version Support
+
+- Controller code: support range defined in `pyproject.toml`
+- Modules/module_utils: minimum version in `lib/ansible/module_utils/basic.py` (`_PY_MIN`) up to max from `pyproject.toml`
+- Modules support a wider Python version range than controller code
+
+### Dependencies and Imports
+
+- Prefer Python stdlib over external dependencies
+- Use existing code from within the Ansible project
+- `lib/ansible/modules/` can only import from `lib/ansible/module_utils/` (modules are packaged for remote execution)
+- `lib/ansible/module_utils/` cannot import from outside itself
+
+## Documentation Standards
+
+### Module and Plugin Documentation
+
+- Modules and plugins require DOCUMENTATION, EXAMPLES, and RETURN blocks as static YAML string variables
+- These blocks cannot be dynamically generated - they are parsed via AST/token parsing
+- Alternative: "sidecar" documentation as `.yml` files with same stem name adjacent to plugin files
+- All modules should have a `main()` function and `if __name__ == '__main__':` block
+- Use `version_added` fields in documentation following existing version format patterns
+
+### Changelog Requirements
+
+- Changes require entries in `changelogs/fragments/` as YAML files
+- Create a new fragment file per PR (never reuse existing fragments to avoid merge conflicts)
+- Fragment structure follows sections defined in `changelogs/config.yaml` under the `sections` key
+- Naming: `{issue_number}-{short-description}.yml` or `{component}-{description}.yml` if no issue
+- Format: `- {component} - {description} ({optional URL to GH issue})`
+- Content supports Sphinx markup (use double backticks for code references)
+
+## Repository Management
+
+### Plugin Development
+
+- New plugins should go into collections, not ansible-core
+- ansible-core rarely accepts new plugins; core team makes these decisions
+
+### Branch and Release Management
+
+- All PRs target the `devel` branch
+- Use GitHub templates when creating issues/PRs (`.github/ISSUE_TEMPLATE/` and `.github/PULL_REQUEST_TEMPLATE/`)
+- For issues: fill out the `component` field with project root relative file path
+- For PRs: adjust the issue type in the template as listed in `.github/PULL_REQUEST_TEMPLATE/PULL_REQUEST_TEMPLATE.md`
+- Validate issues are fixed in `devel` before reporting against stable releases
+- Bug fixes: backported to latest stable only
+- Critical bug fixes: backported to latest and previous stable
+- Security issues: contact security@ansible.com privately, not via GitHub
+
+### Backwards Compatibility
+
+- Backwards compatibility is prioritized over most other concerns
+- Deprecation cycle: 4 releases (deprecation + 2 releases + removal)
+- Use `Display.deprecated` or `AnsibleModule.deprecate` with version from `lib/ansible/release.py` plus 3
+- Example: deprecating in 2.19 means removal in 2.22
+
+## Code Structure Reference
+
+### Core Structure
+
+- `lib/ansible/` - Main Ansible library code
+  - `cli/` - Command-line interface implementations (ansible, ansible-playbook, etc.)
+  - `executor/` - Task execution engine and strategies (includes PowerShell support in `powershell/`)
+  - `inventory/` - Inventory management and parsing
+  - `modules/` - Core modules (built-in automation modules)
+  - `module_utils/` - Shared utilities for modules (includes C# in `csharp/` and PowerShell in `powershell/`)
+  - `plugins/` - Plugin framework (filters, tests, lookups, etc.)
+  - `vars/` - Variable management
+  - `config/` - Configuration handling
+  - `collections/` - Ansible Collections framework
+
+### Key Components
+
+- **CLI Layer**: Entry points in `lib/ansible/cli/` handle command parsing and dispatch
+- **Executor**: `lib/ansible/executor/` contains the core execution engine that runs tasks and plays
+- **Module System**: Modules in `lib/ansible/modules/` are the units of work; they're executed remotely
+- **Plugin Architecture**: `lib/ansible/plugins/` provides extensibility through filters, tests, lookups, etc.
+- **Inventory**: `lib/ansible/inventory/` manages host and group definitions
+- **Collections**: Modern packaging format for distributing Ansible content
+
+### Testing Infrastructure
+
+- `test/units/` - Unit tests mirroring the lib structure
+- `test/integration/` - Integration tests organized by target (named after plugin/functionality being tested)
+  - Some targets have `context/controller` or `context/target` in their `aliases` file when not easily inferable
+  - Only modules run on target hosts; all other plugins execute locally in the ansible process
+- `test/lib/` - Test utilities and frameworks
+- `ansible-test` - Unified testing tool for all test types
+
+For CI failure debugging, see [Helping Developers with CI Failures](#helping-developers-with-ci-failures).
+
+
+# FILE: licenses/simplified_bsd.txt
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+
+# FILE: licenses/PSF-license.txt
+PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
+--------------------------------------------
+
+1. This LICENSE AGREEMENT is between the Python Software Foundation
+("PSF"), and the Individual or Organization ("Licensee") accessing and
+otherwise using this software ("Python") in source or binary form and
+its associated documentation.
+
+2. Subject to the terms and conditions of this License Agreement, PSF hereby
+grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce,
+analyze, test, perform and/or display publicly, prepare derivative works,
+distribute, and otherwise use Python alone or in any derivative version,
+provided, however, that PSF's License Agreement and PSF's notice of copyright,
+i.e., "Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 Python Software Foundation;
+All Rights Reserved" are retained in Python alone or in any derivative version
+prepared by Licensee.
+
+3. In the event Licensee prepares a derivative work that is based on
+or incorporates Python or any part thereof, and wants to make
+the derivative work available to others as provided herein, then
+Licensee hereby agrees to include in any such work a brief summary of
+the changes made to Python.
+
+4. PSF is making Python available to Licensee on an "AS IS"
+basis.  PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR
+IMPLIED.  BY WAY OF EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND
+DISCLAIMS ANY REPRESENTATION OR WARRANTY OF MERCHANTABILITY OR FITNESS
+FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF PYTHON WILL NOT
+INFRINGE ANY THIRD PARTY RIGHTS.
+
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON
+FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS
+A RESULT OF MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON,
+OR ANY DERIVATIVE THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material
+breach of its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any
+relationship of agency, partnership, or joint venture between PSF and
+Licensee.  This License Agreement does not grant permission to use PSF
+trademarks or trade name in a trademark sense to endorse or promote
+products or services of Licensee, or any third party.
+
+8. By copying, installing or otherwise using Python, Licensee
+agrees to be bound by the terms and conditions of this License
+Agreement.
+
+
+# FILE: licenses/MIT-license.txt
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+# FILE: licenses/BSD-3-Clause.txt
+Copyright (c) Contributors to the Ansible project. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+
+    3. Neither the name of the copyright holder nor the names of its contributors
+       may be used to endorse or promote products derived from this software
+       without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+
+# FILE: licenses/Apache-License.txt
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+
+# FILE: changelogs/config.yaml
+---
+title: ansible-core
+release_tag_re: '(v(?:[\d.ab\-]|rc)+)'
+pre_release_tag_re: '(?P<pre_release>(?:[ab]|rc)+\d*)$'
+changes_file: changelog.yaml
+changes_format: combined
+keep_fragments: true
+always_refresh: true
+ignore_other_fragment_extensions: true
+mention_ancestor: false
+notesdir: fragments
+prelude_section_name: release_summary
+new_plugins_after_name: removed_features
+sections:
+- ['major_changes', 'Major Changes']
+- ['minor_changes', 'Minor Changes']
+- ['breaking_changes', 'Breaking Changes / Porting Guide']
+- ['deprecated_features', 'Deprecated Features']
+- ['removed_features', 'Removed Features (previously deprecated)']
+- ['security_fixes', 'Security Fixes']
+- ['bugfixes', 'Bugfixes']
+- ['known_issues', 'Known Issues']
+
+
+# FILE: changelogs/changelog.yaml
+ancestor: 2.21.0
+releases: {}
+
+
+# FILE: changelogs/README.md
+Changelogs
+==========
+
+As part of the release process a version-specific `CHANGELOG-vX.Y.rst` will be generated from fragments in
+the `fragments` directory.
+
+On release branches once a release has been created, consult the branch's version-specific file for changes that have
+occurred in that branch. The `devel` branch does not have a generated changelog, only changelog fragments.
+
+
+# FILE: hacking/update-sanity-requirements.py
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+"""Generate frozen sanity test requirements from source requirements files."""
+
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import pathlib
+import re
+import subprocess
+import tempfile
+import typing as t
+import venv
+
+import packaging.version
+import packaging.specifiers
+import packaging.requirements
+
+try:
+    import argcomplete
+except ImportError:
+    argcomplete = None
+
+
+FILE = pathlib.Path(__file__).resolve()
+ROOT = FILE.parent.parent
+SELF = FILE.relative_to(ROOT)
+
+
+@dataclasses.dataclass(frozen=True)
+class SanityTest:
+    name: str
+    requirements_path: pathlib.Path
+    source_path: pathlib.Path
+
+    def freeze_requirements(self) -> None:
+        source_requirements = [packaging.requirements.Requirement(re.sub(' #.*$', '', line)) for line in self.source_path.read_text().splitlines()]
+
+        install_packages = {requirement.name for requirement in source_requirements}
+        exclude_packages = {'distribute', 'pip', 'setuptools', 'wheel'} - install_packages
+
+        with tempfile.TemporaryDirectory() as venv_dir:
+            venv.create(venv_dir, with_pip=True)
+
+            python = pathlib.Path(venv_dir, 'bin', 'python')
+            pip = [python, '-m', 'pip', '--disable-pip-version-check']
+            env = dict()
+
+            pip_freeze = subprocess.run(pip + ['freeze'], env=env, check=True, capture_output=True, text=True)
+
+            if pip_freeze.stdout:
+                raise Exception(f'Initial virtual environment is not empty:\n{pip_freeze.stdout}')
+
+            subprocess.run(pip + ['install', '-r', self.source_path], env=env, check=True)
+
+            freeze_options = ['--all']
+
+            for exclude_package in exclude_packages:
+                freeze_options.extend(('--exclude', exclude_package))
+
+            pip_freeze = subprocess.run(pip + ['freeze'] + freeze_options, env=env, check=True, capture_output=True, text=True)
+
+        self.write_requirements(pip_freeze.stdout)
+
+    def update_pre_build(self) -> None:
+        """Update requirements in place with current pre-build instructions."""
+        requirements = pathlib.Path(self.requirements_path).read_text()
+        lines = requirements.splitlines(keepends=True)
+        lines = [line for line in lines if not line.startswith('#')]
+        requirements = ''.join(lines)
+
+        self.write_requirements(requirements)
+
+    def write_requirements(self, requirements: str) -> None:
+        """Write the given test requirements to the requirements file for this test."""
+        pre_build = pre_build_instructions(requirements)
+
+        requirements = f'# edit "{self.source_path.name}" and generate with: {SELF} --test {self.name}\n{pre_build}{requirements}'
+
+        with open(self.requirements_path, 'w') as requirement_file:
+            requirement_file.write(requirements)
+
+    @staticmethod
+    def create(path: pathlib.Path) -> SanityTest:
+        return SanityTest(
+            name=path.stem.replace('sanity.', '').replace('.requirements', ''),
+            requirements_path=path,
+            source_path=path.with_suffix('.in'),
+        )
+
+
+def pre_build_instructions(requirements: str) -> str:
+    """Parse the given requirements and return any applicable pre-build instructions."""
+    parsed_requirements = requirements.splitlines()
+
+    package_versions = {
+        match.group('package').lower(): match.group('version') for match
+        in (re.search('^(?P<package>.*)==(?P<version>.*)$', requirement) for requirement in parsed_requirements)
+        if match
+    }
+
+    instructions: list[str] = []
+
+    build_constraints = (
+        ('pyyaml', '>= 5.4, <= 6.0', ('Cython < 3.0',)),
+    )
+
+    for package, specifier, constraints in build_constraints:
+        version_string = package_versions.get(package)
+
+        if version_string:
+            version = packaging.version.Version(version_string)
+            specifier_set = packaging.specifiers.SpecifierSet(specifier)
+
+            if specifier_set.contains(version):
+                instructions.append(f'# pre-build requirement: {package} == {version}\n')
+
+                for constraint in constraints:
+                    instructions.append(f'# pre-build constraint: {constraint}\n')
+
+    return ''.join(instructions)
+
+
+def main() -> None:
+    tests = find_tests()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--test',
+        metavar='TEST',
+        dest='test_names',
+        action='append',
+        choices=[test.name for test in tests],
+        help='test requirements to update'
+    )
+
+    parser.add_argument(
+        '--pre-build-only',
+        action='store_true',
+        help='apply pre-build instructions to existing requirements',
+    )
+
+    if argcomplete:
+        argcomplete.autocomplete(parser)
+
+    args = parser.parse_args()
+    test_names: set[str] = set(args.test_names or [])
+
+    tests = [test for test in tests if test.name in test_names] if test_names else tests
+
+    for test in tests:
+        print(f'===[ {test.name} ]===', flush=True)
+
+        if args.pre_build_only:
+            test.update_pre_build()
+        else:
+            test.freeze_requirements()
+
+
+def find_tests() -> t.List[SanityTest]:
+    globs = (
+        'test/lib/ansible_test/_data/requirements/sanity.*.txt',
+        'test/sanity/code-smell/*.requirements.txt',
+    )
+
+    tests: t.List[SanityTest] = []
+
+    for glob in globs:
+        tests.extend(get_tests(pathlib.Path(glob)))
+
+    return sorted(tests, key=lambda test: test.name)
+
+
+def get_tests(glob: pathlib.Path) -> t.List[SanityTest]:
+    path = pathlib.Path(ROOT, glob.parent)
+    pattern = glob.name
+
+    return [SanityTest.create(item) for item in path.glob(pattern)]
+
+
+if __name__ == '__main__':
+    main()
+
+
+# FILE: hacking/test-module.py
+#!/usr/bin/env python
+
+# (c) 2012, Michael DeHaan <michael.dehaan@gmail.com>
+#
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# this script is for testing modules without running through the
+# entire guts of ansible, and is very helpful for when developing
+# modules
+#
+# example:
+#    ./hacking/test-module.py -m lib/ansible/modules/command.py -a "/bin/sleep 3"
+#    ./hacking/test-module.py -m lib/ansible/modules/command.py -a "/bin/sleep 3" --debugger /usr/bin/pdb
+#    ./hacking/test-module.py -m lib/ansible/modules/lineinfile.py -a "dest=/etc/exports line='/srv/home hostname1(rw,sync)'" --check
+#    ./hacking/test-module.py -m lib/ansible/modules/command.py -a "echo hello" -n -o "test_hello"
+
+from __future__ import annotations
+
+import glob
+import optparse
+import os
+import subprocess
+import sys
+import traceback
+import shutil
+
+from pathlib import Path
+
+from ansible.release import __version__
+import ansible.utils.vars as utils_vars
+from ansible.parsing.dataloader import DataLoader
+from ansible.parsing.splitter import parse_kv
+from ansible.plugins.loader import init_plugin_loader
+from ansible.executor import module_common
+import ansible.constants as C
+from ansible.module_utils.common.text.converters import to_native, to_text
+from ansible.template import Templar
+
+import json
+
+
+def parse():
+    """parse command line
+
+    :return : (options, args)"""
+    parser = optparse.OptionParser()
+
+    parser.usage = "%prog -[options] (-h for help)"
+
+    parser.add_option('-m', '--module-path', dest='module_path',
+                      help="REQUIRED: full path of module source to execute")
+    parser.add_option('-a', '--args', dest='module_args', default="",
+                      help="module argument string")
+    parser.add_option('-D', '--debugger', dest='debugger',
+                      help="path to python debugger (e.g. /usr/bin/pdb)")
+    parser.add_option('-I', '--interpreter', dest='interpreter',
+                      help="path to interpreter to use for this module"
+                      " (e.g. ansible_python_interpreter=/usr/bin/python)",
+                      metavar='INTERPRETER_TYPE=INTERPRETER_PATH',
+                      default="ansible_python_interpreter=%s" %
+                      (sys.executable if sys.executable else '/usr/bin/python'))
+    parser.add_option('-c', '--check', dest='check', action='store_true',
+                      help="run the module in check mode")
+    parser.add_option('-n', '--noexecute', dest='execute', action='store_false',
+                      default=True, help="do not run the resulting module")
+    parser.add_option('-o', '--output', dest='filename',
+                      help="Filename for resulting module",
+                      default="~/.ansible_module_generated")
+    options, args = parser.parse_args()
+    if not options.module_path:
+        parser.print_help()
+        sys.exit(1)
+    else:
+        return options, args
+
+
+def jsonify(result, format=False):
+    """ format JSON output (uncompressed or uncompressed) """
+
+    if result is None:
+        return "{}"
+
+    indent = None
+    if format:
+        indent = 4
+
+    try:
+        return json.dumps(result, sort_keys=True, indent=indent, ensure_ascii=False)
+    except UnicodeDecodeError:
+        return json.dumps(result, sort_keys=True, indent=indent)
+
+
+def write_argsfile(argstring, json=False):
+    """ Write args to a file for old-style module's use. """
+    argspath = Path("~/.ansible_test_module_arguments").expanduser()
+    if json:
+        args = parse_kv(argstring)
+        argstring = jsonify(args)
+    argspath.write_text(argstring)
+    return argspath
+
+
+def get_interpreters(interpreter):
+    result = dict()
+    if interpreter:
+        if '=' not in interpreter:
+            print("interpreter must by in the form of ansible_python_interpreter=/usr/bin/python")
+            sys.exit(1)
+        interpreter_type, interpreter_path = interpreter.split('=')
+        if not interpreter_type.startswith('ansible_'):
+            interpreter_type = 'ansible_%s' % interpreter_type
+        if not interpreter_type.endswith('_interpreter'):
+            interpreter_type = '%s_interpreter' % interpreter_type
+        result[interpreter_type] = interpreter_path
+    return result
+
+
+def boilerplate_module(modfile, args, interpreters, check, destfile):
+    """ simulate what ansible does with new style modules """
+
+    # module_fh = open(modfile)
+    # module_data = module_fh.read()
+    # module_fh.close()
+
+    # replacer = module_common.ModuleReplacer()
+    loader = DataLoader()
+
+    # included_boilerplate = module_data.find(module_common.REPLACER) != -1 or module_data.find("import ansible.module_utils") != -1
+
+    complex_args = {}
+
+    # default selinux fs list is pass in as _ansible_selinux_special_fs arg
+    complex_args['_ansible_selinux_special_fs'] = C.DEFAULT_SELINUX_SPECIAL_FS
+    complex_args['_ansible_tmpdir'] = C.DEFAULT_LOCAL_TMP
+    complex_args['_ansible_keep_remote_files'] = C.DEFAULT_KEEP_REMOTE_FILES
+    complex_args['_ansible_version'] = __version__
+
+    if args.startswith("@"):
+        # Argument is a YAML file (JSON is a subset of YAML)
+        complex_args = utils_vars.combine_vars(complex_args, loader.load_from_file(args[1:]))
+        args = ''
+    elif args.startswith("{"):
+        # Argument is a YAML document (not a file)
+        complex_args = utils_vars.combine_vars(complex_args, loader.load(args))
+        args = ''
+
+    if args:
+        parsed_args = parse_kv(args)
+        complex_args = utils_vars.combine_vars(complex_args, parsed_args)
+
+    task_vars = interpreters
+
+    if check:
+        complex_args['_ansible_check_mode'] = True
+
+    modfile = os.path.abspath(modfile)
+    modname = os.path.basename(modfile)
+    modname = os.path.splitext(modname)[0]
+
+    built_module = module_common.modify_module(
+        module_name=modname,
+        module_path=modfile,
+        module_args=complex_args,
+        templar=Templar(loader=loader),
+        task_vars=task_vars
+    )
+
+    module_data, module_style = built_module.b_module_data, built_module.module_style
+
+    if module_style == 'new' and '_ANSIBALLZ_WRAPPER = True' in to_native(module_data):
+        module_style = 'ansiballz'
+
+    modfile2_path = os.path.expanduser(destfile)
+    print("* including generated source, if any, saving to: %s" % modfile2_path)
+    if module_style not in ('ansiballz', 'old'):
+        print("* this may offset any line numbers in tracebacks/debuggers!")
+    with open(modfile2_path, 'wb') as modfile2:
+        modfile2.write(module_data)
+    modfile = modfile2_path
+
+    return (modfile2_path, modname, module_style)
+
+
+def ansiballz_setup(modfile, modname, interpreters):
+    os.system("chmod +x %s" % modfile)
+
+    if 'ansible_python_interpreter' in interpreters:
+        command = [interpreters['ansible_python_interpreter']]
+    else:
+        command = []
+    command.extend([modfile, 'explode'])
+
+    cmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = cmd.communicate()
+    out, err = to_text(out, errors='surrogate_or_strict'), to_text(err)
+    lines = out.splitlines()
+    if len(lines) != 2 or 'Module expanded into' not in lines[0]:
+        print("*" * 35)
+        print("INVALID OUTPUT FROM ANSIBALLZ MODULE WRAPPER")
+        print(out)
+        sys.exit(err)
+    debug_dir = lines[1].strip()
+
+    # All the directories in an AnsiBallZ that modules can live
+    core_dirs = glob.glob(os.path.join(debug_dir, 'ansible/modules'))
+    non_core_dirs = glob.glob(os.path.join(debug_dir, 'ansible/legacy'))
+    collection_dirs = glob.glob(os.path.join(debug_dir, 'ansible_collections/*/*/plugins/modules'))
+
+    # There's only one module in an AnsiBallZ payload so look for the first module and then exit
+    for module_dir in core_dirs + collection_dirs + non_core_dirs:
+        for dirname, directories, filenames in os.walk(module_dir):
+            for filename in filenames:
+                if filename == modname + '.py':
+                    modfile = os.path.join(dirname, filename)
+                    break
+
+    argsfile = os.path.join(debug_dir, 'args')
+
+    print("* ansiballz module detected; extracted module source to: %s" % debug_dir)
+    return modfile, argsfile
+
+
+def runtest(modfile, argspath, modname, module_style, interpreters):
+    """Test run a module, piping it's output for reporting."""
+    invoke = ""
+    if module_style == 'ansiballz':
+        modfile, argspath = ansiballz_setup(modfile, modname, interpreters)
+        if 'ansible_python_interpreter' in interpreters:
+            invoke = "%s " % interpreters['ansible_python_interpreter']
+
+    os.system("chmod +x %s" % modfile)
+
+    invoke = "%s%s" % (invoke, modfile)
+    if argspath is not None:
+        invoke = "%s %s" % (invoke, argspath)
+
+    cmd = subprocess.Popen(invoke, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (out, err) = cmd.communicate()
+    out, err = to_text(out), to_text(err)
+
+    try:
+        print("*" * 35)
+        print("RAW OUTPUT")
+        print(out)
+        print(err)
+        results = json.loads(out)
+    except Exception:
+        print("*" * 35)
+        print("INVALID OUTPUT FORMAT")
+        print(out)
+        traceback.print_exc()
+        sys.exit(1)
+
+    print("*" * 35)
+    print("PARSED OUTPUT")
+    print(jsonify(results, format=True))
+
+
+def rundebug(debugger, modfile, argspath, modname, module_style, interpreters):
+    """Run interactively with console debugger."""
+
+    if module_style == 'ansiballz':
+        modfile, argspath = ansiballz_setup(modfile, modname, interpreters)
+
+    if argspath is not None:
+        subprocess.call("%s %s %s" % (debugger, modfile, argspath), shell=True)
+    else:
+        subprocess.call("%s %s" % (debugger, modfile), shell=True)
+
+
+def main():
+
+    options, args = parse()
+    init_plugin_loader()
+    interpreters = get_interpreters(options.interpreter)
+    (modfile, modname, module_style) = boilerplate_module(options.module_path, options.module_args, interpreters, options.check, options.filename)
+
+    argspath = None
+    if module_style not in ('new', 'ansiballz'):
+        if module_style in ('non_native_want_json', 'binary'):
+            argspath = write_argsfile(options.module_args, json=True)
+        elif module_style == 'old':
+            argspath = write_argsfile(options.module_args, json=False)
+        else:
+            raise Exception("internal error, unexpected module style: %s" % module_style)
+
+    if options.execute:
+        if options.debugger:
+            rundebug(options.debugger, modfile, argspath, modname, module_style, interpreters)
+        else:
+            runtest(modfile, argspath, modname, module_style, interpreters)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    finally:
+        shutil.rmtree(C.DEFAULT_LOCAL_TMP, True)
+
+
+# FILE: hacking/return_skeleton_generator.py
+#!/usr/bin/env python
+
+# (c) 2017, Will Thames <will@thames.id.au>
+#
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+
+# return_skeleton_generator.py takes JSON output from a module and
+# and creates a starting point for the RETURNS section of a module.
+# This can be provided as stdin or a file argument
+#
+# The easiest way to obtain the JSON output is to use hacking/test-module.py
+#
+# You will likely want to adjust this to remove sensitive data or
+# ensure the `returns` value is correct, and to write a useful description
+
+from __future__ import annotations
+
+from collections import OrderedDict
+import json
+import sys
+import yaml
+
+
+# Allow OrderedDicts to be used when dumping YAML
+# https://stackoverflow.com/a/16782282/3538079
+def represent_ordereddict(dumper, data):
+    value = []
+
+    for item_key, item_value in data.items():
+        node_key = dumper.represent_data(item_key)
+        node_value = dumper.represent_data(item_value)
+
+        value.append((node_key, node_value))
+
+    return yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', value)
+
+
+def get_return_data(key, value):
+    # The OrderedDict here is so that, for complex objects, the
+    # summary data is at the top before the contains information
+    returns_info = {key: OrderedDict()}
+    returns_info[key]['description'] = "FIXME *** add description for %s" % key
+    returns_info[key]['returned'] = "always"
+    if isinstance(value, dict):
+        returns_info[key]['type'] = 'complex'
+        returns_info[key]['contains'] = get_all_items(value)
+    elif isinstance(value, list) and value and isinstance(value[0], dict):
+        returns_info[key]['type'] = 'complex'
+        returns_info[key]['contains'] = get_all_items(value[0])
+    else:
+        returns_info[key]['type'] = type(value).__name__
+        returns_info[key]['sample'] = value
+        # override python unicode type to set to string for docs
+        if returns_info[key]['type'] == 'unicode':
+            returns_info[key]['type'] = 'str'
+    return returns_info
+
+
+def get_all_items(data):
+    items = sorted([get_return_data(key, value) for key, value in data.items()])
+    result = OrderedDict()
+    for item in items:
+        key, value = item.items()[0]
+        result[key] = value
+    return result
+
+
+def main(args):
+    yaml.representer.SafeRepresenter.add_representer(OrderedDict, represent_ordereddict)
+
+    if args:
+        src = open(args[0])
+    else:
+        src = sys.stdin
+
+    data = json.load(src, strict=False)
+    docs = get_all_items(data)
+    if 'invocation' in docs:
+        del docs['invocation']
+    print(yaml.safe_dump(docs, default_flow_style=False))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+
+
+# FILE: hacking/report.py
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+"""A tool to aggregate data about Ansible source and testing into a sqlite DB for reporting."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sqlite3
+import sys
+
+DATABASE_PATH = os.path.expanduser('~/.ansible/report.db')
+BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')) + '/'
+ANSIBLE_PATH = os.path.join(BASE_PATH, 'lib')
+ANSIBLE_TEST_PATH = os.path.join(BASE_PATH, 'test/lib')
+
+if ANSIBLE_PATH not in sys.path:
+    sys.path.insert(0, ANSIBLE_PATH)
+
+if ANSIBLE_TEST_PATH not in sys.path:
+    sys.path.insert(0, ANSIBLE_TEST_PATH)
+
+from ansible.module_utils.urls import open_url
+from ansible.parsing.plugin_docs import read_docstring
+
+from ansible_test._internal.target import walk_integration_targets
+
+
+def main():
+    os.chdir(BASE_PATH)
+
+    args = parse_args()
+    args.func()
+
+
+def parse_args():
+    try:
+        import argcomplete
+    except ImportError:
+        argcomplete = None
+
+    parser = argparse.ArgumentParser()
+
+    subparsers = parser.add_subparsers(metavar='COMMAND')
+    subparsers.required = True  # work-around for python 3 bug which makes subparsers optional
+
+    populate = subparsers.add_parser('populate',
+                                     help='populate report database')
+
+    populate.set_defaults(func=populate_database)
+
+    query = subparsers.add_parser('query',
+                                  help='query report database')
+
+    query.set_defaults(func=query_database)
+
+    if argcomplete:
+        argcomplete.autocomplete(parser)
+
+    args = parser.parse_args()
+
+    return args
+
+
+def query_database():
+    if not os.path.exists(DATABASE_PATH):
+        sys.exit('error: Database not found. Did you run `report.py populate` first?')
+
+    os.execvp('sqlite3', ('sqlite3', DATABASE_PATH))
+
+
+def populate_database():
+    populate_modules()
+    populate_coverage()
+    populate_integration_targets()
+
+
+def populate_modules():
+    module_dir = os.path.join(BASE_PATH, 'lib/ansible/modules/')
+
+    modules_rows = []
+
+    for root, dir_names, file_names in os.walk(module_dir):
+        for file_name in file_names:
+            module, extension = os.path.splitext(file_name)
+
+            if module == '__init__' or extension != '.py':
+                continue
+
+            if module.startswith('_'):
+                module = module[1:]
+
+            namespace = os.path.join(root.replace(module_dir, '')).replace('/', '.')
+
+            path = os.path.join(root, file_name)
+
+            result = read_docstring(path)
+
+            doc = result['doc']
+
+            modules_rows.append(dict(
+                module=module,
+                namespace=namespace,
+                path=path.replace(BASE_PATH, ''),
+                version_added=str(doc.get('version_added', '')) if doc else '',
+            ))
+
+    populate_data(dict(
+        modules=dict(
+            rows=modules_rows,
+            schema=(
+                ('module', 'TEXT'),
+                ('namespace', 'TEXT'),
+                ('path', 'TEXT'),
+                ('version_added', 'TEXT'),
+            )),
+    ))
+
+
+def populate_coverage():
+    response = open_url('https://codecov.io/api/gh/ansible/ansible/tree/devel/?src=extension')
+    data = json.load(response)
+    files = data['commit']['report']['files']
+    coverage_rows = []
+
+    for path, data in files.items():
+        report = data['t']
+        coverage_rows.append(dict(
+            path=path,
+            coverage=float(report['c']),
+            lines=report['n'],
+            hit=report['h'],
+            partial=report['p'],
+            missed=report['m'],
+        ))
+
+    populate_data(dict(
+        coverage=dict(
+            rows=coverage_rows,
+            schema=(
+                ('path', 'TEXT'),
+                ('coverage', 'REAL'),
+                ('lines', 'INTEGER'),
+                ('hit', 'INTEGER'),
+                ('partial', 'INTEGER'),
+                ('missed', 'INTEGER'),
+            )),
+    ))
+
+
+def populate_integration_targets():
+    targets = list(walk_integration_targets())
+
+    integration_targets_rows = [dict(
+        target=target.name,
+        type=target.type,
+        path=target.path,
+        script_path=target.script_path,
+    ) for target in targets]
+
+    integration_target_aliases_rows = [dict(
+        target=target.name,
+        alias=alias,
+    ) for target in targets for alias in target.aliases]
+
+    integration_target_modules_rows = [dict(
+        target=target.name,
+        module=module,
+    ) for target in targets for module in target.modules]
+
+    populate_data(dict(
+        integration_targets=dict(
+            rows=integration_targets_rows,
+            schema=(
+                ('target', 'TEXT'),
+                ('type', 'TEXT'),
+                ('path', 'TEXT'),
+                ('script_path', 'TEXT'),
+            )),
+        integration_target_aliases=dict(
+            rows=integration_target_aliases_rows,
+            schema=(
+                ('target', 'TEXT'),
+                ('alias', 'TEXT'),
+            )),
+        integration_target_modules=dict(
+            rows=integration_target_modules_rows,
+            schema=(
+                ('target', 'TEXT'),
+                ('module', 'TEXT'),
+            )),
+    ))
+
+
+def create_table(cursor, name, columns):
+    schema = ', '.join('%s %s' % column for column in columns)
+
+    cursor.execute('DROP TABLE IF EXISTS %s' % name)
+    cursor.execute('CREATE TABLE %s (%s)' % (name, schema))
+
+
+def populate_table(cursor, rows, name, columns):
+    create_table(cursor, name, columns)
+
+    values = ', '.join([':%s' % column[0] for column in columns])
+
+    for row in rows:
+        cursor.execute('INSERT INTO %s VALUES (%s)' % (name, values), row)
+
+
+def populate_data(data):
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    for table in data:
+        populate_table(cursor, data[table]['rows'], table, data[table]['schema'])
+
+    connection.commit()
+    connection.close()
+
+
+if __name__ == '__main__':
+    main()
+
+
+# FILE: hacking/deprecated_issue_template.md
+##### SUMMARY
+
+%(component)s contains call to Display.deprecated or AnsibleModule.deprecate and is scheduled for removal
+
+```text
+%(line)s
+```
+
+##### ISSUE TYPE
+
+- Bug Report
+
+##### COMPONENT NAME
+
+```text
+%(path)s
+```
+
+##### ANSIBLE VERSION
+
+```text
+%(version)s
+```
+
+##### CONFIGURATION
+
+N/A
+
+##### OS / ENVIRONMENT
+
+N/A
+
+##### STEPS TO REPRODUCE
+
+N/A
+
+##### EXPECTED RESULTS
+
+N/A
+
+##### ACTUAL RESULTS
+
+N/A
+
+
+# FILE: hacking/create-bulk-issues.py
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+"""Create GitHub issues for deprecated features."""
+
+from __future__ import annotations
+
+import abc
+import argparse
+import dataclasses
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import typing as t
+
+import yaml
+
+try:
+    # noinspection PyPackageRequirements
+    import argcomplete
+except ImportError:
+    argcomplete = None
+
+from ansible.release import __version__
+
+MAJOR_MINOR_VERSION = '.'.join(__version__.split('.')[:2])
+PROJECT = f'ansible-core {MAJOR_MINOR_VERSION}'
+
+
+@dataclasses.dataclass(frozen=True)
+class Issue:
+    title: str
+    summary: str
+    body: str
+    project: str
+    labels: list[str] | None = None
+    assignee: str | None = None
+
+    def create(self) -> str:
+        cmd = ['gh', 'issue', 'create', '--title', self.title, '--body', self.body, '--project', self.project]
+
+        if self.labels:
+            for label in self.labels:
+                cmd.extend(('--label', label))
+
+        if self.assignee:
+            cmd.extend(('--assignee', self.assignee))
+
+        try:
+            process = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        except subprocess.CalledProcessError as ex:
+            print('>>> Note')
+            print(f"You may need to run 'gh auth refresh -s project' if 'gh' reports it cannot find the project {self.project!r} when it exists.")
+            print(f'>>> Standard Output\n{ex.stdout.strip()}\n>>> Standard Error\n{ex.stderr.strip()}\n>>> Exception')
+            raise
+
+        url = process.stdout.strip()
+        return url
+
+
+@dataclasses.dataclass(frozen=True)
+class Feature:
+    title: str
+    summary: str
+    component: str
+    labels: list[str] | None = None
+    assignee: str | None = None
+
+    @staticmethod
+    def from_dict(data: dict[str, t.Any]) -> Feature:
+        title = data.get('title')
+        summary = data.get('summary')
+        component = data.get('component')
+        labels = data.get('labels')
+        assignee = data.get('assignee')
+
+        if not isinstance(title, str):
+            raise RuntimeError(f'`title` is not `str`: {title}')
+
+        if not isinstance(summary, str):
+            raise RuntimeError(f'`summary` is not `str`: {summary}')
+
+        if not isinstance(component, str):
+            raise RuntimeError(f'`component` is not `str`: {component}')
+
+        if not isinstance(assignee, (str, type(None))):
+            raise RuntimeError(f'`assignee` is not `str`: {assignee}')
+
+        if not isinstance(labels, list) or not all(isinstance(item, str) for item in labels):
+            raise RuntimeError(f'`labels` is not `list[str]`: {labels}')
+
+        return Feature(
+            title=title,
+            summary=summary,
+            component=component,
+            labels=labels,
+            assignee=assignee,
+        )
+
+    def create_issue(self, project: str) -> Issue:
+        body = f'''
+### Summary
+
+{self.summary}
+
+### Issue Type
+
+Feature Idea
+
+### Component Name
+
+`{self.component}`
+'''
+
+        return Issue(
+            title=self.title,
+            summary=self.summary,
+            body=body.strip(),
+            project=project,
+            labels=self.labels,
+            assignee=self.assignee,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class BugReport:
+    title: str
+    summary: str
+    component: str
+    labels: list[str] | None = None
+
+    def create_issue(self, project: str) -> Issue:
+        body = f'''
+### Summary
+
+{self.summary}
+
+### Issue Type
+
+Bug Report
+
+### Component Name
+
+`{self.component}`
+
+### Ansible Version
+
+{MAJOR_MINOR_VERSION}
+
+### Configuration
+
+N/A
+
+### OS / Environment
+
+N/A
+
+### Steps to Reproduce
+
+N/A
+
+### Expected Results
+
+N/A
+
+### Actual Results
+
+N/A
+'''
+
+        return Issue(
+            title=self.title,
+            summary=self.summary,
+            body=body.strip(),
+            project=project,
+            labels=self.labels,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class Deprecation(metaclass=abc.ABCMeta):
+    @staticmethod
+    @abc.abstractmethod
+    def parse(message: str) -> Deprecation:
+        pass
+
+    @abc.abstractmethod
+    def create_bug_report(self) -> BugReport:
+        pass
+
+
+@dataclasses.dataclass(frozen=True)
+class DeprecatedConfig(Deprecation):
+    path: str
+    config: str
+    version: str
+
+    @staticmethod
+    def parse(message: str) -> DeprecatedConfig:
+        match = re.search('^(?P<path>.*):[0-9]+:[0-9]+: (?P<config>.*) is scheduled for removal in (?P<version>[0-9.]+)$', message)
+
+        if not match:
+            raise Exception(f'Unable to parse: {message}')
+
+        return DeprecatedConfig(
+            path=match.group('path'),
+            config=match.group('config'),
+            version=match.group('version'),
+        )
+
+    def create_bug_report(self) -> BugReport:
+        return BugReport(
+            title=f'Remove deprecated {self.config}',
+            summary=f'The config option `{self.config}` should be removed from `{self.path}`. It was scheduled for removal in {self.version}.',
+            component=self.path,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class UpdateBundled(Deprecation):
+    path: str
+    package: str
+    old_version: str
+    new_version: str
+    json_link: str
+    link: str = dataclasses.field(default='', init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, 'link', re.sub('/json$', '', self.json_link))
+
+    @staticmethod
+    def parse(message: str) -> UpdateBundled:
+        match = re.search('^(?P<path>.*):[0-9]+:[0-9]+: UPDATE (?P<package>.*) from (?P<old>[0-9.]+) to (?P<new>[0-9.]+) (?P<link>https://.*)$', message)
+
+        if not match:
+            raise Exception(f'Unable to parse: {message}')
+
+        return UpdateBundled(
+            path=match.group('path'),
+            package=match.group('package'),
+            old_version=match.group('old'),
+            new_version=match.group('new'),
+            json_link=match.group('link'),
+        )
+
+    def create_bug_report(self) -> BugReport:
+        return BugReport(
+            title=f'Update bundled {self.package} to {self.new_version}',
+            summary=f'Update the bundled package [{self.package}]({self.link}) from `{self.old_version}` to `{self.new_version}`.',
+            component=self.path,
+        )
+
+
+TEST_OPTIONS = {
+    'update-bundled': UpdateBundled,
+    'deprecated-config': DeprecatedConfig,
+}
+
+
+@dataclasses.dataclass(frozen=True)
+class Args:
+    create: bool
+    verbose: bool
+
+    def run(self) -> None:
+        raise NotImplementedError()
+
+
+@dataclasses.dataclass(frozen=True)
+class DeprecationArgs(Args):
+    tests: list[str]
+
+    def run(self) -> None:
+        deprecated_command(self)
+
+
+@dataclasses.dataclass(frozen=True)
+class FeatureArgs(Args):
+    source: pathlib.Path
+
+    def run(self) -> None:
+        feature_command(self)
+
+
+def parse_args() -> Args:
+    parser = argparse.ArgumentParser()
+
+    create_common_arguments(parser)
+
+    subparser = parser.add_subparsers(required=True)
+
+    create_deprecation_parser(subparser)
+    create_feature_parser(subparser)
+
+    args = invoke_parser(parser)
+
+    return args
+
+
+def create_deprecation_parser(subparser) -> None:
+    parser: argparse.ArgumentParser = subparser.add_parser('deprecation')
+    parser.set_defaults(type=DeprecationArgs)
+    parser.set_defaults(command=deprecated_command)
+
+    parser.add_argument(
+        '--test',
+        dest='tests',
+        choices=tuple(TEST_OPTIONS),
+        action='append',
+        help='sanity test name',
+    )
+
+    create_common_arguments(parser)
+
+
+def create_feature_parser(subparser) -> None:
+    epilog = """
+Example source YAML:
+
+default:
+  component: ansible-test
+  labels:
+    - ansible-test
+    - feature
+  assignee: "@me"
+features:
+  - title: Some title goes here
+    summary: A summary goes here.
+"""
+
+    parser: argparse.ArgumentParser = subparser.add_parser('feature', epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.set_defaults(type=FeatureArgs)
+    parser.set_defaults(command=feature_command)
+
+    parser.add_argument(
+        '--source',
+        type=pathlib.Path,
+        default=pathlib.Path('issues.yml'),
+        help='YAML file containing issue details (default: %(default)s)',
+    )
+
+    create_common_arguments(parser)
+
+
+def create_common_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        '--create',
+        action='store_true',
+        help='create issues on GitHub',
+    )
+
+    parser.add_argument(
+        '-v',
+        dest='verbose',
+        action='store_true',
+        help='verbose output',
+    )
+
+
+def invoke_parser(parser: argparse.ArgumentParser) -> Args:
+    if argcomplete:
+        argcomplete.autocomplete(parser)
+
+    parsed_args = parser.parse_args()
+
+    kvp = {}
+    args_type = parsed_args.type
+
+    for field in dataclasses.fields(args_type):
+        kvp[field.name] = getattr(parsed_args, field.name)
+
+    args = args_type(**kvp)
+
+    return args
+
+
+def run_sanity_test(test_name: str) -> list[str]:
+    cmd = ['ansible-test', 'sanity', '--test', test_name, '--lint', '--failure-ok']
+    skip_path = 'test/sanity/code-smell/skip.txt'
+    skip_temp_path = skip_path + '.tmp'
+
+    os.rename(skip_path, skip_temp_path)  # make sure ansible-test isn't configured to skip any tests
+
+    try:
+        process = subprocess.run(cmd, capture_output=True, check=True)
+    finally:
+        os.rename(skip_temp_path, skip_path)  # restore the skip entries
+
+    messages = process.stdout.decode().splitlines()
+
+    return messages
+
+
+def create_issues_from_deprecation_messages(test_type: t.Type[Deprecation], messages: list[str]) -> list[Issue]:
+    deprecations = [test_type.parse(message) for message in messages]
+    bug_reports = [deprecation.create_bug_report() for deprecation in deprecations]
+    issues = [bug_report.create_issue(PROJECT) for bug_report in bug_reports]
+    return issues
+
+
+def info(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def main() -> None:
+    args = parse_args()
+    args.run()
+
+
+def deprecated_command(args: DeprecationArgs) -> None:
+    issues: list[Issue] = []
+
+    for test in args.tests or list(TEST_OPTIONS):
+        test_type = TEST_OPTIONS[test]
+        info(f'Running "{test}" sanity test...')
+        messages = run_sanity_test(test)
+        issues.extend(create_issues_from_deprecation_messages(test_type, messages))
+
+    create_issues(args, issues)
+
+
+def feature_command(args: FeatureArgs) -> None:
+    with args.source.open() as source_file:
+        source = yaml.safe_load(source_file)
+
+    default: dict[str, t.Any] = source.get('default', {})
+    features: list[dict[str, t.Any]] = source.get('features', [])
+
+    if not isinstance(default, dict):
+        raise RuntimeError('`default` must be `dict[str, ...]`')
+
+    if not isinstance(features, list):
+        raise RuntimeError('`features` must be `list[dict[str, ...]]`')
+
+    issues: list[Issue] = []
+
+    for feature in features:
+        data = default.copy()
+        data.update(feature)
+
+        feature = Feature.from_dict(data)
+        issues.append(feature.create_issue(PROJECT))
+
+    create_issues(args, issues)
+
+
+def create_issues(args: Args, issues: list[Issue]) -> None:
+    if not issues:
+        info('No issues found.')
+        return
+
+    info(f'Found {len(issues)} issue(s) to report:')
+
+    for issue in issues:
+        info(f'[{issue.title}] {issue.summary}')
+
+        if args.verbose:
+            info('>>>')
+            info(issue.body)
+            info('>>>')
+
+        if args.create:
+            url = issue.create()
+            info(url)
+
+    if not args.create:
+        info('Pass the "--create" option to create these issues on GitHub.')
+
+
+if __name__ == '__main__':
+    main()
+
+
+# FILE: hacking/ansible-profile.py
+#!/usr/bin/env python
+from __future__ import annotations
+
+import cProfile
+import sys
+import traceback
+
+from ansible.module_utils.common.text.converters import to_text
+
+target = sys.argv.pop(1)
+myclass = "%sCLI" % target.capitalize()
+module_name = f'ansible.cli.{target}'
+
+try:
+    # define cli
+    mycli = getattr(__import__(module_name, fromlist=[myclass]), myclass)
+except ImportError as e:
+    if module_name in e.msg:
+        raise Exception("Ansible sub-program not implemented: %s" % target) from None
+    else:
+        raise
+
+try:
+    args = [to_text(a, errors='surrogate_or_strict') for a in sys.argv]
+except UnicodeError:
+    sys.stderr.write(u"The full traceback was:\n\n%s" % to_text(traceback.format_exc()))
+    sys.exit(u'Command line args are parsable to utf-8')
+
+# init cli
+cli = mycli(args)
+
+print(cli.__class__.version_info(gitinfo=True))
+
+# parse args
+cli.parse()
+
+# run
+cProfile.run('cli.run()')
+
+
+# FILE: hacking/README.md
+'Hacking' directory tools
+=========================
+
+env-setup
+---------
+
+The 'env-setup' script modifies your environment to allow you to run
+ansible from a git checkout using a supported Python version.
+
+First, set up your environment to run from the checkout:
+
+```shell
+source ./hacking/env-setup
+```
+
+You will need some basic prerequisites installed.  If you do not already have them
+and do not wish to install them from your operating system package manager, you
+can install them from pip
+
+```shell
+python -Im ensurepip  # if pip is not already available
+pip install -r requirements.txt
+```
+
+From there, follow ansible instructions on docs.ansible.com as normal.
+
+test-module.py
+--------------
+
+'test-module.py' is a simple program that allows module developers (or testers) to run
+a module outside of the ansible program, locally, on the current machine.
+
+Example:
+
+```shell
+./hacking/test-module.py -m lib/ansible/modules/command.py -a "echo hi"
+```
+
+This is a good way to insert a breakpoint into a module, for instance.
+
+For more complex arguments such as the following yaml:
+
+```yaml
+parent:
+  child:
+    - item: first
+      val: foo
+    - item: second
+      val: boo
+```
+
+Use:
+
+```shell
+./hacking/test-module.py -m module \
+  -a '{"parent": {"child": [{"item": "first", "val": "foo"}, {"item": "second", "val": "bar"}]}}'
+```
+
+return_skeleton_generator.py
+----------------------------
+
+return_skeleton_generator.py helps in generating the RETURNS section of a module. It takes
+JSON output of a module provided either as a file argument or via stdin.
+
+
+# FILE: packaging/release.py
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+"""Manage upstream ansible-core releases."""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import dataclasses
+import datetime
+import enum
+import functools
+import gzip
+import hashlib
+import http.client
+import inspect
+import json
+import math
+import os
+import pathlib
+import re
+import secrets
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+import typing as t
+import urllib.error
+import urllib.parse
+import urllib.request
+import venv
+import webbrowser
+import zipfile
+
+import jinja2
+
+from packaging.version import Version, InvalidVersion
+
+# region CLI Framework
+
+
+def path_to_str(value: t.Any) -> str:
+    """Return the given value converted to a string suitable for use as a command line argument."""
+    return f"{value}/" if isinstance(value, pathlib.Path) and value.is_dir() else str(value)
+
+
+@t.overload
+def run(*args: t.Any, env: dict[str, t.Any] | None, cwd: pathlib.Path | str, capture_output: t.Literal[True]) -> CompletedProcess: ...
+
+
+@t.overload
+def run(*args: t.Any, env: dict[str, t.Any] | None, cwd: pathlib.Path | str, capture_output: t.Literal[False]) -> None: ...
+
+
+@t.overload
+def run(*args: t.Any, env: dict[str, t.Any] | None, cwd: pathlib.Path | str, capture_output: bool) -> CompletedProcess | None: ...
+
+
+@t.overload
+def run(*args: t.Any, env: dict[str, t.Any] | None, cwd: pathlib.Path | str) -> None: ...
+
+
+def run(
+    *args: t.Any,
+    env: dict[str, t.Any] | None,
+    cwd: pathlib.Path | str,
+    capture_output: bool = False,
+) -> CompletedProcess | None:
+    """Run the specified command."""
+    args = [arg.relative_to(cwd) if isinstance(arg, pathlib.Path) else arg for arg in args]
+
+    str_args = tuple(path_to_str(arg) for arg in args)
+    str_env = {key: path_to_str(value) for key, value in env.items()} if env is not None else None
+
+    display.show(f"--> {shlex.join(str_args)}", color=Display.CYAN)
+
+    try:
+        p = subprocess.run(str_args, check=True, text=True, env=str_env, cwd=cwd, capture_output=capture_output)
+    except subprocess.CalledProcessError as ex:
+        # improve type hinting and include stdout/stderr (if any) in the message
+        raise CalledProcessError(
+            message=str(ex),
+            cmd=str_args,
+            status=ex.returncode,
+            stdout=ex.stdout,
+            stderr=ex.stderr,
+        ) from None
+
+    if not capture_output:
+        return None
+
+    # improve type hinting
+    return CompletedProcess(
+        stdout=p.stdout,
+        stderr=p.stderr,
+    )
+
+
+@contextlib.contextmanager
+def suppress_when(error_as_warning: bool) -> t.Generator[None, None, None]:
+    """Conditionally convert an ApplicationError in the provided context to a warning."""
+    if error_as_warning:
+        try:
+            yield
+        except ApplicationError as ex:
+            display.warning(ex)
+    else:
+        yield
+
+
+class ApplicationError(Exception):
+    """A fatal application error which will be shown without a traceback."""
+
+
+class CalledProcessError(Exception):
+    """Results from a failed process."""
+
+    def __init__(self, message: str, cmd: tuple[str, ...], status: int, stdout: str | None, stderr: str | None) -> None:
+        if stdout and (stdout := stdout.strip()):
+            message += f"\n>>> Standard Output\n{stdout}"
+
+        if stderr and (stderr := stderr.strip()):
+            message += f"\n>>> Standard Error\n{stderr}"
+
+        super().__init__(message)
+
+        self.cmd = cmd
+        self.status = status
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+@dataclasses.dataclass(frozen=True)
+class CompletedProcess:
+    """Results from a completed process."""
+
+    stdout: str
+    stderr: str
+
+
+class Display:
+    """Display interface for sending output to the console."""
+
+    CLEAR = "\033[0m"
+    RED = "\033[31m"
+    BLUE = "\033[34m"
+    PURPLE = "\033[35m"
+    CYAN = "\033[36m"
+
+    def fatal(self, message: t.Any) -> None:
+        """Print a fatal message to the console."""
+        self.show(f"FATAL: {message}", color=self.RED)
+
+    def warning(self, message: t.Any) -> None:
+        """Print a warning message to the console."""
+        self.show(f"WARNING: {message}", color=self.PURPLE)
+
+    def show(self, message: t.Any, color: str | None = None) -> None:
+        """Print a message to the console."""
+        print(f"{color or self.CLEAR}{message}{self.CLEAR}", flush=True)
+
+
+class CommandFramework:
+    """
+    Simple command line framework inspired by nox.
+
+    Argument parsing is handled by argparse. Each function annotated with an instance of this class becomes a subcommand.
+    Options are shared across all commands, and are defined by providing kwargs when creating an instance of this class.
+    Options are only defined for commands which have a matching parameter.
+
+    The name of each kwarg is the option name, which will be prefixed with `--` and with underscores converted to dashes.
+    The value of each kwarg is passed as kwargs to ArgumentParser.add_argument. Passing None results in an internal only parameter.
+
+    The following custom kwargs are recognized and are not passed to add_argument:
+
+    name - Override the positional argument (option) passed to add_argument.
+    exclusive - Put the argument in an exclusive group of the given name.
+    """
+
+    def __init__(self, **kwargs: dict[str, t.Any] | None) -> None:
+        self.commands: list[t.Callable[..., None]] = []
+        self.arguments = kwargs
+        self.parsed_arguments: argparse.Namespace | None = None
+
+    def __call__[T: t.Callable[..., None]](self, func: T) -> T:
+        """Register the decorated function as a CLI command."""
+        self.commands.append(func)
+        return func
+
+    def run(self, *args: t.Callable[..., None], **kwargs) -> None:
+        """Run the specified command(s), using any provided internal args."""
+        for arg in args:
+            self._run(arg, **kwargs)
+
+    def main(self) -> None:
+        """Main program entry point."""
+        parser = argparse.ArgumentParser(description=__doc__)
+        subparsers = parser.add_subparsers(metavar="COMMAND", required=True)
+
+        for func in self.commands:
+            func_parser = subparsers.add_parser(self._format_command_name(func), description=func.__doc__, help=func.__doc__)
+            func_parser.set_defaults(func=func)
+
+            exclusive_groups = {}
+            signature = inspect.signature(func)
+
+            for name in signature.parameters:
+                if name not in self.arguments:
+                    raise RuntimeError(f"The '{name}' argument, used by '{func.__name__}', has not been defined.")
+
+                if (arguments := self.arguments.get(name)) is None:
+                    continue  # internal use
+
+                arguments = arguments.copy()
+                exclusive = arguments.pop("exclusive", None)
+
+                # noinspection PyProtectedMember, PyUnresolvedReferences
+                command_parser: argparse._ActionsContainer
+
+                if exclusive:
+                    if exclusive not in exclusive_groups:
+                        exclusive_groups[exclusive] = func_parser.add_mutually_exclusive_group()
+
+                    command_parser = exclusive_groups[exclusive]
+                else:
+                    command_parser = func_parser
+
+                if option_name := arguments.pop("name", None):
+                    arguments.update(dest=name)
+                else:
+                    option_name = f"--{name.replace('_', '-')}"
+
+                command_parser.add_argument(option_name, **arguments)
+
+        try:
+            # noinspection PyUnresolvedReferences
+            import argcomplete
+        except ImportError:
+            pass
+        else:
+            argcomplete.autocomplete(parser)
+
+        self.parsed_arguments = parser.parse_args()
+
+        try:
+            self.run(self.parsed_arguments.func)
+        except ApplicationError as ex:
+            display.fatal(ex)
+            sys.exit(1)
+
+    def _run(self, func: t.Callable[..., None], **kwargs) -> None:
+        """Run the specified command, using any provided internal args."""
+        signature = inspect.signature(func)
+        func_args = {name: getattr(self.parsed_arguments, name) for name in signature.parameters if hasattr(self.parsed_arguments, name)}
+        func_args.update({name: value for name, value in kwargs.items() if name in signature.parameters})
+        printable_args = ", ".join(f"{name}={repr(value)}" for name, value in func_args.items())
+        label = f"{self._format_command_name(func)}({printable_args})"
+
+        display.show(f"==> {label}", color=Display.BLUE)
+
+        try:
+            func(**func_args)
+        except BaseException:
+            display.show(f"!!! {label}", color=Display.RED)
+            raise
+
+        display.show(f"<== {label}", color=Display.BLUE)
+
+    @staticmethod
+    def _format_command_name(func: t.Callable[..., None]) -> str:
+        """Return the friendly name of the given command."""
+        return func.__name__.replace("_", "-")
+
+
+display = Display()
+
+
+# endregion
+# region Data Classes
+
+
+@dataclasses.dataclass(frozen=True)
+class GitHubRelease:
+    """Details required to create a GitHub release."""
+
+    user: str
+    repo: str
+    tag: str
+    target: str
+    title: str
+    body: str
+    pre_release: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class PullRequest:
+    """Details required to create a pull request."""
+
+    upstream_user: str
+    upstream_repo: str
+    upstream_branch: str
+    user: str
+    repo: str
+    branch: str
+    title: str
+    body: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Remote:
+    """Details about a git remote."""
+
+    name: str
+    user: str
+    repo: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Remotes:
+    """Details about git removes."""
+
+    fork: Remote
+    upstream: Remote
+
+
+@dataclasses.dataclass(frozen=True)
+class GitState:
+    """Details about the state of the git repository."""
+
+    remotes: Remotes
+    branch: str | None
+    commit: str
+
+
+@dataclasses.dataclass(frozen=True)
+class ReleaseArtifact:
+    """Information about a release artifact on PyPI."""
+
+    package_type: str
+    package_label: str
+    url: str
+    size: int
+    digest: str
+    digest_algorithm: str
+
+
+# endregion
+# region Utilities
+
+
+SCRIPT_DIR = pathlib.Path(__file__).parent.resolve()
+CHECKOUT_DIR = SCRIPT_DIR.parent
+
+ANSIBLE_LIB_DIR = CHECKOUT_DIR / "lib"
+ANSIBLE_DIR = ANSIBLE_LIB_DIR / "ansible"
+ANSIBLE_BIN_DIR = CHECKOUT_DIR / "bin"
+ANSIBLE_RELEASE_FILE = ANSIBLE_DIR / "release.py"
+ANSIBLE_REQUIREMENTS_FILE = CHECKOUT_DIR / "requirements.txt"
+ANSIBLE_CHANGELOG_REQUIREMENTS_FILE = CHECKOUT_DIR / "test/lib/ansible_test/_data/requirements/sanity.changelog.txt"
+ANSIBLE_PYPROJECT_TOML_FILE = CHECKOUT_DIR / "pyproject.toml"
+
+DIST_DIR = CHECKOUT_DIR / "dist"
+VENV_DIR = DIST_DIR / ".venv" / "release"
+
+CHANGELOGS_DIR = CHECKOUT_DIR / "changelogs"
+CHANGELOGS_FRAGMENTS_DIR = CHANGELOGS_DIR / "fragments"
+
+ANSIBLE_VERSION_PATTERN = re.compile("^__version__ = '(?P<version>.*)'$", re.MULTILINE)
+ANSIBLE_VERSION_FORMAT = "__version__ = '{version}'"
+
+DIGEST_ALGORITHM = "sha256"
+
+# These endpoint names match those defined as defaults in twine.
+# See: https://github.com/pypa/twine/blob/9c2c0a1c535155931c3d879359330cb836950c6a/twine/utils.py#L82-L85
+PYPI_ENDPOINTS = dict(
+    pypi="https://pypi.org/pypi",
+    testpypi="https://test.pypi.org/pypi",
+)
+
+PIP_ENV = dict(
+    PIP_REQUIRE_VIRTUALENV="yes",
+    PIP_DISABLE_PIP_VERSION_CHECK="yes",
+)
+
+
+class VersionMode(enum.Enum):
+    """How to handle the ansible-core version."""
+
+    DEFAULT = enum.auto()
+    """Do not allow development versions. Do not allow post release versions."""
+    STRIP_POST = enum.auto()
+    """Do not allow development versions. Strip the post release from the version if present."""
+    REQUIRE_POST = enum.auto()
+    """Do not allow development versions. Require a post release version."""
+    REQUIRE_DEV_POST = enum.auto()
+    """Require a development or post release version."""
+    ALLOW_DEV_POST = enum.auto()
+    """Allow development and post release versions."""
+
+    def apply(self, version: Version) -> Version:
+        """Apply the mode to the given version and return the result."""
+        original_version = version
+
+        release_component_count = 3
+
+        if len(version.release) != release_component_count:
+            raise ApplicationError(f"Version {version} contains {version.release} release components instead of {release_component_count}.")
+
+        if version.epoch:
+            raise ApplicationError(f"Version {version} contains an epoch component: {version.epoch}")
+
+        if version.local is not None:
+            raise ApplicationError(f"Version {version} contains a local component: {version.local}")
+
+        if version.is_devrelease and version.is_postrelease:
+            raise ApplicationError(f"Version {version} is a development and post release version.")
+
+        if self == VersionMode.ALLOW_DEV_POST:
+            return version
+
+        if self == VersionMode.REQUIRE_DEV_POST:
+            if not version.is_devrelease and not version.is_postrelease:
+                raise ApplicationError(f"Version {version} is not a development or post release version.")
+
+            return version
+
+        if version.is_devrelease:
+            raise ApplicationError(f"Version {version} is a development release: {version.dev}")
+
+        if self == VersionMode.STRIP_POST:
+            if version.is_postrelease:
+                version = Version(str(version).removesuffix(f".post{version.post}"))
+                display.warning(f"Using version {version} by stripping the post release suffix from version {original_version}.")
+
+            return version
+
+        if self == VersionMode.REQUIRE_POST:
+            if not version.is_postrelease:
+                raise ApplicationError(f"Version {version} is not a post release version.")
+
+            return version
+
+        if version.is_postrelease:
+            raise ApplicationError(f"Version {version} is a post release.")
+
+        if self == VersionMode.DEFAULT:
+            return version
+
+        raise NotImplementedError(self)
+
+
+@t.overload
+def git(*args: t.Any, capture_output: t.Literal[True]) -> CompletedProcess: ...
+
+
+@t.overload
+def git(*args: t.Any, capture_output: t.Literal[False]) -> None: ...
+
+
+@t.overload
+def git(*args: t.Any) -> None: ...
+
+
+def git(*args: t.Any, capture_output: bool = False) -> CompletedProcess | None:
+    """Run the specified git command."""
+    return run("git", *args, env=None, cwd=CHECKOUT_DIR, capture_output=capture_output)
+
+
+def get_commit(rev: str | None = None) -> str:
+    """Return the commit associated with the given rev, or HEAD if no rev is given."""
+    try:
+        return git("rev-parse", "--quiet", "--verify", "--end-of-options", f"{rev or 'HEAD'}^{{commit}}", capture_output=True).stdout.strip()
+    except CalledProcessError as ex:
+        if ex.status == 1 and not ex.stdout and not ex.stderr:
+            raise ApplicationError(f"Could not find commit: {rev}") from None
+
+        raise
+
+
+def prepare_pull_request(version: Version, branch: str, title: str, add: t.Iterable[pathlib.Path | str], allow_stale: bool) -> PullRequest:
+    """Return pull request parameters using the provided details."""
+    git_state = get_git_state(version, allow_stale)
+
+    if not git("status", "--porcelain", "--untracked-files=no", capture_output=True).stdout.strip():
+        raise ApplicationError("There are no changes to commit. Did you skip a step?")
+
+    upstream_branch = get_upstream_branch(version)
+    body = create_pull_request_body(title)
+
+    git("checkout", "-b", branch)
+    git("add", *add)
+    git("commit", "-m", title)
+    git("push", "--set-upstream", git_state.remotes.fork.name, branch)
+    git("checkout", git_state.branch or git_state.commit)
+    git("branch", "-d", branch)
+
+    pr = PullRequest(
+        upstream_user=git_state.remotes.upstream.user,
+        upstream_repo=git_state.remotes.upstream.repo,
+        upstream_branch=upstream_branch,
+        user=git_state.remotes.fork.user,
+        repo=git_state.remotes.fork.repo,
+        branch=branch,
+        title=title,
+        body=body,
+    )
+
+    return pr
+
+
+def create_github_release(release: GitHubRelease) -> None:
+    """Open a browser tab for creating the given GitHub release."""
+    # See: https://docs.github.com/en/repositories/releasing-projects-on-github/automation-for-release-forms-with-query-parameters
+
+    params = dict(
+        tag=release.tag,
+        target=release.target,
+        title=release.title,
+        body=release.body,
+        prerelease=1 if release.pre_release else 0,
+    )
+
+    query_string = urllib.parse.urlencode(params)
+    url = f"https://github.com/{release.user}/{release.repo}/releases/new?{query_string}"
+
+    display.show("Opening release creation page in new tab using default browser ...")
+    webbrowser.open_new_tab(url)
+
+
+def create_pull_request(pr: PullRequest) -> None:
+    """Open a browser tab for creating the given pull request."""
+    # See: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/using-query-parameters-to-create-a-pull-request  # noqa
+
+    params = dict(
+        quick_pull=1,
+        title=pr.title,
+        body=pr.body,
+    )
+
+    query_string = urllib.parse.urlencode(params)
+    url = f"https://github.com/{pr.upstream_user}/{pr.upstream_repo}/compare/{pr.upstream_branch}...{pr.user}:{pr.repo}:{pr.branch}?{query_string}"
+
+    display.show("Opening pull request in new tab using default browser ...")
+    webbrowser.open_new_tab(url)
+
+
+def create_pull_request_body(title: str) -> str:
+    """Return a simple pull request body created from the given title."""
+    body = f"""
+##### SUMMARY
+
+{title}
+
+##### ISSUE TYPE
+
+Feature Pull Request
+"""
+
+    return body.lstrip()
+
+
+def get_remote(name: str, push: bool) -> Remote:
+    """Return details about the specified remote."""
+    remote_url = git("remote", "get-url", *(["--push"] if push else []), name, capture_output=True).stdout.strip()
+    remote_match = re.search(r"[@/]github[.]com[:/](?P<user>[^/]+)/(?P<repo>[^.]+)(?:[.]git)?$", remote_url)
+
+    if not remote_match:
+        raise RuntimeError(f"Unable to identify the user and repo in the '{name}' remote: {remote_url}")
+
+    remote = Remote(
+        name=name,
+        user=remote_match.group("user"),
+        repo=remote_match.group("repo"),
+    )
+
+    return remote
+
+
+@functools.cache
+def get_remotes() -> Remotes:
+    """Return details about the remotes we need to use."""
+    # assume the devel branch has its upstream remote pointing to the user's fork
+    fork_remote_name = git("branch", "--list", "devel", "--format=%(upstream:remotename)", capture_output=True).stdout.strip()
+
+    if not fork_remote_name:
+        raise ApplicationError("Could not determine the remote for your fork of Ansible.")
+
+    display.show(f"Detected '{fork_remote_name}' as the remote for your fork of Ansible.")
+
+    # assume there is only one ansible org remote, which would allow release testing using another repo in the same org without special configuration
+    all_remotes = git("remote", "-v", capture_output=True).stdout.strip().splitlines()
+    ansible_remote_names = set(line.split()[0] for line in all_remotes if re.search(r"[@/]github[.]com[:/]ansible/", line))
+
+    if not ansible_remote_names:
+        raise ApplicationError(f"Could not determine the remote which '{fork_remote_name}' was forked from.")
+
+    if len(ansible_remote_names) > 1:
+        raise ApplicationError(f"Found multiple candidates for the remote from which '{fork_remote_name}' was forked from: {', '.join(ansible_remote_names)}")
+
+    upstream_remote_name = ansible_remote_names.pop()
+
+    display.show(f"Detected '{upstream_remote_name}' as the remote from which '{fork_remote_name}' was forked from.")
+
+    if fork_remote_name == upstream_remote_name:
+        raise ApplicationError("The remote for your fork of Ansible cannot be the same as the remote from which it was forked.")
+
+    remotes = Remotes(
+        fork=get_remote(fork_remote_name, push=True),
+        upstream=get_remote(upstream_remote_name, push=False),
+    )
+
+    return remotes
+
+
+def get_upstream_branch(version: Version) -> str:
+    """Return the upstream branch name for the given version."""
+    return f"stable-{version.major}.{version.minor}"
+
+
+def get_git_state(version: Version, allow_stale: bool) -> GitState:
+    """Return information about the current state of the git repository."""
+    remotes = get_remotes()
+    upstream_branch = get_upstream_branch(version)
+
+    git("fetch", remotes.upstream.name, upstream_branch)
+
+    upstream_ref = f"{remotes.upstream.name}/{upstream_branch}"
+    upstream_commit = get_commit(upstream_ref)
+
+    commit = get_commit()
+
+    if commit != upstream_commit:
+        with suppress_when(allow_stale):
+            raise ApplicationError(f"The current commit ({commit}) does not match {upstream_ref} ({upstream_commit}).")
+
+    branch = git("branch", "--show-current", capture_output=True).stdout.strip() or None
+
+    state = GitState(
+        remotes=remotes,
+        branch=branch,
+        commit=commit,
+    )
+
+    return state
+
+
+@functools.cache
+def ensure_venv(requirements_content: str) -> dict[str, t.Any]:
+    """Ensure the release venv is ready and return the env vars needed to use it."""
+    requirements_hash = hashlib.sha256(requirements_content.encode()).hexdigest()[:8]
+
+    python_version = ".".join(map(str, sys.version_info[:2]))
+
+    venv_dir = VENV_DIR / python_version / requirements_hash
+    venv_bin_dir = venv_dir / "bin"
+    venv_requirements_file = venv_dir / "requirements.txt"
+    venv_marker_file = venv_dir / "marker.txt"
+
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)  # avoid interference from ansible being injected into the environment
+    env.update(
+        PATH=os.pathsep.join((str(venv_bin_dir), env["PATH"])),
+    )
+
+    if not venv_marker_file.exists():
+        display.show(f"Creating a Python {python_version} virtual environment ({requirements_hash}) ...")
+
+        if venv_dir.exists():
+            shutil.rmtree(venv_dir)
+
+        venv.create(venv_dir, with_pip=True)
+
+        venv_requirements_file.write_text(requirements_content)
+
+        run("pip", "install", "-r", venv_requirements_file, env=env | PIP_ENV, cwd=CHECKOUT_DIR)
+
+        venv_marker_file.touch()
+
+    return env
+
+
+def get_pypi_project(repository: str, project: str, version: Version | None = None) -> dict[str, t.Any]:
+    """Return the project JSON from PyPI for the specified repository, project and version (optional)."""
+    endpoint = PYPI_ENDPOINTS[repository]
+
+    if version:
+        url = f"{endpoint}/{project}/{version}/json"
+    else:
+        url = f"{endpoint}/{project}/json"
+
+    opener = urllib.request.build_opener()
+    response: http.client.HTTPResponse
+
+    try:
+        with opener.open(url) as response:
+            data = json.load(response)
+    except urllib.error.HTTPError as ex:
+        if version:
+            target = f'{project!r} version {version}'
+        else:
+            target = f'{project!r}'
+
+        if ex.status == http.HTTPStatus.NOT_FOUND:
+            raise ApplicationError(f"Could not find {target} on PyPI.") from None
+
+        raise RuntimeError(f"Failed to get {target} from PyPI.") from ex
+
+    return data
+
+
+def get_ansible_version(version: str | None = None, /, commit: str | None = None, mode: VersionMode = VersionMode.DEFAULT) -> Version:
+    """Parse and return the current ansible-core version, the provided version or the version from the provided commit."""
+    if version and commit:
+        raise ValueError("Specify only one of: version, commit")
+
+    if version:
+        source = ""
+    else:
+        if commit:
+            current = git("show", f"{commit}:{ANSIBLE_RELEASE_FILE.relative_to(CHECKOUT_DIR)}", capture_output=True).stdout
+        else:
+            current = ANSIBLE_RELEASE_FILE.read_text()
+
+        if not (match := ANSIBLE_VERSION_PATTERN.search(current)):
+            raise RuntimeError("Failed to get the ansible-core version.")
+
+        version = match.group("version")
+        source = f" in '{ANSIBLE_RELEASE_FILE}'"
+
+    try:
+        parsed_version = Version(version)
+    except InvalidVersion:
+        raise ApplicationError(f"Invalid version{source}: {version}") from None
+
+    parsed_version = mode.apply(parsed_version)
+
+    return parsed_version
+
+
+def get_next_version(version: Version, /, final: bool = False, pre: str | None = None, mode: VersionMode = VersionMode.DEFAULT) -> Version:
+    """Return the next version after the specified version."""
+
+    # TODO: consider using development versions instead of post versions after a release is published
+
+    pre = pre or ""
+    micro = version.micro
+
+    if version.is_devrelease:
+        # The next version of a development release is the same version without the development component.
+        if final:
+            pre = ""
+        elif not pre and version.pre is not None:
+            pre = f"{version.pre[0]}{version.pre[1]}"
+        elif not pre:
+            pre = "b1"  # when there is no existing pre and none specified, advance to b1
+
+    elif version.is_postrelease:
+        # The next version of a post release is the next pre-release *or* micro release component.
+        if final:
+            pre = ""
+        elif not pre and version.pre is not None:
+            pre = f"{version.pre[0]}{version.pre[1] + 1}"
+        elif not pre:
+            pre = "rc1"  # when there is no existing pre and none specified, advance to rc1
+
+        if version.pre is None:
+            micro = version.micro + 1
+    else:
+        raise ApplicationError(f"Version {version} is not a development or post release version.")
+
+    version = f"{version.major}.{version.minor}.{micro}{pre}"
+
+    return get_ansible_version(version, mode=mode)
+
+
+def check_ansible_version(current_version: Version, requested_version: Version) -> None:
+    """Verify the requested version is valid for the current version."""
+    if requested_version.release[:2] != current_version.release[:2]:
+        raise ApplicationError(f"Version {requested_version} does not match the major and minor portion of the current version: {current_version}")
+
+    if requested_version < current_version:
+        raise ApplicationError(f"Version {requested_version} is older than the current version: {current_version}")
+
+    # TODO: consider additional checks to avoid mistakes when incrementing the release version
+
+
+def set_ansible_version(current_version: Version, requested_version: Version) -> None:
+    """Set the current ansible-core version."""
+    check_ansible_version(current_version, requested_version)
+
+    if requested_version == current_version:
+        return
+
+    display.show(f"Updating version {current_version} to {requested_version} ...")
+
+    current = ANSIBLE_RELEASE_FILE.read_text()
+    updated = ANSIBLE_VERSION_PATTERN.sub(ANSIBLE_VERSION_FORMAT.format(version=requested_version), current)
+
+    if current == updated:
+        raise RuntimeError("Failed to set the ansible-core version.")
+
+    ANSIBLE_RELEASE_FILE.write_text(updated)
+
+
+def get_latest_setuptools_version() -> Version:
+    """Return the latest setuptools version found on PyPI."""
+    data = get_pypi_project('pypi', 'setuptools')
+    version = Version(data['info']['version'])
+
+    return version
+
+
+def set_setuptools_upper_bound(requested_version: Version) -> None:
+    """Set the upper bound on setuptools in pyproject.toml."""
+    current = ANSIBLE_PYPROJECT_TOML_FILE.read_text()
+    pattern = re.compile(r'^(?P<begin>requires = \["setuptools >= )(?P<lower>[^,]+)(?P<middle>, <= )(?P<upper>[^"]+)(?P<end>".*)$', re.MULTILINE)
+    match = pattern.search(current)
+
+    if not match:
+        raise ApplicationError(f"Unable to find the 'requires' entry in: {ANSIBLE_PYPROJECT_TOML_FILE.relative_to(CHECKOUT_DIR)}")
+
+    current_version = Version(match.group('upper'))
+
+    if requested_version == current_version:
+        return
+
+    display.show(f"Updating setuptools upper bound from {current_version} to {requested_version} ...")
+
+    updated = pattern.sub(fr'\g<begin>\g<lower>\g<middle>{requested_version}\g<end>', current)
+
+    if current == updated:
+        raise RuntimeError("Failed to set the setuptools upper bound.")
+
+    ANSIBLE_PYPROJECT_TOML_FILE.write_text(updated)
+
+
+def create_reproducible_sdist(original_path: pathlib.Path, output_path: pathlib.Path, mtime: int) -> None:
+    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location."""
+    with tarfile.open(original_path) as original_archive:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            tar_file = pathlib.Path(temp_dir) / "sdist.tar"
+
+            with tarfile.open(tar_file, mode="w") as tar_archive:
+                for original_info in original_archive.getmembers():  # type: tarfile.TarInfo
+                    tar_archive.addfile(create_reproducible_tar_info(original_info, mtime), original_archive.extractfile(original_info))
+
+            with tar_file.open("rb") as tar_archive:
+                with gzip.GzipFile(output_path, "wb", mtime=mtime) as output_archive:
+                    shutil.copyfileobj(tar_archive, output_archive)
+
+
+def create_reproducible_tar_info(original: tarfile.TarInfo, mtime: int) -> tarfile.TarInfo:
+    """Return a copy of the given TarInfo with uniform file metadata."""
+    sanitized = tarfile.TarInfo()
+    sanitized.name = original.name
+    sanitized.size = original.size
+    sanitized.mtime = mtime
+    sanitized.mode = (original.mode & ~(stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)) | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWUSR
+    sanitized.type = original.type
+    sanitized.linkname = original.linkname
+    sanitized.uid = 0
+    sanitized.gid = 0
+    sanitized.uname = "root"
+    sanitized.gname = "root"
+
+    if original.mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+        sanitized.mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+
+    return sanitized
+
+
+def test_built_artifact(path: pathlib.Path) -> None:
+    """Test the specified built artifact by installing it in a venv and running some basic commands."""
+    with tempfile.TemporaryDirectory() as temp_dir_name:
+        temp_dir = pathlib.Path(temp_dir_name)
+
+        venv_dir = temp_dir / "venv"
+        venv_bin_dir = venv_dir / "bin"
+
+        venv.create(venv_dir, with_pip=True)
+
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)  # avoid interference from ansible being injected into the environment
+        env.update(
+            PATH=os.pathsep.join((str(venv_bin_dir), env["PATH"])),
+        )
+
+        run("pip", "install", path, env=env | PIP_ENV, cwd=CHECKOUT_DIR)
+
+        run("ansible", "--version", env=env, cwd=CHECKOUT_DIR)
+        run("ansible-test", "--version", env=env, cwd=CHECKOUT_DIR)
+
+
+def get_sdist_path(version: Version, dist_dir: pathlib.Path = DIST_DIR) -> pathlib.Path:
+    """Return the path to the sdist file."""
+    return dist_dir / f"ansible_core-{version}.tar.gz"
+
+
+def get_wheel_path(version: Version, dist_dir: pathlib.Path = DIST_DIR) -> pathlib.Path:
+    """Return the path to the wheel file."""
+    return dist_dir / f"ansible_core-{version}-py3-none-any.whl"
+
+
+def calculate_digest(path: pathlib.Path) -> str:
+    """Return the digest for the specified file."""
+    with open(path, "rb") as f:
+        digest = hashlib.file_digest(f, DIGEST_ALGORITHM)
+    return digest.hexdigest()
+
+
+@functools.cache
+def get_release_artifact_details(repository: str, version: Version, validate: bool) -> list[ReleaseArtifact]:
+    """Return information about the release artifacts hosted on PyPI."""
+    data = get_pypi_project(repository, 'ansible-core', version)
+    artifacts = [describe_release_artifact(version, item, validate) for item in data["urls"]]
+
+    expected_artifact_types = {"bdist_wheel", "sdist"}
+    found_artifact_types = set(artifact.package_type for artifact in artifacts)
+
+    if found_artifact_types != expected_artifact_types:
+        raise RuntimeError(f"Expected {expected_artifact_types} artifact types, but found {found_artifact_types} instead.")
+
+    return artifacts
+
+
+def describe_release_artifact(version: Version, item: dict[str, t.Any], validate: bool) -> ReleaseArtifact:
+    """Return release artifact details extracted from the given PyPI data."""
+    package_type = item["packagetype"]
+
+    # The artifact URL is documented as stable, so is safe to put in release notes.
+    # See: https://github.com/pypi/warehouse/blame/c95be4a1055f4b36a8852715eb80318c81fc00ca/docs/api-reference/integration-guide.rst#L86-L90
+    url = item["url"]
+
+    pypi_size = item["size"]
+    pypi_digest = item["digests"][DIGEST_ALGORITHM]
+
+    if package_type == "bdist_wheel":
+        local_artifact_file = get_wheel_path(version)
+        package_label = "Built Distribution"
+    elif package_type == "sdist":
+        local_artifact_file = get_sdist_path(version)
+        package_label = "Source Distribution"
+    else:
+        raise NotImplementedError(f"Package type '{package_type}' is not supported.")
+
+    if validate:
+        try:
+            local_size = local_artifact_file.stat().st_size
+            local_digest = calculate_digest(local_artifact_file)
+        except FileNotFoundError:
+            raise ApplicationError(f"Missing local artifact: {local_artifact_file.relative_to(CHECKOUT_DIR)}") from None
+
+        if local_size != pypi_size:
+            raise ApplicationError(f"The {version} local {package_type} size {local_size} does not match the PyPI size {pypi_size}.")
+
+        if local_digest != pypi_digest:
+            raise ApplicationError(f"The {version} local {package_type} digest '{local_digest}' does not match the PyPI digest '{pypi_digest}'.")
+
+    return ReleaseArtifact(
+        package_type=package_type,
+        package_label=package_label,
+        url=url,
+        size=pypi_size,
+        digest=pypi_digest,
+        digest_algorithm=DIGEST_ALGORITHM.upper(),
+    )
+
+
+def get_next_release_date(start: datetime.date, step: int, after: datetime.date) -> datetime.date:
+    """Return the next release date."""
+    if start > after:
+        raise ValueError(f"{start=} is greater than {after=}")
+
+    current_delta = after - start
+    release_delta = datetime.timedelta(days=(math.floor(current_delta.days / step) + 1) * step)
+
+    release = start + release_delta
+
+    return release
+
+
+def create_template_environment() -> jinja2.Environment:
+    """Create and return a jinja2 environment."""
+    env = jinja2.Environment()
+    env.filters.update(
+        basena

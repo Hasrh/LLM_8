@@ -1,0 +1,3505 @@
+
+
+# FILE: setup.py
+#!/usr/bin/env python
+"""
+The setup script for salt
+"""
+
+# pylint: disable=file-perms,resource-leakage,deprecated-module
+import setuptools  # isort:skip
+import distutils.dist
+import glob
+import os
+import subprocess
+import sys
+import warnings
+from datetime import datetime
+
+# pylint: disable=no-name-in-module
+from distutils import log
+from distutils.cmd import Command
+from distutils.command.build import build
+from distutils.command.clean import clean
+from distutils.command.install_lib import install_lib
+from distutils.errors import DistutilsArgError
+from distutils.version import LooseVersion  # pylint: disable=blacklisted-module
+
+from setuptools import setup
+from setuptools.command.bdist_egg import bdist_egg
+from setuptools.command.develop import develop
+from setuptools.command.install import install
+from setuptools.command.sdist import sdist
+
+# pylint: enable=no-name-in-module
+
+
+try:
+    from urllib2 import urlopen
+except ImportError:
+    from urllib.request import urlopen  # pylint: disable=no-name-in-module
+
+
+try:
+    from wheel.bdist_wheel import bdist_wheel
+
+    HAS_BDIST_WHEEL = True
+except ImportError:
+    HAS_BDIST_WHEEL = False
+
+try:
+    import zmq
+
+    HAS_ZMQ = True
+except ImportError:
+    HAS_ZMQ = False
+
+try:
+    DATE = datetime.utcfromtimestamp(int(os.environ["SOURCE_DATE_EPOCH"]))
+except (KeyError, ValueError):
+    DATE = datetime.utcnow()
+
+# Change to salt source's directory prior to running any command
+try:
+    SETUP_DIRNAME = os.path.dirname(__file__)
+except NameError:
+    # We're most likely being frozen and __file__ triggered this NameError
+    # Let's work around that
+    SETUP_DIRNAME = os.path.dirname(sys.argv[0])
+
+if SETUP_DIRNAME != "":
+    os.chdir(SETUP_DIRNAME)
+
+SETUP_DIRNAME = os.path.abspath(SETUP_DIRNAME)
+
+BOOTSTRAP_SCRIPT_DISTRIBUTED_VERSION = os.environ.get(
+    # The user can provide a different bootstrap-script version.
+    # ATTENTION: A tag for that version MUST exist
+    "BOOTSTRAP_SCRIPT_VERSION",
+    # If no bootstrap-script version was provided from the environment, let's
+    # provide the one we define.
+    "v2014.06.21",
+)
+
+# Store a reference to the executing platform
+IS_OSX_PLATFORM = sys.platform.startswith("darwin")
+IS_WINDOWS_PLATFORM = sys.platform.startswith("win")
+if IS_WINDOWS_PLATFORM or IS_OSX_PLATFORM:
+    IS_SMARTOS_PLATFORM = False
+else:
+    # os.uname() not available on Windows.
+    IS_SMARTOS_PLATFORM = os.uname()[0] == "SunOS" and os.uname()[3].startswith(
+        "joyent_"
+    )
+
+USE_STATIC_REQUIREMENTS = os.environ.get("USE_STATIC_REQUIREMENTS")
+if USE_STATIC_REQUIREMENTS is not None:
+    USE_STATIC_REQUIREMENTS = USE_STATIC_REQUIREMENTS == "1"
+
+try:
+    # Add the esky bdist target if the module is available
+    # may require additional modules depending on platform
+    # bbfreeze chosen for its tight integration with distutils
+    import bbfreeze  # pylint: disable=unused-import
+    from esky import bdist_esky  # pylint: disable=unused-import
+
+    HAS_ESKY = True
+except ImportError:
+    HAS_ESKY = False
+
+SALT_VERSION_MODULE = os.path.join(os.path.abspath(SETUP_DIRNAME), "salt", "version.py")
+SALT_VERSION_HARDCODED = os.path.join(
+    os.path.abspath(SETUP_DIRNAME), "salt", "_version.txt"
+)
+SALT_SYSPATHS_HARDCODED = os.path.join(
+    os.path.abspath(SETUP_DIRNAME), "salt", "_syspaths.py"
+)
+SALT_BASE_REQUIREMENTS = [
+    os.path.join(os.path.abspath(SETUP_DIRNAME), "requirements", "base.txt"),
+    # pyzmq needs to be installed regardless of the salt transport
+    os.path.join(os.path.abspath(SETUP_DIRNAME), "requirements", "zeromq.txt"),
+    os.path.join(os.path.abspath(SETUP_DIRNAME), "requirements", "crypto.txt"),
+]
+SALT_LINUX_LOCKED_REQS = [
+    # Linux packages defined locked requirements
+    os.path.join(
+        os.path.abspath(SETUP_DIRNAME),
+        "requirements",
+        "static",
+        "pkg",
+        "py{}.{}".format(*sys.version_info),
+        "linux.txt",
+    )
+]
+SALT_OSX_REQS = SALT_BASE_REQUIREMENTS + [
+    os.path.join(os.path.abspath(SETUP_DIRNAME), "requirements", "darwin.txt")
+]
+SALT_OSX_LOCKED_REQS = [
+    # OSX packages already defined locked requirements
+    os.path.join(
+        os.path.abspath(SETUP_DIRNAME),
+        "requirements",
+        "static",
+        "pkg",
+        "py{}.{}".format(*sys.version_info),
+        "darwin.txt",
+    )
+]
+SALT_WINDOWS_REQS = SALT_BASE_REQUIREMENTS + [
+    os.path.join(os.path.abspath(SETUP_DIRNAME), "requirements", "windows.txt")
+]
+SALT_WINDOWS_LOCKED_REQS = [
+    # Windows packages already defined locked requirements
+    os.path.join(
+        os.path.abspath(SETUP_DIRNAME),
+        "requirements",
+        "static",
+        "pkg",
+        "py{}.{}".format(*sys.version_info),
+        "windows.txt",
+    )
+]
+SALT_LONG_DESCRIPTION_FILE = os.path.join(os.path.abspath(SETUP_DIRNAME), "README.rst")
+
+# Salt SSH Packaging Detection
+PACKAGED_FOR_SALT_SSH_FILE = os.path.join(
+    os.path.abspath(SETUP_DIRNAME), ".salt-ssh-package"
+)
+PACKAGED_FOR_SALT_SSH = os.path.isfile(PACKAGED_FOR_SALT_SSH_FILE)
+
+
+# pylint: disable=W0122
+if os.path.exists(SALT_VERSION_HARDCODED):
+    with open(SALT_VERSION_HARDCODED, encoding="utf-8") as rfh:
+        SALT_VERSION = rfh.read().strip()
+else:
+    SALT_VERSION = (
+        subprocess.check_output([sys.executable, SALT_VERSION_MODULE]).decode().strip()
+    )
+# pylint: enable=W0122
+
+
+# ----- Helper Functions -------------------------------------------------------------------------------------------->
+
+MISSING_MAN_MSG = """
+Error: Missing man pages: {0}
+
+These files can be generated by running 'tools docs man' prior to building.
+"""
+
+
+def _parse_requirements_file(requirements_file):
+    parsed_requirements = []
+    with open(requirements_file, encoding="utf-8") as rfh:
+        for line in rfh.readlines():
+            line = line.strip()
+            if not line or line.startswith(("#", "-r", "--")):
+                continue
+            if IS_WINDOWS_PLATFORM:
+                if "libcloud" in line:
+                    continue
+            parsed_requirements.append(line)
+    return parsed_requirements
+
+
+# <---- Helper Functions ---------------------------------------------------------------------------------------------
+
+
+# ----- Custom Distutils/Setuptools Commands ------------------------------------------------------------------------>
+class WriteSaltVersion(Command):
+
+    description = "Write salt's hardcoded version file"
+    user_options = []
+
+    def initialize_options(self):
+        """
+        Abstract method that is required to be overwritten
+        """
+
+    def finalize_options(self):
+        """
+        Abstract method that is required to be overwritten
+        """
+
+    def run(self):
+        if (
+            not os.path.exists(SALT_VERSION_HARDCODED)
+            or self.distribution.with_salt_version
+        ):
+            # Write the version file
+            if getattr(self.distribution, "salt_version_hardcoded_path", None) is None:
+                self.distribution.salt_version_hardcoded_path = SALT_VERSION_HARDCODED
+                sys.stderr.write("This command is not meant to be called on it's own\n")
+                sys.stderr.flush()
+
+            if not self.distribution.with_salt_version:
+                salt_version = SALT_VERSION
+            else:
+                from salt.version import SaltStackVersion
+
+                salt_version = SaltStackVersion.parse(
+                    self.distribution.with_salt_version
+                )
+            if os.path.exists(self.distribution.salt_version_hardcoded_path):
+                log.warn(
+                    "The 'salt/_version.txt' file already exists. Not overwriting it."
+                )
+                return
+
+            with open(
+                self.distribution.salt_version_hardcoded_path, "w", encoding="utf-8"
+            ) as wfh:
+                wfh.write(str(salt_version))
+
+
+class GenerateSaltSyspaths(Command):
+
+    description = "Generate salt's hardcoded syspaths file"
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        # Write the syspaths file
+        if getattr(self.distribution, "salt_syspaths_hardcoded_path", None) is None:
+            print("This command is not meant to be called on it's own")
+            exit(1)
+
+        # Write the system paths file
+        open(
+            self.distribution.salt_syspaths_hardcoded_path, "w", encoding="utf-8"
+        ).write(
+            INSTALL_SYSPATHS_TEMPLATE.format(
+                date=DATE,
+                root_dir=self.distribution.salt_root_dir,
+                share_dir=self.distribution.salt_share_dir,
+                config_dir=self.distribution.salt_config_dir,
+                cache_dir=self.distribution.salt_cache_dir,
+                sock_dir=self.distribution.salt_sock_dir,
+                srv_root_dir=self.distribution.salt_srv_root_dir,
+                base_file_roots_dir=self.distribution.salt_base_file_roots_dir,
+                base_pillar_roots_dir=self.distribution.salt_base_pillar_roots_dir,
+                base_master_roots_dir=self.distribution.salt_base_master_roots_dir,
+                base_thorium_roots_dir=self.distribution.salt_base_thorium_roots_dir,
+                lib_state_dir=self.distribution.salt_lib_state_dir,
+                logs_dir=self.distribution.salt_logs_dir,
+                pidfile_dir=self.distribution.salt_pidfile_dir,
+                spm_parent_path=self.distribution.salt_spm_parent_dir,
+                spm_formula_path=self.distribution.salt_spm_formula_dir,
+                spm_pillar_path=self.distribution.salt_spm_pillar_dir,
+                spm_reactor_path=self.distribution.salt_spm_reactor_dir,
+                home_dir=self.distribution.salt_home_dir,
+            )
+        )
+
+
+class WriteSaltSshPackagingFile(Command):
+
+    description = "Write salt's ssh packaging file"
+    user_options = []
+
+    def initialize_options(self):
+        """
+        Abstract method that is required to be overwritten
+        """
+
+    def finalize_options(self):
+        """
+        Abstract method that is required to be overwritten
+        """
+
+    def run(self):
+        if not os.path.exists(PACKAGED_FOR_SALT_SSH_FILE):
+            # Write the salt-ssh packaging file
+            if getattr(self.distribution, "salt_ssh_packaging_file", None) is None:
+                print("This command is not meant to be called on it's own")
+                exit(1)
+
+            # pylint: disable=E0602
+            open(
+                self.distribution.salt_ssh_packaging_file, "w", encoding="utf-8"
+            ).write("Packaged for Salt-SSH\n")
+            # pylint: enable=E0602
+
+
+class Develop(develop):
+    user_options = develop.user_options + [
+        (
+            "write-salt-version",
+            None,
+            "Generate Salt's _version.txt file which allows proper version "
+            "reporting. This defaults to False on develop/editable setups. "
+            "If WRITE_SALT_VERSION is found in the environment this flag is "
+            "switched to True.",
+        ),
+        (
+            "generate-salt-syspaths",
+            None,
+            "Generate Salt's _syspaths.py file which allows tweaking some "
+            "common paths that salt uses. This defaults to False on "
+            "develop/editable setups. If GENERATE_SALT_SYSPATHS is found in "
+            "the environment this flag is switched to True.",
+        ),
+        (
+            "mimic-salt-install",
+            None,
+            "Mimmic the install command when running the develop command. "
+            "This will generate salt's _version.txt and _syspaths.py files. "
+            "Generate Salt's _syspaths.py file which allows tweaking some "
+            "This defaults to False on develop/editable setups. "
+            "If MIMIC_INSTALL is found in the environment this flag is "
+            "switched to True.",
+        ),
+    ]
+    boolean_options = develop.boolean_options + [
+        "write-salt-version",
+        "generate-salt-syspaths",
+        "mimic-salt-install",
+    ]
+
+    def initialize_options(self):
+        develop.initialize_options(self)
+        self.write_salt_version = False
+        self.generate_salt_syspaths = False
+        self.mimic_salt_install = False
+
+    def finalize_options(self):
+        develop.finalize_options(self)
+        if "WRITE_SALT_VERSION" in os.environ:
+            self.write_salt_version = True
+        if "GENERATE_SALT_SYSPATHS" in os.environ:
+            self.generate_salt_syspaths = True
+        if "MIMIC_SALT_INSTALL" in os.environ:
+            self.mimic_salt_install = True
+
+        if self.mimic_salt_install:
+            self.write_salt_version = True
+            self.generate_salt_syspaths = True
+
+    def run(self):
+        if self.write_salt_version is True:
+            self.distribution.running_salt_install = True
+            self.distribution.salt_version_hardcoded_path = SALT_VERSION_HARDCODED
+            self.run_command("write_salt_version")
+
+        if self.generate_salt_syspaths:
+            self.distribution.salt_syspaths_hardcoded_path = SALT_SYSPATHS_HARDCODED
+            self.run_command("generate_salt_syspaths")
+
+        # Resume normal execution
+        develop.run(self)
+
+
+class Sdist(sdist):
+    def make_release_tree(self, base_dir, files):
+        if self.distribution.ssh_packaging:
+            self.distribution.salt_ssh_packaging_file = PACKAGED_FOR_SALT_SSH_FILE
+            self.run_command("write_salt_ssh_packaging_file")
+            self.filelist.files.append(os.path.basename(PACKAGED_FOR_SALT_SSH_FILE))
+
+        sdist.make_release_tree(self, base_dir, files)
+
+        # Let's generate salt/_version.txt to include in the sdist tarball
+        self.distribution.running_salt_sdist = True
+        self.distribution.salt_version_hardcoded_path = os.path.join(
+            base_dir, "salt", "_version.txt"
+        )
+        self.run_command("write_salt_version")
+
+    def make_distribution(self):
+        sdist.make_distribution(self)
+        if self.distribution.ssh_packaging:
+            os.unlink(PACKAGED_FOR_SALT_SSH_FILE)
+
+
+class BDistEgg(bdist_egg):
+    def finalize_options(self):
+        bdist_egg.finalize_options(self)
+        self.distribution.build_egg = True
+        if not self.skip_build:
+            self.run_command("build")
+
+
+class CloudSdist(Sdist):  # pylint: disable=too-many-ancestors
+    user_options = Sdist.user_options + [
+        (
+            "download-bootstrap-script",
+            None,
+            "Download the latest stable bootstrap-salt.sh script. This "
+            "can also be triggered by having `DOWNLOAD_BOOTSTRAP_SCRIPT=1` as an "
+            "environment variable.",
+        )
+    ]
+    boolean_options = Sdist.boolean_options + ["download-bootstrap-script"]
+
+    def initialize_options(self):
+        Sdist.initialize_options(self)
+        self.skip_bootstrap_download = True
+        self.download_bootstrap_script = False
+
+    def finalize_options(self):
+        Sdist.finalize_options(self)
+        if "SKIP_BOOTSTRAP_DOWNLOAD" in os.environ:
+            # pylint: disable=not-callable
+            log(
+                "Please stop using 'SKIP_BOOTSTRAP_DOWNLOAD' and use "
+                "'DOWNLOAD_BOOTSTRAP_SCRIPT' instead"
+            )
+            # pylint: enable=not-callable
+
+        if "DOWNLOAD_BOOTSTRAP_SCRIPT" in os.environ:
+            download_bootstrap_script = os.environ.get("DOWNLOAD_BOOTSTRAP_SCRIPT", "0")
+            self.download_bootstrap_script = download_bootstrap_script == "1"
+
+    def run(self):
+        if self.download_bootstrap_script is True:
+            # Let's update the bootstrap-script to the version defined to be
+            # distributed. See BOOTSTRAP_SCRIPT_DISTRIBUTED_VERSION above.
+            url = (
+                "https://github.com/saltstack/salt-bootstrap/raw/{}"
+                "/bootstrap-salt.sh".format(BOOTSTRAP_SCRIPT_DISTRIBUTED_VERSION)
+            )
+            deploy_path = os.path.join(
+                SETUP_DIRNAME, "salt", "cloud", "deploy", "bootstrap-salt.sh"
+            )
+            log.info(
+                "Updating bootstrap-salt.sh."
+                "\n\tSource:      {}"
+                "\n\tDestination: {}".format(url, deploy_path)
+            )
+
+            try:
+                import requests
+
+                req = requests.get(url, timeout=120)
+                if req.status_code == 200:
+                    script_contents = req.text.encode(req.encoding)
+                else:
+                    log.error(
+                        "Failed to update the bootstrap-salt.sh script. HTTP "
+                        "Error code: {}".format(req.status_code)
+                    )
+            except ImportError:
+                req = urlopen(url)
+
+                if req.getcode() == 200:
+                    script_contents = req.read()
+                else:
+                    log.error(
+                        "Failed to update the bootstrap-salt.sh script. HTTP "
+                        "Error code: {}".format(req.getcode())
+                    )
+            try:
+                with open(deploy_path, "w", encoding="utf-8") as fp_:
+                    fp_.write(script_contents)
+            except OSError as err:
+                errmsg = f"Failed to write the updated script: {err}"
+                log.error(errmsg)
+
+        # Let's the rest of the build command
+        Sdist.run(self)
+
+    def write_manifest(self):
+        # We only need to ship the scripts which are supposed to be installed
+        dist_scripts = self.distribution.scripts
+        for script in self.filelist.files[:]:
+            if not script.startswith("scripts/"):
+                continue
+            if script not in dist_scripts:
+                self.filelist.files.remove(script)
+        return Sdist.write_manifest(self)
+
+
+class TestCommand(Command):
+    description = "Run tests"
+    user_options = [
+        ("runtests-opts=", "R", "Command line options to pass to runtests.py")
+    ]
+
+    def initialize_options(self):
+        self.runtests_opts = None
+
+    def finalize_options(self):
+        """
+        Abstract method that is required to be overwritten
+        """
+
+    def run(self):
+        # This should either be removed or migrated to use nox
+        import subprocess
+
+        self.run_command("build")
+        build_cmd = self.get_finalized_command("build_ext")
+        runner = os.path.abspath("tests/runtests.py")
+        test_cmd = [sys.executable, runner]
+        if self.runtests_opts:
+            test_cmd.extend(self.runtests_opts.split())
+
+        print("running test")
+        ret = subprocess.run(
+            test_cmd,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            cwd=build_cmd.build_lib,
+            check=False,
+        )
+        sys.exit(ret.returncode)
+
+
+class Clean(clean):
+    def run(self):
+        clean.run(self)
+        # Let's clean compiled *.py[c,o]
+        for subdir in ("salt", "tests", "doc"):
+            root = os.path.join(os.path.dirname(__file__), subdir)
+            for dirname, _, _ in os.walk(root):
+                for to_remove_filename in glob.glob(f"{dirname}/*.py[oc]"):
+                    os.remove(to_remove_filename)
+
+
+if HAS_BDIST_WHEEL:
+
+    class BDistWheel(bdist_wheel):
+        def finalize_options(self):
+            bdist_wheel.finalize_options(self)
+            self.distribution.build_wheel = True
+
+
+INSTALL_VERSION_TEMPLATE = """\
+# This file was auto-generated by salt's setup
+
+from salt.version import SaltStackVersion
+
+__saltstack_version__ = SaltStackVersion{full_version_info!r}
+"""
+
+
+INSTALL_SYSPATHS_TEMPLATE = """\
+# This file was auto-generated by salt's setup on \
+{date:%A, %d %B %Y @ %H:%m:%S UTC}.
+
+ROOT_DIR = {root_dir!r}
+SHARE_DIR = {share_dir!r}
+CONFIG_DIR = {config_dir!r}
+CACHE_DIR = {cache_dir!r}
+SOCK_DIR = {sock_dir!r}
+SRV_ROOT_DIR= {srv_root_dir!r}
+BASE_FILE_ROOTS_DIR = {base_file_roots_dir!r}
+BASE_PILLAR_ROOTS_DIR = {base_pillar_roots_dir!r}
+BASE_MASTER_ROOTS_DIR = {base_master_roots_dir!r}
+BASE_THORIUM_ROOTS_DIR = {base_thorium_roots_dir!r}
+LIB_STATE_DIR = {lib_state_dir!r}
+LOGS_DIR = {logs_dir!r}
+PIDFILE_DIR = {pidfile_dir!r}
+SPM_PARENT_PATH = {spm_parent_path!r}
+SPM_FORMULA_PATH = {spm_formula_path!r}
+SPM_PILLAR_PATH = {spm_pillar_path!r}
+SPM_REACTOR_PATH = {spm_reactor_path!r}
+HOME_DIR = {home_dir!r}
+"""
+
+
+class Build(build):
+    def run(self):
+        if getattr(self.distribution, "with_salt_version", False):
+            self.distribution.salt_version_hardcoded_path = SALT_VERSION_HARDCODED
+            self.run_command("write_salt_version")
+
+        # Run build.run function
+        build.run(self)
+        salt_build_ver_file = os.path.join(self.build_lib, "salt", "_version.txt")
+
+        if getattr(self.distribution, "with_salt_version", False):
+            # Write the hardcoded salt version module salt/_version.txt
+            self.distribution.salt_version_hardcoded_path = salt_build_ver_file
+            self.run_command("write_salt_version")
+
+        if getattr(self.distribution, "build_egg", False):
+            # we are building an egg package. need to include _version.txt
+            self.distribution.salt_version_hardcoded_path = salt_build_ver_file
+            self.run_command("write_salt_version")
+
+        if getattr(self.distribution, "build_wheel", False):
+            # we are building a wheel package. need to include _version.txt
+            self.distribution.salt_version_hardcoded_path = salt_build_ver_file
+            self.run_command("write_salt_version")
+
+        if getattr(self.distribution, "running_salt_install", False):
+            # If our install attribute is present and set to True, we'll go
+            # ahead and write our install time python modules.
+
+            # Write the hardcoded salt version module salt/_version.txt
+            self.run_command("write_salt_version")
+
+            # Write the system paths file
+            self.distribution.salt_syspaths_hardcoded_path = os.path.join(
+                self.build_lib, "salt", "_syspaths.py"
+            )
+            self.run_command("generate_salt_syspaths")
+
+
+class Install(install):
+    def initialize_options(self):
+        install.initialize_options(self)
+
+    def finalize_options(self):
+        install.finalize_options(self)
+
+    def run(self):
+        if LooseVersion(setuptools.__version__) < LooseVersion("9.1"):
+            sys.stderr.write(
+                "\n\nInstalling Salt requires setuptools >= 9.1\n"
+                "Available setuptools version is {}\n\n".format(setuptools.__version__)
+            )
+            sys.stderr.flush()
+            sys.exit(1)
+
+        # Let's set the running_salt_install attribute so we can add
+        # _version.txt in the build command
+        self.distribution.running_salt_install = True
+        self.distribution.salt_version_hardcoded_path = os.path.join(
+            self.build_lib, "salt", "_version.txt"
+        )
+        # need to ensure _version.txt is created in build dir before install
+        if not os.path.exists(os.path.join(self.build_lib)):
+            if not self.skip_build:
+                self.run_command("build")
+        else:
+            self.run_command("write_salt_version")
+        # Run install.run
+        install.run(self)
+
+    @staticmethod
+    def _called_from_setup(run_frame):
+        """
+        Attempt to detect whether run() was called from setup() or by another
+        command.  If called by setup(), the parent caller will be the
+        'run_command' method in 'distutils.dist', and *its* caller will be
+        the 'run_commands' method.  If called any other way, the
+        immediate caller *might* be 'run_command', but it won't have been
+        called by 'run_commands'. Return True in that case or if a call stack
+        is unavailable. Return False otherwise.
+        """
+        if run_frame is None:
+            # If run_frame is None, just call the parent class logic
+            return install._called_from_setup(run_frame)
+
+        # Because Salt subclasses the setuptools install command, it needs to
+        # override this static method to provide the right frame for the logic
+        # so apply.
+
+        # We first try the current run_frame in case the issue
+        # https://github.com/pypa/setuptools/issues/456 is fixed.
+        first_call = install._called_from_setup(run_frame)
+        if first_call:
+            return True
+
+        # Fallback to providing the parent frame to have the right logic kick in
+        second_call = install._called_from_setup(run_frame.f_back)
+        if second_call is None:
+            # There was no parent frame?!
+            return first_call
+        return second_call
+
+    def do_egg_install(self):
+        raise NotImplementedError("Support for egg-based install has been removed.")
+
+
+class InstallLib(install_lib):
+    def run(self):
+        executables = [
+            "salt/templates/git/ssh-id-wrapper",
+            "salt/templates/lxc/salt_tarball",
+        ]
+        install_lib.run(self)
+
+        # input and outputs match 1-1
+        inp = self.get_inputs()
+        out = self.get_outputs()
+        chmod = []
+
+        for idx, inputfile in enumerate(inp):
+            for executable in executables:
+                if inputfile.endswith(executable):
+                    chmod.append(idx)
+        for idx in chmod:
+            filename = out[idx]
+            os.chmod(filename, 0o755)
+
+
+# <---- Custom Distutils/Setuptools Commands -------------------------------------------------------------------------
+
+
+# ----- Custom Distribution Class ----------------------------------------------------------------------------------->
+# We use this to override the package name in case --ssh-packaging is passed to
+# setup.py or the special .salt-ssh-package is found
+class SaltDistribution(distutils.dist.Distribution):
+    """
+    Just so it's completely clear
+
+    Under windows, the following scripts should be installed:
+
+        * salt-call
+        * salt-cp
+        * salt-minion
+
+    When packaged for salt-ssh, the following scripts should be installed:
+        * salt-call
+        * salt-run
+        * salt-ssh
+        * salt-cloud
+
+        Under windows, the following scripts should be omitted from the salt-ssh
+        package:
+            * salt-cloud
+            * salt-run
+
+    To build all binaries on Windows set the SALT_BUILD_ALL_BINS environment
+    variable to `1`
+
+    Under *nix, all scripts should be installed
+    """
+
+    global_options = (
+        distutils.dist.Distribution.global_options
+        + [
+            ("ssh-packaging", None, "Run in SSH packaging mode"),
+            (
+                "salt-transport=",
+                None,
+                "The transport to prepare salt for. Currently, the only choice "
+                "is 'zeromq'. This may be expanded in the future. Defaults to "
+                "'zeromq'",
+                "zeromq",
+            ),
+        ]
+        + [
+            (
+                "with-salt-version=",
+                None,
+                "Set a fixed version for Salt instead calculating it",
+            ),
+            # Salt's Paths Configuration Settings
+            ("salt-root-dir=", None, "Salt's pre-configured root directory"),
+            ("salt-share-dir=", None, "Salt's pre-configured share directory"),
+            ("salt-config-dir=", None, "Salt's pre-configured configuration directory"),
+            ("salt-cache-dir=", None, "Salt's pre-configured cache directory"),
+            ("salt-sock-dir=", None, "Salt's pre-configured socket directory"),
+            ("salt-srv-root-dir=", None, "Salt's pre-configured service directory"),
+            (
+                "salt-lib-state-dir=",
+                None,
+                "Salt's pre-configured variable state directory (used for storing pki data)",
+            ),
+            (
+                "salt-base-file-roots-dir=",
+                None,
+                "Salt's pre-configured file roots directory",
+            ),
+            (
+                "salt-base-pillar-roots-dir=",
+                None,
+                "Salt's pre-configured pillar roots directory",
+            ),
+            (
+                "salt-base-master-roots-dir=",
+                None,
+                "Salt's pre-configured master roots directory",
+            ),
+            ("salt-logs-dir=", None, "Salt's pre-configured logs directory"),
+            ("salt-pidfile-dir=", None, "Salt's pre-configured pidfiles directory"),
+            (
+                "salt-spm-formula-dir=",
+                None,
+                "Salt's pre-configured SPM formulas directory",
+            ),
+            (
+                "salt-spm-pillar-dir=",
+                None,
+                "Salt's pre-configured SPM pillar directory",
+            ),
+            (
+                "salt-spm-reactor-dir=",
+                None,
+                "Salt's pre-configured SPM reactor directory",
+            ),
+            ("salt-home-dir=", None, "Salt's pre-configured user home directory"),
+        ]
+    )
+
+    def __init__(self, attrs=None):
+        distutils.dist.Distribution.__init__(self, attrs)
+
+        self.ssh_packaging = PACKAGED_FOR_SALT_SSH
+        self.salt_transport = None
+
+        # Salt Paths Configuration Settings
+        self.salt_root_dir = None
+        self.salt_share_dir = None
+        self.salt_config_dir = None
+        self.salt_cache_dir = None
+        self.salt_sock_dir = None
+        self.salt_srv_root_dir = None
+        self.salt_base_file_roots_dir = None
+        self.salt_base_thorium_roots_dir = None
+        self.salt_base_pillar_roots_dir = None
+        self.salt_base_master_roots_dir = None
+        self.salt_lib_state_dir = None
+        self.salt_logs_dir = None
+        self.salt_pidfile_dir = None
+        self.salt_spm_parent_dir = None
+        self.salt_spm_formula_dir = None
+        self.salt_spm_pillar_dir = None
+        self.salt_spm_reactor_dir = None
+        self.salt_home_dir = None
+
+        # Salt version
+        self.with_salt_version = None
+
+        self.name = "salt-ssh" if PACKAGED_FOR_SALT_SSH else "salt"
+        self.salt_version = SALT_VERSION
+        self.description = (
+            "Portable, distributed, remote execution and configuration management"
+            " system"
+        )
+        with open(SALT_LONG_DESCRIPTION_FILE, encoding="utf-8") as f:
+            self.long_description = f.read()
+        self.long_description_content_type = "text/x-rst"
+        self.python_requires = ">=3.8"
+        self.classifiers = [
+            "Programming Language :: Python",
+            "Programming Language :: Cython",
+            "Programming Language :: Python :: 3",
+            "Programming Language :: Python :: 3 :: Only",
+            "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
+            "Development Status :: 5 - Production/Stable",
+            "Environment :: Console",
+            "Intended Audience :: Developers",
+            "Intended Audience :: Information Technology",
+            "Intended Audience :: System Administrators",
+            "License :: OSI Approved :: Apache Software License",
+            "Operating System :: POSIX :: Linux",
+            "Topic :: System :: Clustering",
+            "Topic :: System :: Distributed Computing",
+        ]
+        self.author = "Thomas S Hatch"
+        self.author_email = "thatch45@gmail.com"
+        self.url = "https://saltproject.io"
+        self.cmdclass.update(
+            {
+                "test": TestCommand,
+                "clean": Clean,
+                "build": Build,
+                "sdist": Sdist,
+                "bdist_egg": BDistEgg,
+                "install": Install,
+                "develop": Develop,
+                "write_salt_version": WriteSaltVersion,
+                "generate_salt_syspaths": GenerateSaltSyspaths,
+                "write_salt_ssh_packaging_file": WriteSaltSshPackagingFile,
+            }
+        )
+        if not IS_WINDOWS_PLATFORM:
+            self.cmdclass.update({"sdist": CloudSdist, "install_lib": InstallLib})
+        if HAS_BDIST_WHEEL:
+            self.cmdclass["bdist_wheel"] = BDistWheel
+
+        self.license = "Apache Software License 2.0"
+        self.packages = self.discover_packages()
+        self.zip_safe = False
+
+        if HAS_ESKY:
+            self.setup_esky()
+
+        self.update_metadata()
+
+    def update_metadata(self):
+        for attrname in dir(self):
+            if attrname.startswith("__"):
+                continue
+            attrvalue = getattr(self, attrname, None)
+            if attrvalue == 0:
+                continue
+            if attrname == "salt_version":
+                attrname = "version"
+            if hasattr(self.metadata, f"set_{attrname}"):
+                getattr(self.metadata, f"set_{attrname}")(attrvalue)
+            elif hasattr(self.metadata, attrname):
+                try:
+                    setattr(self.metadata, attrname, attrvalue)
+                except AttributeError:
+                    pass
+
+    def discover_packages(self):
+        modules = []
+        for root, _, files in os.walk(os.path.join(SETUP_DIRNAME, "salt")):
+            if "__init__.py" not in files:
+                continue
+            modules.append(os.path.relpath(root, SETUP_DIRNAME).replace(os.sep, "."))
+        return modules
+
+    # ----- Dynamic Data -------------------------------------------------------------------------------------------->
+    @property
+    def _property_package_data(self):
+        package_data = {
+            "salt": [
+                "_version.txt",
+            ],
+            "salt.templates": [
+                "rh_ip/*.jinja",
+                "suse_ip/*.jinja",
+                "debian_ip/*.jinja",
+                "virt/*.jinja",
+                "git/*",
+                "lxc/*",
+            ],
+        }
+        if not IS_WINDOWS_PLATFORM:
+            package_data["salt.cloud"] = ["deploy/*.sh"]
+
+        return package_data
+
+    @property
+    def _property_data_files(self):
+        # Data files common to all scenarios
+        data_files = [
+            ("share/man/man1", ["doc/man/salt-call.1"]),
+        ]
+        if self.ssh_packaging or PACKAGED_FOR_SALT_SSH:
+            data_files[0][1].append("doc/man/salt-ssh.1")
+            if IS_WINDOWS_PLATFORM and not os.environ.get("SALT_BUILD_ALL_BINS"):
+                return data_files
+            data_files[0][1].append("doc/man/salt-cloud.1")
+
+            return data_files
+
+        if IS_WINDOWS_PLATFORM and not os.environ.get("SALT_BUILD_ALL_BINS"):
+            data_files[0][1].extend(
+                [
+                    "doc/man/salt-cp.1",
+                    "doc/man/salt-minion.1",
+                ]
+            )
+            return data_files
+
+        # *nix, so, we need all man pages
+        data_files[0][1].extend(
+            [
+                "doc/man/salt-api.1",
+                "doc/man/salt-cloud.1",
+                "doc/man/salt-cp.1",
+                "doc/man/salt-key.1",
+                "doc/man/salt-master.1",
+                "doc/man/salt-minion.1",
+                "doc/man/salt-proxy.1",
+                "doc/man/salt-run.1",
+                "doc/man/spm.1",
+                "doc/man/salt.1",
+                "doc/man/salt-ssh.1",
+                "doc/man/salt-syndic.1",
+            ]
+        )
+        missing = []
+        for file in data_files[0][1]:
+            if os.path.exists(file):
+                continue
+            missing.append(file)
+        if missing:
+            # Only treat missing man pages as fatal error if we're in a packaging build
+            # (indicated by SALT_ON_SALTSTACK env var). For development/test installs,
+            # just skip the man pages.
+            if os.environ.get("SALT_ON_SALTSTACK"):
+                sys.stderr.write(MISSING_MAN_MSG.format(", ".join(missing)))
+                sys.stderr.flush()
+                sys.exit(1)
+            else:
+                # Development/test install - remove missing man pages from data_files
+                log.warn(
+                    "Skipping installation of man pages (missing: %s). "
+                    "Run 'tools docs man' to generate them.",
+                    ", ".join(missing),
+                )
+                data_files[0] = (
+                    data_files[0][0],
+                    [f for f in data_files[0][1] if f not in missing],
+                )
+        return data_files
+
+    @property
+    def _property_install_requires(self):
+        install_requires = []
+        if USE_STATIC_REQUIREMENTS is True:
+            # We've been explicitly asked to use static requirements
+            if IS_OSX_PLATFORM:
+                for reqfile in SALT_OSX_LOCKED_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+
+            elif IS_WINDOWS_PLATFORM:
+                for reqfile in SALT_WINDOWS_LOCKED_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            else:
+                for reqfile in SALT_LINUX_LOCKED_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            return install_requires
+        elif USE_STATIC_REQUIREMENTS is False:
+            # We've been explicitly asked NOT to use static requirements
+            if IS_OSX_PLATFORM:
+                for reqfile in SALT_OSX_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            elif IS_WINDOWS_PLATFORM:
+                for reqfile in SALT_WINDOWS_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            else:
+                for reqfile in SALT_BASE_REQUIREMENTS:
+                    install_requires += _parse_requirements_file(reqfile)
+        else:
+            # This is the old and default behavior
+            if IS_OSX_PLATFORM:
+                for reqfile in SALT_OSX_LOCKED_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            elif IS_WINDOWS_PLATFORM:
+                for reqfile in SALT_WINDOWS_LOCKED_REQS:
+                    install_requires += _parse_requirements_file(reqfile)
+            else:
+                for reqfile in SALT_BASE_REQUIREMENTS:
+                    install_requires += _parse_requirements_file(reqfile)
+        return install_requires
+
+    @property
+    def _property_entry_points(self):
+        entrypoints = {
+            "pyinstaller40": [
+                "hook-dirs = salt.utils.pyinstaller:get_hook_dirs",
+            ],
+        }
+        # console scripts common to all scenarios
+        scripts = [
+            "salt-call = salt.scripts:salt_call",
+        ]
+        if self.ssh_packaging or PACKAGED_FOR_SALT_SSH:
+            scripts.append("salt-ssh = salt.scripts:salt_ssh")
+            if IS_WINDOWS_PLATFORM and not os.environ.get("SALT_BUILD_ALL_BINS"):
+                return {"console_scripts": scripts}
+            scripts.append("salt-cloud = salt.scripts:salt_cloud")
+            entrypoints["console_scripts"] = scripts
+            return entrypoints
+
+        if IS_WINDOWS_PLATFORM and not os.environ.get("SALT_BUILD_ALL_BINS"):
+            scripts.extend(
+                [
+                    "salt-cp = salt.scripts:salt_cp",
+                    "salt-minion = salt.scripts:salt_minion",
+                    "salt-pip = salt.scripts:salt_pip",
+                ]
+            )
+            entrypoints["console_scripts"] = scripts
+            return entrypoints
+
+        # *nix, so, we need all scripts
+        scripts.extend(
+            [
+                "salt = salt.scripts:salt_main",
+                "salt-api = salt.scripts:salt_api",
+                "salt-cloud = salt.scripts:salt_cloud",
+                "salt-cp = salt.scripts:salt_cp",
+                "salt-key = salt.scripts:salt_key",
+                "salt-master = salt.scripts:salt_master",
+                "salt-minion = salt.scripts:salt_minion",
+                "salt-run = salt.scripts:salt_run",
+                "salt-ssh = salt.scripts:salt_ssh",
+                "salt-syndic = salt.scripts:salt_syndic",
+                "spm = salt.scripts:salt_spm",
+                "salt-proxy = salt.scripts:salt_proxy",
+                "salt-pip = salt.scripts:salt_pip",
+            ]
+        )
+        entrypoints["console_scripts"] = scripts
+        return entrypoints
+
+    # <---- Dynamic Data ---------------------------------------------------------------------------------------------
+
+    # ----- Esky Setup ---------------------------------------------------------------------------------------------->
+    def setup_esky(self):
+        opt_dict = self.get_option_dict("bdist_esky")
+        opt_dict["freezer_module"] = ("setup script", "bbfreeze")
+        opt_dict["freezer_options"] = (
+            "setup script",
+            {"includes": self.get_esky_freezer_includes()},
+        )
+
+    @property
+    def _property_freezer_options(self):
+        return {"includes": self.get_esky_freezer_includes()}
+
+    def get_esky_freezer_includes(self):
+        # Sometimes the auto module traversal doesn't find everything, so we
+        # explicitly add it. The auto dependency tracking especially does not work for
+        # imports occurring in salt.modules, as they are loaded at salt runtime.
+        # Specifying includes that don't exist doesn't appear to cause a freezing
+        # error.
+        freezer_includes = [
+            "zmq.core.*",
+            "zmq.utils.*",
+            "ast",
+            "csv",
+            "difflib",
+            "distutils",
+            "distutils.version",
+            "numbers",
+            "json",
+            "M2Crypto",
+            "Cookie",
+            "asyncore",
+            "fileinput",
+            "sqlite3",
+            "email",
+            "email.mime.*",
+            "requests",
+            "sqlite3",
+        ]
+        if HAS_ZMQ and hasattr(zmq, "pyzmq_version_info"):
+            if HAS_ZMQ and zmq.pyzmq_version_info() >= (0, 14):
+                # We're freezing, and when freezing ZMQ needs to be installed, so this
+                # works fine
+                if "zmq.core.*" in freezer_includes:
+                    # For PyZMQ >= 0.14, freezing does not need 'zmq.core.*'
+                    freezer_includes.remove("zmq.core.*")
+
+        if IS_WINDOWS_PLATFORM:
+            freezer_includes.extend(
+                [
+                    "imp",
+                    "win32api",
+                    "win32file",
+                    "win32con",
+                    "win32com",
+                    "win32net",
+                    "win32netcon",
+                    "win32gui",
+                    "win32security",
+                    "ntsecuritycon",
+                    "pywintypes",
+                    "pythoncom",
+                    "_winreg",
+                    "wmi",
+                    "site",
+                    "psutil",
+                    "pytz",
+                ]
+            )
+        elif IS_SMARTOS_PLATFORM:
+            # we have them as requirements in pkg/smartos/esky/requirements.txt
+            # all these should be safe to force include
+            freezer_includes.extend(
+                ["cherrypy", "python-dateutil", "pyghmi", "croniter", "mako", "gnupg"]
+            )
+        elif sys.platform.startswith("linux"):
+            freezer_includes.append("spwd")
+            try:
+                import yum  # pylint: disable=unused-import
+
+                freezer_includes.append("yum")
+            except ImportError:
+                pass
+        elif sys.platform.startswith("sunos"):
+            # (The sledgehammer approach)
+            # Just try to include everything
+            # (This may be a better way to generate freezer_includes generally)
+            try:
+                from bbfreeze.modulegraph.modulegraph import ModuleGraph
+
+                mgraph = ModuleGraph(sys.path[:])
+                for arg in glob.glob("salt/modules/*.py"):
+                    mgraph.run_script(arg)
+                for mod in mgraph.flatten():
+                    if type(mod).__name__ != "Script" and mod.filename:
+                        freezer_includes.append(str(os.path.basename(mod.identifier)))
+            except ImportError:
+                pass
+
+        return freezer_includes
+
+    # <---- Esky Setup -----------------------------------------------------------------------------------------------
+
+    # ----- Overridden Methods -------------------------------------------------------------------------------------->
+    def parse_command_line(self):
+        args = distutils.dist.Distribution.parse_command_line(self)
+
+        if not self.ssh_packaging and PACKAGED_FOR_SALT_SSH:
+            self.ssh_packaging = 1
+
+        if self.ssh_packaging:
+            self.metadata.name = "salt-ssh"
+            self.salt_transport = "ssh"
+        elif self.salt_transport is None:
+            self.salt_transport = "zeromq"
+
+        if self.salt_transport not in ("zeromq", "both", "ssh", "none"):
+            raise DistutilsArgError(
+                "The value of --salt-transport needs be 'zeromq', "
+                "'both', 'ssh', or 'none' not '{}'".format(self.salt_transport)
+            )
+
+        # Setup our property functions after class initialization and
+        # after parsing the command line since most are set to None
+        # ATTENTION: This should be the last step before returning the args or
+        # some of the requirements won't be correctly set
+        for funcname in dir(self):
+            if not funcname.startswith("_property_"):
+                continue
+            property_name = funcname.split("_property_", 1)[-1]
+            setattr(self, property_name, getattr(self, funcname))
+
+        return args
+
+    # <---- Overridden Methods ---------------------------------------------------------------------------------------
+
+
+# <---- Custom Distribution Class ------------------------------------------------------------------------------------
+
+
+if __name__ == "__main__":
+    warnings.warn(
+        "Warning: distutils is deprecated and shall be removed in Python 3.12, advise migrate to using setuptools"
+    )
+    warnings.warn(
+        "In Salt 3009, the `setup.py` file will be stripped of it's custom additions and migrated to a plain "
+        "`pyproject.toml` python package or whatever is found best during the process of removing the customizations. "
+        "If you're relying on these customizations please stop as your workflow will break in the future."
+    )
+    setup(distclass=SaltDistribution)
+
+
+# FILE: pytest.ini
+[pytest]
+log_date_format=%H:%M:%S
+log_cli_format=%(asctime)s,%(msecs)03.0f [%(name)-5s:%(lineno)-4d][%(levelname)-8s][%(processName)s(%(process)s)] %(message)s
+log_file_format=%(asctime)s,%(msecs)03d [%(name)-17s:%(lineno)-4d][%(levelname)-8s][%(processName)s(%(process)d)] %(message)s
+norecursedirs=templates tests/utils tests/support
+testpaths=tests
+python_files=test_*.py
+python_classes=Test*
+python_functions = test_*
+junit_family=xunit2
+# Only the tests should count towards timeouts
+timeout_func_only = true
+
+
+# FILE: pyproject.toml
+[tool.black]
+exclude= """
+/(
+    salt/ext
+  | templates
+)/
+"""
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+ensure_newline_before_comments=true
+skip="salt/ext,templates"
+known_third_party = [
+  "pytest"
+]
+
+[tool.towncrier]
+    package = "salt"
+    filename = "CHANGELOG.md"
+    directory = "changelog/"
+    template = "changelog/.template.jinja"
+    start_string = "# Changelog\n"
+    underlines = ["", "", ""]
+    title_format = "## {version} ({project_date})"
+    issue_format = "[#{issue}](https://github.com/saltstack/salt/issues/{issue})"
+
+    [[tool.towncrier.type]]
+        directory = "removed"
+        name = "Removed"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "deprecated"
+        name = "Deprecated"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "changed"
+        name = "Changed"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "fixed"
+        name = "Fixed"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "added"
+        name = "Added"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "security"
+        name = "Security"
+        showcontent = true
+
+
+# FILE: noxfile.py
+"""
+noxfile
+~~~~~~~
+
+Nox configuration script
+"""
+
+# pylint: disable=resource-leakage,3rd-party-module-not-gated
+
+import contextlib
+import datetime
+import glob
+import gzip
+import json
+import os
+import pathlib
+import shutil
+import sqlite3
+import sys
+import tarfile
+import tempfile
+
+import nox.command
+
+# fmt: off
+if __name__ == "__main__":
+    sys.stderr.write(
+        "Do not execute this file directly. Use nox instead, it will know how to handle this file\n"
+    )
+    sys.stderr.flush()
+    exit(1)
+# fmt: on
+
+import nox  # isort:skip
+from nox.command import CommandFailed  # isort:skip
+
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parent
+ENV_FILE = REPO_ROOT / ".ci-env"
+if ENV_FILE.exists():
+    print("Found .ci-env file. Updating environment...", flush=True)
+    for key, value in json.loads(ENV_FILE.read_text()).items():
+        print(f"  {key}={value}", flush=True)
+        os.environ[key] = value
+    print("Deleting .ci-env file", flush=True)
+    ENV_FILE.unlink()
+
+# Be verbose when running under a CI context
+CI_RUN = (
+    os.environ.get("JENKINS_URL")
+    or os.environ.get("CI")
+    or os.environ.get("DRONE") is not None
+)
+PIP_INSTALL_SILENT = CI_RUN is False
+PRINT_TEST_SELECTION = os.environ.get("PRINT_TEST_SELECTION")
+if PRINT_TEST_SELECTION is None:
+    PRINT_TEST_SELECTION = CI_RUN
+else:
+    PRINT_TEST_SELECTION = PRINT_TEST_SELECTION == "1"
+PRINT_TEST_PLAN_ONLY = os.environ.get("PRINT_TEST_PLAN_ONLY", "0") == "1"
+PRINT_SYSTEM_INFO = os.environ.get("PRINT_SYSTEM_INFO")
+if PRINT_SYSTEM_INFO is None:
+    PRINT_SYSTEM_INFO = CI_RUN
+else:
+    PRINT_SYSTEM_INFO = PRINT_SYSTEM_INFO == "1"
+PRINT_SYSTEM_INFO_ONLY = os.environ.get("PRINT_SYSTEM_INFO_ONLY", "0") == "1"
+SKIP_REQUIREMENTS_INSTALL = os.environ.get("SKIP_REQUIREMENTS_INSTALL", "0") == "1"
+EXTRA_REQUIREMENTS_INSTALL = os.environ.get("EXTRA_REQUIREMENTS_INSTALL")
+COVERAGE_REQUIREMENT = os.environ.get("COVERAGE_REQUIREMENT")
+
+# Global Path Definitions
+REPO_ROOT = pathlib.Path(os.path.dirname(__file__)).resolve()
+ARTIFACTS_DIR = REPO_ROOT / "artifacts"
+COVERAGE_OUTPUT_DIR = ARTIFACTS_DIR / "coverage"
+COVERAGE_FILE = os.environ.get("COVERAGE_FILE")
+if COVERAGE_FILE is None:
+    COVERAGE_FILE = str(COVERAGE_OUTPUT_DIR / ".coverage")
+IS_DARWIN = sys.platform.lower().startswith("darwin")
+IS_WINDOWS = sys.platform.lower().startswith("win")
+IS_FREEBSD = sys.platform.lower().startswith("freebsd")
+IS_LINUX = sys.platform.lower().startswith("linux")
+ONEDIR_ARTIFACT_PATH = ARTIFACTS_DIR / "salt"
+if IS_WINDOWS:
+    ONEDIR_PYTHON_PATH = ONEDIR_ARTIFACT_PATH / "Scripts" / "python.exe"
+else:
+    ONEDIR_PYTHON_PATH = ONEDIR_ARTIFACT_PATH / "bin" / "python3"
+# Python versions to run against
+_PYTHON_VERSIONS = ("3", "3.8", "3.9", "3.10", "3.11")
+
+# Nox options
+#  Reuse existing virtualenvs
+nox.options.reuse_existing_virtualenvs = True
+
+# Change current directory to REPO_ROOT
+os.chdir(str(REPO_ROOT))
+
+RUNTESTS_LOGFILE = ARTIFACTS_DIR.joinpath(
+    "logs",
+    "runtests-{}.log".format(datetime.datetime.now().strftime("%Y%m%d%H%M%S.%f")),
+)
+
+# Prevent Python from writing bytecode
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+
+def session_warn(session, message):
+    try:
+        session.warn(message)
+    except AttributeError:
+        session.log(f"WARNING: {message}")
+
+
+def session_run_always(session, *command, **kwargs):
+    """
+    Patch nox to allow running some commands which would be skipped if --install-only is passed.
+    """
+    try:
+        # Guess we weren't the only ones wanting this
+        # https://github.com/theacodes/nox/pull/331
+        return session.run_always(*command, **kwargs)
+    except AttributeError:
+        old_install_only_value = session._runner.global_config.install_only
+        try:
+            # Force install only to be false for the following chunk of code
+            # For additional information as to why see:
+            #   https://github.com/theacodes/nox/pull/181
+            session._runner.global_config.install_only = False
+            return session.run(*command, **kwargs)
+        finally:
+            session._runner.global_config.install_only = old_install_only_value
+
+
+def find_session_runner(session, name, python_version, onedir=False, **kwargs):
+    if onedir:
+        name += f"-onedir-{ONEDIR_PYTHON_PATH}"
+    else:
+        name += f"-{python_version}"
+    for s, _ in session._runner.manifest.list_all_sessions():
+        if name not in s.signatures:
+            continue
+        for signature in s.signatures:
+            for key, value in kwargs.items():
+                param = f"{key}={value!r}"
+                if param not in signature:
+                    break
+            else:
+                return s
+            continue
+    session.error(
+        "Could not find a nox session by the name {!r} with the following keyword arguments: {!r}".format(
+            name, kwargs
+        )
+    )
+
+
+def _create_ci_directories():
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    # Allow other users to write to this directory.
+    # This helps when some tests run under a different name and yet
+    # they need access to this path, for example, code coverage.
+    ARTIFACTS_DIR.chmod(0o777)
+    COVERAGE_OUTPUT_DIR.mkdir(exist_ok=True)
+    COVERAGE_OUTPUT_DIR.chmod(0o777)
+    ARTIFACTS_DIR.joinpath("xml-unittests-output").mkdir(exist_ok=True)
+
+
+def _get_session_python_version_info(session):
+    try:
+        version_info = session._runner._real_python_version_info
+    except AttributeError:
+        session_py_version = session_run_always(
+            session,
+            "python",
+            "-c",
+            'import sys; sys.stdout.write("{}.{}.{}".format(*sys.version_info))',
+            stderr=None,
+            silent=True,
+            log=False,
+        )
+        version_info = tuple(
+            int(part)
+            for part in session_py_version.strip().split(".")
+            if part.isdigit()
+        )
+        session._runner._real_python_version_info = version_info
+    return version_info
+
+
+def _get_pydir(session):
+    version_info = _get_session_python_version_info(session)
+    if version_info < (3, 8):
+        session.error("Only Python >= 3.8 is supported")
+    return "py{}.{}".format(*version_info)
+
+
+def _get_pip_requirements_file(session, crypto=None, requirements_type="ci"):
+    assert requirements_type in ("ci", "pkg")
+    pydir = _get_pydir(session)
+
+    if IS_WINDOWS:
+        if crypto is None:
+            _requirements_file = os.path.join(
+                "requirements", "static", requirements_type, pydir, "windows.txt"
+            )
+            if os.path.exists(_requirements_file):
+                return _requirements_file
+        _requirements_file = os.path.join(
+            "requirements", "static", requirements_type, pydir, "windows-crypto.txt"
+        )
+        if os.path.exists(_requirements_file):
+            return _requirements_file
+        session.error(f"Could not find a windows requirements file for {pydir}")
+    elif IS_DARWIN:
+        if crypto is None:
+            _requirements_file = os.path.join(
+                "requirements", "static", requirements_type, pydir, "darwin.txt"
+            )
+            if os.path.exists(_requirements_file):
+                return _requirements_file
+        _requirements_file = os.path.join(
+            "requirements", "static", requirements_type, pydir, "darwin-crypto.txt"
+        )
+        if os.path.exists(_requirements_file):
+            return _requirements_file
+        session.error(f"Could not find a darwin requirements file for {pydir}")
+    elif IS_FREEBSD:
+        if crypto is None:
+            _requirements_file = os.path.join(
+                "requirements", "static", requirements_type, pydir, "freebsd.txt"
+            )
+            if os.path.exists(_requirements_file):
+                return _requirements_file
+        _requirements_file = os.path.join(
+            "requirements", "static", requirements_type, pydir, "freebsd-crypto.txt"
+        )
+        if os.path.exists(_requirements_file):
+            return _requirements_file
+        session.error(f"Could not find a freebsd requirements file for {pydir}")
+    else:
+        if crypto is None:
+            _requirements_file = os.path.join(
+                "requirements", "static", requirements_type, pydir, "linux.txt"
+            )
+            if os.path.exists(_requirements_file):
+                return _requirements_file
+        _requirements_file = os.path.join(
+            "requirements", "static", requirements_type, pydir, "linux-crypto.txt"
+        )
+        if os.path.exists(_requirements_file):
+            return _requirements_file
+        session.error(f"Could not find a linux requirements file for {pydir}")
+
+
+def _upgrade_pip_setuptools_and_wheel(session, upgrade=True):
+    if SKIP_REQUIREMENTS_INSTALL:
+        session.log(
+            "Skipping Python Requirements because SKIP_REQUIREMENTS_INSTALL was found in the environ"
+        )
+        return False
+
+    env = os.environ.copy()
+    env["PIP_CONSTRAINT"] = str(REPO_ROOT / "requirements" / "constraints.txt")
+    install_command = [
+        "python",
+        "-m",
+        "pip",
+        "install",
+        "--progress-bar=off",
+    ]
+    if upgrade:
+        install_command.append("-U")
+    install_command.extend(["setuptools", "pip", "wheel"])
+    session_run_always(session, *install_command, silent=PIP_INSTALL_SILENT, env=env)
+    return True
+
+
+def _install_requirements(
+    session,
+    *extra_requirements,
+    requirements_type="ci",
+    onedir=False,
+):
+    if onedir and IS_LINUX:
+        session_run_always(
+            session, "python3", "-m", "pip", "install", "relenv[toolchain]"
+        )
+
+    if not _upgrade_pip_setuptools_and_wheel(session):
+        return False
+
+    # Install requirements
+    env = os.environ.copy()
+    env["PIP_CONSTRAINT"] = str(REPO_ROOT / "requirements" / "constraints.txt")
+
+    requirements_file = _get_pip_requirements_file(
+        session, requirements_type=requirements_type
+    )
+    install_command = ["--progress-bar=off", "-r", requirements_file]
+    session.install(*install_command, silent=PIP_INSTALL_SILENT, env=env)
+
+    if extra_requirements:
+        install_command = ["--progress-bar=off"]
+        install_command += list(extra_requirements)
+        session.install(*install_command, silent=PIP_INSTALL_SILENT, env=env)
+
+    if EXTRA_REQUIREMENTS_INSTALL:
+        session.log(
+            "Installing the following extra requirements because the"
+            " EXTRA_REQUIREMENTS_INSTALL environment variable was set: %s",
+            EXTRA_REQUIREMENTS_INSTALL,
+        )
+        # We pass --constraint in this step because in case any of these extra dependencies has a requirement
+        # we're already using, we want to maintain the locked version
+        install_command = ["--progress-bar=off", "--constraint", requirements_file]
+        install_command += EXTRA_REQUIREMENTS_INSTALL.split()
+        session.install(*install_command, silent=PIP_INSTALL_SILENT, env=env)
+
+    return True
+
+
+def _install_coverage_requirement(session):
+    if SKIP_REQUIREMENTS_INSTALL is False:
+        env = os.environ.copy()
+        env["PIP_CONSTRAINT"] = str(REPO_ROOT / "requirements" / "constraints.txt")
+        coverage_requirement = COVERAGE_REQUIREMENT
+        if coverage_requirement is None:
+            coverage_requirement = "coverage==7.3.1"
+            if IS_LINUX:
+                distro_slug = os.environ.get("TOOLS_DISTRO_SLUG")
+                if distro_slug is not None and distro_slug in (
+                    "centos-7",
+                    "debian-10",
+                    "photonos-3",
+                ):
+                    # Keep the old coverage requirement version since the new one, on these
+                    # Plaforms turns the test suite quite slow.
+                    # Unit tests don't finish before the 5 hours timeout when they should
+                    # finish within 1 to 2 hours.
+                    coverage_requirement = "coverage==5.5"
+        session.install(
+            "--progress-bar=off",
+            coverage_requirement,
+            silent=PIP_INSTALL_SILENT,
+            env=env,
+        )
+
+
+def _run_with_coverage(session, *test_cmd, env=None, on_rerun=False):
+    _install_coverage_requirement(session)
+    if on_rerun is False:
+        session.run("coverage", "erase")
+
+    if env is None:
+        env = {}
+
+    sitecustomize_dir = session.run(
+        "salt-factories", "--coverage", silent=True, log=True, stderr=None
+    )
+    if sitecustomize_dir is not None:
+        sitecustomize_dir = pathlib.Path(sitecustomize_dir.strip()).resolve()
+        if not sitecustomize_dir.exists():
+            session.error(
+                f"The path to 'sitecustomize.py', '{str(sitecustomize_dir)}', does not exist."
+            )
+
+    if sitecustomize_dir:
+        try:
+            relative_sitecustomize_dir = sitecustomize_dir.relative_to(REPO_ROOT)
+        except ValueError:
+            relative_sitecustomize_dir = sitecustomize_dir
+        log_msg = f"Discovered salt-factories coverage 'sitecustomize.py' path: {relative_sitecustomize_dir}"
+        try:
+            session.debug(log_msg)
+        except AttributeError:
+            # Older nox
+            session.log(log_msg)
+        python_path_env_var = os.environ.get("PYTHONPATH") or None
+        if python_path_env_var is None:
+            python_path_env_var = str(sitecustomize_dir)
+        else:
+            python_path_entries = python_path_env_var.split(os.pathsep)
+            if str(sitecustomize_dir) in python_path_entries:
+                python_path_entries.remove(str(sitecustomize_dir))
+            python_path_entries.insert(0, str(sitecustomize_dir))
+            python_path_env_var = os.pathsep.join(python_path_entries)
+
+        env.update(
+            {
+                # The updated python path so that sitecustomize is importable
+                "PYTHONPATH": python_path_env_var,
+                # Instruct sub processes to also run under coverage
+                "COVERAGE_PROCESS_START": str(REPO_ROOT / ".coveragerc"),
+                # The full path to the .coverage data file. Makes sure we always write
+                # them to the same directory
+                "COVERAGE_FILE": COVERAGE_FILE,
+            }
+        )
+
+    session.run(*test_cmd, env=env)
+
+
+def _report_coverage(
+    session,
+    combine=True,
+    cli_report=True,
+    html_report=False,
+    xml_report=False,
+    json_report=False,
+):
+    _install_coverage_requirement(session)
+
+    if not any([combine, cli_report, html_report, xml_report, json_report]):
+        session.error(
+            "At least one of combine, cli_report, html_report, xml_report, json_report needs to be True"
+        )
+
+    env = {
+        # The full path to the .coverage data file. Makes sure we always write
+        # them to the same directory
+        "COVERAGE_FILE": COVERAGE_FILE,
+    }
+
+    report_section = None
+    if session.posargs:
+        report_section = session.posargs.pop(0)
+        if report_section not in ("salt", "tests"):
+            session.error(
+                f"The report section can only be one of 'salt', 'tests', not: {report_section}"
+            )
+        if session.posargs:
+            session.error(
+                "Only one argument can be passed to the session, which is optional "
+                "and is one of 'salt', 'tests'."
+            )
+
+    if combine is True:
+        coverage_db_files = glob.glob(f"{COVERAGE_FILE}.*")
+        if coverage_db_files:
+            with contextlib.suppress(CommandFailed):
+                # Sometimes some of the coverage files are corrupt which would trigger a CommandFailed
+                # exception
+                session.run("coverage", "combine", env=env)
+        elif os.path.exists(COVERAGE_FILE):
+            session_warn(session, "Coverage files already combined.")
+
+        if os.path.exists(COVERAGE_FILE) and not IS_WINDOWS:
+            # Some coverage files might have come from a windows machine, fix paths
+            with sqlite3.connect(COVERAGE_FILE) as db:
+                res = db.execute(r"SELECT * FROM file WHERE path LIKE '%salt\%'")
+                if res.fetchone():
+                    session_warn(
+                        session,
+                        "Replacing backwards slashes with forward slashes on file "
+                        "paths in the coverage database",
+                    )
+                    db.execute(
+                        r"UPDATE OR IGNORE file SET path=replace(path, '\', '/');"
+                    )
+
+    if not os.path.exists(COVERAGE_FILE):
+        session.error("No coverage files found.")
+
+    if report_section == "salt":
+        json_coverage_file = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "salt.json"
+        xml_coverage_file = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "salt.xml"
+        html_coverage_dir = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "html" / "salt"
+        cmd_args = [
+            "--omit=tests/*,tests/pytests/pkg/*",
+            "--include=salt/*",
+        ]
+
+    elif report_section == "tests":
+        json_coverage_file = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "tests.json"
+        xml_coverage_file = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "tests.xml"
+        html_coverage_dir = (
+            COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "html" / "tests"
+        )
+        cmd_args = [
+            "--omit=salt/*",
+            "--include=tests/*,tests/pytests/pkg/*",
+        ]
+    else:
+        json_coverage_file = (
+            COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "coverage.json"
+        )
+        xml_coverage_file = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "coverage.xml"
+        html_coverage_dir = COVERAGE_OUTPUT_DIR.relative_to(REPO_ROOT) / "html" / "full"
+        cmd_args = [
+            "--include=salt/*,tests/*,tests/pytests/pkg/*",
+        ]
+
+    if cli_report:
+        session.run(
+            "coverage",
+            "report",
+            "--precision=2",
+            *cmd_args,
+            env=env,
+        )
+
+    if html_report:
+        session.run(
+            "coverage",
+            "html",
+            "-d",
+            str(html_coverage_dir),
+            "--show-contexts",
+            "--precision=2",
+            *cmd_args,
+            env=env,
+        )
+
+    if xml_report:
+        try:
+            session.run(
+                "coverage",
+                "xml",
+                "-o",
+                str(xml_coverage_file),
+                *cmd_args,
+                env=env,
+            )
+        except CommandFailed:
+            session_warn(
+                session, "Failed to generate the source XML code coverage report"
+            )
+
+    if json_report:
+        session.run(
+            "coverage",
+            "json",
+            "-o",
+            str(json_coverage_file),
+            "--show-contexts",
+            *cmd_args,
+            env=env,
+        )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-parametrized")
+@nox.parametrize("coverage", [False, True])
+@nox.parametrize("transport", ["zeromq", "tcp"])
+@nox.parametrize("crypto", [None, "m2crypto", "pycryptodome"])
+def test_parametrized(session, coverage, transport, crypto):
+    """
+    DO NOT CALL THIS NOX SESSION DIRECTLY
+    """
+    # Install requirements
+    if _install_requirements(session):
+
+        if crypto:
+            session_run_always(
+                session,
+                "pip",
+                "uninstall",
+                "-y",
+                "m2crypto",
+                "pycrypto",
+                "pycryptodome",
+                "pycryptodomex",
+                silent=True,
+            )
+            install_command = [
+                "--progress-bar=off",
+                "--constraint",
+                _get_pip_requirements_file(session, crypto=True),
+            ]
+            install_command.append(crypto)
+            session.install(*install_command, silent=PIP_INSTALL_SILENT)
+
+    cmd_args = [
+        f"--transport={transport}",
+    ] + session.posargs
+    _pytest(session, coverage=coverage, cmd_args=cmd_args)
+
+
+@nox.session(python=_PYTHON_VERSIONS)
+@nox.parametrize("coverage", [False, True])
+def test(session, coverage):
+    """
+    pytest session with zeromq transport and default crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto=None,
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS)
+@nox.parametrize("coverage", [False, True])
+def pytest(session, coverage):
+    """
+    pytest session with zeromq transport and default crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-tcp")
+@nox.parametrize("coverage", [False, True])
+def test_tcp(session, coverage):
+    """
+    pytest session with TCP transport and default crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto=None,
+            transport="tcp",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-tcp")
+@nox.parametrize("coverage", [False, True])
+def pytest_tcp(session, coverage):
+    """
+    pytest session with TCP transport and default crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-zeromq")
+@nox.parametrize("coverage", [False, True])
+def test_zeromq(session, coverage):
+    """
+    pytest session with zeromq transport and default crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto=None,
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-zeromq")
+@nox.parametrize("coverage", [False, True])
+def pytest_zeromq(session, coverage):
+    """
+    pytest session with zeromq transport and default crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def test_m2crypto(session, coverage):
+    """
+    pytest session with zeromq transport and m2crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="m2crypto",
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def pytest_m2crypto(session, coverage):
+    """
+    pytest session with zeromq transport and m2crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-tcp-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def test_tcp_m2crypto(session, coverage):
+    """
+    pytest session with TCP transport and m2crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="m2crypto",
+            transport="tcp",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-tcp-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def pytest_tcp_m2crypto(session, coverage):
+    """
+    pytest session with TCP transport and m2crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-zeromq-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def test_zeromq_m2crypto(session, coverage):
+    """
+    pytest session with zeromq transport and m2crypto
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="m2crypto",
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-zeromq-m2crypto")
+@nox.parametrize("coverage", [False, True])
+def pytest_zeromq_m2crypto(session, coverage):
+    """
+    pytest session with zeromq transport and m2crypto
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def test_pycryptodome(session, coverage):
+    """
+    pytest session with zeromq transport and pycryptodome
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="pycryptodome",
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def pytest_pycryptodome(session, coverage):
+    """
+    pytest session with zeromq transport and pycryptodome
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-tcp-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def test_tcp_pycryptodome(session, coverage):
+    """
+    pytest session with TCP transport and pycryptodome
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="pycryptodome",
+            transport="tcp",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-tcp-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def pytest_tcp_pycryptodome(session, coverage):
+    """
+    pytest session with TCP transport and pycryptodome
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-zeromq-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def test_zeromq_pycryptodome(session, coverage):
+    """
+    pytest session with zeromq transport and pycryptodome
+    """
+    session.notify(
+        find_session_runner(
+            session,
+            "test-parametrized",
+            session.python,
+            coverage=coverage,
+            crypto="pycryptodome",
+            transport="zeromq",
+        )
+    )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-zeromq-pycryptodome")
+@nox.parametrize("coverage", [False, True])
+def pytest_zeromq_pycryptodome(session, coverage):
+    """
+    pytest session with zeromq transport and pycryptodome
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-cloud")
+@nox.parametrize("coverage", [False, True])
+def test_cloud(session, coverage):
+    """
+    pytest cloud tests session
+    """
+    pydir = _get_pydir(session)
+    if pydir == "py3.5":
+        session.error(
+            "Due to conflicting and unsupported requirements the cloud tests only run on Py3.6+"
+        )
+    # Install requirements
+    if _upgrade_pip_setuptools_and_wheel(session):
+        linux_requirements_file = os.path.join(
+            "requirements", "static", "ci", pydir, "linux.txt"
+        )
+        cloud_requirements_file = os.path.join(
+            "requirements", "static", "ci", pydir, "cloud.txt"
+        )
+
+        install_command = [
+            "--progress-bar=off",
+            "-r",
+            linux_requirements_file,
+            "-r",
+            cloud_requirements_file,
+        ]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+
+    cmd_args = [
+        "--run-expensive",
+        "-k",
+        "cloud",
+    ] + session.posargs
+    _pytest(session, coverage=coverage, cmd_args=cmd_args)
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-cloud")
+@nox.parametrize("coverage", [False, True])
+def pytest_cloud(session, coverage):
+    """
+    pytest cloud tests session
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="test-tornado")
+@nox.parametrize("coverage", [False, True])
+def test_tornado(session, coverage):
+    """
+    pytest tornado tests session
+    """
+    # Install requirements
+    if _upgrade_pip_setuptools_and_wheel(session):
+        _install_requirements(session)
+        session.install(
+            "--progress-bar=off", "tornado==5.0.2", silent=PIP_INSTALL_SILENT
+        )
+        session.install(
+            "--progress-bar=off", "pyzmq==17.0.0", silent=PIP_INSTALL_SILENT
+        )
+    _pytest(session, coverage=coverage, cmd_args=session.posargs)
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="pytest-tornado")
+@nox.parametrize("coverage", [False, True])
+def pytest_tornado(session, coverage):
+    """
+    pytest tornado tests session
+    """
+    try:
+        session_name = session.name
+    except AttributeError:
+        session_name = session._runner.friendly_name
+    session_warn(
+        session,
+        "This nox session is deprecated, please call {!r} instead".format(
+            session_name.replace("pytest-", "test-")
+        ),
+    )
+    session.notify(session_name.replace("pytest-", "test-"))
+
+
+def _pytest(session, coverage, cmd_args, env=None, on_rerun=False):
+    # Create required artifacts directories
+    _create_ci_directories()
+
+    if env is None:
+        env = {}
+
+    env["CI_RUN"] = "1" if CI_RUN else "0"
+
+    args = [
+        "--rootdir",
+        str(REPO_ROOT),
+        "--log-file-level=debug",
+        "--show-capture=no",
+        "-ra",
+        "-s",
+        "-vv",
+        "--showlocals",
+    ]
+    for arg in cmd_args:
+        if arg == "--log-file" or arg.startswith("--log-file="):
+            break
+    else:
+        args.append(f"--log-file={RUNTESTS_LOGFILE}")
+    args.extend(cmd_args)
+
+    if PRINT_SYSTEM_INFO_ONLY and "--sys-info-and-exit" not in args:
+        args.append("--sys-info-and-exit")
+        session.run("python", "-m", "pytest", *args, env=env)
+        return
+
+    if PRINT_SYSTEM_INFO and "--sysinfo" not in args:
+        args.append("--sysinfo")
+
+    if PRINT_TEST_SELECTION:
+        # We'll print out the collected tests on CI runs.
+        # This will show a full list of what tests are going to run, in the right order, which, in case
+        # of a test suite hang, helps us pinpoint which test is hanging
+        session.run(
+            "python", "-m", "pytest", *(args + ["--collect-only", "-qqq"]), env=env
+        )
+        if PRINT_TEST_PLAN_ONLY:
+            return
+
+    if coverage is True:
+        _coverage_cmd_args = []
+        if "COVERAGE_CONTEXT" in os.environ:
+            _coverage_cmd_args.append(f"--context={os.environ['COVERAGE_CONTEXT']}")
+        _run_with_coverage(
+            session,
+            "python",
+            "-m",
+            "coverage",
+            "run",
+            *_coverage_cmd_args,
+            "-m",
+            "pytest",
+            *args,
+            env=env,
+            on_rerun=on_rerun,
+        )
+    else:
+        session.run("python", "-m", "pytest", *args, env=env)
+
+
+def _ci_test(session, transport, onedir=False):
+    # Install requirements
+    _install_requirements(session, onedir=onedir)
+    env = {}
+    if onedir:
+        env["ONEDIR_TESTRUN"] = "1"
+    chunks = {
+        "pkg": [
+            "tests/pytests/pkg",
+        ],
+        "unit": [
+            "tests/unit",
+            "tests/pytests/unit",
+        ],
+        "functional": [
+            "tests/pytests/functional",
+        ],
+        "scenarios": [
+            "tests/pytests/scenarios",
+        ],
+    }
+
+    test_group_number = os.environ.get("TEST_GROUP") or "1"
+
+    if not session.posargs:
+        chunk_cmd = []
+        junit_report_filename = "test-results"
+        runtests_log_filename = "runtests"
+    else:
+        chunk = session.posargs.pop(0)
+        if chunk in ["unit", "functional", "integration", "scenarios", "all"]:
+            if chunk == "all":
+                chunk_cmd = []
+                junit_report_filename = "test-results"
+                runtests_log_filename = "runtests"
+            elif chunk == "integration":
+                chunk_cmd = []
+                for values in chunks.values():
+                    for value in values:
+                        chunk_cmd.append(f"--ignore={value}")
+                junit_report_filename = f"test-results-{chunk}-grp{test_group_number}"
+                runtests_log_filename = f"runtests-{chunk}-grp{test_group_number}"
+            else:
+                chunk_cmd = chunks[chunk]
+                junit_report_filename = f"test-results-{chunk}-grp{test_group_number}"
+                runtests_log_filename = f"runtests-{chunk}-grp{test_group_number}"
+            if session.posargs:
+                if session.posargs[0] == "--":
+                    session.posargs.pop(0)
+                chunk_cmd.extend(session.posargs)
+        else:
+            chunk_cmd = [chunk] + session.posargs
+            junit_report_filename = f"test-results-grp{test_group_number}"
+            runtests_log_filename = f"runtests-grp{test_group_number}"
+
+    rerun_failures = os.environ.get("RERUN_FAILURES", "0") == "1"
+    track_code_coverage = os.environ.get("SKIP_CODE_COVERAGE", "0") == "0"
+
+    common_pytest_args = [
+        "--color=yes",
+        "--ssh-tests",
+        "--sys-stats",
+        "--run-destructive",
+        f"--output-columns={os.environ.get('OUTPUT_COLUMNS') or 120}",
+    ]
+    try:
+        pytest_args = (
+            common_pytest_args[:]
+            + [
+                f"--junitxml=artifacts/xml-unittests-output/{junit_report_filename}.xml",
+                f"--log-file=artifacts/logs/{runtests_log_filename}.log",
+            ]
+            + chunk_cmd
+        )
+        _pytest(session, coverage=track_code_coverage, cmd_args=pytest_args, env=env)
+    except CommandFailed:
+        if rerun_failures is False:
+            raise
+
+        # Don't print the system information, not the test selection on reruns
+        global PRINT_TEST_SELECTION
+        global PRINT_SYSTEM_INFO
+        PRINT_TEST_SELECTION = False
+        PRINT_SYSTEM_INFO = False
+
+        pytest_args = (
+            common_pytest_args[:]
+            + [
+                "--lf",
+                f"--junitxml=artifacts/xml-unittests-output/{junit_report_filename}-rerun.xml",
+                f"--log-file=artifacts/logs/{runtests_log_filename}-rerun.log",
+            ]
+            + chunk_cmd
+        )
+        _pytest(
+            session,
+            coverage=track_code_coverage,
+            cmd_args=pytest_args,
+            env=env,
+            on_rerun=True,
+        )
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="ci-test")
+def ci_test(session):
+    transport = os.environ.get("SALT_TRANSPORT") or "zeromq"
+    valid_transports = ("zeromq", "tcp")
+    if transport not in valid_transports:
+        session.error(
+            "The value for the SALT_TRANSPORT environment variable can only be "
+            f"one of: {', '.join(valid_transports)}"
+        )
+    _ci_test(session, transport)
+
+
+@nox.session(python=_PYTHON_VERSIONS, name="ci-test-tcp")
+def ci_test_tcp(session):
+    _ci_test(session, "tcp")
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="ci-test-onedir",
+    venv_params=["--system-site-packages"],
+)
+def ci_test_onedir(session):
+    if not ONEDIR_ARTIFACT_PATH.exists():
+        session.error(
+            "The salt onedir artifact, expected to be in '{}', was not found".format(
+                ONEDIR_ARTIFACT_PATH.relative_to(REPO_ROOT)
+            )
+        )
+
+    transport = os.environ.get("SALT_TRANSPORT") or "zeromq"
+    valid_transports = ("zeromq", "tcp")
+    if transport not in valid_transports:
+        session.error(
+            "The value for the SALT_TRANSPORT environment variable can only be "
+            f"one of: {', '.join(valid_transports)}"
+        )
+
+    _ci_test(session, "zeromq", onedir=True)
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="ci-test-onedir-tcp",
+    venv_params=["--system-site-packages"],
+)
+def ci_test_onedir_tcp(session):
+    if not ONEDIR_ARTIFACT_PATH.exists():
+        session.error(
+            "The salt onedir artifact, expected to be in '{}', was not found".format(
+                ONEDIR_ARTIFACT_PATH.relative_to(REPO_ROOT)
+            )
+        )
+
+    _ci_test(session, "tcp", onedir=True)
+
+
+@nox.session(python="3", name="report-coverage")
+def report_coverage(session):
+    _report_coverage(session, combine=True, cli_report=True)
+
+
+@nox.session(python="3", name="coverage-report")
+def coverage_report(session):
+    _report_coverage(session, combine=True, cli_report=True)
+
+
+@nox.session(python=False, name="decompress-dependencies")
+def decompress_dependencies(session):
+    if not session.posargs:
+        session.error(
+            "The 'decompress-dependencies' session target needs "
+            "two arguments, '<platform> <arch>'."
+        )
+    try:
+        platform = session.posargs.pop(0)
+        arch = session.posargs.pop(0)
+        if session.posargs:
+            session.error(
+                "The 'decompress-dependencies' session target only accepts "
+                "two arguments, '<platform> <arch>'."
+            )
+    except IndexError:
+        session.error(
+            "The 'decompress-dependencies' session target needs "
+            "two arguments, '<platform> <arch>'."
+        )
+    if platform == "windows":
+        extension = "tar.gz"
+        scripts_dir_name = "Scripts"
+        pyexecutable = "python.exe"
+    else:
+        extension = "tar.xz"
+        scripts_dir_name = "bin"
+        pyexecutable = "python"
+    nox_dependencies_tarball = f"nox.{platform}.{arch}.{extension}"
+    nox_dependencies_tarball_path = REPO_ROOT / nox_dependencies_tarball
+    if not nox_dependencies_tarball_path.exists():
+        session.error(
+            f"The {nox_dependencies_tarball} file "
+            "does not exist. Not decompressing anything."
+        )
+
+    session_run_always(session, "tar", "xpf", nox_dependencies_tarball)
+    if os.environ.get("DELETE_NOX_ARCHIVE", "0") == "1":
+        nox_dependencies_tarball_path.unlink()
+
+    session.log("Finding broken 'python' symlinks and configs under '.nox/' ...")
+    for dirname in os.scandir(REPO_ROOT / ".nox"):
+        pyenv = REPO_ROOT.joinpath(".nox", dirname, "pyvenv.cfg")
+        pyenv_vars = []
+        if os.path.exists(pyenv):
+            # Update pyvenv.cnf configuration in case the location of
+            # everything changed.
+            with open(pyenv, encoding="utf-8") as fp:
+                for line in fp.readlines():
+                    k, v = (_.strip() for _ in line.split("=", 1))
+                    if k in [
+                        "home",
+                        "base-prefix",
+                        "base-exec-prefix",
+                        "base-executable",
+                    ]:
+                        root, _path = v.split("artifacts" + os.path.sep, 1)
+                        v = str(REPO_ROOT / "artifacts" / _path)
+                    pyenv_vars.append((k, v))
+            with open(pyenv, "w", encoding="utf-8") as fp:
+                for k, v in pyenv_vars:
+                    fp.write(f"{k} = {v}\n")
+
+        scan_path = REPO_ROOT.joinpath(".nox", dirname, scripts_dir_name)
+
+        # Fix the values of the directories in a pyvenv.cfg file.
+        config = pathlib.Path(dirname) / "pyvenv.cfg"
+        values = {}
+        if config.exists():
+            session.log(f"Found venv config: {config}")
+            with open(config, encoding="utf-8") as fp:
+                for line in fp:
+                    key, val = (_.strip() for _ in line.split("=", 1))
+                    values[key] = val
+            values["home"] = str(
+                REPO_ROOT.joinpath("artifacts", "salt", scripts_dir_name)
+            )
+            values["base-prefix"] = str(REPO_ROOT.joinpath("artifacts", "salt"))
+            values["base-exec-prefix"] = str(REPO_ROOT.joinpath("artifacts", "salt"))
+            values["base-executable"] = str(
+                REPO_ROOT.joinpath("artifacts", "salt", scripts_dir_name, pyexecutable)
+            )
+            with open(config, "w", encoding="utf-8") as fp:
+                for key in values:
+                    fp.write(f"{key} = {values[key]}\n")
+        else:
+            session.log(f"{config} does not exist")
+
+        script_paths = {str(p): p for p in os.scandir(scan_path)}
+        fixed_shebang = f"#!{scan_path / 'python'}"
+        for key in sorted(script_paths):
+            path = script_paths[key]
+            if path.is_symlink():
+                broken_link = pathlib.Path(path)
+                resolved_link = os.readlink(path)
+                if not os.path.isabs(resolved_link):
+                    # Relative symlinks, resolve them
+                    resolved_link = os.path.join(scan_path, resolved_link)
+                prefix_check = False
+                if platform == "windows":
+                    prefix_check = resolved_link.startswith("\\\\?")
+                if not os.path.exists(resolved_link) or prefix_check:
+                    session.log("The symlink %r looks to be broken", resolved_link)
+                    # This is a broken link, fix it
+                    resolved_link_suffix = resolved_link.split(
+                        f"artifacts{os.sep}salt{os.sep}"
+                    )[-1]
+                    fixed_link = REPO_ROOT.joinpath(
+                        "artifacts", "salt", resolved_link_suffix
+                    )
+                    session.log(
+                        "Fixing broken symlink in nox virtualenv %r, from %r to %r",
+                        dirname.name,
+                        resolved_link,
+                        str(fixed_link.relative_to(REPO_ROOT)),
+                    )
+                    broken_link.unlink()
+                    broken_link.symlink_to(fixed_link)
+                continue
+            if not path.is_file():
+                continue
+            if platform != "windows":
+                # Let's try to fix shebang's
+                try:
+                    fpath = pathlib.Path(path)
+                    contents = fpath.read_text(encoding="utf-8").splitlines()
+                    if (
+                        contents[0].startswith("#!")
+                        and contents[0].endswith("python")
+                        and contents[0] != fixed_shebang
+                    ):
+                        session.log(
+                            "Fixing broken shebang in %r",
+                            str(fpath.relative_to(REPO_ROOT)),
+                        )
+                        fpath.write_text(
+                            "\n".join([fixed_shebang] + contents[1:]), encoding="utf-8"
+                        )
+                except UnicodeDecodeError:
+                    pass
+
+
+@nox.session(python=False, name="compress-dependencies")
+def compress_dependencies(session):
+    if not session.posargs:
+        session.error(
+            "The 'compress-dependencies' session target needs "
+            "two arguments, '<platform> <arch>'."
+        )
+    try:
+        platform = session.posargs.pop(0)
+        arch = session.posargs.pop(0)
+        if session.posargs:
+            session.error(
+                "The 'compress-dependencies' session target only accepts "
+                "two arguments, '<platform> <arch>'."
+            )
+    except IndexError:
+        session.error(
+            "The 'compress-dependencies' session target needs "
+            "two arguments, '<platform> <arch>'."
+        )
+    if platform == "windows":
+        extension = "tar.gz"
+    else:
+        extension = "tar.xz"
+    nox_dependencies_tarball = f"nox.{platform}.{arch}.{extension}"
+    nox_dependencies_tarball_path = REPO_ROOT / nox_dependencies_tarball
+    if nox_dependencies_tarball_path.exists():
+        session_warn(
+            session, f"Found existing {nox_dependencies_tarball}. Deleting it."
+        )
+        nox_dependencies_tarball_path.unlink()
+
+    session_run_always(
+        session,
+        "tar",
+        "-caf",
+        nox_dependencies_tarball,
+        "--exclude=.nox/pre-archive-cleanup",
+        ".nox",
+    )
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="pre-archive-cleanup",
+)
+@nox.parametrize("pkg", [False, True])
+def pre_archive_cleanup(session, pkg):
+    """
+    Call `tools pkg pre-archive-cleanup <path>`
+    """
+    if session.posargs:
+        session.error("No additional arguments can be passed to 'pre-archive-cleanup'")
+    version_info = _get_session_python_version_info(session)
+    if version_info < (3, 10):
+        session.error(
+            "The nox session 'pre-archive-cleanup' needs Python 3.10+ to run."
+        )
+
+    if _upgrade_pip_setuptools_and_wheel(session):
+        requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "tools.txt"
+        )
+        install_command = ["--progress-bar=off", "-r", requirements_file]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+
+    cmdline = [
+        "tools",
+        "pkg",
+        "pre-archive-cleanup",
+    ]
+    if pkg:
+        cmdline.append("--pkg")
+    cmdline.append(".nox")
+    session_run_always(session, *cmdline)
+
+
+@nox.session(python="3", name="combine-coverage")
+def combine_coverage(session):
+    _report_coverage(session, combine=True, cli_report=False)
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="combine-coverage-onedir",
+    venv_params=["--system-site-packages"],
+)
+def combine_coverage_onedir(session):
+    _report_coverage(session, combine=True, cli_report=False)
+
+
+@nox.session(python="3", name="create-html-coverage-report")
+def create_html_coverage_report(session):
+    _report_coverage(session, combine=True, cli_report=False, html_report=True)
+
+
+def _create_xml_coverage_reports(session):
+    if session.posargs:
+        session.error("No arguments are acceptable to this nox session.")
+    session.posargs.append("salt")
+    _report_coverage(session, combine=True, cli_report=False, xml_report=True)
+    session.posargs.append("tests")
+    _report_coverage(session, combine=True, cli_report=False, xml_report=True)
+
+
+@nox.session(python="3", name="create-xml-coverage-reports")
+def create_xml_coverage_reports(session):
+    _create_xml_coverage_reports(session)
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="create-xml-coverage-reports-onedir",
+    venv_params=["--system-site-packages"],
+)
+def create_xml_coverage_reports_onedir(session):
+    _create_xml_coverage_reports(session)
+
+
+@nox.session(python="3", name="create-json-coverage-reports")
+def create_json_coverage_reports(session):
+    _report_coverage(session, combine=True, cli_report=False, json_report=True)
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="create-json-coverage-reports-onedir",
+    venv_params=["--system-site-packages"],
+)
+def create_json_coverage_reports_onedir(session):
+    _report_coverage(session, combine=True, cli_report=False, json_report=True)
+
+
+class Tee:
+    """
+    Python class to mimic linux tee behaviour
+    """
+
+    def __init__(self, first, second):
+        self._first = first
+        self._second = second
+
+    def write(self, b):
+        wrote = self._first.write(b)
+        self._first.flush()
+        self._second.write(b)
+        self._second.flush()
+
+    def fileno(self):
+        return self._first.fileno()
+
+
+def _lint(session, rcfile, flags, paths, upgrade_setuptools_and_pip=True):
+    if _upgrade_pip_setuptools_and_wheel(session, upgrade=upgrade_setuptools_and_pip):
+        linux_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "linux.txt"
+        )
+        lint_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "lint.txt"
+        )
+        install_command = [
+            "--progress-bar=off",
+            "-r",
+            linux_requirements_file,
+            "-r",
+            lint_requirements_file,
+        ]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+
+    cmd_args = ["pylint", f"--rcfile={rcfile}"] + list(flags) + list(paths)
+    cmd_kwargs = {"env": {"PYTHONUNBUFFERED": "1"}}
+    session.run(*cmd_args, **cmd_kwargs)
+
+
+def _lint_pre_commit(session, rcfile, flags, paths):
+    if "VIRTUAL_ENV" not in os.environ:
+        session.error(
+            "This should be running from within a virtualenv and "
+            "'VIRTUAL_ENV' was not found as an environment variable."
+        )
+    if "pre-commit" not in os.environ["VIRTUAL_ENV"]:
+        session.error(
+            "This should be running from within a pre-commit virtualenv and "
+            "'VIRTUAL_ENV'({}) does not appear to be a pre-commit virtualenv.".format(
+                os.environ["VIRTUAL_ENV"]
+            )
+        )
+    from nox.virtualenv import VirtualEnv
+
+    # Let's patch nox to make it run inside the pre-commit virtualenv
+    session._runner.venv = VirtualEnv(
+        os.environ["VIRTUAL_ENV"],
+        interpreter=session._runner.func.python,
+        reuse_existing=True,
+        venv=True,
+    )
+    _lint(
+        session,
+        rcfile,
+        flags,
+        paths,
+        upgrade_setuptools_and_pip=False,
+    )
+
+
+@nox.session(python="3")
+def lint(session):
+    """
+    Run PyLint against Salt and it's test suite.
+    """
+    session.notify(f"lint-salt-{session.python}")
+    session.notify(f"lint-tests-{session.python}")
+
+
+@nox.session(python="3", name="lint-salt")
+def lint_salt(session):
+    """
+    Run PyLint against Salt.
+    """
+    flags = ["--disable=I"]
+    if session.posargs:
+        paths = session.posargs
+    else:
+        # TBD replace paths entries when implement pyproject.toml
+        paths = ["setup.py", "noxfile.py", "salt/", "tools/"]
+    _lint(session, ".pylintrc", flags, paths)
+
+
+@nox.session(python="3", name="lint-tests")
+def lint_tests(session):
+    """
+    Run PyLint against Salt and it's test suite.
+    """
+    flags = ["--disable=I"]
+    if session.posargs:
+        paths = session.posargs
+    else:
+        paths = ["tests/"]
+    _lint(session, ".pylintrc", flags, paths)
+
+
+@nox.session(python=False, name="lint-salt-pre-commit")
+def lint_salt_pre_commit(session):
+    """
+    Run PyLint against Salt.
+    """
+    flags = ["--disable=I"]
+    if session.posargs:
+        paths = session.posargs
+    else:
+        paths = ["setup.py", "noxfile.py", "salt/", "tools/"]
+    _lint_pre_commit(session, ".pylintrc", flags, paths)
+
+
+@nox.session(python=False, name="lint-tests-pre-commit")
+def lint_tests_pre_commit(session):
+    """
+    Run PyLint against Salt and it's test suite.
+    """
+    flags = ["--disable=I"]
+    if session.posargs:
+        paths = session.posargs
+    else:
+        paths = ["tests/"]
+    _lint_pre_commit(session, ".pylintrc", flags, paths)
+
+
+@nox.session(python="3")
+@nox.parametrize("clean", [False, True])
+@nox.parametrize("update", [False, True])
+@nox.parametrize("compress", [False, True])
+def docs(session, compress, update, clean):
+    """
+    Build Salt's Documentation
+    """
+    session.notify(f"docs-html-{session.python}(compress={compress})")
+    session.notify(
+        find_session_runner(
+            session,
+            "docs-man",
+            session.python,
+            compress=compress,
+            update=update,
+            clean=clean,
+        )
+    )
+
+
+@nox.session(name="docs-html", python="3")
+@nox.parametrize("clean", [False, True])
+@nox.parametrize("compress", [False, True])
+def docs_html(session, compress, clean):
+    """
+    Build Salt's HTML Documentation
+    """
+    if _upgrade_pip_setuptools_and_wheel(session):
+        linux_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "linux.txt"
+        )
+        base_requirements_file = os.path.join("requirements", "base.txt")
+        zeromq_requirements_file = os.path.join("requirements", "zeromq.txt")
+        docs_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "docs.txt"
+        )
+        install_command = [
+            "--progress-bar=off",
+            "--constraint",
+            linux_requirements_file,
+            "-r",
+            base_requirements_file,
+            "-r",
+            zeromq_requirements_file,
+            "-r",
+            docs_requirements_file,
+        ]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+    os.chdir("doc/")
+    if clean:
+        session.run("make", "clean", external=True)
+    session.run("make", "html", "SPHINXOPTS=-W", external=True)
+    if compress:
+        session.run("tar", "-cJvf", "html-archive.tar.xz", "_build/html", external=True)
+    os.chdir("..")
+
+
+@nox.session(name="docs-man", python="3")
+@nox.parametrize("clean", [False, True])
+@nox.parametrize("update", [False, True])
+@nox.parametrize("compress", [False, True])
+def docs_man(session, compress, update, clean):
+    """
+    Build Salt's Manpages Documentation
+    """
+    if _upgrade_pip_setuptools_and_wheel(session):
+        linux_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "linux.txt"
+        )
+        base_requirements_file = os.path.join("requirements", "base.txt")
+        zeromq_requirements_file = os.path.join("requirements", "zeromq.txt")
+        docs_requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "docs.txt"
+        )
+        install_command = [
+            "--progress-bar=off",
+            "--constraint",
+            linux_requirements_file,
+            "-r",
+            base_requirements_file,
+            "-r",
+            zeromq_requirements_file,
+            "-r",
+            docs_requirements_file,
+        ]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+    os.chdir("doc/")
+    if clean:
+        session.run("make", "clean", external=True)
+    session.run("make", "man", "SPHINXOPTS=-W", external=True)
+    if update:
+        session.run("rm", "-rf", "man/", external=True)
+        session.run("cp", "-Rp", "_build/man", "man/", external=True)
+    if compress:
+        session.run("tar", "-cJvf", "man-archive.tar.xz", "_build/man", external=True)
+    os.chdir("..")
+
+
+@nox.session(name="changelog", python="3")
+@nox.parametrize("draft", [False, True])
+@nox.parametrize("force", [False, True])
+def changelog(session, draft, force):
+    """
+    Generate salt's changelog
+    """
+    session_warn(
+        session,
+        "Please stop using this nox session and start using the 'tools' command shown below.",
+    )
+    if _upgrade_pip_setuptools_and_wheel(session):
+        requirements_file = os.path.join(
+            "requirements", "static", "ci", _get_pydir(session), "tools.txt"
+        )
+        install_command = ["--progress-bar=off", "-r", requirements_file]
+        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+
+    cmd = ["tools", "changelog", "update-changelog-md"]
+    if draft:
+        cmd.append("--draft")
+    cmd.append(session.posargs[0])
+    session.run(*cmd)
+
+
+class Recompress:
+    """
+    Helper class to re-compress a ``.tag.gz`` file to make it reproducible.
+    """
+
+    def __init__(self, mtime):
+        self.mtime = int(mtime)
+
+    def tar_reset(self, tarinfo):
+        """
+        Reset user, group, mtime, and mode to create reproducible tar.
+        """
+        tarinfo.uid = tarinfo.gid = 0
+        tarinfo.uname = tarinfo.gname = "root"
+        tarinfo.mtime = self.mtime
+        if tarinfo.type == tarfile.DIRTYPE:
+            tarinfo.mode = 0o755
+        else:
+            tarinfo.mode = 0o644
+        if tarinfo.pax_headers:
+            raise ValueError(tarinfo.name, tarinfo.pax_headers)
+        return tarinfo
+
+    def recompress(self, targz):
+        """
+        Re-compress the passed path.
+        """
+        tempd = pathlib.Path(tempfile.mkdtemp()).resolve()
+        d_src = tempd.joinpath("src")
+        d_src.mkdir()
+        d_tar = tempd.joinpath(targz.stem)
+        d_targz = tempd.joinpath(targz.name)
+        with tarfile.open(d_tar, "w|") as wfile:
+            with tarfile.open(targz, "r:gz") as rfile:
+                rfile.extractall(d_src)  # nosec
+                extracted_dir = next(pathlib.Path(d_src).iterdir())
+                for name in sorted(extracted_dir.rglob("*")):
+                    wfile.add(
+                        str(name),
+                        filter=self.tar_reset,
+                        recursive=False,
+                        arcname=str(name.relative_to(d_src)),
+                    )
+
+        with open(d_tar, "rb") as rfh:
+            with gzip.GzipFile(
+                fileobj=open(d_targz, "wb"), mode="wb", filename="", mtime=self.mtime
+            ) as gz:  # pylint: disable=invalid-name
+                while True:
+                    chunk = rfh.read(1024)
+                    if not chunk:
+                        break
+                    gz.write(chunk)
+        targz.unlink()
+        shutil.move(str(d_targz), str(targz))
+
+
+@nox.session(python="3")
+def build(session):
+    """
+    Build source and binary distributions based off the current commit author date UNIX timestamp.
+
+    The reason being, reproducible packages.
+
+    .. code-block: shell
+
+        git show -s --format=%at HEAD
+    """
+    shutil.rmtree("dist/", ignore_errors=True)
+    if SKIP_REQUIREMENTS_INSTALL is False:
+        session.install(
+            "--progress-bar=off",
+            "-r",
+            "requirements/build.txt",
+            silent=PIP_INSTALL_SILENT,
+        )
+
+    timestamp = session.run(
+        "git",
+        "show",
+        "-s",
+        "--format=%at",
+        "HEAD",
+        silent=True,
+        log=False,
+        stderr=None,
+    ).strip()
+    env = {"SOURCE_DATE_EPOCH": str(timestamp)}
+    session.run(
+        "python",
+        "-m",
+        "build",
+        "--sdist",
+        str(REPO_ROOT),
+        env=env,
+    )
+    # Recreate sdist to be reproducible
+    recompress = Recompress(timestamp)
+    for targz in REPO_ROOT.joinpath("dist").glob("*.tar.gz"):
+        session.log("Re-compressing %s...", targz.relative_to(REPO_ROOT))
+        recompress.recompress(targz)
+
+    sha256sum = shutil.which("sha256sum")
+    if sha256sum:
+        packages = [
+            str(pkg.relative_to(REPO_ROOT))
+            for pkg in REPO_ROOT.joinpath("dist").iterdir()
+        ]
+        session.run("sha256sum", *packages, external=True)
+    session.run("python", "-m", "twine", "check", "dist/*")
+
+
+@nox.session(
+    python=str(ONEDIR_PYTHON_PATH),
+    name="ci-test-onedir-pkgs",
+    venv_params=["--system-site-packages"],
+)
+def ci_test_onedir_pkgs(session):
+    from nox.virtualenv import VirtualEnv
+
+    session_warn(session, "Replacing VirtualEnv instance...")
+
+    ci_test_onedir_path = REPO_ROOT / ".nox" / "ci-test-onedir"
+    if hasattr(session._runner.venv, "venv_or_virtualenv"):
+        venv = session._runner.venv.venv_or_virtualenv == "venv"
+        session._runner.venv = VirtualEnv(
+            str(ci_test_onedir_path.relative_to(REPO_ROOT)),
+            interpreter=session._runner.func.python,
+            reuse_existing=True,
+            venv=venv,
+            venv_params=session._runner.venv.venv_params,
+        )
+    else:
+        venv = session._runner.venv.venv_backend in ("venv", "virtualenv")
+        session._runner.venv = VirtualEnv(  # pylint: disable=unexpected-keyword-arg
+            str(ci_test_onedir_path.relative_to(REPO_ROOT)),
+            interpreter=session._runner.func.python,
+            reuse_existing=True,
+            venv_backend=session._runner.venv.venv_backend,
+            venv_params=session._runner.venv.venv_params,
+        )
+    os.environ["VIRTUAL_ENV"] = session._runner.venv.location
+    session._runner.venv.create()
+
+    if not ONEDIR_ARTIFACT_PATH.exists():
+        session.error(
+            "The salt onedir artifact, expected to be in '{}', was not found".format(
+                ONEDIR_ARTIFACT_PATH.relative_to(REPO_ROOT)
+            )
+        )
+
+    common_pytest_args = [
+        "--color=yes",
+        "--sys-stats",
+        "--run-destructive",
+        f"--output-columns={os.environ.get('OUTPUT_COLUMNS') or 120}",
+        "--pkg-system-service",
+    ]
+
+    # Upgrade and downgrade tests run with no-uninstall. The intergration tests
+    # will use the results of the upgrade downgrade tests. So, for upgrade
+    # tests the intergration tests will be testing the current version after
+    # and upgrade was performed. For downgrade tests, the integration tests are
+    # testing the previous version after a downgrade was performed.
+    chunks = {
+        "install": [],
+        "upgrade": [
+            "--upgrade",
+            "--no-uninstall",
+        ],
+        "downgrade": [
+            "--downgrade",
+            "--no-uninstall",
+        ],
+        "download-pkgs": [
+            "--download-pkgs",
+        ],
+    }
+
+    if not session.posargs or session.posargs[0] not in chunks:
+        chunk = "install"
+        session.log("Choosing default 'install' test type")
+    else:
+        chunk = session.posargs.pop(0)
+
+    cmd_args = chunks[chunk]
+    for arg in session.posargs:
+        if arg.startswith("tests/pytests/pkg/"):
+            # The user is passing test paths
+            if cmd_args:
+                cmd_args.pop()
+            break
+
+    if IS_LINUX:
+        # Fetch the toolchain
+        session_run_always(session, "python3", "-m", "pip", "install", "ppbt")
+
+    # Install requirements
+    if _upgrade_pip_setuptools_and_wheel(session):
+        _install_requirements(session, "pyzmq")
+    env = {
+        "ONEDIR_TESTRUN": "1",
+        "PKG_TEST_TYPE": chunk,
+    }
+
+    pytest_args = (
+        common_pytest_args[:]
+        + cmd_args[:]
+        + [
+            f"--junitxml=artifacts/xml-unittests-output/test-results-{chunk}.xml",
+            f"--log-file=artifacts/logs/runtests-{chunk}.log",
+        ]
+        + session.posargs
+    )
+    append_tests_path = True
+    test_paths = (
+        "tests/pytests/pkg/",
+        str(REPO_ROOT / "tests" / "pytests" / "pkg"),
+    )
+    for arg in session.posargs:
+        if arg.startswith(test_paths):
+            append_tests_path = False
+            break
+    if append_tests_path:
+        pytest_args.append("tests/pytests/pkg/")
+    try:
+        _pytest(session, coverage=False, cmd_args=pytest_args, env=env)
+    except CommandFailed:
+        if os.environ.get("RERUN_FAILURES", "0") == "0":
+            # Don't rerun on failures
+            sys.exit(1)
+
+        # Don't print the system information, not the test selection on reruns
+        global PRINT_TEST_SELECTION
+        global PRINT_SYSTEM_INFO
+        PRINT_TEST_SELECTION = False
+        PRINT_SYSTEM_INFO = False
+
+        pytest_args = (
+            common_pytest_args[:]
+            + cmd_args[:]
+            + [
+                f"--junitxml=artifacts/xml-unittests-output/test-results-{chunk}-rerun.xml",
+                f"--log-file=artifacts/logs/runtests-{chunk}-rerun.log",
+                "--lf",
+            ]
+            + session.posargs
+        )
+        if append_tests_path:
+            pytest_args.append("tests/pytests/pkg/")
+        _pytest(
+            session,
+            coverage=False,
+            cmd_args=pytest_args,
+            env=env,
+            on_rerun=True,
+        )
+
+    # The upgrade/downgrad tests passed, now run the integration tests against
+    # the results.
+    if chunk not in ("install", "download-pkgs"):
+        cmd_args = chunks["install"]
+        pytest_args = (
+            common_pytest_args[:]
+            + cmd_args[:]
+            + [
+                "--no-install",
+                "--junitxml=artifacts/xml-unittests-output/test-results-install.xml",
+                "--log-file=artifacts/logs/runtests-install.log",
+            ]
+            + session.posargs
+        )
+        if "downgrade" in chunk:
+            pytest_args.append("--use-prev-version")
+        if append_tests_path:
+            pytest_args.append("tests/pytests/pkg/")
+        try:
+            _pytest(session, coverage=False, cmd_args=pytest_args, env=env)
+        except CommandFailed:
+            if os.environ.get("RERUN_FAILURES", "0") == "0":
+                # Don't rerun on failures
+                sys.exit(1)
+            cmd_args = chunks["install"]
+            pytest_args = (
+                common_pytest_args[:]
+                + cmd_args[:]
+                + [
+                    "--no-install",
+                    "--junitxml=artifacts/xml-unittests-output/test-results-install-rerun.xml",
+                    "--log-file=artifacts/logs/runtests-install-rerun.log",
+                    "--lf",
+                ]
+                + session.posargs
+            )
+            if "downgrade" in chunk:
+                pytest_args.append("--use-prev-version")
+            if append_tests_path:
+                pytest_args.append("tests/pytests/pkg/")
+            _pytest(
+                session,
+                coverage=False,
+                cmd_args=pytest_args,
+                env=env,
+                on_rerun=True,
+            )
+    sys.exit(0)
+
+
+# FILE: SECURITY.md
+# SaltStack's Security Disclosure Policy
+
+**Email**
+- saltproject-security.pdl@broadcom.com
+
+**GPG key ID:**
+- 37654A06
+
+**GPG key fingerprint:**
+- `99EF 26F2 6469 2D24 973A 7007 E8BF 76A7 3765 4A06`
+
+**GPG Public Key**
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBGZpxDsBEACz8yoRBXaJiifaWz3wd4FLSO18mgH7H/+0iNTbV1ZwhgGEtWTF
+Z31HfrsbxVgICoMgFYt8WKnc4MHZLIgDfTuCFQpf7PV/VqRBAknZwQKEAjHfrYNz
+Q1vy3CeKC1qcKQISEQr7VFf58sOC8GJ54jLLc2rCsg9cXI6yvUFtGwL9Qv7g/NZn
+rtLjc4NZIKdIvSt+/PtooQtsz0jfLMdMpMFa41keH3MknIbydBUnGj7eC8ANN/iD
+Re2QHAW2KfQh3Ocuh/DpJ0/dwbzXmXfMWHk30E+s31TfdLiFt1Iz5kZDF8iHrDMq
+x39/GGmF10y5rfq43V1Ucxm+1tl5Km0JcX6GpPUtgRpfUYAxwxfGfezt4PjYRYH2
+mNxXXPLsnVTvdWPTvS0msSrcTHmnU5His38I6goXI7dLZm0saqoWi3sqEQ8TPS6/
+DkLtYjpb/+dql+KrXD7erd3j8KKflIXn7AEsv+luNk6czGOKgdG9agkklzOHfEPc
+xOGmaFfe/1mu8HxgaCuhNAQWlk79ZC+GAm0sBZIQAQRtABgag5vWr16hVix7BPMG
+Fp8+caOVv6qfQ7gBmJ3/aso6OzyOxsluVxQRt94EjPTm0xuwb1aYNJOhEj9cPkjQ
+XBjo3KN0rwcAViR/fdUzrIV1sn2hms0v5WZ+TDtz1w0OpLZOwe23BDE1+QARAQAB
+tEJTYWx0IFByb2plY3QgU2VjdXJpdHkgVGVhbSA8c2FsdHByb2plY3Qtc2VjdXJp
+dHkucGRsQGJyb2FkY29tLmNvbT6JAlcEEwEKAEEWIQSZ7ybyZGktJJc6cAfov3an
+N2VKBgUCZmnEOwIbAwUJB4TOAAULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIXgAAK
+CRDov3anN2VKBk7rD/9QdcYdNGfk96W906HlVpb3JCwT0t9T7ElP97Ot0YN6LqMj
+vVQpxWYi7riUSyt1FtlCAM+hmghImzILF9LKDRCZ1H5UStI/u9T53cZpUZtVW/8R
+bUNBCl495UcgioIZG5DsfZ/GdBOgY+hQfdgh7HC8a8A/owCt2hHbnth970NQ+LHb
+/0ERLfOHRxozgPBhze8Vqf939KlteM5ljgTw/IkJJIsxJi4C6pQntSHvB3/Bq/Nw
+Kf3vk3XYFtVibeQODSVvc6useo+SNGV/wsK/6kvh/vfP9Trv/GMOn/89Bj2aL1PR
+M382E6sDB9d22p4ehVgbcOpkwHtr9DGerK9xzfG4aUjLu9qVD5Ep3gqKSsCe+P8z
+bpADdVCnk+Vdp3Bi+KI7buSkqfbZ0m9vCY3ei1fMiDiTTjvNliL5QCO6PvYNYiDw
++LLImrQThv55ZRQsRRT7J6A94kwDoI6zcBEalv/aPws0nQHJtgWRUpmy5RcbVu9Z
+QBXlUpCzCB+gGaGRE1u0hCfuvkbcG1pXFFBdSUuAK4o4ktiRALVUndELic/PU1nR
+jwo/+j0SGw/jTwqVChUfLDZbiAQ2JICoVpZ+e1zQfsxa/yDu2e4D543SvNFHDsxh
+bsBeCsopzJSA0n2HAdYvPxOPoWVvZv+U8ZV3EEVOUgsO5//cRJddCgLU89Q4DrkC
+DQRmacQ7ARAAsz8jnpfw3DCRxdCVGiqWAtgj8r2gx5n1wJsKsgvyGQdKUtPwlX04
+7w13lIDT2DwoXFozquYsTn9XkIoWbVckqo0NN/V7/QxIZIYTqRcFXouHTbXDJm5C
+tsvfDlnTsaplyRawPU2mhYg39/lzIt8zIjvy5zo/pElkRP5m03nG+ItrsHN6CCvf
+ZiRxme6EQdn+aoHh2GtICL8+c3HvQzTHYKxFn84Ibt3uNxwt+Mu6YhG9tkYMQQk5
+SkYA4CYAaw2Lc/g0ee36iqw/5d79M8YcQtHhy5zzqgdEvExjFPdowV1hhFIEkNkM
+uqIAknXVesqLLw2hPeYmyhYQqeBKIrWmBhBKX9c0vMYkDDH3T/sSylVhH0QAXP6E
+WmLja3E1ov6pt6j7j/wWzC9LSMFDJI2yWCeOE1oea5D89tH6XvsGRTiog62zF/9a
+77197iIa0+o91chp4iLkzDvuK8pVujPx8bNsK8jlJ+OW73NmliCVg+hecoFLNsri
+/TsBngFNVcu79Q1XfyvoDdR2C09ItCBEZGt6LOlq/+ATUw1aBz6L1hvLBtiR3Hfu
+X31YlbxdvVPjlzg6O6GXSfnokNTWv2mVXWTRIrP0RrKvMyiNPXVW7EunUuXI0Axk
+Xg3E5kAjKXkBXzoCTCVz/sXPLjvjI0x3Z7obgPpcTi9h5DIX6PFyK/kAEQEAAYkC
+PAQYAQoAJhYhBJnvJvJkaS0klzpwB+i/dqc3ZUoGBQJmacQ7AhsMBQkHhM4AAAoJ
+EOi/dqc3ZUoGDeAQAKbyiHA1sl0fnvcZxoZ3mWA/Qesddp7Nv2aEW8I3hAJoTVml
+ZvMxk8leZgsQJtSsVDNnxeyW+WCIUkhxmd95UlkTTj5mpyci1YrxAltPJ2TWioLe
+F2doP8Y+4iGnaV+ApzWG33sLr95z37RKVdMuGk/O5nLMeWnSPA7HHWJCxECMm0SH
+uI8aby8w2aBZ1kOMFB/ToEEzLBu9fk+zCzG3uH8QhdciMENVhsyBSULIrmwKglyI
+VQwj2dXHyekQh7QEHV+CdKMfs3ZOANwm52OwjaK0dVb3IMFGvlUf4UXXfcXwLAkj
+vW+Ju4kLGxVQpOlh1EBain9WOaHZGh6EGuTpjJO32PyRq8iSMNb8coeonoPFWrE/
+A5dy3z5x5CZhJ6kyNwYs/9951r30Ct9qNZo9WZwp8AGQVs+J9XEYnZIWXnO1hdKs
+dRStPvY7VqS500t8eWqWRfCLgofZAb9Fv7SwTPQ2G7bOuTXmQKAIEkU9vzo5XACu
+AtR/9bC9ghNnlNuH4xiViBclrq2dif/I2ZwItpQHjuCDeMKz9kdADRI0tuNPpRHe
+QP1YpURW+I+PYZzNgbnwzl6Bxo7jCHFgG6BQ0ih5sVwEDhlXjSejd8CNMYEy3ElL
+xJLUpltwXLZSrJEXYjtJtnh0om71NXes0OyWE1cL4+U6WA9Hho6xedjk2bai
+=pPmt
+-----END PGP PUBLIC KEY BLOCK-----
+```
+
+## Reporting a Vulnerability - Private Disclosure Process
+
+T

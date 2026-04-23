@@ -1,0 +1,3604 @@
+
+
+# FILE: zizmor.yml
+rules:
+  dangerous-triggers:
+    ignore:
+      - coverage_comment.yml
+      - labels.yml
+      - new_contributor_pr.yml
+  unpinned-uses:
+    config:
+      policies:
+        actions/*: ref-pin
+        psf/*: ref-pin
+
+
+# FILE: tox.ini
+# Tox (https://tox.readthedocs.io/) is a tool for running tests in multiple
+# virtualenvs. This configuration file helps to run the test suite on all
+# supported Python versions. To use it, "python -m pip install tox" and
+# then run "tox" from this directory.
+
+[tox]
+minversion = 4.0
+skipsdist = true
+envlist =
+    py3
+    black
+    blacken-docs
+    flake8
+    docs
+    isort
+    lint-docs
+    zizmor
+
+# Add environment to use the default python3 installation
+[testenv:py3]
+basepython = python3
+
+[testenv]
+usedevelop = true
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY fixes hung tests for MacOS users. (#30806)
+passenv = DJANGO_SETTINGS_MODULE,PYTHONPATH,HOME,DISPLAY,OBJC_DISABLE_INITIALIZE_FORK_SAFETY
+setenv =
+    PYTHONDONTWRITEBYTECODE=1
+deps =
+    -e .
+    py{3,312,313,314}: -rtests/requirements/py3.txt
+    postgres: -rtests/requirements/postgres.txt
+    mysql: -rtests/requirements/mysql.txt
+    oracle: -rtests/requirements/oracle.txt
+changedir = tests
+commands =
+    {envpython} runtests.py {posargs}
+
+[testenv:black]
+basepython = python3
+usedevelop = false
+deps = black
+changedir = {toxinidir}
+commands = black --check --diff .
+
+[testenv:blacken-docs]
+basepython = python3
+usedevelop = false
+allowlist_externals =
+    make
+deps = blacken-docs
+changedir = docs
+commands =
+    make black
+
+[testenv:flake8]
+basepython = python3
+usedevelop = false
+deps = flake8 >= 3.7.0
+changedir = {toxinidir}
+commands = flake8 .
+
+[testenv:docs]
+basepython = python3
+usedevelop = false
+allowlist_externals =
+    make
+deps =
+    Sphinx
+    pyenchant
+    sphinxcontrib-spelling
+changedir = docs
+commands =
+    make spelling
+
+[testenv:isort]
+basepython = python3
+usedevelop = false
+deps = isort >= 7.0.0
+changedir = {toxinidir}
+commands = isort --check-only --diff django tests scripts
+
+[testenv:javascript]
+usedevelop = false
+deps =
+changedir = {toxinidir}
+allowlist_externals =
+    npm
+commands =
+    npm install
+    npm test
+
+[testenv:lint-docs]
+basepython = python3
+usedevelop = false
+allowlist_externals =
+    make
+deps = sphinx-lint
+changedir = docs
+commands =
+    make lint
+
+[testenv:zizmor]
+basepython = python3
+usedevelop = false
+deps = zizmor >= 1.19.0
+changedir = {toxinidir}
+commands =
+    zizmor .
+
+
+# FILE: pyproject.toml
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Django"
+dynamic = ["version"]
+requires-python = ">= 3.12"
+dependencies = [
+    "asgiref>=3.9.1",
+    "sqlparse>=0.5.0",
+    "tzdata; sys_platform == 'win32'",
+]
+authors = [
+  {name = "Django Software Foundation", email = "foundation@djangoproject.com"},
+]
+description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
+readme = "README.rst"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "LICENSE.python", "AUTHORS"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.optional-dependencies]
+argon2 = ["argon2-cffi>=23.1.0"]
+bcrypt = ["bcrypt>=4.1.1"]
+
+[project.scripts]
+django-admin = "django.core.management:execute_from_command_line"
+
+[project.urls]
+Homepage = "https://www.djangoproject.com/"
+Documentation = "https://docs.djangoproject.com/"
+"Release notes" = "https://docs.djangoproject.com/en/stable/releases/"
+Funding = "https://www.djangoproject.com/fundraising/"
+Source = "https://github.com/django/django"
+Tracker = "https://code.djangoproject.com/"
+
+[tool.black]
+target-version = ["py312"]
+force-exclude = "tests/test_runner_apps/tagged/tests_syntax_error.py"
+
+[tool.isort]
+profile = "black"
+default_section = "THIRDPARTY"
+known_first_party = "django"
+
+[tool.setuptools.dynamic]
+version = {attr = "django.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["django*"]
+
+
+# FILE: package.json
+{
+  "name": "Django",
+  "private": true,
+  "scripts": {
+    "pretest": "eslint .",
+    "test": "grunt test --verbose"
+  },
+  "engines": {
+    "npm": ">=1.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "puppeteer": "^24.22.0",
+    "grunt": "^1.6.1",
+    "grunt-cli": "^1.5.0",
+    "grunt-contrib-qunit": "^10.1.1",
+    "qunit": "^2.24.1"
+  }
+}
+
+
+# FILE: globals.js
+/* https://github.com/sindresorhus/globals/blob/v16.4.0/globals.json */
+
+/*
+MIT License
+
+Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+"use strict";
+
+
+module.exports = {
+    "browser": {
+        "AbortController": false,
+        "AbortSignal": false,
+        "AbsoluteOrientationSensor": false,
+        "AbstractRange": false,
+        "Accelerometer": false,
+        "addEventListener": false,
+        "ai": false,
+        "AI": false,
+        "AICreateMonitor": false,
+        "AITextSession": false,
+        "alert": false,
+        "AnalyserNode": false,
+        "Animation": false,
+        "AnimationEffect": false,
+        "AnimationEvent": false,
+        "AnimationPlaybackEvent": false,
+        "AnimationTimeline": false,
+        "AsyncDisposableStack": false,
+        "atob": false,
+        "Attr": false,
+        "Audio": false,
+        "AudioBuffer": false,
+        "AudioBufferSourceNode": false,
+        "AudioContext": false,
+        "AudioData": false,
+        "AudioDecoder": false,
+        "AudioDestinationNode": false,
+        "AudioEncoder": false,
+        "AudioListener": false,
+        "AudioNode": false,
+        "AudioParam": false,
+        "AudioParamMap": false,
+        "AudioProcessingEvent": false,
+        "AudioScheduledSourceNode": false,
+        "AudioSinkInfo": false,
+        "AudioWorklet": false,
+        "AudioWorkletGlobalScope": false,
+        "AudioWorkletNode": false,
+        "AudioWorkletProcessor": false,
+        "AuthenticatorAssertionResponse": false,
+        "AuthenticatorAttestationResponse": false,
+        "AuthenticatorResponse": false,
+        "BackgroundFetchManager": false,
+        "BackgroundFetchRecord": false,
+        "BackgroundFetchRegistration": false,
+        "BarcodeDetector": false,
+        "BarProp": false,
+        "BaseAudioContext": false,
+        "BatteryManager": false,
+        "BeforeUnloadEvent": false,
+        "BiquadFilterNode": false,
+        "Blob": false,
+        "BlobEvent": false,
+        "Bluetooth": false,
+        "BluetoothCharacteristicProperties": false,
+        "BluetoothDevice": false,
+        "BluetoothRemoteGATTCharacteristic": false,
+        "BluetoothRemoteGATTDescriptor": false,
+        "BluetoothRemoteGATTServer": false,
+        "BluetoothRemoteGATTService": false,
+        "BluetoothUUID": false,
+        "blur": false,
+        "BroadcastChannel": false,
+        "BrowserCaptureMediaStreamTrack": false,
+        "btoa": false,
+        "ByteLengthQueuingStrategy": false,
+        "Cache": false,
+        "caches": false,
+        "CacheStorage": false,
+        "cancelAnimationFrame": false,
+        "cancelIdleCallback": false,
+        "CanvasCaptureMediaStream": false,
+        "CanvasCaptureMediaStreamTrack": false,
+        "CanvasGradient": false,
+        "CanvasPattern": false,
+        "CanvasRenderingContext2D": false,
+        "CaptureController": false,
+        "CaretPosition": false,
+        "CDATASection": false,
+        "ChannelMergerNode": false,
+        "ChannelSplitterNode": false,
+        "ChapterInformation": false,
+        "CharacterBoundsUpdateEvent": false,
+        "CharacterData": false,
+        "clearInterval": false,
+        "clearTimeout": false,
+        "clientInformation": false,
+        "Clipboard": false,
+        "ClipboardChangeEvent": false,
+        "ClipboardEvent": false,
+        "ClipboardItem": false,
+        "close": false,
+        "closed": false,
+        "CloseEvent": false,
+        "CloseWatcher": false,
+        "CommandEvent": false,
+        "Comment": false,
+        "CompositionEvent": false,
+        "CompressionStream": false,
+        "confirm": false,
+        "console": false,
+        "ConstantSourceNode": false,
+        "ContentVisibilityAutoStateChangeEvent": false,
+        "ConvolverNode": false,
+        "CookieChangeEvent": false,
+        "CookieDeprecationLabel": false,
+        "cookieStore": false,
+        "CookieStore": false,
+        "CookieStoreManager": false,
+        "CountQueuingStrategy": false,
+        "createImageBitmap": false,
+        "CreateMonitor": false,
+        "Credential": false,
+        "credentialless": false,
+        "CredentialsContainer": false,
+        "CropTarget": false,
+        "crossOriginIsolated": false,
+        "crypto": false,
+        "Crypto": false,
+        "CryptoKey": false,
+        "CSPViolationReportBody": false,
+        "CSS": false,
+        "CSSAnimation": false,
+        "CSSConditionRule": false,
+        "CSSContainerRule": false,
+        "CSSCounterStyleRule": false,
+        "CSSFontFaceRule": false,
+        "CSSFontFeatureValuesRule": false,
+        "CSSFontPaletteValuesRule": false,
+        "CSSFunctionDeclarations": false,
+        "CSSFunctionDescriptors": false,
+        "CSSFunctionRule": false,
+        "CSSGroupingRule": false,
+        "CSSImageValue": false,
+        "CSSImportRule": false,
+        "CSSKeyframeRule": false,
+        "CSSKeyframesRule": false,
+        "CSSKeywordValue": false,
+        "CSSLayerBlockRule": false,
+        "CSSLayerStatementRule": false,
+        "CSSMarginRule": false,
+        "CSSMathClamp": false,
+        "CSSMathInvert": false,
+        "CSSMathMax": false,
+        "CSSMathMin": false,
+        "CSSMathNegate": false,
+        "CSSMathProduct": false,
+        "CSSMathSum": false,
+        "CSSMathValue": false,
+        "CSSMatrixComponent": false,
+        "CSSMediaRule": false,
+        "CSSNamespaceRule": false,
+        "CSSNestedDeclarations": false,
+        "CSSNumericArray": false,
+        "CSSNumericValue": false,
+        "CSSPageDescriptors": false,
+        "CSSPageRule": false,
+        "CSSPerspective": false,
+        "CSSPositionTryDescriptors": false,
+        "CSSPositionTryRule": false,
+        "CSSPositionValue": false,
+        "CSSPropertyRule": false,
+        "CSSRotate": false,
+        "CSSRule": false,
+        "CSSRuleList": false,
+        "CSSScale": false,
+        "CSSScopeRule": false,
+        "CSSSkew": false,
+        "CSSSkewX": false,
+        "CSSSkewY": false,
+        "CSSStartingStyleRule": false,
+        "CSSStyleDeclaration": false,
+        "CSSStyleRule": false,
+        "CSSStyleSheet": false,
+        "CSSStyleValue": false,
+        "CSSSupportsRule": false,
+        "CSSTransformComponent": false,
+        "CSSTransformValue": false,
+        "CSSTransition": false,
+        "CSSTranslate": false,
+        "CSSUnitValue": false,
+        "CSSUnparsedValue": false,
+        "CSSVariableReferenceValue": false,
+        "CSSViewTransitionRule": false,
+        "currentFrame": false,
+        "currentTime": false,
+        "CustomElementRegistry": false,
+        "customElements": false,
+        "CustomEvent": false,
+        "CustomStateSet": false,
+        "DataTransfer": false,
+        "DataTransferItem": false,
+        "DataTransferItemList": false,
+        "DecompressionStream": false,
+        "DelayNode": false,
+        "DelegatedInkTrailPresenter": false,
+        "DeviceMotionEvent": false,
+        "DeviceMotionEventAcceleration": false,
+        "DeviceMotionEventRotationRate": false,
+        "DeviceOrientationEvent": false,
+        "devicePixelRatio": false,
+        "DevicePosture": false,
+        "dispatchEvent": false,
+        "DisposableStack": false,
+        "document": false,
+        "Document": false,
+        "DocumentFragment": false,
+        "documentPictureInPicture": false,
+        "DocumentPictureInPicture": false,
+        "DocumentPictureInPictureEvent": false,
+        "DocumentTimeline": false,
+        "DocumentType": false,
+        "DOMError": false,
+        "DOMException": false,
+        "DOMImplementation": false,
+        "DOMMatrix": false,
+        "DOMMatrixReadOnly": false,
+        "DOMParser": false,
+        "DOMPoint": false,
+        "DOMPointReadOnly": false,
+        "DOMQuad": false,
+        "DOMRect": false,
+        "DOMRectList": false,
+        "DOMRectReadOnly": false,
+        "DOMStringList": false,
+        "DOMStringMap": false,
+        "DOMTokenList": false,
+        "DragEvent": false,
+        "DynamicsCompressorNode": false,
+        "EditContext": false,
+        "Element": false,
+        "ElementInternals": false,
+        "EncodedAudioChunk": false,
+        "EncodedVideoChunk": false,
+        "ErrorEvent": false,
+        "event": false,
+        "Event": false,
+        "EventCounts": false,
+        "EventSource": false,
+        "EventTarget": false,
+        "external": false,
+        "External": false,
+        "EyeDropper": false,
+        "FeaturePolicy": false,
+        "FederatedCredential": false,
+        "fence": false,
+        "Fence": false,
+        "FencedFrameConfig": false,
+        "fetch": false,
+        "fetchLater": false,
+        "FetchLaterResult": false,
+        "File": false,
+        "FileList": false,
+        "FileReader": false,
+        "FileSystem": false,
+        "FileSystemDirectoryEntry": false,
+        "FileSystemDirectoryHandle": false,
+        "FileSystemDirectoryReader": false,
+        "FileSystemEntry": false,
+        "FileSystemFileEntry": false,
+        "FileSystemFileHandle": false,
+        "FileSystemHandle": false,
+        "FileSystemObserver": false,
+        "FileSystemWritableFileStream": false,
+        "find": false,
+        "focus": false,
+        "FocusEvent": false,
+        "FontData": false,
+        "FontFace": false,
+        "FontFaceSet": false,
+        "FontFaceSetLoadEvent": false,
+        "FormData": false,
+        "FormDataEvent": false,
+        "FragmentDirective": false,
+        "frameElement": false,
+        "frames": false,
+        "GainNode": false,
+        "Gamepad": false,
+        "GamepadAxisMoveEvent": false,
+        "GamepadButton": false,
+        "GamepadButtonEvent": false,
+        "GamepadEvent": false,
+        "GamepadHapticActuator": false,
+        "GamepadPose": false,
+        "Geolocation": false,
+        "GeolocationCoordinates": false,
+        "GeolocationPosition": false,
+        "GeolocationPositionError": false,
+        "getComputedStyle": false,
+        "getScreenDetails": false,
+        "getSelection": false,
+        "GPU": false,
+        "GPUAdapter": false,
+        "GPUAdapterInfo": false,
+        "GPUBindGroup": false,
+        "GPUBindGroupLayout": false,
+        "GPUBuffer": false,
+        "GPUBufferUsage": false,
+        "GPUCanvasContext": false,
+        "GPUColorWrite": false,
+        "GPUCommandBuffer": false,
+        "GPUCommandEncoder": false,
+        "GPUCompilationInfo": false,
+        "GPUCompilationMessage": false,
+        "GPUComputePassEncoder": false,
+        "GPUComputePipeline": false,
+        "GPUDevice": false,
+        "GPUDeviceLostInfo": false,
+        "GPUError": false,
+        "GPUExternalTexture": false,
+        "GPUInternalError": false,
+        "GPUMapMode": false,
+        "GPUOutOfMemoryError": false,
+        "GPUPipelineError": false,
+        "GPUPipelineLayout": false,
+        "GPUQuerySet": false,
+        "GPUQueue": false,
+        "GPURenderBundle": false,
+        "GPURenderBundleEncoder": false,
+        "GPURenderPassEncoder": false,
+        "GPURenderPipeline": false,
+        "GPUSampler": false,
+        "GPUShaderModule": false,
+        "GPUShaderStage": false,
+        "GPUSupportedFeatures": false,
+        "GPUSupportedLimits": false,
+        "GPUTexture": false,
+        "GPUTextureUsage": false,
+        "GPUTextureView": false,
+        "GPUUncapturedErrorEvent": false,
+        "GPUValidationError": false,
+        "GravitySensor": false,
+        "Gyroscope": false,
+        "HashChangeEvent": false,
+        "Headers": false,
+        "HID": false,
+        "HIDConnectionEvent": false,
+        "HIDDevice": false,
+        "HIDInputReportEvent": false,
+        "Highlight": false,
+        "HighlightRegistry": false,
+        "history": false,
+        "History": false,
+        "HTMLAllCollection": false,
+        "HTMLAnchorElement": false,
+        "HTMLAreaElement": false,
+        "HTMLAudioElement": false,
+        "HTMLBaseElement": false,
+        "HTMLBodyElement": false,
+        "HTMLBRElement": false,
+        "HTMLButtonElement": false,
+        "HTMLCanvasElement": false,
+        "HTMLCollection": false,
+        "HTMLDataElement": false,
+        "HTMLDataListElement": false,
+        "HTMLDetailsElement": false,
+        "HTMLDialogElement": false,
+        "HTMLDirectoryElement": false,
+        "HTMLDivElement": false,
+        "HTMLDListElement": false,
+        "HTMLDocument": false,
+        "HTMLElement": false,
+        "HTMLEmbedElement": false,
+        "HTMLFencedFrameElement": false,
+        "HTMLFieldSetElement": false,
+        "HTMLFontElement": false,
+        "HTMLFormControlsCollection": false,
+        "HTMLFormElement": false,
+        "HTMLFrameElement": false,
+        "HTMLFrameSetElement": false,
+        "HTMLHeadElement": false,
+        "HTMLHeadingElement": false,
+        "HTMLHRElement": false,
+        "HTMLHtmlElement": false,
+        "HTMLIFrameElement": false,
+        "HTMLImageElement": false,
+        "HTMLInputElement": false,
+        "HTMLLabelElement": false,
+        "HTMLLegendElement": false,
+        "HTMLLIElement": false,
+        "HTMLLinkElement": false,
+        "HTMLMapElement": false,
+        "HTMLMarqueeElement": false,
+        "HTMLMediaElement": false,
+        "HTMLMenuElement": false,
+        "HTMLMetaElement": false,
+        "HTMLMeterElement": false,
+        "HTMLModElement": false,
+        "HTMLObjectElement": false,
+        "HTMLOListElement": false,
+        "HTMLOptGroupElement": false,
+        "HTMLOptionElement": false,
+        "HTMLOptionsCollection": false,
+        "HTMLOutputElement": false,
+        "HTMLParagraphElement": false,
+        "HTMLParamElement": false,
+        "HTMLPictureElement": false,
+        "HTMLPreElement": false,
+        "HTMLProgressElement": false,
+        "HTMLQuoteElement": false,
+        "HTMLScriptElement": false,
+        "HTMLSelectedContentElement": false,
+        "HTMLSelectElement": false,
+        "HTMLSlotElement": false,
+        "HTMLSourceElement": false,
+        "HTMLSpanElement": false,
+        "HTMLStyleElement": false,
+        "HTMLTableCaptionElement": false,
+        "HTMLTableCellElement": false,
+        "HTMLTableColElement": false,
+        "HTMLTableElement": false,
+        "HTMLTableRowElement": false,
+        "HTMLTableSectionElement": false,
+        "HTMLTemplateElement": false,
+        "HTMLTextAreaElement": false,
+        "HTMLTimeElement": false,
+        "HTMLTitleElement": false,
+        "HTMLTrackElement": false,
+        "HTMLUListElement": false,
+        "HTMLUnknownElement": false,
+        "HTMLVideoElement": false,
+        "IDBCursor": false,
+        "IDBCursorWithValue": false,
+        "IDBDatabase": false,
+        "IDBFactory": false,
+        "IDBIndex": false,
+        "IDBKeyRange": false,
+        "IDBObjectStore": false,
+        "IDBOpenDBRequest": false,
+        "IDBRequest": false,
+        "IDBTransaction": false,
+        "IDBVersionChangeEvent": false,
+        "IdentityCredential": false,
+        "IdentityCredentialError": false,
+        "IdentityProvider": false,
+        "IdleDeadline": false,
+        "IdleDetector": false,
+        "IIRFilterNode": false,
+        "Image": false,
+        "ImageBitmap": false,
+        "ImageBitmapRenderingContext": false,
+        "ImageCapture": false,
+        "ImageData": false,
+        "ImageDecoder": false,
+        "ImageTrack": false,
+        "ImageTrackList": false,
+        "indexedDB": false,
+        "Ink": false,
+        "innerHeight": false,
+        "innerWidth": false,
+        "InputDeviceCapabilities": false,
+        "InputDeviceInfo": false,
+        "InputEvent": false,
+        "IntegrityViolationReportBody": false,
+        "IntersectionObserver": false,
+        "IntersectionObserverEntry": false,
+        "isSecureContext": false,
+        "Keyboard": false,
+        "KeyboardEvent": false,
+        "KeyboardLayoutMap": false,
+        "KeyframeEffect": false,
+        "LanguageDetector": false,
+        "LargestContentfulPaint": false,
+        "LaunchParams": false,
+        "launchQueue": false,
+        "LaunchQueue": false,
+        "LayoutShift": false,
+        "LayoutShiftAttribution": false,
+        "length": false,
+        "LinearAccelerationSensor": false,
+        "localStorage": false,
+        "location": true,
+        "Location": false,
+        "locationbar": false,
+        "Lock": false,
+        "LockManager": false,
+        "matchMedia": false,
+        "MathMLElement": false,
+        "MediaCapabilities": false,
+        "MediaCapabilitiesInfo": false,
+        "MediaDeviceInfo": false,
+        "MediaDevices": false,
+        "MediaElementAudioSourceNode": false,
+        "MediaEncryptedEvent": false,
+        "MediaError": false,
+        "MediaKeyError": false,
+        "MediaKeyMessageEvent": false,
+        "MediaKeys": false,
+        "MediaKeySession": false,
+        "MediaKeyStatusMap": false,
+        "MediaKeySystemAccess": false,
+        "MediaList": false,
+        "MediaMetadata": false,
+        "MediaQueryList": false,
+        "MediaQueryListEvent": false,
+        "MediaRecorder": false,
+        "MediaRecorderErrorEvent": false,
+        "MediaSession": false,
+        "MediaSource": false,
+        "MediaSourceHandle": false,
+        "MediaStream": false,
+        "MediaStreamAudioDestinationNode": false,
+        "MediaStreamAudioSourceNode": false,
+        "MediaStreamEvent": false,
+        "MediaStreamTrack": false,
+        "MediaStreamTrackAudioSourceNode": false,
+        "MediaStreamTrackAudioStats": false,
+        "MediaStreamTrackEvent": false,
+        "MediaStreamTrackGenerator": false,
+        "MediaStreamTrackProcessor": false,
+        "MediaStreamTrackVideoStats": false,
+        "menubar": false,
+        "MessageChannel": false,
+        "MessageEvent": false,
+        "MessagePort": false,
+        "MIDIAccess": false,
+        "MIDIConnectionEvent": false,
+        "MIDIInput": false,
+        "MIDIInputMap": false,
+        "MIDIMessageEvent": false,
+        "MIDIOutput": false,
+        "MIDIOutputMap": false,
+        "MIDIPort": false,
+        "MimeType": false,
+        "MimeTypeArray": false,
+        "model": false,
+        "ModelGenericSession": false,
+        "ModelManager": false,
+        "MouseEvent": false,
+        "moveBy": false,
+        "moveTo": false,
+        "MutationEvent": false,
+        "MutationObserver": false,
+        "MutationRecord": false,
+        "name": false,
+        "NamedNodeMap": false,
+        "NavigateEvent": false,
+        "navigation": false,
+        "Navigation": false,
+        "NavigationActivation": false,
+        "NavigationCurrentEntryChangeEvent": false,
+        "NavigationDestination": false,
+        "NavigationHistoryEntry": false,
+        "NavigationPreloadManager": false,
+        "NavigationTransition": false,
+        "navigator": false,
+        "Navigator": false,
+        "NavigatorLogin": false,
+        "NavigatorManagedData": false,
+        "NavigatorUAData": false,
+        "NetworkInformation": false,
+        "Node": false,
+        "NodeFilter": false,
+        "NodeIterator": false,
+        "NodeList": false,
+        "Notification": false,
+        "NotifyPaintEvent": false,
+        "NotRestoredReasonDetails": false,
+        "NotRestoredReasons": false,
+        "Observable": false,
+        "OfflineAudioCompletionEvent": false,
+        "OfflineAudioContext": false,
+        "offscreenBuffering": false,
+        "OffscreenCanvas": false,
+        "OffscreenCanvasRenderingContext2D": false,
+        "onabort": true,
+        "onafterprint": true,
+        "onanimationcancel": true,
+        "onanimationend": true,
+        "onanimationiteration": true,
+        "onanimationstart": true,
+        "onappinstalled": true,
+        "onauxclick": true,
+        "onbeforeinput": true,
+        "onbeforeinstallprompt": true,
+        "onbeforematch": true,
+        "onbeforeprint": true,
+        "onbeforetoggle": true,
+        "onbeforeunload": true,
+        "onbeforexrselect": true,
+        "onblur": true,
+        "oncancel": true,
+        "oncanplay": true,
+        "oncanplaythrough": true,
+        "onchange": true,
+        "onclick": true,
+        "onclose": true,
+        "oncommand": true,
+        "oncontentvisibilityautostatechange": true,
+        "oncontextlost": true,
+        "oncontextmenu": true,
+        "oncontextrestored": true,
+        "oncopy": true,
+        "oncuechange": true,
+        "oncut": true,
+        "ondblclick": true,
+        "ondevicemotion": true,
+        "ondeviceorientation": true,
+        "ondeviceorientationabsolute": true,
+        "ondrag": true,
+        "ondragend": true,
+        "ondragenter": true,
+        "ondragleave": true,
+        "ondragover": true,
+        "ondragstart": true,
+        "ondrop": true,
+        "ondurationchange": true,
+        "onemptied": true,
+        "onended": true,
+        "onerror": true,
+        "onfocus": true,
+        "onformdata": true,
+        "ongamepadconnected": true,
+        "ongamepaddisconnected": true,
+        "ongotpointercapture": true,
+        "onhashchange": true,
+        "oninput": true,
+        "oninvalid": true,
+        "onkeydown": true,
+        "onkeypress": true,
+        "onkeyup": true,
+        "onlanguagechange": true,
+        "onload": true,
+        "onloadeddata": true,
+        "onloadedmetadata": true,
+        "onloadstart": true,
+        "onlostpointercapture": true,
+        "onmessage": true,
+        "onmessageerror": true,
+        "onmousedown": true,
+        "onmouseenter": true,
+        "onmouseleave": true,
+        "onmousemove": true,
+        "onmouseout": true,
+        "onmouseover": true,
+        "onmouseup": true,
+        "onmousewheel": true,
+        "onoffline": true,
+        "ononline": true,
+        "onpagehide": true,
+        "onpagereveal": true,
+        "onpageshow": true,
+        "onpageswap": true,
+        "onpaste": true,
+        "onpause": true,
+        "onplay": true,
+        "onplaying": true,
+        "onpointercancel": true,
+        "onpointerdown": true,
+        "onpointerenter": true,
+        "onpointerleave": true,
+        "onpointermove": true,
+        "onpointerout": true,
+        "onpointerover": true,
+        "onpointerrawupdate": true,
+        "onpointerup": true,
+        "onpopstate": true,
+        "onprogress": true,
+        "onratechange": true,
+        "onrejectionhandled": true,
+        "onreset": true,
+        "onresize": true,
+        "onscroll": true,
+        "onscrollend": true,
+        "onscrollsnapchange": true,
+        "onscrollsnapchanging": true,
+        "onsearch": true,
+        "onsecuritypolicyviolation": true,
+        "onseeked": true,
+        "onseeking": true,
+        "onselect": true,
+        "onselectionchange": true,
+        "onselectstart": true,
+        "onslotchange": true,
+        "onstalled": true,
+        "onstorage": true,
+        "onsubmit": true,
+        "onsuspend": true,
+        "ontimeupdate": true,
+        "ontoggle": true,
+        "ontransitioncancel": true,
+        "ontransitionend": true,
+        "ontransitionrun": true,
+        "ontransitionstart": true,
+        "onunhandledrejection": true,
+        "onunload": true,
+        "onvolumechange": true,
+        "onwaiting": true,
+        "onwheel": true,
+        "open": false,
+        "opener": false,
+        "Option": false,
+        "OrientationSensor": false,
+        "origin": false,
+        "originAgentCluster": false,
+        "OscillatorNode": false,
+        "OTPCredential": false,
+        "outerHeight": false,
+        "outerWidth": false,
+        "OverconstrainedError": false,
+        "PageRevealEvent": false,
+        "PageSwapEvent": false,
+        "PageTransitionEvent": false,
+        "pageXOffset": false,
+        "pageYOffset": false,
+        "PannerNode": false,
+        "parent": false,
+        "PasswordCredential": false,
+        "Path2D": false,
+        "PaymentAddress": false,
+        "PaymentManager": false,
+        "PaymentMethodChangeEvent": false,
+        "PaymentRequest": false,
+        "PaymentRequestUpdateEvent": false,
+        "PaymentResponse": false,
+        "performance": false,
+        "Performance": false,
+        "PerformanceElementTiming": false,
+        "PerformanceEntry": false,
+        "PerformanceEventTiming": false,
+        "PerformanceLongAnimationFrameTiming": false,
+        "PerformanceLongTaskTiming": false,
+        "PerformanceMark": false,
+        "PerformanceMeasure": false,
+        "PerformanceNavigation": false,
+        "PerformanceNavigationTiming": false,
+        "PerformanceObserver": false,
+        "PerformanceObserverEntryList": false,
+        "PerformancePaintTiming": false,
+        "PerformanceResourceTiming": false,
+        "PerformanceScriptTiming": false,
+        "PerformanceServerTiming": false,
+        "PerformanceTiming": false,
+        "PeriodicSyncManager": false,
+        "PeriodicWave": false,
+        "Permissions": false,
+        "PermissionStatus": false,
+        "PERSISTENT": false,
+        "personalbar": false,
+        "PictureInPictureEvent": false,
+        "PictureInPictureWindow": false,
+        "Plugin": false,
+        "PluginArray": false,
+        "PointerEvent": false,
+        "PopStateEvent": false,
+        "postMessage": false,
+        "Presentation": false,
+        "PresentationAvailability": false,
+        "PresentationConnection": false,
+        "PresentationConnectionAvailableEvent": false,
+        "PresentationConnectionCloseEvent": false,
+        "PresentationConnectionList": false,
+        "PresentationReceiver": false,
+        "PresentationRequest": false,
+        "PressureObserver": false,
+        "PressureRecord": false,
+        "print": false,
+        "ProcessingInstruction": false,
+        "Profiler": false,
+        "ProgressEvent": false,
+        "PromiseRejectionEvent": false,
+        "prompt": false,
+        "ProtectedAudience": false,
+        "PublicKeyCredential": false,
+        "PushManager": false,
+        "PushSubscription": false,
+        "PushSubscriptionOptions": false,
+        "queryLocalFonts": false,
+        "queueMicrotask": false,
+        "QuotaExceededError": false,
+        "RadioNodeList": false,
+        "Range": false,
+        "ReadableByteStreamController": false,
+        "ReadableStream": false,
+        "ReadableStreamBYOBReader": false,
+        "ReadableStreamBYOBRequest": false,
+        "ReadableStreamDefaultController": false,
+        "ReadableStreamDefaultReader": false,
+        "registerProcessor": false,
+        "RelativeOrientationSensor": false,
+        "RemotePlayback": false,
+        "removeEventListener": false,
+        "ReportBody": false,
+        "reportError": false,
+        "ReportingObserver": false,
+        "Request": false,
+        "requestAnimationFrame": false,
+        "requestIdleCallback": false,
+        "resizeBy": false,
+        "ResizeObserver": false,
+        "ResizeObserverEntry": false,
+        "ResizeObserverSize": false,
+        "resizeTo": false,
+        "Response": false,
+        "RestrictionTarget": false,
+        "RTCCertificate": false,
+        "RTCDataChannel": false,
+        "RTCDataChannelEvent": false,
+        "RTCDtlsTransport": false,
+        "RTCDTMFSender": false,
+        "RTCDTMFToneChangeEvent": false,
+        "RTCEncodedAudioFrame": false,
+        "RTCEncodedVideoFrame": false,
+        "RTCError": false,
+        "RTCErrorEvent": false,
+        "RTCIceCandidate": false,
+        "RTCIceTransport": false,
+        "RTCPeerConnection": false,
+        "RTCPeerConnectionIceErrorEvent": false,
+        "RTCPeerConnectionIceEvent": false,
+        "RTCRtpReceiver": false,
+        "RTCRtpScriptTransform": false,
+        "RTCRtpSender": false,
+        "RTCRtpTransceiver": false,
+        "RTCSctpTransport": false,
+        "RTCSessionDescription": false,
+        "RTCStatsReport": false,
+        "RTCTrackEvent": false,
+        "sampleRate": false,
+        "scheduler": false,
+        "Scheduler": false,
+        "Scheduling": false,
+        "screen": false,
+        "Screen": false,
+        "ScreenDetailed": false,
+        "ScreenDetails": false,
+        "screenLeft": false,
+        "ScreenOrientation": false,
+        "screenTop": false,
+        "screenX": false,
+        "screenY": false,
+        "ScriptProcessorNode": false,
+        "scroll": false,
+        "scrollbars": false,
+        "scrollBy": false,
+        "ScrollTimeline": false,
+        "scrollTo": false,
+        "scrollX": false,
+        "scrollY": false,
+        "SecurityPolicyViolationEvent": false,
+        "Selection": false,
+        "self": false,
+        "Sensor": false,
+        "SensorErrorEvent": false,
+        "Serial": false,
+        "SerialPort": false,
+        "ServiceWorker": false,
+        "ServiceWorkerContainer": false,
+        "ServiceWorkerRegistration": false,
+        "sessionStorage": false,
+        "setInterval": false,
+        "setTimeout": false,
+        "ShadowRoot": false,
+        "sharedStorage": false,
+        "SharedStorage": false,
+        "SharedStorageAppendMethod": false,
+        "SharedStorageClearMethod": false,
+        "SharedStorageDeleteMethod": false,
+        "SharedStorageModifierMethod": false,
+        "SharedStorageSetMethod": false,
+        "SharedStorageWorklet": false,
+        "SharedWorker": false,
+        "showDirectoryPicker": false,
+        "showOpenFilePicker": false,
+        "showSaveFilePicker": false,
+        "SnapEvent": false,
+        "SourceBuffer": false,
+        "SourceBufferList": false,
+        "SpeechGrammar": false,
+        "SpeechGrammarList": false,
+        "SpeechRecognition": false,
+        "SpeechRecognitionErrorEvent": false,
+        "SpeechRecognitionEvent": false,
+        "speechSynthesis": false,
+        "SpeechSynthesis": false,
+        "SpeechSynthesisErrorEvent": false,
+        "SpeechSynthesisEvent": false,
+        "SpeechSynthesisUtterance": false,
+        "SpeechSynthesisVoice": false,
+        "StaticRange": false,
+        "status": false,
+        "statusbar": false,
+        "StereoPannerNode": false,
+        "stop": false,
+        "Storage": false,
+        "StorageBucket": false,
+        "StorageBucketManager": false,
+        "StorageEvent": false,
+        "StorageManager": false,
+        "structuredClone": false,
+        "styleMedia": false,
+        "StylePropertyMap": false,
+        "StylePropertyMapReadOnly": false,
+        "StyleSheet": false,
+        "StyleSheetList": false,
+        "SubmitEvent": false,
+        "Subscriber": false,
+        "SubtleCrypto": false,
+        "Summarizer": false,
+        "SuppressedError": false,
+        "SVGAElement": false,
+        "SVGAngle": false,
+        "SVGAnimatedAngle": false,
+        "SVGAnimatedBoolean": false,
+        "SVGAnimatedEnumeration": false,
+        "SVGAnimatedInteger": false,
+        "SVGAnimatedLength": false,
+        "SVGAnimatedLengthList": false,
+        "SVGAnimatedNumber": false,
+        "SVGAnimatedNumberList": false,
+        "SVGAnimatedPreserveAspectRatio": false,
+        "SVGAnimatedRect": false,
+        "SVGAnimatedString": false,
+        "SVGAnimatedTransformList": false,
+        "SVGAnimateElement": false,
+        "SVGAnimateMotionElement": false,
+        "SVGAnimateTransformElement": false,
+        "SVGAnimationElement": false,
+        "SVGCircleElement": false,
+        "SVGClipPathElement": false,
+        "SVGComponentTransferFunctionElement": false,
+        "SVGDefsElement": false,
+        "SVGDescElement": false,
+        "SVGElement": false,
+        "SVGEllipseElement": false,
+        "SVGFEBlendElement": false,
+        "SVGFEColorMatrixElement": false,
+        "SVGFEComponentTransferElement": false,
+        "SVGFECompositeElement": false,
+        "SVGFEConvolveMatrixElement": false,
+        "SVGFEDiffuseLightingElement": false,
+        "SVGFEDisplacementMapElement": false,
+        "SVGFEDistantLightElement": false,
+        "SVGFEDropShadowElement": false,
+        "SVGFEFloodElement": false,
+        "SVGFEFuncAElement": false,
+        "SVGFEFuncBElement": false,
+        "SVGFEFuncGElement": false,
+        "SVGFEFuncRElement": false,
+        "SVGFEGaussianBlurElement": false,
+        "SVGFEImageElement": false,
+        "SVGFEMergeElement": false,
+        "SVGFEMergeNodeElement": false,
+        "SVGFEMorphologyElement": false,
+        "SVGFEOffsetElement": false,
+        "SVGFEPointLightElement": false,
+        "SVGFESpecularLightingElement": false,
+        "SVGFESpotLightElement": false,
+        "SVGFETileElement": false,
+        "SVGFETurbulenceElement": false,
+        "SVGFilterElement": false,
+        "SVGForeignObjectElement": false,
+        "SVGGElement": false,
+        "SVGGeometryElement": false,
+        "SVGGradientElement": false,
+        "SVGGraphicsElement": false,
+        "SVGImageElement": false,
+        "SVGLength": false,
+        "SVGLengthList": false,
+        "SVGLinearGradientElement": false,
+        "SVGLineElement": false,
+        "SVGMarkerElement": false,
+        "SVGMaskElement": false,
+        "SVGMatrix": false,
+        "SVGMetadataElement": false,
+        "SVGMPathElement": false,
+        "SVGNumber": false,
+        "SVGNumberList": false,
+        "SVGPathElement": false,
+        "SVGPatternElement": false,
+        "SVGPoint": false,
+        "SVGPointList": false,
+        "SVGPolygonElement": false,
+        "SVGPolylineElement": false,
+        "SVGPreserveAspectRatio": false,
+        "SVGRadialGradientElement": false,
+        "SVGRect": false,
+        "SVGRectElement": false,
+        "SVGScriptElement": false,
+        "SVGSetElement": false,
+        "SVGStopElement": false,
+        "SVGStringList": false,
+        "SVGStyleElement": false,
+        "SVGSVGElement": false,
+        "SVGSwitchElement": false,
+        "SVGSymbolElement": false,
+        "SVGTextContentElement": false,
+        "SVGTextElement": false,
+        "SVGTextPathElement": false,
+        "SVGTextPositioningElement": false,
+        "SVGTitleElement": false,
+        "SVGTransform": false,
+        "SVGTransformList": false,
+        "SVGTSpanElement": false,
+        "SVGUnitTypes": false,
+        "SVGUseElement": false,
+        "SVGViewElement": false,
+        "SyncManager": false,
+        "TaskAttributionTiming": false,
+        "TaskController": false,
+        "TaskPriorityChangeEvent": false,
+        "TaskSignal": false,
+        "TEMPORARY": false,
+        "Text": false,
+        "TextDecoder": false,
+        "TextDecoderStream": false,
+        "TextEncoder": false,
+        "TextEncoderStream": false,
+        "TextEvent": false,
+        "TextFormat": false,
+        "TextFormatUpdateEvent": false,
+        "TextMetrics": false,
+        "TextTrack": false,
+        "TextTrackCue": false,
+        "TextTrackCueList": false,
+        "TextTrackList": false,
+        "TextUpdateEvent": false,
+        "TimeEvent": false,
+        "TimeRanges": false,
+        "ToggleEvent": false,
+        "toolbar": false,
+        "top": false,
+        "Touch": false,
+        "TouchEvent": false,
+        "TouchList": false,
+        "TrackEvent": false,
+        "TransformStream": false,
+        "TransformStreamDefaultController": false,
+        "TransitionEvent": false,
+        "Translator": false,
+        "TreeWalker": false,
+        "TrustedHTML": false,
+        "TrustedScript": false,
+        "TrustedScriptURL": false,
+        "TrustedTypePolicy": false,
+        "TrustedTypePolicyFactory": false,
+        "trustedTypes": false,
+        "UIEvent": false,
+        "URL": false,
+        "URLPattern": false,
+        "URLSearchParams": false,
+        "USB": false,
+        "USBAlternateInterface": false,
+        "USBConfiguration": false,
+        "USBConnectionEvent": false,
+        "USBDevice": false,
+        "USBEndpoint": false,
+        "USBInterface": false,
+        "USBInTransferResult": false,
+        "USBIsochronousInTransferPacket": false,
+        "USBIsochronousInTransferResult": false,
+        "USBIsochronousOutTransferPacket": false,
+        "USBIsochronousOutTransferResult": false,
+        "USBOutTransferResult": false,
+        "UserActivation": false,
+        "ValidityState": false,
+        "VideoColorSpace": false,
+        "VideoDecoder": false,
+        "VideoEncoder": false,
+        "VideoFrame": false,
+        "VideoPlaybackQuality": false,
+        "viewport": false,
+        "Viewport": false,
+        "ViewTimeline": false,
+        "ViewTransition": false,
+        "ViewTransitionTypeSet": false,
+        "VirtualKeyboard": false,
+        "VirtualKeyboardGeometryChangeEvent": false,
+        "VisibilityStateEntry": false,
+        "visualViewport": false,
+        "VisualViewport": false,
+        "VTTCue": false,
+        "VTTRegion": false,
+        "WakeLock": false,
+        "WakeLockSentinel": false,
+        "WaveShaperNode": false,
+        "WebAssembly": false,
+        "WebGL2RenderingContext": false,
+        "WebGLActiveInfo": false,
+        "WebGLBuffer": false,
+        "WebGLContextEvent": false,
+        "WebGLFramebuffer": false,
+        "WebGLObject": false,
+        "WebGLProgram": false,
+        "WebGLQuery": false,
+        "WebGLRenderbuffer": false,
+        "WebGLRenderingContext": false,
+        "WebGLSampler": false,
+        "WebGLShader": false,
+        "WebGLShaderPrecisionFormat": false,
+        "WebGLSync": false,
+        "WebGLTexture": false,
+        "WebGLTransformFeedback": false,
+        "WebGLUniformLocation": false,
+        "WebGLVertexArrayObject": false,
+        "WebSocket": false,
+        "WebSocketError": false,
+        "WebSocketStream": false,
+        "WebTransport": false,
+        "WebTransportBidirectionalStream": false,
+        "WebTransportDatagramDuplexStream": false,
+        "WebTransportError": false,
+        "WebTransportReceiveStream": false,
+        "WebTransportSendStream": false,
+        "WGSLLanguageFeatures": false,
+        "WheelEvent": false,
+        "when": false,
+        "window": false,
+        "Window": false,
+        "WindowControlsOverlay": false,
+        "WindowControlsOverlayGeometryChangeEvent": false,
+        "Worker": false,
+        "Worklet": false,
+        "WorkletGlobalScope": false,
+        "WritableStream": false,
+        "WritableStreamDefaultController": false,
+        "WritableStreamDefaultWriter": false,
+        "XMLDocument": false,
+        "XMLHttpRequest": false,
+        "XMLHttpRequestEventTarget": false,
+        "XMLHttpRequestUpload": false,
+        "XMLSerializer": false,
+        "XPathEvaluator": false,
+        "XPathExpression": false,
+        "XPathResult": false,
+        "XRAnchor": false,
+        "XRAnchorSet": false,
+        "XRBoundedReferenceSpace": false,
+        "XRCamera": false,
+        "XRCPUDepthInformation": false,
+        "XRDepthInformation": false,
+        "XRDOMOverlayState": false,
+        "XRFrame": false,
+        "XRHand": false,
+        "XRHitTestResult": false,
+        "XRHitTestSource": false,
+        "XRInputSource": false,
+        "XRInputSourceArray": false,
+        "XRInputSourceEvent": false,
+        "XRInputSourcesChangeEvent": false,
+        "XRJointPose": false,
+        "XRJointSpace": false,
+        "XRLayer": false,
+        "XRLightEstimate": false,
+        "XRLightProbe": false,
+        "XRPose": false,
+        "XRRay": false,
+        "XRReferenceSpace": false,
+        "XRReferenceSpaceEvent": false,
+        "XRRenderState": false,
+        "XRRigidTransform": false,
+        "XRSession": false,
+        "XRSessionEvent": false,
+        "XRSpace": false,
+        "XRSystem": false,
+        "XRTransientInputHitTestResult": false,
+        "XRTransientInputHitTestSource": false,
+        "XRView": false,
+        "XRViewerPose": false,
+        "XRViewport": false,
+        "XRWebGLBinding": false,
+        "XRWebGLDepthInformation": false,
+        "XRWebGLLayer": false,
+        "XSLTProcessor": false
+    },
+    "commonjs": {
+        "exports": true,
+        "global": false,
+        "module": false,
+        "require": false
+    }
+};
+
+
+# FILE: eslint.config.mjs
+import globals from "./globals.js";
+import recommended from "./eslint-recommended.js";
+
+export default [
+    recommended,
+    {
+        files: ["**/*.js"],
+        rules: {
+            "camelcase": ["off", {"properties": "always"}],
+            "comma-spacing": ["error", {"before": false, "after": true}],
+            "curly": ["error", "all"],
+            "dot-notation": ["error", {"allowKeywords": true}],
+            "eqeqeq": ["error"],
+            "indent": ["error", 4],
+            "key-spacing": ["error", {"beforeColon": false, "afterColon": true}],
+            "linebreak-style": ["error", "unix"],
+            "new-cap": ["off", {"newIsCap": true, "capIsNew": true}],
+            "no-alert": ["off"],
+            "no-eval": ["error"],
+            "no-extend-native": ["error", {"exceptions": ["Date", "String"]}],
+            "no-multi-spaces": ["error"],
+            "no-octal-escape": ["error"],
+            "no-script-url": ["error"],
+            "no-shadow": ["error", {"hoist": "functions"}],
+            "no-underscore-dangle": ["error"],
+            "no-unused-vars": ["error", {"vars": "local", "args": "none"}],
+            "no-var": ["error"],
+            "prefer-const": ["error"],
+            "quotes": ["off", "single"],
+            "semi": ["error", "always"],
+            "space-before-blocks": ["error", "always"],
+            "space-before-function-paren": ["error", {"anonymous": "never", "named": "never"}],
+            "space-infix-ops": ["error", {"int32Hint": false}],
+            "strict": ["error", "global"]
+        },
+        languageOptions: {
+            ecmaVersion: 6,
+            sourceType: "script",
+            globals: {
+                ...globals.browser,
+                ...globals.commonjs,
+                "django": false
+            }
+        }
+    },
+    {
+        files: ["**/*.mjs"],
+        languageOptions: {
+            sourceType: "module"
+        }
+    },
+    {
+        ignores: [
+            "**/*.min.js",
+            "**/vendor/**/*.js",
+            "django/contrib/gis/templates/**/*.js",
+            "django/views/templates/*.js",
+            "docs/_build/**/*.js",
+            "node_modules/**.js",
+            "tests/**/*.js",
+        ]
+    }
+];
+
+
+# FILE: eslint-recommended.js
+/* https://github.com/eslint/eslint/blob/v9.36.0/packages/js/src/configs/eslint-recommended.js */
+
+/*
+Copyright OpenJS Foundation and other contributors, <www.openjsf.org>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+/**
+ * @fileoverview Configuration applied when a user configuration extends from
+ * eslint:recommended.
+ * @author Nicholas C. Zakas
+ */
+
+"use strict";
+
+/* eslint sort-keys: ["error", "asc"] -- Long, so make more readable */
+
+/*
+ * IMPORTANT!
+ *
+ * We cannot add a "name" property to this object because it's still used in eslintrc
+ * which doesn't support the "name" property. If we add a "name" property, it will
+ * cause an error.
+ */
+
+module.exports = Object.freeze({
+    rules: Object.freeze({
+        "constructor-super": "error",
+        "for-direction": "error",
+        "getter-return": "error",
+        "no-async-promise-executor": "error",
+        "no-case-declarations": "error",
+        "no-class-assign": "error",
+        "no-compare-neg-zero": "error",
+        "no-cond-assign": "error",
+        "no-const-assign": "error",
+        "no-constant-binary-expression": "error",
+        "no-constant-condition": "error",
+        "no-control-regex": "error",
+        "no-debugger": "error",
+        "no-delete-var": "error",
+        "no-dupe-args": "error",
+        "no-dupe-class-members": "error",
+        "no-dupe-else-if": "error",
+        "no-dupe-keys": "error",
+        "no-duplicate-case": "error",
+        "no-empty": "error",
+        "no-empty-character-class": "error",
+        "no-empty-pattern": "error",
+        "no-empty-static-block": "error",
+        "no-ex-assign": "error",
+        "no-extra-boolean-cast": "error",
+        "no-fallthrough": "error",
+        "no-func-assign": "error",
+        "no-global-assign": "error",
+        "no-import-assign": "error",
+        "no-invalid-regexp": "error",
+        "no-irregular-whitespace": "error",
+        "no-loss-of-precision": "error",
+        "no-misleading-character-class": "error",
+        "no-new-native-nonconstructor": "error",
+        "no-nonoctal-decimal-escape": "error",
+        "no-obj-calls": "error",
+        "no-octal": "error",
+        "no-prototype-builtins": "error",
+        "no-redeclare": "error",
+        "no-regex-spaces": "error",
+        "no-self-assign": "error",
+        "no-setter-return": "error",
+        "no-shadow-restricted-names": "error",
+        "no-sparse-arrays": "error",
+        "no-this-before-super": "error",
+        "no-undef": "error",
+        "no-unexpected-multiline": "error",
+        "no-unreachable": "error",
+        "no-unsafe-finally": "error",
+        "no-unsafe-negation": "error",
+        "no-unsafe-optional-chaining": "error",
+        "no-unused-labels": "error",
+        "no-unused-private-class-members": "error",
+        "no-unused-vars": "error",
+        "no-useless-backreference": "error",
+        "no-useless-catch": "error",
+        "no-useless-escape": "error",
+        "no-with": "error",
+        "require-yield": "error",
+        "use-isnan": "error",
+        "valid-typeof": "error",
+    }),
+});
+
+
+# FILE: LICENSE
+Copyright (c) Django Software Foundation and individual contributors.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice,
+       this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+
+    3. Neither the name of Django nor the names of its contributors may be used
+       to endorse or promote products derived from this software without
+       specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+# FILE: Gruntfile.js
+'use strict';
+
+const globalThreshold = 50; // Global code coverage threshold (as a percentage)
+
+module.exports = function(grunt) {
+    grunt.initConfig({
+        qunit: {
+            all: ['js_tests/tests.html']
+        }
+    });
+
+    grunt.loadNpmTasks('grunt-contrib-qunit');
+    grunt.registerTask('test', ['qunit']);
+    grunt.registerTask('default', ['test']);
+};
+
+
+# FILE: scripts/verify_release.sh
+#! /bin/bash
+
+# Verify a Django release: checks GPG signature, artifact checksums, and
+# smoke-tests installation from both the tarball and the wheel.
+#
+# Usage: VERSION=5.2 bash scripts/verify_release.sh
+#
+# Set GPG_KEY to a key fingerprint to import it before verifying, e.g.:
+#   GPG_KEY=<fingerprint> VERSION=5.2 bash scripts/verify_release.sh
+
+set -xue
+
+if [[ -z "${VERSION:-}" ]]; then
+    echo "Please set VERSION as env var"
+    exit 1
+fi
+
+if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+|a[0-9]+|b[0-9]+|rc[0-9]+)?$ ]]; then
+    echo "Not a valid version"
+    exit 1
+fi
+
+CHECKSUM_FILE="Django-${VERSION}.checksum.txt"
+MEDIA_URL_PREFIX="https://media.djangoproject.com"
+DOWNLOAD_PREFIX="https://www.djangoproject.com/download"
+
+WORKDIR=$(mktemp -d)
+
+function cleanup {
+    rm -rf "${WORKDIR}"
+}
+trap cleanup EXIT
+
+cd "${WORKDIR}"
+
+echo "Downloading checksum file ..."
+curl --fail --output "${CHECKSUM_FILE}" "${MEDIA_URL_PREFIX}/pgp/${CHECKSUM_FILE}"
+
+echo "Verifying checksum file signature ..."
+if [[ -n "${GPG_KEY:-}" ]]; then
+    gpg --recv-keys "${GPG_KEY}"
+fi
+gpg --verify "${CHECKSUM_FILE}"
+
+echo "Finding release artifacts ..."
+mapfile -t RELEASE_ARTIFACTS < <(grep "${DOWNLOAD_PREFIX}" "${CHECKSUM_FILE}")
+
+echo "Found these release artifacts:"
+for ARTIFACT_URL in "${RELEASE_ARTIFACTS[@]}"; do
+    echo "- ${ARTIFACT_URL}"
+done
+
+echo "Downloading artifacts ..."
+for ARTIFACT_URL in "${RELEASE_ARTIFACTS[@]}"; do
+    ARTIFACT_ACTUAL_URL=$(curl --head --write-out '%{redirect_url}' --output /dev/null --silent "${ARTIFACT_URL}")
+    curl --location --fail --output "$(basename "${ARTIFACT_ACTUAL_URL}")" "${ARTIFACT_ACTUAL_URL}"
+done
+
+echo "Verifying artifact hashes ..."
+# The `2>/dev/null` suppresses notes like "sha256sum: WARNING: 60 lines are
+# improperly formatted". Return code is still set on error and a wrong
+# checksum will still show up as FAILED.
+echo "- MD5 checksums"
+md5sum --check "${CHECKSUM_FILE}" 2>/dev/null
+echo "- SHA1 checksums"
+sha1sum --check "${CHECKSUM_FILE}" 2>/dev/null
+echo "- SHA256 checksums"
+sha256sum --check "${CHECKSUM_FILE}" 2>/dev/null
+
+PKG_TAR=$(ls Django-*.tar.gz)
+PKG_WHL=$(ls Django-*.whl)
+
+echo "Testing tarball install ..."
+python3 -m venv django-pip
+. django-pip/bin/activate
+python -m pip install --no-cache-dir "${WORKDIR}/${PKG_TAR}"
+django-admin startproject test_one
+cd test_one
+./manage.py --help  # Ensure executable bits
+python manage.py migrate
+python manage.py runserver 0
+deactivate
+cd ..
+
+echo "Testing wheel install ..."
+python3 -m venv django-pip-wheel
+. django-pip-wheel/bin/activate
+python -m pip install --no-cache-dir "${WORKDIR}/${PKG_WHL}"
+django-admin startproject test_one
+cd test_one
+./manage.py --help  # Ensure executable bits
+python manage.py migrate
+python manage.py runserver 0
+deactivate
+cd ..
+
+
+# FILE: scripts/tests.py
+#! /usr/bin/env python
+
+"""
+Tests for scripts utilities.
+
+Run from within the scripts/ folder with:
+
+$ python -m unittest tests.py
+
+Or from the repo root with:
+
+$ PYTHONPATH=scripts/ python -m unittest scripts/tests.py
+"""
+
+import unittest
+
+from prepare_commit_msg import process_commit_message
+
+
+class ProcessCommitMessageTests(unittest.TestCase):
+    def test_non_stable_branch_no_prefix_added(self):
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "main")
+        self.assertNotIn("[", result[0].split("--")[0])
+
+    def test_non_stable_branch_period_added(self):
+        lines = ["Fixed #123 -- Added a feature\n"]
+        result = process_commit_message(lines, "main")
+        self.assertIs(result[0].rstrip("\n").endswith("."), True)
+
+    def test_non_stable_branch_with_period_unchanged(self):
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "main")
+        self.assertEqual(result, lines)
+
+    def test_empty_body_unchanged(self):
+        lines = ["# This is a comment.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result, lines)
+
+    def test_only_blank_lines_unchanged(self):
+        lines = ["\n", "\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result, lines)
+
+    def test_adds_stable_prefix(self):
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result[0], "[5.2.x] Fixed #123 -- Added a feature.\n")
+
+    def test_does_not_double_add_prefix(self):
+        lines = ["[5.2.x] Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result[0], "[5.2.x] Fixed #123 -- Added a feature.\n")
+
+    def test_summary_leading_whitespace_no_double_space_before_prefix(self):
+        lines = ["  fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result[0], "[5.2.x] Fixed #123 -- Added a feature.\n")
+
+    def test_capitalizes_first_letter(self):
+        lines = ["fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "main")
+        self.assertEqual(result[0], "Fixed #123 -- Added a feature.\n")
+
+    def test_capitalizes_first_letter_after_existing_prefix(self):
+        lines = ["[5.2.x] fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertTrue(result[0].startswith("[5.2.x] Fixed"))
+
+    def test_adds_trailing_period(self):
+        lines = ["Fixed #123 -- Added a feature\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertIs(result[0].rstrip("\n").endswith("."), True)
+
+    def test_does_not_double_add_trailing_period(self):
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertIs(result[0].rstrip("\n").endswith(".."), False)
+
+    def test_adds_backport_note(self):
+        sha = "abc123def456"
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=sha)
+        self.assertIn(f"Backport of {sha} from main.\n", result)
+
+    def test_does_not_double_add_backport_note(self):
+        sha = "abc123def456"
+        lines = [
+            "Fixed #123 -- Added a feature.\n",
+            "\n",
+            f"Backport of {sha} from main.\n",
+        ]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=sha)
+        self.assertEqual(len([line for line in result if "Backport" in line]), 1)
+
+    def test_backport_note_separated_by_blank_line(self):
+        sha = "abc123def456"
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=sha)
+        note_idx = next(i for i, l in enumerate(result) if f"Backport of {sha}" in l)
+        self.assertEqual(result[note_idx - 1], "\n")
+
+    def test_git_comments_preserved_at_end(self):
+        sha = "abc123def456"
+        lines = [
+            "Fixed #123 -- Added a feature.\n",
+            "# Please enter the commit message.\n",
+            "# Changes to be committed:\n",
+        ]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=sha)
+        self.assertEqual(result[-2], "# Please enter the commit message.\n")
+        self.assertEqual(result[-1], "# Changes to be committed:\n")
+
+    def test_prefix_and_period_and_backport_combined(self):
+        sha = "abc123def456"
+        lines = ["Fixed #123 -- Added a feature\n"]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=sha)
+        self.assertEqual(result[0], "[5.2.x] Fixed #123 -- Added a feature.\n")
+        self.assertIn(f"Backport of {sha} from main.\n", result)
+
+    def test_no_cherry_sha_no_backport_note(self):
+        lines = ["Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x", cherry_sha=None)
+        self.assertNotIn("Backport of", "".join(result))
+
+    def test_leading_blank_lines_stripped(self):
+        lines = ["\n", "Fixed #123 -- Added a feature.\n"]
+        result = process_commit_message(lines, "stable/5.2.x")
+        self.assertEqual(result[0], "[5.2.x] Fixed #123 -- Added a feature.\n")
+
+
+# FILE: scripts/prepare_commit_msg.py
+#! /usr/bin/env python
+
+"""
+prepare-commit-msg hook for Django's repository.
+
+Adjusts commit messages on any branch:
+- Ensures the summary line ends with a period.
+
+Additionally, on stable branches:
+- Adds the [A.B.x] branch prefix if missing.
+- Adds "Backport of <sha> from main." when cherry-picking.
+
+To install:
+  1. Ensure the folder `.git/hooks` exists.
+  2. Create an executable file `.git/hooks/prepare-commit-msg` with content:
+
+#!/bin/sh
+exec python scripts/prepare_commit_msg.py "$@"
+
+"""
+
+import os
+import subprocess
+import sys
+
+
+def run(cmd):
+    return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+
+
+def process_commit_message(lines, branch, cherry_sha=None):
+    """Adjust commit message lines for a potential backport.
+
+    - Separates body lines from trailing git comment lines.
+    - Ensure all lines ends with a period.
+    - On stable branches, adds the [A.B.x] prefix to the first line if missing.
+    - If cherry_sha is provided, appends "Backport of <sha> from main." to
+      the body if not already present.
+
+    Returns the modified lines (body + comments).
+
+    """
+    # Separate body lines from trailing git comment lines.
+    comment_start = len(lines)
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].startswith("#"):
+            comment_start = i
+        elif lines[i].strip():
+            break
+
+    body_lines = lines[:comment_start]
+    comment_lines = lines[comment_start:]
+
+    # Strip leading and trailing blank lines from the body.
+    while body_lines and not body_lines[0].strip():
+        body_lines.pop(0)
+    while body_lines and not body_lines[-1].strip():
+        body_lines.pop()
+
+    # Nothing to do if the body is empty.
+    if not body_lines:
+        return lines
+
+    summary = body_lines[0].strip()
+
+    # Ensure summary ends with a period.
+    if not summary.endswith("."):
+        summary += "."
+
+    # On stable branches, add the [A.B.x] prefix if missing.
+    prefix = None
+    if branch.startswith("stable/"):
+        version = branch[len("stable/") :]
+        prefix = f"[{version}] "
+        if not summary.startswith(prefix):
+            summary = prefix + summary
+
+    # Capitalize the first character of the summary text (after any prefix).
+    offset = len(prefix) if prefix else 0
+    summary = summary[:offset] + summary[offset].upper() + summary[offset + 1 :]
+
+    body_lines[0] = summary + "\n"
+
+    # Add "Backport of <sha> from main." if cherry-picking and not present.
+    if cherry_sha:
+        backport_note = f"Backport of {cherry_sha} from main."
+        if backport_note not in "".join(body_lines):
+            # Strip trailing blank lines, then append note with separator.
+            while body_lines and not body_lines[-1].strip():
+                body_lines.pop()
+            body_lines.append("\n")
+            body_lines.append(backport_note + "\n")
+
+    return body_lines + comment_lines
+
+
+if __name__ == "__main__":
+    msg_path = sys.argv[1]
+
+    with open(msg_path, encoding="utf-8") as f:
+        lines = f.readlines()
+
+    branch = run(["git", "branch", "--show-current"])
+
+    cherry_sha = None
+    git_dir = run(["git", "rev-parse", "--git-dir"])
+    cherry_pick_head_path = os.path.join(git_dir, "CHERRY_PICK_HEAD")
+    if os.path.exists(cherry_pick_head_path):
+        with open(cherry_pick_head_path, encoding="utf-8") as f:
+            cherry_sha = f.read().strip()
+
+    result = process_commit_message(lines, branch, cherry_sha)
+
+    with open(msg_path, "w", encoding="utf-8") as f:
+        f.writelines(result)
+
+
+# FILE: scripts/manage_translations.py
+#!/usr/bin/env python
+#
+# This Python file contains utility scripts to manage Django translations.
+# It has to be run inside the django git root directory.
+#
+# The following commands are available:
+#
+# * update_catalogs: check for new strings in core and contrib catalogs, and
+#                    output how much strings are new/changed.
+#
+# * lang_stats: output statistics for each catalog/language combination
+#
+# * fetch: fetch translations from transifex.com
+#
+# Each command support the --languages and --resources options to limit their
+# operation to the specified language or resource. For example, to get stats
+# for Spanish in contrib.admin, run:
+#
+#  $ python scripts/manage_translations.py lang_stats -l es -r admin
+#
+# Also each command supports a --verbosity option to get progress feedback.
+
+import json
+import os
+import subprocess
+from argparse import ArgumentParser
+from collections import defaultdict
+from configparser import ConfigParser
+from datetime import datetime
+from itertools import product
+
+import requests
+
+import django
+from django.conf import settings
+from django.core.management import call_command
+
+HAVE_JS = ["admin"]
+LANG_OVERRIDES = {
+    "zh_CN": "zh_Hans",
+    "zh_TW": "zh_Hant",
+}
+
+
+def run(*args, verbosity=0, **kwargs):
+    if verbosity > 1:
+        print(f"\n** subprocess.run ** command: {args=} {kwargs=}")
+    return subprocess.run(*args, **kwargs)
+
+
+def get_api_token():
+    # Read token from ENV, otherwise read from the ~/.transifexrc file.
+    api_token = os.getenv("TRANSIFEX_API_TOKEN")
+    if not api_token:
+        parser = ConfigParser()
+        parser.read(os.path.expanduser("~/.transifexrc"))
+        api_token = parser.get("https://www.transifex.com", "token")
+
+    assert api_token, "Please define the TRANSIFEX_API_TOKEN env var."
+    return api_token
+
+
+def get_api_response(endpoint, api_token=None, params=None, verbosity=0):
+    if api_token is None:
+        api_token = get_api_token()
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/json",
+    }
+    endpoint = endpoint.strip("/")
+    url = f"https://rest.api.transifex.com/{endpoint}"
+    if verbosity > 2:
+        print(f"\n>>> GET {url=} {params=}")
+    response = requests.get(url, headers=headers, params=params)
+    if verbosity > 2:
+        print(f">>>> GET {response=}\n")
+    response.raise_for_status()
+    return response.json()["data"]
+
+
+def list_resources_with_updates(
+    date_since, resources=None, languages=None, verbosity=0
+):
+    api_token = get_api_token()
+    project = "o:django:p:django"
+    date_since_iso = date_since.isoformat().strip("Z") + "Z"
+    if verbosity:
+        print(f"\n== Starting list_resources_with_updates at {date_since_iso=}")
+
+    if not languages:
+        languages = [  # List languages using Transifex projects API.
+            d["attributes"]["code"]
+            for d in get_api_response(
+                f"projects/{project}/languages", api_token, verbosity=verbosity
+            )
+        ]
+    if verbosity > 1:
+        print(f"\n=== Languages to process: {languages=}")
+
+    if not resources:
+        resources = [  # List resources using Transifex resources API.
+            d["attributes"]["slug"]
+            for d in get_api_response(
+                "resources",
+                api_token,
+                params={"filter[project]": project},
+                verbosity=verbosity,
+            )
+        ]
+    else:
+        resources = [_tx_resource_slug_for_name(r) for r in resources]
+    if verbosity > 1:
+        print(f"\n=== Resources to process: {resources=}")
+
+    resource_lang_changed = defaultdict(list)
+    for lang, resource in product(languages, resources):
+        if verbosity:
+            print(f"\n=== Getting data for: {lang=} {resource=} {date_since_iso=}")
+        data = get_api_response(
+            "resource_translations",
+            api_token,
+            params={
+                "filter[resource]": f"{project}:r:{resource}",
+                "filter[language]": f"l:{lang}",
+                "filter[date_translated][gt]": date_since_iso,
+            },
+            verbosity=verbosity,
+        )
+        local_resource = resource.replace("contrib-", "", 1)
+        local_lang = lang  # XXX: LANG_OVERRIDES.get(lang, lang)
+        if data:
+            resource_lang_changed[local_resource].append(local_lang)
+            if verbosity > 2:
+                fname = f"{local_resource}-{local_lang}.json"
+                with open(fname, "w") as f:
+                    f.write(json.dumps(data, sort_keys=True, indent=2))
+                print(f"==== Stored full data JSON in: {fname}")
+        if verbosity > 1:
+            print(f"==== Result for {local_resource=} {local_lang=}: {len(data)=}")
+
+    return resource_lang_changed
+
+
+def _get_locale_dirs(resources, include_core=True):
+    """
+    Return a tuple (contrib name, absolute path) for all locale directories,
+    optionally including the django core catalog.
+    If resources list is not None, filter directories matching resources
+    content.
+    """
+    contrib_dir = os.path.join(os.getcwd(), "django", "contrib")
+    dirs = []
+
+    # Collect all locale directories
+    for contrib_name in os.listdir(contrib_dir):
+        path = os.path.join(contrib_dir, contrib_name, "locale")
+        if os.path.isdir(path):
+            dirs.append((contrib_name, path))
+            if contrib_name in HAVE_JS:
+                dirs.append(("%s-js" % contrib_name, path))
+    if include_core:
+        dirs.insert(0, ("core", os.path.join(os.getcwd(), "django", "conf", "locale")))
+
+    # Filter by resources, if any
+    if resources is not None:
+        res_names = [d[0] for d in dirs]
+        dirs = [ld for ld in dirs if ld[0] in resources]
+        if len(resources) > len(dirs):
+            print(
+                "You have specified some unknown resources. "
+                "Available resource names are: %s" % (", ".join(res_names),)
+            )
+            exit(1)
+    return dirs
+
+
+def _tx_resource_slug_for_name(name):
+    """Return the Transifex resource slug for the given name."""
+    if name != "core":
+        name = f"contrib-{name}"
+    return name
+
+
+def _tx_resource_for_name(name):
+    """Return the Transifex resource name."""
+    return "django." + _tx_resource_slug_for_name(name)
+
+
+def _check_diff(cat_name, base_path):
+    """
+    Output the approximate number of changed/added strings in the en catalog.
+    """
+    po_path = "%(path)s/en/LC_MESSAGES/django%(ext)s.po" % {
+        "path": base_path,
+        "ext": "js" if cat_name.endswith("-js") else "",
+    }
+    p = run(
+        "git diff -U0 %s | egrep '^[-+]msgid' | wc -l" % po_path,
+        capture_output=True,
+        shell=True,
+    )
+    num_changes = int(p.stdout.strip())
+    print("%d changed/added messages in '%s' catalog." % (num_changes, cat_name))
+
+
+def update_catalogs(resources=None, languages=None, verbosity=0):
+    """
+    Update the en/LC_MESSAGES/django.po (main and contrib) files with
+    new/updated translatable strings.
+    """
+    settings.configure()
+    django.setup()
+    if resources is not None:
+        print("`update_catalogs` will always process all resources.")
+    contrib_dirs = _get_locale_dirs(None, include_core=False)
+
+    os.chdir(os.path.join(os.getcwd(), "django"))
+    print("Updating en catalogs for Django and contrib apps...")
+    call_command("makemessages", locale=["en"], verbosity=verbosity)
+    print("Updating en JS catalogs for Django and contrib apps...")
+    call_command("makemessages", locale=["en"], domain="djangojs", verbosity=verbosity)
+
+    # Output changed stats
+    _check_diff("core", os.path.join(os.getcwd(), "conf", "locale"))
+    for name, dir_ in contrib_dirs:
+        _check_diff(name, dir_)
+
+
+def lang_stats(resources=None, languages=None, verbosity=0):
+    """
+    Output language statistics of committed translation files for each
+    Django catalog.
+    If resources is provided, it should be a list of translation resource to
+    limit the output (e.g. ['core', 'gis']).
+    """
+    locale_dirs = _get_locale_dirs(resources)
+
+    for name, dir_ in locale_dirs:
+        print("\nShowing translations stats for '%s':" % name)
+        langs = sorted(d for d in os.listdir(dir_) if not d.startswith("_"))
+        for lang in langs:
+            if languages and lang not in languages:
+                continue
+            # TODO: merge first with the latest en catalog
+            po_path = "{path}/{lang}/LC_MESSAGES/django{ext}.po".format(
+                path=dir_, lang=lang, ext="js" if name.endswith("-js") else ""
+            )
+            p = run(
+                ["msgfmt", "-vc", "-o", "/dev/null", po_path],
+                capture_output=True,
+                env={"LANG": "C"},
+                encoding="utf-8",
+                verbosity=verbosity,
+            )
+            if p.returncode == 0:
+                # msgfmt output stats on stderr
+                print("%s: %s" % (lang, p.stderr.strip()))
+            else:
+                print(
+                    "Errors happened when checking %s translation for %s:\n%s"
+                    % (lang, name, p.stderr)
+                )
+
+
+def fetch(resources=None, languages=None, date_since=None, verbosity=0):
+    """
+    Fetch translations from Transifex, wrap long lines, generate mo files.
+    """
+    if date_since is None:
+        resource_lang_mapping = {}
+    else:
+        # Filter resources and languages that were updates after `date_since`
+        resource_lang_mapping = list_resources_with_updates(
+            date_since=date_since,
+            resources=resources,
+            languages=languages,
+            verbosity=verbosity,
+        )
+        resources = resource_lang_mapping.keys()
+
+    locale_dirs = _get_locale_dirs(resources)
+    errors = []
+
+    for name, dir_ in locale_dirs:
+        cmd = [
+            "tx",
+            "pull",
+            "-r",
+            _tx_resource_for_name(name),
+            "-f",
+            "--minimum-perc=5",
+        ]
+        per_resource_langs = resource_lang_mapping.get(name, languages)
+        # Transifex pull
+        if per_resource_langs is None:
+            run([*cmd, "--all"], verbosity=verbosity)
+            target_langs = sorted(
+                d for d in os.listdir(dir_) if not d.startswith("_") and d != "en"
+            )
+        else:
+            run([*cmd, "-l", ",".join(per_resource_langs)], verbosity=verbosity)
+            target_langs = per_resource_langs
+
+        target_langs = [LANG_OVERRIDES.get(d, d) for d in target_langs]
+
+        # msgcat to wrap lines and msgfmt for compilation of .mo file
+        for lang in target_langs:
+            po_path = "%(path)s/%(lang)s/LC_MESSAGES/django%(ext)s.po" % {
+                "path": dir_,
+                "lang": lang,
+                "ext": "js" if name.endswith("-js") else "",
+            }
+            if not os.path.exists(po_path):
+                print(
+                    "No %(lang)s translation for resource %(name)s"
+                    % {"lang": lang, "name": name}
+                )
+                continue
+            run(
+                ["msgcat", "--no-location", "-o", po_path, po_path], verbosity=verbosity
+            )
+            msgfmt = run(
+                ["msgfmt", "-c", "-o", "%s.mo" % po_path[:-3], po_path],
+                verbosity=verbosity,
+            )
+            if msgfmt.returncode != 0:
+                errors.append((name, lang))
+    if errors:
+        print("\nWARNING: Errors have occurred in following cases:")
+        for resource, lang in errors:
+            print("\tResource %s for language %s" % (resource, lang))
+        exit(1)
+
+    if verbosity:
+        print("\nCOMPLETED.")
+
+
+def add_common_arguments(parser):
+    parser.add_argument(
+        "-r",
+        "--resources",
+        action="append",
+        help="limit operation to the specified resources",
+    )
+    parser.add_argument(
+        "-l",
+        "--languages",
+        action="append",
+        help="limit operation to the specified languages",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        default=1,
+        type=int,
+        choices=[0, 1, 2, 3],
+        help=(
+            "Verbosity level; 0=minimal output, 1=normal output, 2=verbose output, "
+            "3=very verbose output"
+        ),
+    )
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+
+    subparsers = parser.add_subparsers(
+        dest="cmd", help="choose the operation to perform"
+    )
+
+    parser_update = subparsers.add_parser(
+        "update_catalogs",
+        help="update English django.po files with new/updated translatable strings",
+    )
+    add_common_arguments(parser_update)
+
+    parser_stats = subparsers.add_parser(
+        "lang_stats",
+        help="print the approximate number of changed/added strings in the en catalog",
+    )
+    add_common_arguments(parser_stats)
+
+    parser_fetch = subparsers.add_parser(
+        "fetch",
+        help="fetch translations from Transifex, wrap long lines, generate mo files",
+    )
+    add_common_arguments(parser_fetch)
+    parser_fetch.add_argument(
+        "-s",
+        "--since",
+        dest="date_since",
+        metavar="YYYY-MM-DD",
+        type=datetime.fromisoformat,
+        help=(
+            "fetch translations that were done after this date (ISO format YYYY-MM-DD)."
+        ),
+    )
+
+    options = parser.parse_args()
+    kwargs = options.__dict__
+    cmd = kwargs.pop("cmd")
+    eval(cmd)(**kwargs)
+
+
+# FILE: scripts/do_django_release.py
+#! /usr/bin/env python
+
+"""Helper to build and publish Django artifacts.
+
+Original author: Tim Graham.
+Other authors: Mariusz Felisiak, Natalia Bidart.
+
+"""
+
+import hashlib
+import os
+import re
+import subprocess
+from datetime import date
+
+PGP_KEY_ID = os.getenv("PGP_KEY_ID")
+PGP_KEY_URL = os.getenv("PGP_KEY_URL")
+PGP_EMAIL = os.getenv("PGP_EMAIL")
+DEST_FOLDER = os.path.expanduser(os.getenv("DEST_FOLDER"))
+
+assert (
+    PGP_KEY_ID
+), "Missing PGP_KEY_ID: Set this env var to your PGP key ID (used for signing)."
+assert (
+    PGP_KEY_URL
+), "Missing PGP_KEY_URL: Set this env var to your PGP public key URL (for fetching)."
+assert DEST_FOLDER and os.path.exists(
+    DEST_FOLDER
+), "Missing DEST_FOLDER: Set this env var to the local path to place the artifacts."
+
+
+checksum_file_text = """This file contains MD5, SHA1, and SHA256 checksums for the
+source-code tarball and wheel files of Django {django_version}, released {release_date}.
+
+To use this file, you will need a working install of PGP or other
+compatible public-key encryption software. You will also need to have
+the Django release manager's public key in your keyring. This key has
+the ID ``{pgp_key_id}`` and can be imported from the MIT
+keyserver, for example, if using the open-source GNU Privacy Guard
+implementation of PGP:
+
+    gpg --keyserver pgp.mit.edu --recv-key {pgp_key_id}
+
+or via the GitHub API:
+
+    curl {pgp_key_url} | gpg --import -
+
+Once the key is imported, verify this file:
+
+    gpg --verify {checksum_file_name}
+
+Once you have verified this file, you can use normal MD5, SHA1, or SHA256
+checksumming applications to generate the checksums of the Django
+package and compare them to the checksums listed below.
+
+Release packages
+================
+
+https://www.djangoproject.com/download/{django_version}/tarball/
+https://www.djangoproject.com/download/{django_version}/wheel/
+
+MD5 checksums
+=============
+
+{md5_tarball}  {tarball_name}
+{md5_wheel}  {wheel_name}
+
+SHA1 checksums
+==============
+
+{sha1_tarball}  {tarball_name}
+{sha1_wheel}  {wheel_name}
+
+SHA256 checksums
+================
+
+{sha256_tarball}  {tarball_name}
+{sha256_wheel}  {wheel_name}
+
+"""
+
+
+def build_artifacts():
+    from build.__main__ import main as build_main
+
+    build_main([])
+
+
+def do_checksum(checksum_algo, release_file):
+    with open(os.path.join(dist_path, release_file), "rb") as f:
+        return checksum_algo(f.read()).hexdigest()
+
+
+# Ensure the working directory is clean.
+subprocess.call(["git", "clean", "-fdx"])
+
+django_repo_path = os.path.abspath(os.path.curdir)
+dist_path = os.path.join(django_repo_path, "dist")
+
+# Build release files.
+build_artifacts()
+release_files = os.listdir(dist_path)
+wheel_name = None
+tarball_name = None
+for f in release_files:
+    if f.endswith(".whl"):
+        wheel_name = f
+    if f.endswith(".tar.gz"):
+        tarball_name = f
+
+assert wheel_name is not None
+assert tarball_name is not None
+
+django_version = wheel_name.split("-")[1]
+django_major_version = ".".join(django_version.split(".")[:2])
+
+artifacts_path = os.path.join(os.path.expanduser(DEST_FOLDER), django_version)
+os.makedirs(artifacts_path, exist_ok=True)
+
+# Chop alpha/beta/rc suffix
+match = re.search("[abrc]", django_major_version)
+if match:
+    django_major_version = django_major_version[: match.start()]
+
+release_date = date.today().strftime("%B %-d, %Y")
+checksum_file_name = f"Django-{django_version}.checksum.txt"
+checksum_file_kwargs = dict(
+    release_date=release_date,
+    pgp_key_id=PGP_KEY_ID,
+    django_version=django_version,
+    pgp_key_url=PGP_KEY_URL,
+    checksum_file_name=checksum_file_name,
+    wheel_name=wheel_name,
+    tarball_name=tarball_name,
+)
+checksums = (
+    ("md5", hashlib.md5),
+    ("sha1", hashlib.sha1),
+    ("sha256", hashlib.sha256),
+)
+for checksum_name, checksum_algo in checksums:
+    checksum_file_kwargs[f"{checksum_name}_tarball"] = do_checksum(
+        checksum_algo, tarball_name
+    )
+    checksum_file_kwargs[f"{checksum_name}_wheel"] = do_checksum(
+        checksum_algo, wheel_name
+    )
+
+# Create the checksum file
+checksum_file_text = checksum_file_text.format(**checksum_file_kwargs)
+checksum_file_path = os.path.join(artifacts_path, checksum_file_name)
+with open(checksum_file_path, "wb") as f:
+    f.write(checksum_file_text.encode("ascii"))
+
+print("\n\nDiffing release with checkout for sanity check.")
+
+# Unzip and diff...
+unzip_command = [
+    "unzip",
+    "-q",
+    os.path.join(dist_path, wheel_name),
+    "-d",
+    os.path.join(dist_path, django_major_version),
+]
+subprocess.run(unzip_command)
+diff_command = [
+    "diff",
+    "-qr",
+    "./django/",
+    os.path.join(dist_path, django_major_version, "django"),
+]
+subprocess.run(diff_command)
+subprocess.run(
+    [
+        "rm",
+        "-rf",
+        os.path.join(dist_path, django_major_version),
+    ]
+)
+
+print("\n\n=> Commands to run NOW:")
+
+# Sign the checksum file, this may prompt for a passphrase.
+pgp_email = f"-u {PGP_EMAIL} " if PGP_EMAIL else ""
+print(f"gpg --clearsign {pgp_email}--digest-algo SHA256 {checksum_file_path}")
+# Create, verify and push tag
+print(f'git tag --sign --message="Tag {django_version}" {django_version}')
+print(f"git tag --verify {django_version}")
+
+# Copy binaries outside the current repo tree to avoid lossing them.
+subprocess.run(["cp", "-r", dist_path, artifacts_path])
+
+# Make the binaries available to the world
+print(
+    "\n\n=> These ONLY 15 MINUTES BEFORE RELEASE TIME (consider new terminal "
+    "session with isolated venv)!"
+)
+
+# Upload the checksum file and release artifacts to the djangoproject admin.
+print(
+    "\n==> ACTION Add tarball, wheel, and checksum files to the Release entry at:"
+    f"https://www.djangoproject.com/admin/releases/release/{django_version}"
+)
+print(
+    f"* Tarball and wheel from {artifacts_path}\n"
+    f"* Signed checksum {checksum_file_path}.asc"
+)
+
+# Verify the release artifacts (GPG signature, checksums, and smoke test).
+print("\n==> ACTION Verify the release artifacts:")
+print(f"VERSION={django_version} verify_release.sh")
+
+# Upload to PyPI.
+print("\n==> ACTION Upload to PyPI, ensure your release venv is activated:")
+print(f"cd {artifacts_path}")
+print("pip install -U pip twine")
+print("twine upload --repository django dist/*")
+
+# Push the tags.
+print("\n==> ACTION Push the tags:")
+print("git push --tags")
+
+print("\n\nDONE!!!")
+
+
+# FILE: scripts/check_migrations.py
+import sys
+from pathlib import Path
+
+
+def main():
+    repo_root = Path(__file__).resolve().parent.parent
+    sys.path[:0] = [str(repo_root / "tests"), str(repo_root)]
+
+    from runtests import ALWAYS_INSTALLED_APPS, get_apps_to_install, get_test_modules
+
+    import django
+    from django.apps import apps
+    from django.core.management import call_command
+
+    django.setup()
+
+    test_modules = list(get_test_modules(gis_enabled=False))
+    installed_apps = list(ALWAYS_INSTALLED_APPS)
+    for app in get_apps_to_install(test_modules):
+        # Check against the list to prevent duplicate errors.
+        if app not in installed_apps:
+            installed_apps.append(app)
+    apps.set_installed_apps(installed_apps)
+
+    # Note: We don't use check=True here because --check calls sys.exit(1)
+    # instead of raising CommandError when migrations are missing.
+    call_command("makemigrations", "--check", verbosity=3)
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: scripts/backport.sh
+#!/bin/bash
+
+# Backport helper for Django stable branches.
+
+set -xue
+
+if [ -z $1 ]; then
+    echo "Full hash of commit to backport is required."
+    exit
+fi
+
+BRANCH_NAME=`git branch | sed -n '/\* stable\//s///p'`
+echo $BRANCH_NAME
+
+# Ensure clean working directory
+git reset --hard
+
+REV=$1
+
+TMPFILE=tmplog.tmp
+
+# Cherry-pick the commit
+git cherry-pick ${REV}
+
+# Create new log message by modifying the old one
+git log --pretty=format:"[${BRANCH_NAME}] %s%n%n%b%nBackport of ${REV} from main." HEAD^..HEAD \
+    | grep -v '^BP$' > ${TMPFILE}
+
+# Commit new log message
+git commit --amend -F ${TMPFILE}
+
+# Clean up temporary files
+rm -f ${TMPFILE}
+
+git show
+
+
+# FILE: scripts/archive_eol_stable_branches.py
+#! /usr/bin/env python3
+import argparse
+import os
+import subprocess
+import sys
+
+
+def run(cmd, *, cwd=None, env=None, dry_run=True):
+    """Run a command with optional dry-run behavior."""
+    environ = os.environ.copy()
+    if env:
+        environ.update(env)
+    if dry_run:
+        print("[DRY RUN]", " ".join(cmd))
+    else:
+        print("[EXECUTE]", " ".join(cmd))
+        try:
+            result = subprocess.check_output(
+                cmd, cwd=cwd, env=environ, stderr=subprocess.STDOUT
+            )
+        except subprocess.CalledProcessError as e:
+            result = e.output
+            print("    [ERROR]", result)
+            raise
+        else:
+            print("    [RESULT]", result)
+        return result.decode().strip()
+
+
+def validate_env(checkout_dir):
+    if not checkout_dir:
+        sys.exit("Error: checkout directory not provided (--checkout-dir).")
+    if not os.path.exists(checkout_dir):
+        sys.exit(f"Error: checkout directory '{checkout_dir}' does not exist.")
+    if not os.path.isdir(checkout_dir):
+        sys.exit(f"Error: '{checkout_dir}' is not a directory.")
+
+
+def get_remote_branches(checkout_dir, include_fn):
+    """Return list of remote branches filtered by include_fn."""
+    result = run(
+        ["git", "branch", "--list", "-r"],
+        cwd=checkout_dir,
+        dry_run=False,
+    )
+    branches = [b.strip() for b in result.split("\n") if b.strip()]
+    return [b for b in branches if include_fn(b)]
+
+
+def get_branch_info(checkout_dir, branch):
+    """Return (commit_hash, last_update_date) for a given branch."""
+    commit_hash = run(["git", "rev-parse", branch], cwd=checkout_dir, dry_run=False)
+    last_update = run(
+        ["git", "show", branch, "--format=format:%ai", "-s"],
+        cwd=checkout_dir,
+        dry_run=False,
+    )
+    return commit_hash, last_update
+
+
+def create_tag(checkout_dir, branch, commit_hash, last_update, *, dry_run=True):
+    """Create a tag locally for a given branch at its last update."""
+    tag_name = branch.replace("origin/", "", 1)
+    msg = f'"Tagged {tag_name} for EOL stable branch removal."'
+    run(
+        ["git", "tag", "--sign", "--message", msg, tag_name, commit_hash],
+        cwd=checkout_dir,
+        env={"GIT_COMMITTER_DATE": last_update},
+        dry_run=dry_run,
+    )
+    return tag_name
+
+
+def delete_remote_and_local_branch(checkout_dir, branch, *, dry_run=True):
+    """Delete a remote branch from origin and the maching local branch."""
+    try:
+        run(
+            ["git", "branch", "-D", branch],
+            cwd=checkout_dir,
+            dry_run=dry_run,
+        )
+    except subprocess.CalledProcessError:
+        print(f"[ERROR] Local branch {branch} can not be deleted.")
+
+    run(
+        ["git", "push", "origin", "--delete", branch.replace("origin/", "", 1)],
+        cwd=checkout_dir,
+        dry_run=dry_run,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Archive Django branches into tags and optionally delete them."
+    )
+    parser.add_argument(
+        "--checkout-dir", required=True, help="Path to Django git checkout"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print commands instead of executing them",
+    )
+    parser.add_argument(
+        "--branches", nargs="*", help="Specific remote branches to include (optional)"
+    )
+    args = parser.parse_args()
+
+    validate_env(args.checkout_dir)
+    dry_run = args.dry_run
+    checkout_dir = args.checkout_dir
+
+    if args.branches:
+        wanted = set(f"origin/{b}" for b in args.branches)
+    else:
+        wanted = set()
+
+    branches = get_remote_branches(checkout_dir, include_fn=lambda b: b in wanted)
+    if not branches:
+        print("No branches matched inclusion criteria.")
+        return
+
+    print("\nMatched branches:")
+    print("\n".join(branches))
+    print()
+
+    branch_updates = {b: get_branch_info(checkout_dir, b) for b in branches}
+    print("\nLast updates:")
+    for b, (h, d) in branch_updates.items():
+        print(f"{b}\t{h}\t{d}")
+
+    if (
+        input("\nDelete remote branches and create tags? [y/N]: ").strip().lower()
+        == "y"
+    ):
+        for b, (commit_hash, last_update_date) in branch_updates.items():
+            print(f"Creating tag for {b} at {commit_hash=} with {last_update_date=}")
+            create_tag(checkout_dir, b, commit_hash, last_update_date, dry_run=dry_run)
+            print(f"Deleting remote branch {b}")
+            delete_remote_and_local_branch(checkout_dir, b, dry_run=dry_run)
+        run(
+            ["git", "push", "--tags"],
+            cwd=checkout_dir,
+            dry_run=dry_run,
+        )
+
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: django/shortcuts.py
+"""
+This module collects helper functions and classes that "span" multiple levels
+of MVC. In other words, these functions/classes introduce controlled coupling
+for convenience's sake.
+"""
+
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponsePermanentRedirect,
+    HttpResponseRedirect,
+)
+from django.template import loader
+from django.urls import NoReverseMatch, reverse
+from django.utils.functional import Promise
+from django.utils.translation import gettext as _
+
+
+def render(
+    request, template_name, context=None, content_type=None, status=None, using=None
+):
+    """
+    Return an HttpResponse whose content is filled with the result of calling
+    django.template.loader.render_to_string() with the passed arguments.
+    """
+    content = loader.render_to_string(template_name, context, request, using=using)
+    return HttpResponse(content, content_type, status)
+
+
+def redirect(to, *args, permanent=False, preserve_request=False, **kwargs):
+    """
+    Return an HttpResponseRedirect to the appropriate URL for the arguments
+    passed.
+
+    The arguments could be:
+
+        * A model: the model's `get_absolute_url()` function will be called.
+
+        * A view name, possibly with arguments: `urls.reverse()` will be used
+          to reverse-resolve the name.
+
+        * A URL, which will be used as-is for the redirect location.
+
+    Issues a temporary redirect by default. Set permanent=True to issue a
+    permanent redirect. Set preserve_request=True to instruct the user agent
+    to preserve the original HTTP method and body when following the redirect.
+    """
+    redirect_class = (
+        HttpResponsePermanentRedirect if permanent else HttpResponseRedirect
+    )
+    return redirect_class(
+        resolve_url(to, *args, **kwargs),
+        preserve_request=preserve_request,
+    )
+
+
+def _get_queryset(klass):
+    """
+    Return a QuerySet or a Manager.
+    Duck typing in action: any class with a `get()` method (for
+    get_object_or_404) or a `filter()` method (for get_list_or_404) might do
+    the job.
+    """
+    # If it is a model class or anything else with ._default_manager
+    if hasattr(klass, "_default_manager"):
+        return klass._default_manager.all()
+    return klass
+
+
+def get_object_or_404(klass, *args, **kwargs):
+    """
+    Use get() to return an object, or raise an Http404 exception if the object
+    does not exist.
+
+    klass may be a Model, Manager, or QuerySet object. All other passed
+    arguments and keyword arguments are used in the get() query.
+
+    Like with QuerySet.get(), MultipleObjectsReturned is raised if more than
+    one object is found.
+    """
+    queryset = _get_queryset(klass)
+    if not hasattr(queryset, "get"):
+        klass__name = (
+            klass.__name__ if isinstance(klass, type) else klass.__class__.__name__
+        )
+        raise ValueError(
+            "First argument to get_object_or_404() must be a Model, Manager, "
+            "or QuerySet, not '%s'." % klass__name
+        )
+    try:
+        return queryset.get(*args, **kwargs)
+    except queryset.model.DoesNotExist:
+        raise Http404(
+            # Translators: %s is the name of a model, e.g. "No City matches the
+            # given query."
+            _("No %s matches the given query.")
+            % queryset.model._meta.object_name
+        )
+
+
+async def aget_object_or_404(klass, *args, **kwargs):
+    """See get_object_or_404()."""
+    queryset = _get_queryset(klass)
+    if not hasattr(queryset, "aget"):
+        klass__name = (
+            klass.__name__ if isinstance(klass, type) else klass.__class__.__name__
+        )
+        raise ValueError(
+            "First argument to aget_object_or_404() must be a Model, Manager, or "
+            f"QuerySet, not '{klass__name}'."
+        )
+    try:
+        return await queryset.aget(*args, **kwargs)
+    except queryset.model.DoesNotExist:
+        raise Http404(
+            _("No %s matches the given query.") % queryset.model._meta.object_name
+        )
+
+
+def get_list_or_404(klass, *args, **kwargs):
+    """
+    Use filter() to return a list of objects, or raise an Http404 exception if
+    the list is empty.
+
+    klass may be a Model, Manager, or QuerySet object. All other passed
+    arguments and keyword arguments are used in the filter() query.
+    """
+    queryset = _get_queryset(klass)
+    if not hasattr(queryset, "filter"):
+        klass__name = (
+            klass.__name__ if isinstance(klass, type) else klass.__class__.__name__
+        )
+        raise ValueError(
+            "First argument to get_list_or_404() must be a Model, Manager, or "
+            "QuerySet, not '%s'." % klass__name
+        )
+    obj_list = list(queryset.filter(*args, **kwargs))
+    if not obj_list:
+        raise Http404(
+            _("No %s matches the given query.") % queryset.model._meta.object_name
+        )
+    return obj_list
+
+
+async def aget_list_or_404(klass, *args, **kwargs):
+    """See get_list_or_404()."""
+    queryset = _get_queryset(klass)
+    if not hasattr(queryset, "filter"):
+        klass__name = (
+            klass.__name__ if isinstance(klass, type) else klass.__class__.__name__
+        )
+        raise ValueError(
+            "First argument to aget_list_or_404() must be a Model, Manager, or "
+            f"QuerySet, not '{klass__name}'."
+        )
+    obj_list = [obj async for obj in queryset.filter(*args, **kwargs)]
+    if not obj_list:
+        raise Http404(
+            _("No %s matches the given query.") % queryset.model._meta.object_name
+        )
+    return obj_list
+
+
+def resolve_url(to, *args, **kwargs):
+    """
+    Return a URL appropriate for the arguments passed.
+
+    The arguments could be:
+
+        * A model: the model's `get_absolute_url()` function will be called.
+
+        * A view name, possibly with arguments: `urls.reverse()` will be used
+          to reverse-resolve the name.
+
+        * A URL, which will be returned as-is.
+    """
+    # If it's a model, use get_absolute_url()
+    if hasattr(to, "get_absolute_url"):
+        return to.get_absolute_url()
+
+    if isinstance(to, Promise):
+        # Expand the lazy instance, as it can cause issues when it is passed
+        # further to some Python functions like urlparse.
+        to = str(to)
+
+    # Handle relative URLs
+    if isinstance(to, str) and to.startswith(("./", "../")):
+        return to
+
+    # Next try a reverse URL resolution.
+    try:
+        return reverse(to, args=args, kwargs=kwargs)
+    except NoReverseMatch:
+        # If this is a callable, re-raise.
+        if callable(to):
+            raise
+        # If this doesn't "feel" like a URL, re-raise.
+        if "/" not in to and "." not in to:
+            raise
+
+    # Finally, fall back and assume it's a URL
+    return to
+
+
+# FILE: django/__main__.py
+"""
+Invokes django-admin when the django module is run as a script.
+
+Example: python -m django check
+"""
+
+from django.core import management
+
+if __name__ == "__main__":
+    management.execute_from_command_line()
+
+
+# FILE: django/__init__.py
+from django.utils.version import get_version
+
+VERSION = (6, 1, 0, "alpha", 0)
+
+__version__ = get_version(VERSION)
+
+
+def setup(set_prefix=True):
+    """
+    Configure the settings (this happens as a side effect of accessing the
+    first setting), configure logging and populate the app registry.
+    Set the thread-local urlresolvers script prefix if `set_prefix` is True.
+    """
+    from django.apps import apps
+    from django.conf import settings
+    from django.urls import set_script_prefix
+    from django.utils.log import configure_logging
+
+    configure_logging(settings.LOGGING_CONFIG, settings.LOGGING)
+    if set_prefix:
+        set_script_prefix(
+            "/" if settings.FORCE_SCRIPT_NAME is None else settings.FORCE_SCRIPT_NAME
+        )
+    apps.populate(settings.INSTALLED_APPS)
+
+
+# FILE: js_tests/tests.html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Django JavaScript Tests</title>
+    <link rel="stylesheet" href="../node_modules/qunit/qunit/qunit.css">
+</head>
+<body>
+
+    <div id="qunit"></div>
+    <div id="qunit-fixture">
+    </div>
+    <script type="text/html" id="result-table">
+        <form id="changelist-form">
+            <button type="submit" class="button" name="index" value="0">Go</button>
+            <span class="action-counter" data-actions-icnt="100"></span>
+            <table id="result_list">
+                <tr>
+                    <th>
+                       <input type="checkbox" id="action-toggle" aria-label="Select all objects on this page for an action">
+                    </th>
+                </tr>
+                <tr>
+                    <td class="action-checkbox">
+                        <input class="action-select" type="checkbox" value="618">
+                    </td>
+                </tr>
+            </table>
+            <input type="submit" name="_save" value="Save">
+        </form>
+    </script>
+    <script type="text/html" id="tabular-formset">
+        <input id="id_first-TOTAL_FORMS" value="1">
+        <input id="id_first-MAX_NUM_FORMS" value="">
+        <table class="inline">
+            <tr id="first-0" class="form-row">
+                <td class="field-test_field">
+                    <input id="id_first-0-test_field">
+                </td>
+            </tr>
+            <tr id="first-empty" class="form-row empty-form">
+                <td class="field-test_field">
+                    <input id="id_first-__prefix__-test_field">
+                </td>
+            </tr>
+        </table>
+    </script>
+    <script type="text/html" id="tabular-formset-with-validation-error">
+        <div class="inline-group">
+            <div class="tabular inline-related">
+                <input id="id_second-TOTAL_FORMS" value="2">
+                <input id="id_second-MAX_NUM_FORMS" value="">
+                <input id="id_second-MIN_NUM_FORMS" value="">
+                <table class="inline">
+                    <tr id="second-0" class="form-row has_original">
+                        <td class="field-test_field">
+                            <input id="id_second-0-test_field">
+                        </td>
+                        <td class="delete">
+                          <input type="checkbox" />
+                        </td>
+                    </tr>
+                    <tr class="row-form-errors">
+                      <td colspan="2">
+                        <ul class="errorlist nonfield">
+                          <li>This next form has non-field errors.</li>
+                        </ul>
+                      </td>
+                    </tr>
+                    <tr id="second-1" class="form-row">
+                        <td class="field-test_field">
+                            <input id="id_second-1-test_field">
+                        </td>
+                        <td class="delete"></td>
+                    </tr>
+                    <tr id="second-empty" class="form-row empty-form">
+                        <td class="field-test_field">
+                            <input id="id_second-__prefix__-test_field">
+                        </td>
+                        <td class="delete"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="nav-sidebar-filter">
+      <nav class="sticky" id="nav-sidebar">
+        <input type="search" id="nav-filter"
+               placeholder="Start typing to filter..."
+               aria-label="Filter navigation items">
+        <div class="app-auth module current-app">
+          <table>
+            <caption>
+              <a href="/admin/auth/" class="section">
+                    Authentication and Authorization
+              </a>
+            </caption>
+            <tbody>
+            <tr class="model-group">
+              <th scope="row"><a href="/admin/auth/group/">Groups</a></th>
+              <td><a href="/admin/auth/group/add/" class="addlink">Add</a></td>
+            </tr>
+            <tr class="model-user current-model">
+              <th scope="row"><a href="/admin/auth/user/" aria-current="page">Users</a></th>
+              <td><a href="/admin/auth/user/add/" class="addlink">Add</a></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </nav>
+    </script>
+
+    <script src="../node_modules/qunit/qunit/qunit.js"></script>
+
+    <script src='../django/contrib/admin/static/admin/js/vendor/xregexp/xregexp.min.js'></script>
+    <script src='../django/contrib/admin/static/admin/js/vendor/jquery/jquery.min.js'></script>
+    <script src='../django/contrib/admin/static/admin/js/jquery.init.js'></script>
+    <script src='./admin/jsi18n-mocks.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/core.js' data-cover></script>
+    <script src='./admin/core.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/nav_sidebar.js' data-cover></script>
+    <script src='./admin/navigation.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/admin/RelatedObjectLookups.js' data-cover></script>
+    <script src='./admin/RelatedObjectLookups.test.js'></script>
+
+    <script src='./admin/DateTimeShortcuts.test.js'></script>
+    <script src='../django/contrib/admin/static/admin/js/calendar.js' data-cover></script>
+    <script src='../django/contrib/admin/static/admin/js/admin/DateTimeShortcuts.js' data-cover></script>
+
+    <script src='../django/contrib/admin/static/admin/js/actions.js' data-cover></script>
+    <script src='./admin/actions.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/SelectBox.js' data-cover></script>
+    <script src='./admin/SelectBox.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/SelectFilter2.js' data-cover></script>
+    <script src='./admin/SelectFilter2.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/inlines.js' data-cover></script>
+    <script src='./admin/inlines.test.js'></script>
+
+    <script src='../django/contrib/admin/static/admin/js/actions.js' data-cover></script>
+    <script src='../django/contrib/admin/static/admin/js/prepopulate.js' data-cover></script>
+    <script src='../django/contrib/admin/static/admin/js/urlify.js' data-cover></script>
+    <script src='./admin/URLify.test.js'></script>
+
+    <div id="id_point_map" style="display:none;">
+        <textarea id="id_point" name="point" class="vSerializedField required"
+                  style="display:none;" rows="10" cols="150"
+        >{&quot;type&quot;: &quot;Point&quot;, &quot;coordinates&quot;: [7.8177, 47.397]}</textarea>
+    </div>
+    <div id="id_multipolygon_map" style="display:none;">
+        <textarea id="id_multipolygon" name="multipolygon" class="vSerializedField required"
+                  style="display:none;" rows="10" cols="150"></textarea>
+    </div>
+    <script src='https://cdn.jsdelivr.net/npm/ol@v7.2.2/dist/ol.js'></script>
+    <script src='../django/contrib/gis/static/gis/js/OLMapWidget.js' data-cover></script>
+    <script src='./gis/mapwidget.test.js'></script>
+
+</body>
+</html>
+
+
+# FILE: extras/README.TXT
+This directory contains extra stuff that can improve your Django experience.
+
+
+# FILE: docs/requirements.txt
+pyenchant
+Sphinx>=4.5.0
+sphinxcontrib-spelling
+blacken-docs
+sphinx-lint
+
+
+# FILE: docs/lint.py
+import re
+import sys
+from collections import Counter
+from os.path import abspath, dirname, splitext
+from unittest import mock
+
+from sphinxlint.checkers import (
+    _ROLE_BODY,
+    _is_long_interpreted_text,
+    _is_very_long_string_literal,
+    _starts_with_anonymous_hyperlink,
+    _starts_with_directive_or_hyperlink,
+)
+from sphinxlint.checkers import checker as sphinxlint_checker
+from sphinxlint.rst import SIMPLENAME
+from sphinxlint.sphinxlint import check_text
+from sphinxlint.utils import PER_FILE_CACHES, hide_non_rst_blocks, paragraphs
+
+
+def django_check_file(filename, checkers, options=None):
+    try:
+        for checker in checkers:
+            # Django docs use ".txt" for docs file extension.
+            if ".rst" in checker.suffixes:
+                checker.suffixes = (".txt",)
+        ext = splitext(filename)[1]
+        if not any(ext in checker.suffixes for checker in checkers):
+            return Counter()
+        try:
+            with open(filename, encoding="utf-8") as f:
+                text = f.read()
+        except OSError as err:
+            return [f"{filename}: cannot open: {err}"]
+        except UnicodeDecodeError as err:
+            return [f"{filename}: cannot decode as UTF-8: {err}"]
+        return check_text(filename, text, checkers, options)
+    finally:
+        for memoized_function in PER_FILE_CACHES:
+            memoized_function.cache_clear()
+
+
+_TOCTREE_DIRECTIVE_RE = re.compile(r"^ *.. toctree::")
+_PARSED_LITERAL_DIRECTIVE_RE = re.compile(r"^ *.. parsed-literal::")
+_IS_METHOD_RE = re.compile(r"^ *([\w.]+)\([\w ,*]*\)\s*$")
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+# Use two trailing underscores when embedding the URL. Technically, a single
+# underscore works as well, but that would create a named reference instead of
+# an anonymous one. Named references typically do not have a benefit when the
+# URL is embedded. Moreover, they have the disadvantage that you must make sure
+# that you do not use the same “Link text” for another link in your document.
+_HYPERLINK_DANGLING_RE = re.compile(r"^\s*<https?://[^>]+>`__?[\.,;]?$")
+
+
+@sphinxlint_checker(".rst", enabled=False, rst_only=True)
+def check_line_too_long_django(file, lines, options=None):
+    """A modified version of Sphinx-lint's line-too-long check.
+
+    Original:
+    https://github.com/sphinx-contrib/sphinx-lint/blob/main/sphinxlint/checkers.py
+    """
+
+    def is_multiline_block_to_exclude(line):
+        return _TOCTREE_DIRECTIVE_RE.match(line) or _PARSED_LITERAL_DIRECTIVE_RE.match(
+            line
+        )
+
+    # Ignore additional blocks from line length checks.
+    with mock.patch(
+        "sphinxlint.utils.is_multiline_non_rst_block", is_multiline_block_to_exclude
+    ):
+        lines = hide_non_rst_blocks(lines)
+
+    table_rows = []
+    for lno, line in enumerate(lines):
+        # Beware, in `line` we have the trailing newline.
+        if len(line) - 1 > options.max_line_length:
+
+            # Sphinxlint default exceptions.
+            if line.lstrip()[0] in "+|":
+                continue  # ignore wide tables
+            if _is_long_interpreted_text(line):
+                continue  # ignore long interpreted text
+            if _starts_with_directive_or_hyperlink(line):
+                continue  # ignore directives and hyperlink targets
+            if _starts_with_anonymous_hyperlink(line):
+                continue  # ignore anonymous hyperlink targets
+            if _is_very_long_string_literal(line):
+                continue  # ignore a very long literal string
+
+            # Additional exceptions
+            try:
+                # Ignore headings
+                if len(set(lines[lno + 1].strip())) == 1 and len(line) == len(
+                    lines[lno + 1]
+                ):
+                    continue
+            except IndexError:
+                # End of file
+                pass
+            if len(set(line.strip())) == 1 and len(line) == len(lines[lno - 1]):
+                continue  # Ignore heading underline
+            if lno in table_rows:
+                continue  # Ignore lines in tables
+            if len(set(line.strip())) == 2 and " " in line:
+                # Ignore simple tables
+                borders = [lno_ for lno_, line_ in enumerate(lines) if line == line_]
+                table_rows.extend([n for n in range(min(borders), max(borders))])
+                continue
+            if _HYPERLINK_DANGLING_RE.match(line):
+                continue  # Ignore dangling long links inside a ``_ ref.
+            if match := _IS_METHOD_RE.match(line):
+                # Ignore second definition of function signature.
+                previous_line = lines[lno - 1]
+                if previous_line.startswith(".. method:: ") and (
+                    previous_line.find(match[1]) != -1
+                ):
+                    continue
+            yield lno + 1, f"Line too long ({len(line) - 1}/{options.max_line_length})"
+
+
+_PYTHON_DOMAIN = re.compile(f":py:{SIMPLENAME}:`{_ROLE_BODY}`")
+
+
+@sphinxlint_checker(".rst", enabled=False, rst_only=True)
+def check_python_domain_in_roles(file, lines, options=None):
+    """
+    :py: indicates the Python language domain. This means code writen in
+    Python, not Python built-ins in particular.
+
+    Bad:    :py:class:`email.message.EmailMessage`
+    Good:   :class:`email.message.EmailMessage`
+    """
+    for lno, line in enumerate(lines, start=1):
+        role = _PYTHON_DOMAIN.search(line)
+        if role:
+            yield lno, f":py domain is the default and can be omitted {role.group(0)!r}"
+
+
+_DOC_CAPTURE_TARGET_RE = re.compile(r":doc:`(?:[^<`]+<)?([^>`]+)>?`")
+
+
+@sphinxlint_checker(".rst", rst_only=True)
+def check_absolute_targets_doc_role(file, lines, options=None):
+    for paragraph_lno, paragraph in paragraphs(lines):
+        for error in _DOC_CAPTURE_TARGET_RE.finditer(paragraph):
+            target = error.group(1)
+            # Skip absolute or intersphinx refs like "python:using/windows".
+            if target.startswith("/") or ":" in target.split("/", 1)[0]:
+                continue
+            # Relative target, report as a violation.
+            error_offset = paragraph[: error.start()].count("\n")
+            yield (paragraph_lno + error_offset, target)
+
+
+import sphinxlint  # noqa: E402
+
+sphinxlint.check_file = django_check_file
+
+from sphinxlint.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    directory = dirname(abspath(__file__))
+    params = sys.argv[1:] if len(sys.argv) > 1 else []
+
+    print(f"Running sphinxlint for: {directory} {params=}")
+
+    sys.exit(
+        main(
+            [
+                directory,
+                "--jobs",
+                "0",
+                "--ignore",
+                "_build",
+                "--ignore",
+                "_theme",
+                "--ignore",
+                "_ext",
+                "--enable",
+                "all",
+                "--disable",
+                "line-too-long",  # Disable sphinx-lint version
+                "--max-line-length",
+                "79",
+                *params,
+            ]
+        )
+    )
+
+
+# FILE: docs/index.txt
+====================
+Django documentation
+====================
+
+.. rubric:: Everything you need to know about Django.
+
+.. _index-first-steps:
+
+First steps
+===========
+
+Are you new to Django or to programming? This is the place to start!
+
+* **From scratch:**
+  :doc:`Overview </intro/overview>` |
+  :doc:`Installation </intro/install>`
+
+* **Tutorial:**
+  :doc:`Part 1: Requests and responses </intro/tutorial01>` |
+  :doc:`Part 2: Models and the admin site </intro/tutorial02>` |
+  :doc:`Part 3: Views and templates </intro/tutorial03>` |
+  :doc:`Part 4: Forms and generic views </intro/tutorial04>` |
+  :doc:`Part 5: Testing </intro/tutorial05>` |
+  :doc:`Part 6: Static files </intro/tutorial06>` |
+  :doc:`Part 7: Customizing the admin site </intro/tutorial07>` |
+  :doc:`Part 8: Adding third-party packages </intro/tutorial08>`
+
+* **Advanced Tutorials:**
+  :doc:`How to write reusable apps </intro/reusable-apps>` |
+  :doc:`Writing your first contribution to Django </intro/contributing>`
+
+Getting help
+============
+
+Having trouble? We'd like to help!
+
+* Try the :doc:`FAQ </faq/index>` -- it's got answers to many common questions.
+
+* Looking for specific information? Try the :ref:`genindex`, :ref:`modindex` or
+  the :doc:`detailed table of contents </contents>`.
+
+* Not found anything? See :doc:`/faq/help` for information on getting support
+  and asking questions to the community.
+
+* Report bugs with Django in our `ticket tracker`_.
+
+.. _ticket tracker: https://code.djangoproject.com/
+
+How the documentation is organized
+==================================
+
+Django has a lot of documentation. A high-level overview of how it's organized
+will help you know where to look for certain things:
+
+* :doc:`Tutorials </intro/index>` take you by the hand through a series of
+  steps to create a web application. Start here if you're new to Django or web
+  application development. Also look at the ":ref:`index-first-steps`".
+
+* :doc:`Topic guides </topics/index>` discuss key topics and concepts at a
+  fairly high level and provide useful background information and explanation.
+
+* :doc:`Reference guides </ref/index>` contain technical reference for APIs and
+  other aspects of Django's machinery. They describe how it works and how to
+  use it but assume that you have a basic understanding of key concepts.
+
+* :doc:`How-to guides </howto/index>` are recipes. They guide you through the
+  steps involved in addressing key problems and use-cases. They are more
+  advanced than tutorials and assume some knowledge of how Django works.
+
+The model layer
+===============
+
+Django provides an abstraction layer (the "models") for structuring and
+manipulating the data of your web application. Learn more about it below:
+
+* **Models:**
+  :doc:`Introduction to models </topics/db/models>` |
+  :doc:`Field types </ref/models/fields>` |
+  :doc:`Indexes </ref/models/indexes>` |
+  :doc:`Meta options </ref/models/options>` |
+  :doc:`Model class </ref/models/class>`
+
+* **QuerySets:**
+  :doc:`Making queries </topics/db/queries>` |
+  :doc:`QuerySet method reference </ref/models/querysets>` |
+  :doc:`Lookup expressions </ref/models/lookups>`
+
+* **Model instances:**
+  :doc:`Instance methods </ref/models/instances>` |
+  :doc:`Accessing related objects </ref/models/relations>`
+
+* **Migrations:**
+  :doc:`Introduction to Migrations</topics/migrations>` |
+  :doc:`Operations reference </ref/migration-operations>` |
+  :doc:`SchemaEditor </ref/schema-editor>` |
+  :doc:`Writing migrations </howto/writing-migrations>`
+
+* **Advanced:**
+  :doc:`Managers </topics/db/managers>` |
+  :doc:`Raw SQL </topics/db/sql>` |
+  :doc:`Transactions </topics/db/transactions>` |
+  :doc:`Aggregation </topics/db/aggregation>` |
+  :doc:`Search </topics/db/search>` |
+  :doc:`Custom fields </howto/custom-model-fields>` |
+  :doc:`Multiple databases </topics/db/multi-db>` |
+  :doc:`Custom lookups </howto/custom-lookups>` |
+  :doc:`Query Expressions </ref/models/expressions>` |
+  :doc:`Conditional Expressions </ref/models/conditional-expressions>` |
+  :doc:`Database Functions </ref/models/database-functions>`
+
+* **Other:**
+  :doc:`Supported databases </ref/databases>` |
+  :doc:`Legacy databases </howto/legacy-databases>` |
+  :doc:`Providing initial data </howto/initial-data>` |
+  :doc:`Optimize database access </topics/db/optimization>` |
+  :doc:`PostgreSQL specific features </ref/contrib/postgres/index>`
+
+The view layer
+==============
+
+Django has the concept of "views" to encapsulate the logic responsible for
+processing a user's request and for returning the response. Find all you need
+to know about views via the links below:
+
+* **The basics:**
+  :doc:`URLconfs </topics/http/urls>` |
+  :doc:`View functions </topics/http/views>` |
+  :doc:`Shortcuts </topics/http/shortcuts>` |
+  :doc:`Decorators </topics/http/decorators>` |
+  :doc:`Asynchronous Support </topics/async>`
+
+* **Reference:**
+  :doc:`Built-in Views </ref/views>` |
+  :doc:`Request/response objects </ref/request-response>` |
+  :doc:`TemplateResponse objects </ref/template-response>`
+
+* **File uploads:**
+  :doc:`Overview </topics/http/file-uploads>` |
+  :doc:`File objects </ref/files/file>` |
+  :doc:`Storage API </ref/files/storage>` |
+  :doc:`Managing files </topics/files>` |
+  :doc:`Custom storage </howto/custo

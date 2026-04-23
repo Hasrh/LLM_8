@@ -1,0 +1,3719 @@
+
+
+# FILE: pyproject.toml
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+name = "fastapi"
+dynamic = ["version"]
+description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Sebastián Ramírez", email = "tiangolo@gmail.com" },
+]
+classifiers = [
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development",
+    "Typing :: Typed",
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Framework :: FastAPI",
+    "Framework :: Pydantic",
+    "Framework :: Pydantic :: 2",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Internet :: WWW/HTTP",
+]
+dependencies = [
+    "starlette>=0.46.0",
+    "pydantic>=2.9.0",
+    "typing-extensions>=4.8.0",
+    "typing-inspection>=0.4.2",
+    "annotated-doc>=0.0.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/fastapi/fastapi"
+Documentation = "https://fastapi.tiangolo.com/"
+Repository = "https://github.com/fastapi/fastapi"
+Issues = "https://github.com/fastapi/fastapi/issues"
+Changelog = "https://fastapi.tiangolo.com/release-notes/"
+
+[project.optional-dependencies]
+standard = [
+    "fastapi-cli[standard] >=0.0.8",
+    # For the test client
+    "httpx >=0.23.0,<1.0.0",
+    # For templates
+    "jinja2 >=3.1.5",
+    # For forms and file uploads
+    "python-multipart >=0.0.18",
+    # To validate email fields
+    "email-validator >=2.0.0",
+    # Uvicorn with uvloop
+    "uvicorn[standard] >=0.12.0",
+    # # Settings management
+    "pydantic-settings >=2.0.0",
+    # # Extra Pydantic data types
+    "pydantic-extra-types >=2.0.0",
+]
+
+standard-no-fastapi-cloud-cli = [
+    "fastapi-cli[standard-no-fastapi-cloud-cli] >=0.0.8",
+    # For the test client
+    "httpx >=0.23.0,<1.0.0",
+    # For templates
+    "jinja2 >=3.1.5",
+    # For forms and file uploads
+    "python-multipart >=0.0.18",
+    # To validate email fields
+    "email-validator >=2.0.0",
+    # Uvicorn with uvloop
+    "uvicorn[standard] >=0.12.0",
+    # # Settings management
+    "pydantic-settings >=2.0.0",
+    # # Extra Pydantic data types
+    "pydantic-extra-types >=2.0.0",
+]
+
+all = [
+    "fastapi-cli[standard] >=0.0.8",
+    # # For the test client
+    "httpx >=0.23.0,<1.0.0",
+    # For templates
+    "jinja2 >=3.1.5",
+    # For forms and file uploads
+    "python-multipart >=0.0.18",
+    # For Starlette's SessionMiddleware, not commonly used with FastAPI
+    "itsdangerous >=1.1.0",
+    # For Starlette's schema generation, would not be used with FastAPI
+    "pyyaml >=5.3.1",
+    # To validate email fields
+    "email-validator >=2.0.0",
+    # Uvicorn with uvloop
+    "uvicorn[standard] >=0.12.0",
+    # Settings management
+    "pydantic-settings >=2.0.0",
+    # Extra Pydantic data types
+    "pydantic-extra-types >=2.0.0",
+]
+
+[project.scripts]
+fastapi = "fastapi.cli:main"
+
+[dependency-groups]
+dev = [
+    { include-group = "tests" },
+    { include-group = "docs" },
+    { include-group = "translations" },
+    "playwright >=1.57.0",
+    "prek >=0.2.22",
+]
+docs = [
+    { include-group = "docs-tests" },
+    "black >=25.1.0",
+    "cairosvg >=2.8.2",
+    # for MkDocs live reload
+    "click==8.2.1",
+    "griffe-typingdoc >=0.3.0",
+    "griffe-warnings-deprecated >=1.1.0",
+    "jieba >=0.42.1",
+    "markdown-include-variants >=0.0.8",
+    "mdx-include >=1.4.1,<2.0.0",
+    "mkdocs-macros-plugin >=1.5.0",
+    "mkdocs-material >=9.7.0",
+    "mkdocs-redirects >=1.2.1,<1.3.0",
+    "mkdocstrings[python] >=0.30.1",
+    "pillow >=11.3.0",
+    "python-slugify >=8.0.4",
+    "pyyaml >=5.3.1,<7.0.0",
+    "typer >=0.21.1",
+]
+docs-tests = [
+    "httpx >=0.23.0,<1.0.0",
+    "ruff >=0.14.14",
+    # For UJSONResponse
+    "ujson >=5.8.0",
+    # For ORJSONResponse
+    "orjson >=3.9.3",
+]
+github-actions = [
+    "httpx >=0.27.0,<1.0.0",
+    "pydantic >=2.9.0,<3.0.0",
+    "pydantic-settings >=2.1.0,<3.0.0",
+    "pygithub >=2.3.0,<3.0.0",
+    "pyyaml >=5.3.1,<7.0.0",
+    "smokeshow >=0.5.0",
+]
+tests = [
+    { include-group = "docs-tests" },
+    "anyio[trio] >=3.2.1,<5.0.0",
+    "coverage[toml] >=7.13,<8.0",
+    "dirty-equals >=0.9.0",
+    "flask >=3.0.0,<4.0.0",
+    "inline-snapshot >=0.21.1",
+    "mypy >=1.14.1",
+    "pwdlib[argon2] >=0.2.1",
+    "pyjwt >=2.9.0",
+    "pytest >=9.0.0",
+    "pytest-codspeed >=4.2.0",
+    "pyyaml >=5.3.1,<7.0.0",
+    "sqlmodel >=0.0.31",
+    "strawberry-graphql >=0.200.0,<1.0.0",
+    "ty>=0.0.9",
+    "types-orjson >=3.6.2",
+    "types-ujson >=5.10.0.20240515",
+    "a2wsgi >=1.9.0,<=2.0.0",
+    "pytest-xdist[psutil]>=2.5.0",
+    "pytest-cov>=4.0.0",
+    "pytest-sugar>=1.0.0",
+    "pytest-timeout>=2.4.0",
+]
+translations = [
+    "gitpython >=3.1.46",
+    "pydantic-ai >=0.4.10",
+    "pygithub >=2.8.1",
+]
+
+[tool.pdm]
+version = { source = "file", path = "fastapi/__init__.py" }
+distribution = true
+
+[tool.pdm.build]
+source-includes = [
+    "tests/",
+    "docs_src/",
+    "scripts/",
+    # For a test
+    "docs/en/docs/img/favicon.png",
+]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "fastapi.concurrency"
+warn_unused_ignores = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "fastapi.tests.*"
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "docs_src.*"
+disallow_incomplete_defs = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[tool.pytest]
+minversion = "9.0"
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "--ignore=docs_src",
+]
+strict_xfail = true
+filterwarnings = [
+    "error",
+]
+timeout = "20"
+
+[tool.coverage.run]
+parallel = true
+data_file = "coverage/.coverage"
+source = [
+    "docs_src",
+    "tests",
+    "fastapi"
+]
+relative_files = true
+context = '${CONTEXT}'
+omit = [
+    "tests/benchmarks/*",
+    "docs_src/response_model/tutorial003_04_py39.py",
+    "docs_src/response_model/tutorial003_04_py310.py",
+    "docs_src/dependencies/tutorial013_an_py310.py",  # temporary code example?
+    "docs_src/dependencies/tutorial014_an_py310.py",  # temporary code example?
+    # Pydantic v1 migration, no longer tested
+    "docs_src/pydantic_v1_in_v2/tutorial001_an_py310.py",
+    "docs_src/pydantic_v1_in_v2/tutorial002_an_py310.py",
+    "docs_src/pydantic_v1_in_v2/tutorial003_an_py310.py",
+    "docs_src/pydantic_v1_in_v2/tutorial004_an_py310.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191",  # indentation contains tabs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"docs_src/custom_request_and_route/tutorial002_an_py310.py" = ["B904"]
+"docs_src/custom_request_and_route/tutorial002_an_py39.py" = ["B904"]
+"docs_src/custom_request_and_route/tutorial002_py310.py" = ["B904"]
+"docs_src/custom_request_and_route/tutorial002_py39.py" = ["B904"]
+"docs_src/custom_response/tutorial007_py310.py" = ["B007"]
+"docs_src/custom_response/tutorial007_py39.py" = ["B007"]
+"docs_src/dataclasses/tutorial003_py39.py" = ["I001"]
+"docs_src/dependencies/tutorial007_py310.py" = ["F821"]
+"docs_src/dependencies/tutorial007_py39.py" = ["F821"]
+"docs_src/dependencies/tutorial008_an_py310.py" = ["F821"]
+"docs_src/dependencies/tutorial008_an_py39.py" = ["F821"]
+"docs_src/dependencies/tutorial008_py310.py" = ["F821"]
+"docs_src/dependencies/tutorial008_py39.py" = ["F821"]
+"docs_src/dependencies/tutorial008b_an_py310.py" = ["B904"]
+"docs_src/dependencies/tutorial008b_an_py39.py" = ["B904"]
+"docs_src/dependencies/tutorial008b_py310.py" = ["B904"]
+"docs_src/dependencies/tutorial008b_py39.py" = ["B904"]
+"docs_src/dependencies/tutorial009_py310.py" = ["F821"]
+"docs_src/dependencies/tutorial009_py39.py" = ["F821"]
+"docs_src/dependencies/tutorial010_py310.py" = ["F821"]
+"docs_src/dependencies/tutorial010_py39.py" = ["F821"]
+"docs_src/path_operation_advanced_configuration/tutorial007_pv1_py39.py" = ["B904"]
+"docs_src/path_operation_advanced_configuration/tutorial007_py310.py" = ["B904"]
+"docs_src/path_operation_advanced_configuration/tutorial007_py39.py" = ["B904"]
+"docs_src/query_params_str_validations/tutorial012_an_py310.py" = ["B006"]
+"docs_src/query_params_str_validations/tutorial012_an_py39.py" = ["B006"]
+"docs_src/query_params_str_validations/tutorial013_an_py310.py" = ["B006"]
+"docs_src/query_params_str_validations/tutorial013_an_py39.py" = ["B006"]
+"docs_src/security/tutorial004_an_py310.py" = ["B904"]
+"docs_src/security/tutorial004_an_py39.py" = ["B904"]
+"docs_src/security/tutorial004_py310.py" = ["B904"]
+"docs_src/security/tutorial004_py39.py" = ["B904"]
+"docs_src/security/tutorial005_an_py310.py" = ["B904"]
+"docs_src/security/tutorial005_an_py39.py" = ["B904"]
+"docs_src/security/tutorial005_py310.py" = ["B904"]
+"docs_src/security/tutorial005_py39.py" = ["B904"]
+"docs_src/json_base64_bytes/tutorial001_py310.py" = ["UP012"]
+"docs_src/stream_json_lines/tutorial001_py310.py" = ["UP028"]
+"docs_src/stream_data/tutorial001_py310.py" = ["UP028"]
+"docs_src/stream_data/tutorial002_py310.py" = ["UP028"]
+"docs_src/server_sent_events/tutorial001_py310.py" = ["UP028"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "starlette"]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.inline-snapshot]
+# default-flags=["fix"]
+# default-flags=["create"]
+
+
+# FILE: SECURITY.md
+# Security Policy
+
+Security is very important for FastAPI and its community. 🔒
+
+Learn more about it below. 👇
+
+## Versions
+
+The latest version of FastAPI is supported.
+
+You are encouraged to [write tests](https://fastapi.tiangolo.com/tutorial/testing/) for your application and update your FastAPI version frequently after ensuring that your tests are passing. This way you will benefit from the latest features, bug fixes, and **security fixes**.
+
+You can learn more about [FastAPI versions and how to pin and upgrade them](https://fastapi.tiangolo.com/deployment/versions/) for your project in the docs.
+
+## Reporting a Vulnerability
+
+If you think you found a vulnerability, and even if you are not sure about it, please report it right away by sending an email to: security@tiangolo.com. Please try to be as explicit as possible, describing all the steps and example code to reproduce the security issue.
+
+I (the author, [@tiangolo](https://x.com/tiangolo)) will review it thoroughly and get back to you.
+
+## Public Discussions
+
+Please restrain from publicly discussing a potential security vulnerability. 🙊
+
+It's better to discuss privately and try to find a solution first, to limit the potential impact as much as possible.
+
+---
+
+Thanks for your help!
+
+The FastAPI community and I thank you for that. 🙇
+
+
+# FILE: README.md
+<p align="center">
+  <a href="https://fastapi.tiangolo.com"><img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="FastAPI"></a>
+</p>
+<p align="center">
+    <em>FastAPI framework, high performance, easy to learn, fast to code, ready for production</em>
+</p>
+<p align="center">
+<a href="https://github.com/fastapi/fastapi/actions?query=workflow%3ATest+event%3Apush+branch%3Amaster">
+    <img src="https://github.com/fastapi/fastapi/actions/workflows/test.yml/badge.svg?event=push&branch=master" alt="Test">
+</a>
+<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/fastapi">
+    <img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/fastapi.svg" alt="Coverage">
+</a>
+<a href="https://pypi.org/project/fastapi">
+    <img src="https://img.shields.io/pypi/v/fastapi?color=%2334D058&label=pypi%20package" alt="Package version">
+</a>
+<a href="https://pypi.org/project/fastapi">
+    <img src="https://img.shields.io/pypi/pyversions/fastapi.svg?color=%2334D058" alt="Supported Python versions">
+</a>
+</p>
+
+---
+
+**Documentation**: [https://fastapi.tiangolo.com](https://fastapi.tiangolo.com)
+
+**Source Code**: [https://github.com/fastapi/fastapi](https://github.com/fastapi/fastapi)
+
+---
+
+FastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints.
+
+The key features are:
+
+* **Fast**: Very high performance, on par with **NodeJS** and **Go** (thanks to Starlette and Pydantic). [One of the fastest Python frameworks available](#performance).
+* **Fast to code**: Increase the speed to develop features by about 200% to 300%. *
+* **Fewer bugs**: Reduce about 40% of human (developer) induced errors. *
+* **Intuitive**: Great editor support. <dfn title="also known as auto-complete, autocompletion, IntelliSense">Completion</dfn> everywhere. Less time debugging.
+* **Easy**: Designed to be easy to use and learn. Less time reading docs.
+* **Short**: Minimize code duplication. Multiple features from each parameter declaration. Fewer bugs.
+* **Robust**: Get production-ready code. With automatic interactive documentation.
+* **Standards-based**: Based on (and fully compatible with) the open standards for APIs: [OpenAPI](https://github.com/OAI/OpenAPI-Specification) (previously known as Swagger) and [JSON Schema](https://json-schema.org/).
+
+<small>* estimation based on tests conducted by an internal development team, building production applications.</small>
+
+## Sponsors
+
+<!-- sponsors -->
+### Keystone Sponsor
+
+<a href="https://fastapicloud.com" target="_blank" title="FastAPI Cloud. By the same team behind FastAPI. You code. We Cloud."><img src="https://fastapi.tiangolo.com/img/sponsors/fastapicloud.png"></a>
+
+### Gold and Silver Sponsors
+
+<a href="https://blockbee.io?ref=fastapi" target="_blank" title="BlockBee Cryptocurrency Payment Gateway"><img src="https://fastapi.tiangolo.com/img/sponsors/blockbee.png"></a>
+<a href="https://github.com/scalar/scalar/?utm_source=fastapi&utm_medium=website&utm_campaign=main-badge" target="_blank" title="Scalar: Beautiful Open-Source API References from Swagger/OpenAPI files"><img src="https://fastapi.tiangolo.com/img/sponsors/scalar.svg"></a>
+<a href="https://www.propelauth.com/?utm_source=fastapi&utm_campaign=1223&utm_medium=mainbadge" target="_blank" title="Auth, user management and more for your B2B product"><img src="https://fastapi.tiangolo.com/img/sponsors/propelauth.png"></a>
+<a href="https://zuplo.link/fastapi-gh" target="_blank" title="Zuplo: Deploy, Secure, Document, and Monetize your FastAPI"><img src="https://fastapi.tiangolo.com/img/sponsors/zuplo.png"></a>
+<a href="https://liblab.com?utm_source=fastapi" target="_blank" title="liblab - Generate SDKs from FastAPI"><img src="https://fastapi.tiangolo.com/img/sponsors/liblab.png"></a>
+<a href="https://docs.render.com/deploy-fastapi?utm_source=deploydoc&utm_medium=referral&utm_campaign=fastapi" target="_blank" title="Deploy & scale any full-stack web app on Render. Focus on building apps, not infra."><img src="https://fastapi.tiangolo.com/img/sponsors/render.svg"></a>
+<a href="https://www.coderabbit.ai/?utm_source=fastapi&utm_medium=badge&utm_campaign=fastapi" target="_blank" title="Cut Code Review Time & Bugs in Half with CodeRabbit"><img src="https://fastapi.tiangolo.com/img/sponsors/coderabbit.png"></a>
+<a href="https://subtotal.com/?utm_source=fastapi&utm_medium=sponsorship&utm_campaign=open-source" target="_blank" title="The Gold Standard in Retail Account Linking"><img src="https://fastapi.tiangolo.com/img/sponsors/subtotal.svg"></a>
+<a href="https://docs.railway.com/guides/fastapi?utm_medium=integration&utm_source=docs&utm_campaign=fastapi" target="_blank" title="Deploy enterprise applications at startup speed"><img src="https://fastapi.tiangolo.com/img/sponsors/railway.png"></a>
+<a href="https://serpapi.com/?utm_source=fastapi_website" target="_blank" title="SerpApi: Web Search API"><img src="https://fastapi.tiangolo.com/img/sponsors/serpapi.png"></a>
+<a href="https://www.greptile.com/?utm_source=fastapi&utm_medium=sponsorship&utm_campaign=fastapi_sponsor_page" target="_blank" title="Greptile: The AI Code Reviewer"><img src="https://fastapi.tiangolo.com/img/sponsors/greptile.png"></a>
+<a href="https://databento.com/?utm_source=fastapi&utm_medium=sponsor&utm_content=display" target="_blank" title="Pay as you go for market data"><img src="https://fastapi.tiangolo.com/img/sponsors/databento.svg"></a>
+<a href="https://speakeasy.com/editor?utm_source=fastapi+repo&utm_medium=github+sponsorship" target="_blank" title="SDKs for your API | Speakeasy"><img src="https://fastapi.tiangolo.com/img/sponsors/speakeasy.png"></a>
+<a href="https://www.svix.com/" target="_blank" title="Svix - Webhooks as a service"><img src="https://fastapi.tiangolo.com/img/sponsors/svix.svg"></a>
+<a href="https://www.stainlessapi.com/?utm_source=fastapi&utm_medium=referral" target="_blank" title="Stainless | Generate best-in-class SDKs"><img src="https://fastapi.tiangolo.com/img/sponsors/stainless.png"></a>
+<a href="https://www.permit.io/blog/implement-authorization-in-fastapi?utm_source=github&utm_medium=referral&utm_campaign=fastapi" target="_blank" title="Fine-Grained Authorization for FastAPI"><img src="https://fastapi.tiangolo.com/img/sponsors/permit.png"></a>
+<a href="https://www.interviewpal.com/?utm_source=fastapi&utm_medium=open-source&utm_campaign=dev-hiring" target="_blank" title="InterviewPal - AI Interview Coach for Engineers and Devs"><img src="https://fastapi.tiangolo.com/img/sponsors/interviewpal.png"></a>
+<a href="https://dribia.com/en/" target="_blank" title="Dribia - Data Science within your reach"><img src="https://fastapi.tiangolo.com/img/sponsors/dribia.png"></a>
+
+<!-- /sponsors -->
+
+[Other sponsors](https://fastapi.tiangolo.com/fastapi-people/#sponsors)
+
+## Opinions
+
+"_[...] I'm using **FastAPI** a ton these days. [...] I'm actually planning to use it for all of my team's **ML services at Microsoft**. Some of them are getting integrated into the core **Windows** product and some **Office** products._"
+
+<div style="text-align: right; margin-right: 10%;">Kabir Khan - <strong>Microsoft</strong> <a href="https://github.com/fastapi/fastapi/pull/26"><small>(ref)</small></a></div>
+
+---
+
+"_We adopted the **FastAPI** library to spawn a **REST** server that can be queried to obtain **predictions**. [for Ludwig]_"
+
+<div style="text-align: right; margin-right: 10%;">Piero Molino, Yaroslav Dudin, and Sai Sumanth Miryala - <strong>Uber</strong> <a href="https://eng.uber.com/ludwig-v0-2/"><small>(ref)</small></a></div>
+
+---
+
+"_**Netflix** is pleased to announce the open-source release of our **crisis management** orchestration framework: **Dispatch**! [built with **FastAPI**]_"
+
+<div style="text-align: right; margin-right: 10%;">Kevin Glisson, Marc Vilanova, Forest Monsen - <strong>Netflix</strong> <a href="https://netflixtechblog.com/introducing-dispatch-da4b8a2a8072"><small>(ref)</small></a></div>
+
+---
+
+"_I’m over the moon excited about **FastAPI**. It’s so fun!_"
+
+<div style="text-align: right; margin-right: 10%;">Brian Okken - <strong>[Python Bytes](https://pythonbytes.fm/episodes/show/123/time-to-right-the-py-wrongs?time_in_sec=855) podcast host</strong> <a href="https://x.com/brianokken/status/1112220079972728832"><small>(ref)</small></a></div>
+
+---
+
+"_Honestly, what you've built looks super solid and polished. In many ways, it's what I wanted **Hug** to be - it's really inspiring to see someone build that._"
+
+<div style="text-align: right; margin-right: 10%;">Timothy Crosley - <strong>[Hug](https://github.com/hugapi/hug) creator</strong> <a href="https://news.ycombinator.com/item?id=19455465"><small>(ref)</small></a></div>
+
+---
+
+"_If you're looking to learn one **modern framework** for building REST APIs, check out **FastAPI** [...] It's fast, easy to use and easy to learn [...]_"
+
+"_We've switched over to **FastAPI** for our **APIs** [...] I think you'll like it [...]_"
+
+<div style="text-align: right; margin-right: 10%;">Ines Montani - Matthew Honnibal - <strong>[Explosion AI](https://explosion.ai) founders - [spaCy](https://spacy.io) creators</strong> <a href="https://x.com/_inesmontani/status/1144173225322143744"><small>(ref)</small></a> - <a href="https://x.com/honnibal/status/1144031421859655680"><small>(ref)</small></a></div>
+
+---
+
+"_If anyone is looking to build a production Python API, I would highly recommend **FastAPI**. It is **beautifully designed**, **simple to use** and **highly scalable**, it has become a **key component** in our API first development strategy and is driving many automations and services such as our Virtual TAC Engineer._"
+
+<div style="text-align: right; margin-right: 10%;">Deon Pillsbury - <strong>Cisco</strong> <a href="https://www.linkedin.com/posts/deonpillsbury_cisco-cx-python-activity-6963242628536487936-trAp/"><small>(ref)</small></a></div>
+
+---
+
+## FastAPI mini documentary
+
+There's a [FastAPI mini documentary](https://www.youtube.com/watch?v=mpR8ngthqiE) released at the end of 2025, you can watch it online:
+
+<a href="https://www.youtube.com/watch?v=mpR8ngthqiE"><img src="https://fastapi.tiangolo.com/img/fastapi-documentary.jpg" alt="FastAPI Mini Documentary"></a>
+
+## **Typer**, the FastAPI of CLIs
+
+<a href="https://typer.tiangolo.com"><img src="https://typer.tiangolo.com/img/logo-margin/logo-margin-vector.svg" style="width: 20%;"></a>
+
+If you are building a <abbr title="Command Line Interface">CLI</abbr> app to be used in the terminal instead of a web API, check out [**Typer**](https://typer.tiangolo.com/).
+
+**Typer** is FastAPI's little sibling. And it's intended to be the **FastAPI of CLIs**. ⌨️ 🚀
+
+## Requirements
+
+FastAPI stands on the shoulders of giants:
+
+* [Starlette](https://www.starlette.dev/) for the web parts.
+* [Pydantic](https://docs.pydantic.dev/) for the data parts.
+
+## Installation
+
+Create and activate a [virtual environment](https://fastapi.tiangolo.com/virtual-environments/) and then install FastAPI:
+
+<div class="termy">
+
+```console
+$ pip install "fastapi[standard]"
+
+---> 100%
+```
+
+</div>
+
+**Note**: Make sure you put `"fastapi[standard]"` in quotes to ensure it works in all terminals.
+
+## Example
+
+### Create it
+
+Create a file `main.py` with:
+
+```Python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str | None = None):
+    return {"item_id": item_id, "q": q}
+```
+
+<details markdown="1">
+<summary>Or use <code>async def</code>...</summary>
+
+If your code uses `async` / `await`, use `async def`:
+
+```Python hl_lines="7  12"
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+async def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+async def read_item(item_id: int, q: str | None = None):
+    return {"item_id": item_id, "q": q}
+```
+
+**Note**:
+
+If you don't know, check the _"In a hurry?"_ section about [`async` and `await` in the docs](https://fastapi.tiangolo.com/async/#in-a-hurry).
+
+</details>
+
+### Run it
+
+Run the server with:
+
+<div class="termy">
+
+```console
+$ fastapi dev
+
+ ╭────────── FastAPI CLI - Development mode ───────────╮
+ │                                                     │
+ │  Serving at: http://127.0.0.1:8000                  │
+ │                                                     │
+ │  API docs: http://127.0.0.1:8000/docs               │
+ │                                                     │
+ │  Running in development mode, for production use:   │
+ │                                                     │
+ │  fastapi run                                        │
+ │                                                     │
+ ╰─────────────────────────────────────────────────────╯
+
+INFO:     Will watch for changes in these directories: ['/home/user/code/awesomeapp']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2248755] using WatchFiles
+INFO:     Started server process [2248757]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+</div>
+
+<details markdown="1">
+<summary>About the command <code>fastapi dev</code>...</summary>
+
+The command `fastapi dev` reads your `main.py` file automatically, detects the **FastAPI** app in it, and starts a server using [Uvicorn](https://www.uvicorn.dev).
+
+By default, `fastapi dev` will start with auto-reload enabled for local development.
+
+You can read more about it in the [FastAPI CLI docs](https://fastapi.tiangolo.com/fastapi-cli/).
+
+</details>
+
+### Check it
+
+Open your browser at [http://127.0.0.1:8000/items/5?q=somequery](http://127.0.0.1:8000/items/5?q=somequery).
+
+You will see the JSON response as:
+
+```JSON
+{"item_id": 5, "q": "somequery"}
+```
+
+You already created an API that:
+
+* Receives HTTP requests in the _paths_ `/` and `/items/{item_id}`.
+* Both _paths_ take `GET` <em>operations</em> (also known as HTTP _methods_).
+* The _path_ `/items/{item_id}` has a _path parameter_ `item_id` that should be an `int`.
+* The _path_ `/items/{item_id}` has an optional `str` _query parameter_ `q`.
+
+### Interactive API docs
+
+Now go to [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+
+You will see the automatic interactive API documentation (provided by [Swagger UI](https://github.com/swagger-api/swagger-ui)):
+
+![Swagger UI](https://fastapi.tiangolo.com/img/index/index-01-swagger-ui-simple.png)
+
+### Alternative API docs
+
+And now, go to [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc).
+
+You will see the alternative automatic documentation (provided by [ReDoc](https://github.com/Rebilly/ReDoc)):
+
+![ReDoc](https://fastapi.tiangolo.com/img/index/index-02-redoc-simple.png)
+
+## Example upgrade
+
+Now modify the file `main.py` to receive a body from a `PUT` request.
+
+Declare the body using standard Python types, thanks to Pydantic.
+
+```Python hl_lines="2  7-10 23-25"
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+
+class Item(BaseModel):
+    name: str
+    price: float
+    is_offer: bool | None = None
+
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str | None = None):
+    return {"item_id": item_id, "q": q}
+
+
+@app.put("/items/{item_id}")
+def update_item(item_id: int, item: Item):
+    return {"item_name": item.name, "item_id": item_id}
+```
+
+The `fastapi dev` server should reload automatically.
+
+### Interactive API docs upgrade
+
+Now go to [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+
+* The interactive API documentation will be automatically updated, including the new body:
+
+![Swagger UI](https://fastapi.tiangolo.com/img/index/index-03-swagger-02.png)
+
+* Click on the button "Try it out", it allows you to fill the parameters and directly interact with the API:
+
+![Swagger UI interaction](https://fastapi.tiangolo.com/img/index/index-04-swagger-03.png)
+
+* Then click on the "Execute" button, the user interface will communicate with your API, send the parameters, get the results and show them on the screen:
+
+![Swagger UI interaction](https://fastapi.tiangolo.com/img/index/index-05-swagger-04.png)
+
+### Alternative API docs upgrade
+
+And now, go to [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc).
+
+* The alternative documentation will also reflect the new query parameter and body:
+
+![ReDoc](https://fastapi.tiangolo.com/img/index/index-06-redoc-02.png)
+
+### Recap
+
+In summary, you declare **once** the types of parameters, body, etc. as function parameters.
+
+You do that with standard modern Python types.
+
+You don't have to learn a new syntax, the methods or classes of a specific library, etc.
+
+Just standard **Python**.
+
+For example, for an `int`:
+
+```Python
+item_id: int
+```
+
+or for a more complex `Item` model:
+
+```Python
+item: Item
+```
+
+...and with that single declaration you get:
+
+* Editor support, including:
+    * Completion.
+    * Type checks.
+* Validation of data:
+    * Automatic and clear errors when the data is invalid.
+    * Validation even for deeply nested JSON objects.
+* <dfn title="also known as: serialization, parsing, marshalling">Conversion</dfn> of input data: coming from the network to Python data and types. Reading from:
+    * JSON.
+    * Path parameters.
+    * Query parameters.
+    * Cookies.
+    * Headers.
+    * Forms.
+    * Files.
+* <dfn title="also known as: serialization, parsing, marshalling">Conversion</dfn> of output data: converting from Python data and types to network data (as JSON):
+    * Convert Python types (`str`, `int`, `float`, `bool`, `list`, etc).
+    * `datetime` objects.
+    * `UUID` objects.
+    * Database models.
+    * ...and many more.
+* Automatic interactive API documentation, including 2 alternative user interfaces:
+    * Swagger UI.
+    * ReDoc.
+
+---
+
+Coming back to the previous code example, **FastAPI** will:
+
+* Validate that there is an `item_id` in the path for `GET` and `PUT` requests.
+* Validate that the `item_id` is of type `int` for `GET` and `PUT` requests.
+    * If it is not, the client will see a useful, clear error.
+* Check if there is an optional query parameter named `q` (as in `http://127.0.0.1:8000/items/foo?q=somequery`) for `GET` requests.
+    * As the `q` parameter is declared with `= None`, it is optional.
+    * Without the `None` it would be required (as is the body in the case with `PUT`).
+* For `PUT` requests to `/items/{item_id}`, read the body as JSON:
+    * Check that it has a required attribute `name` that should be a `str`.
+    * Check that it has a required attribute `price` that has to be a `float`.
+    * Check that it has an optional attribute `is_offer`, that should be a `bool`, if present.
+    * All this would also work for deeply nested JSON objects.
+* Convert from and to JSON automatically.
+* Document everything with OpenAPI, that can be used by:
+    * Interactive documentation systems.
+    * Automatic client code generation systems, for many languages.
+* Provide 2 interactive documentation web interfaces directly.
+
+---
+
+We just scratched the surface, but you already get the idea of how it all works.
+
+Try changing the line with:
+
+```Python
+    return {"item_name": item.name, "item_id": item_id}
+```
+
+...from:
+
+```Python
+        ... "item_name": item.name ...
+```
+
+...to:
+
+```Python
+        ... "item_price": item.price ...
+```
+
+...and see how your editor will auto-complete the attributes and know their types:
+
+![editor support](https://fastapi.tiangolo.com/img/vscode-completion.png)
+
+For a more complete example including more features, see the <a href="https://fastapi.tiangolo.com/tutorial/">Tutorial - User Guide</a>.
+
+**Spoiler alert**: the tutorial - user guide includes:
+
+* Declaration of **parameters** from other different places as: **headers**, **cookies**, **form fields** and **files**.
+* How to set **validation constraints** as `maximum_length` or `regex`.
+* A very powerful and easy to use **<dfn title="also known as components, resources, providers, services, injectables">Dependency Injection</dfn>** system.
+* Security and authentication, including support for **OAuth2** with **JWT tokens** and **HTTP Basic** auth.
+* More advanced (but equally easy) techniques for declaring **deeply nested JSON models** (thanks to Pydantic).
+* **GraphQL** integration with [Strawberry](https://strawberry.rocks) and other libraries.
+* Many extra features (thanks to Starlette) as:
+    * **WebSockets**
+    * extremely easy tests based on HTTPX and `pytest`
+    * **CORS**
+    * **Cookie Sessions**
+    * ...and more.
+
+### Deploy your app (optional)
+
+You can optionally deploy your FastAPI app to [FastAPI Cloud](https://fastapicloud.com), go and join the waiting list if you haven't. 🚀
+
+If you already have a **FastAPI Cloud** account (we invited you from the waiting list 😉), you can deploy your application with one command.
+
+<div class="termy">
+
+```console
+$ fastapi deploy
+
+Deploying to FastAPI Cloud...
+
+✅ Deployment successful!
+
+🐔 Ready the chicken! Your app is ready at https://myapp.fastapicloud.dev
+```
+
+</div>
+
+That's it! Now you can access your app at that URL. ✨
+
+#### About FastAPI Cloud
+
+**[FastAPI Cloud](https://fastapicloud.com)** is built by the same author and team behind **FastAPI**.
+
+It streamlines the process of **building**, **deploying**, and **accessing** an API with minimal effort.
+
+It brings the same **developer experience** of building apps with FastAPI to **deploying** them to the cloud. 🎉
+
+FastAPI Cloud is the primary sponsor and funding provider for the *FastAPI and friends* open source projects. ✨
+
+#### Deploy to other cloud providers
+
+FastAPI is open source and based on standards. You can deploy FastAPI apps to any cloud provider you choose.
+
+Follow your cloud provider's guides to deploy FastAPI apps with them. 🤓
+
+## Performance
+
+Independent TechEmpower benchmarks show **FastAPI** applications running under Uvicorn as [one of the fastest Python frameworks available](https://www.techempower.com/benchmarks/#section=test&runid=7464e520-0dc2-473d-bd34-dbdfd7e85911&hw=ph&test=query&l=zijzen-7), only below Starlette and Uvicorn themselves (used internally by FastAPI). (*)
+
+To understand more about it, see the section [Benchmarks](https://fastapi.tiangolo.com/benchmarks/).
+
+## Dependencies
+
+FastAPI depends on Pydantic and Starlette.
+
+### `standard` Dependencies
+
+When you install FastAPI with `pip install "fastapi[standard]"` it comes with the `standard` group of optional dependencies:
+
+Used by Pydantic:
+
+* [`email-validator`](https://github.com/JoshData/python-email-validator) - for email validation.
+
+Used by Starlette:
+
+* [`httpx`](https://www.python-httpx.org) - Required if you want to use the `TestClient`.
+* [`jinja2`](https://jinja.palletsprojects.com) - Required if you want to use the default template configuration.
+* [`python-multipart`](https://github.com/Kludex/python-multipart) - Required if you want to support form <dfn title="converting the string that comes from an HTTP request into Python data">"parsing"</dfn>, with `request.form()`.
+
+Used by FastAPI:
+
+* [`uvicorn`](https://www.uvicorn.dev) - for the server that loads and serves your application. This includes `uvicorn[standard]`, which includes some dependencies (e.g. `uvloop`) needed for high performance serving.
+* `fastapi-cli[standard]` - to provide the `fastapi` command.
+    * This includes `fastapi-cloud-cli`, which allows you to deploy your FastAPI application to [FastAPI Cloud](https://fastapicloud.com).
+
+### Without `standard` Dependencies
+
+If you don't want to include the `standard` optional dependencies, you can install with `pip install fastapi` instead of `pip install "fastapi[standard]"`.
+
+### Without `fastapi-cloud-cli`
+
+If you want to install FastAPI with the standard dependencies but without the `fastapi-cloud-cli`, you can install with `pip install "fastapi[standard-no-fastapi-cloud-cli]"`.
+
+### Additional Optional Dependencies
+
+There are some additional dependencies you might want to install.
+
+Additional optional Pydantic dependencies:
+
+* [`pydantic-settings`](https://docs.pydantic.dev/latest/usage/pydantic_settings/) - for settings management.
+* [`pydantic-extra-types`](https://docs.pydantic.dev/latest/usage/types/extra_types/extra_types/) - for extra types to be used with Pydantic.
+
+Additional optional FastAPI dependencies:
+
+* [`orjson`](https://github.com/ijl/orjson) - Required if you want to use `ORJSONResponse`.
+* [`ujson`](https://github.com/esnme/ultrajson) - Required if you want to use `UJSONResponse`.
+
+## License
+
+This project is licensed under the terms of the MIT license.
+
+
+# FILE: LICENSE
+The MIT License (MIT)
+
+Copyright (c) 2018 Sebastián Ramírez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+# FILE: CONTRIBUTING.md
+Please read the [Development - Contributing](https://fastapi.tiangolo.com/contributing/) guidelines in the documentation site.
+
+
+# FILE: fastapi-slim/README.md
+<p align="center">
+  <a href="https://fastapi.tiangolo.com"><img src="https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png" alt="FastAPI"></a>
+</p>
+<p align="center">
+    <em>FastAPI framework, high performance, easy to learn, fast to code, ready for production</em>
+</p>
+<p align="center">
+<a href="https://github.com/fastapi/fastapi/actions?query=workflow%3ATest+event%3Apush+branch%3Amaster" target="_blank">
+    <img src="https://github.com/fastapi/fastapi/actions/workflows/test.yml/badge.svg?event=push&branch=master" alt="Test">
+</a>
+<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/fastapi" target="_blank">
+    <img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/fastapi.svg" alt="Coverage">
+</a>
+<a href="https://pypi.org/project/fastapi" target="_blank">
+    <img src="https://img.shields.io/pypi/v/fastapi?color=%2334D058&label=pypi%20package" alt="Package version">
+</a>
+<a href="https://pypi.org/project/fastapi" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/fastapi.svg?color=%2334D058" alt="Supported Python versions">
+</a>
+</p>
+
+---
+
+**Documentation**: <a href="https://fastapi.tiangolo.com" target="_blank">https://fastapi.tiangolo.com</a>
+
+**Source Code**: <a href="https://github.com/fastapi/fastapi" target="_blank">https://github.com/fastapi/fastapi</a>
+
+---
+
+FastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints.
+
+## `fastapi-slim`
+
+⚠️ Do not install this package. ⚠️
+
+This package, `fastapi-slim`, does nothing other than depend on `fastapi`.
+
+All the functionality has been integrated into `fastapi`.
+
+The only reason this package exists is as a migration path for old projects that used to depend on `fastapi-slim`, so that they can get the latest version of `fastapi`.
+
+You **should not** install this package.
+
+Install instead:
+
+```bash
+pip install fastapi
+```
+
+This package is deprecated and will stop receiving any updates and published versions.
+
+## License
+
+This project is licensed under the terms of the MIT license.
+
+
+# FILE: docs/missing-translation.md
+/// warning
+
+This page hasn’t been translated into your language yet. 🌍
+
+We’re currently switching to an automated translation system 🤖, which will help keep all translations complete and up to date.
+
+Learn more: [Contributing - Translations](https://fastapi.tiangolo.com/contributing/#translations){.internal-link target=_blank}
+
+///
+
+
+# FILE: docs/language_names.yml
+aa: Afaraf
+ab: аҧсуа бызшәа
+ae: avesta
+af: Afrikaans
+ak: Akan
+am: አማርኛ
+an: aragonés
+ar: اللغة العربية
+as: অসমীয়া
+av: авар мацӀ
+ay: aymar aru
+az: azərbaycan dili
+ba: башҡорт теле
+be: беларуская мова
+bg: български език
+bh: भोजपुरी
+bi: Bislama
+bm: bamanankan
+bn: বাংলা
+bo: བོད་ཡིག
+br: brezhoneg
+bs: bosanski jezik
+ca: Català
+ce: нохчийн мотт
+ch: Chamoru
+co: corsu
+cr: ᓀᐦᐃᔭᐍᐏᐣ
+cs: čeština
+cu: ѩзыкъ словѣньскъ
+cv: чӑваш чӗлхи
+cy: Cymraeg
+da: dansk
+de: Deutsch
+dv: Dhivehi
+dz: རྫོང་ཁ
+ee: Eʋegbe
+el: Ελληνικά
+en: English
+eo: Esperanto
+es: español
+et: eesti
+eu: euskara
+fa: فارسی
+ff: Fulfulde
+fi: suomi
+fj: Vakaviti
+fo: føroyskt
+fr: français
+fy: Frysk
+ga: Gaeilge
+gd: Gàidhlig
+gl: galego
+gu: ગુજરાતી
+gv: Gaelg
+ha: هَوُسَ
+he: עברית
+hi: हिन्दी
+ho: Hiri Motu
+hr: Hrvatski
+ht: Kreyòl ayisyen
+hu: magyar
+hy: Հայերեն
+hz: Otjiherero
+ia: Interlingua
+id: Bahasa Indonesia
+ie: Interlingue
+ig: Asụsụ Igbo
+ii: ꆈꌠ꒿ Nuosuhxop
+ik: Iñupiaq
+io: Ido
+is: Íslenska
+it: italiano
+iu: ᐃᓄᒃᑎᑐᑦ
+ja: 日本語
+jv: basa Jawa
+ka: ქართული
+kg: Kikongo
+ki: Gĩkũyũ
+kj: Kuanyama
+kk: қазақ тілі
+kl: kalaallisut
+km: ខេមរភាសា
+kn: ಕನ್ನಡ
+ko: 한국어
+kr: Kanuri
+ks: कश्मीरी
+ku: Kurdî
+kv: коми кыв
+kw: Kernewek
+ky: Кыргызча
+la: latine
+lb: Lëtzebuergesch
+lg: Luganda
+li: Limburgs
+ln: Lingála
+lo: ພາສາ
+lt: lietuvių kalba
+lu: Tshiluba
+lv: latviešu valoda
+mg: fiteny malagasy
+mh: Kajin M̧ajeļ
+mi: te reo Māori
+mk: македонски јазик
+ml: മലയാളം
+mn: Монгол хэл
+mr: मराठी
+ms: Bahasa Malaysia
+mt: Malti
+my: ဗမာစာ
+na: Ekakairũ Naoero
+nb: Norsk bokmål
+nd: isiNdebele
+ne: नेपाली
+ng: Owambo
+nl: Nederlands
+nn: Norsk nynorsk
+'no': Norsk
+nr: isiNdebele
+nv: Diné bizaad
+ny: chiCheŵa
+oc: occitan
+oj: ᐊᓂᔑᓈᐯᒧᐎᓐ
+om: Afaan Oromoo
+or: ଓଡ଼ିଆ
+os: ирон æвзаг
+pa: ਪੰਜਾਬੀ
+pi: पाऴि
+pl: Polski
+ps: پښتو
+pt: português
+qu: Runa Simi
+rm: rumantsch grischun
+rn: Ikirundi
+ro: Română
+ru: русский язык
+rw: Ikinyarwanda
+sa: संस्कृतम्
+sc: sardu
+sd: सिन्धी
+se: Davvisámegiella
+sg: yângâ tî sängö
+si: සිංහල
+sk: slovenčina
+sl: slovenščina
+sn: chiShona
+so: Soomaaliga
+sq: shqip
+sr: српски језик
+ss: SiSwati
+st: Sesotho
+su: Basa Sunda
+sv: svenska
+sw: Kiswahili
+ta: தமிழ்
+te: తెలుగు
+tg: тоҷикӣ
+th: ไทย
+ti: ትግርኛ
+tk: Türkmen
+tl: Wikang Tagalog
+tn: Setswana
+to: faka Tonga
+tr: Türkçe
+ts: Xitsonga
+tt: татар теле
+tw: Twi
+ty: Reo Tahiti
+ug: ئۇيغۇرچە‎
+uk: українська мова
+ur: اردو
+uz: Ўзбек
+ve: Tshivenḓa
+vi: Tiếng Việt
+vo: Volapük
+wa: walon
+wo: Wollof
+xh: isiXhosa
+yi: ייִדיש
+yo: Yorùbá
+za: Saɯ cueŋƅ
+zh: 简体中文
+zh-hant: 繁體中文
+zu: isiZulu
+
+
+# FILE: scripts/translation_fixer.py
+import os
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Annotated
+
+import typer
+
+from scripts.doc_parsing_utils import check_translation
+
+non_translated_sections = (
+    f"reference{os.sep}",
+    "release-notes.md",
+    "fastapi-people.md",
+    "external-links.md",
+    "newsletter.md",
+    "management-tasks.md",
+    "management.md",
+    "contributing.md",
+)
+
+
+cli = typer.Typer()
+
+
+@cli.callback()
+def callback():
+    pass
+
+
+def iter_all_lang_paths(lang_path_root: Path) -> Iterable[Path]:
+    """
+    Iterate on the markdown files to translate in order of priority.
+    """
+
+    first_dirs = [
+        lang_path_root / "learn",
+        lang_path_root / "tutorial",
+        lang_path_root / "advanced",
+        lang_path_root / "about",
+        lang_path_root / "how-to",
+    ]
+    first_parent = lang_path_root
+    yield from first_parent.glob("*.md")
+    for dir_path in first_dirs:
+        yield from dir_path.rglob("*.md")
+    first_dirs_str = tuple(str(d) for d in first_dirs)
+    for path in lang_path_root.rglob("*.md"):
+        if str(path).startswith(first_dirs_str):
+            continue
+        if path.parent == first_parent:
+            continue
+        yield path
+
+
+def get_all_paths(lang: str):
+    res: list[str] = []
+    lang_docs_root = Path("docs") / lang / "docs"
+    for path in iter_all_lang_paths(lang_docs_root):
+        relpath = path.relative_to(lang_docs_root)
+        if not str(relpath).startswith(non_translated_sections):
+            res.append(str(relpath))
+    return res
+
+
+def process_one_page(path: Path) -> bool:
+    """
+    Fix one translated document by comparing it to the English version.
+
+    Returns True if processed successfully, False otherwise.
+    """
+
+    try:
+        lang_code = path.parts[1]
+        if lang_code == "en":
+            print(f"Skipping English document: {path}")
+            return True
+
+        en_doc_path = Path("docs") / "en" / Path(*path.parts[2:])
+
+        doc_lines = path.read_text(encoding="utf-8").splitlines()
+        en_doc_lines = en_doc_path.read_text(encoding="utf-8").splitlines()
+
+        doc_lines = check_translation(
+            doc_lines=doc_lines,
+            en_doc_lines=en_doc_lines,
+            lang_code=lang_code,
+            auto_fix=True,
+            path=str(path),
+        )
+
+        # Write back the fixed document
+        doc_lines.append("")  # Ensure file ends with a newline
+        path.write_text("\n".join(doc_lines), encoding="utf-8")
+
+    except ValueError as e:
+        print(f"Error processing {path}: {e}")
+        return False
+    return True
+
+
+@cli.command()
+def fix_all(ctx: typer.Context, language: str):
+    docs = get_all_paths(language)
+
+    all_good = True
+    for page in docs:
+        doc_path = Path("docs") / language / "docs" / page
+        res = process_one_page(doc_path)
+        all_good = all_good and res
+
+    if not all_good:
+        raise typer.Exit(code=1)
+
+
+@cli.command()
+def fix_pages(
+    doc_paths: Annotated[
+        list[Path],
+        typer.Argument(help="List of paths to documents."),
+    ],
+):
+    all_good = True
+    for path in doc_paths:
+        res = process_one_page(path)
+        all_good = all_good and res
+
+    if not all_good:
+        raise typer.Exit(code=1)
+
+
+if __name__ == "__main__":
+    cli()
+
+
+# FILE: scripts/translate.py
+import json
+import secrets
+import subprocess
+from collections.abc import Iterable
+from functools import lru_cache
+from os import sep as pathsep
+from pathlib import Path
+from typing import Annotated
+
+import git
+import typer
+import yaml
+from doc_parsing_utils import check_translation
+from github import Github
+from pydantic_ai import Agent
+from rich import print
+
+non_translated_sections = (
+    f"reference{pathsep}",
+    "release-notes.md",
+    "fastapi-people.md",
+    "external-links.md",
+    "newsletter.md",
+    "management-tasks.md",
+    "management.md",
+    "contributing.md",
+)
+
+general_prompt_path = Path(__file__).absolute().parent / "general-llm-prompt.md"
+general_prompt = general_prompt_path.read_text(encoding="utf-8")
+
+app = typer.Typer()
+
+
+@lru_cache
+def get_langs() -> dict[str, str]:
+    return yaml.safe_load(Path("docs/language_names.yml").read_text(encoding="utf-8"))
+
+
+def generate_lang_path(*, lang: str, path: Path) -> Path:
+    en_docs_path = Path("docs/en/docs")
+    assert str(path).startswith(str(en_docs_path)), (
+        f"Path must be inside {en_docs_path}"
+    )
+    lang_docs_path = Path(f"docs/{lang}/docs")
+    out_path = Path(str(path).replace(str(en_docs_path), str(lang_docs_path)))
+    return out_path
+
+
+def generate_en_path(*, lang: str, path: Path) -> Path:
+    en_docs_path = Path("docs/en/docs")
+    assert not str(path).startswith(str(en_docs_path)), (
+        f"Path must not be inside {en_docs_path}"
+    )
+    lang_docs_path = Path(f"docs/{lang}/docs")
+    out_path = Path(str(path).replace(str(lang_docs_path), str(en_docs_path)))
+    return out_path
+
+
+@app.command()
+def translate_page(
+    *,
+    language: Annotated[str, typer.Option(envvar="LANGUAGE")],
+    en_path: Annotated[Path, typer.Option(envvar="EN_PATH")],
+) -> None:
+    assert language != "en", (
+        "`en` is the source language, choose another language as translation target"
+    )
+    langs = get_langs()
+    language_name = langs[language]
+    lang_path = Path(f"docs/{language}")
+    lang_path.mkdir(exist_ok=True)
+    lang_prompt_path = lang_path / "llm-prompt.md"
+    assert lang_prompt_path.exists(), f"Prompt file not found: {lang_prompt_path}"
+    lang_prompt_content = lang_prompt_path.read_text(encoding="utf-8")
+
+    en_docs_path = Path("docs/en/docs")
+    assert str(en_path).startswith(str(en_docs_path)), (
+        f"Path must be inside {en_docs_path}"
+    )
+    out_path = generate_lang_path(lang=language, path=en_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    original_content = en_path.read_text(encoding="utf-8")
+    old_translation: str | None = None
+    if out_path.exists():
+        print(f"Found existing translation: {out_path}")
+        old_translation = out_path.read_text(encoding="utf-8")
+    print(f"Translating {en_path} to {language} ({language_name})")
+    agent = Agent("openai:gpt-5")
+
+    prompt_segments = [
+        general_prompt,
+        lang_prompt_content,
+    ]
+    if old_translation:
+        prompt_segments.extend(
+            [
+                "There is an existing previous translation for the original English content, that may be outdated.",
+                "Update the translation only where necessary:",
+                "- If the original English content has added parts, also add these parts to the translation.",
+                "- If the original English content has removed parts, also remove them from the translation, unless you were instructed earlier to not do that in specific cases.",
+                "- If parts of the original English content have changed, also change those parts in the translation.",
+                "- If the previous translation violates current instructions, update it.",
+                "- Otherwise, preserve the original translation LINE-BY-LINE, AS-IS.",
+                "Do not:",
+                "- rephrase or rewrite correct lines just to improve the style.",
+                "- add or remove line breaks, unless the original English content changed.",
+                "- change formatting or whitespace unless absolutely required.",
+                "Only change what must be changed. The goal is to minimize diffs for easier human review.",
+                "UNLESS you were instructed earlier to behave different, there MUST NOT be whole sentences or partial sentences in the updated translation, which are not in the original English content, and there MUST NOT be whole sentences or partial sentences in the original English content, which are not in the updated translation. Remember: the updated translation shall be IN SYNC with the original English content.",
+                "Previous translation:",
+                f"%%%\n{old_translation}%%%",
+            ]
+        )
+    prompt_segments.extend(
+        [
+            f"Translate to {language} ({language_name}).",
+            "Original content:",
+            f"%%%\n{original_content}%%%",
+        ]
+    )
+    prompt = "\n\n".join(prompt_segments)
+
+    MAX_ATTEMPTS = 3
+    for attempt_no in range(1, MAX_ATTEMPTS + 1):
+        print(f"Running agent for {out_path} (attempt {attempt_no}/{MAX_ATTEMPTS})")
+        result = agent.run_sync(prompt)
+        out_content = f"{result.output.strip()}\n"
+        try:
+            check_translation(
+                doc_lines=out_content.splitlines(),
+                en_doc_lines=original_content.splitlines(),
+                lang_code=language,
+                auto_fix=False,
+                path=str(out_path),
+            )
+            break  # Exit loop if no errors
+        except ValueError as e:
+            print(
+                f"Translation check failed on attempt {attempt_no}/{MAX_ATTEMPTS}: {e}"
+            )
+            continue  # Retry if not reached max attempts
+    else:  # Max retry attempts reached
+        print(f"Translation failed for {out_path} after {MAX_ATTEMPTS} attempts")
+
+    print(f"Saving translation to {out_path}")
+    out_path.write_text(out_content, encoding="utf-8", newline="\n")
+
+
+def iter_all_en_paths() -> Iterable[Path]:
+    """
+    Iterate on the markdown files to translate in order of priority.
+    """
+    first_dirs = [
+        Path("docs/en/docs/learn"),
+        Path("docs/en/docs/tutorial"),
+        Path("docs/en/docs/advanced"),
+        Path("docs/en/docs/about"),
+        Path("docs/en/docs/how-to"),
+    ]
+    first_parent = Path("docs/en/docs")
+    yield from first_parent.glob("*.md")
+    for dir_path in first_dirs:
+        yield from dir_path.rglob("*.md")
+    first_dirs_str = tuple(str(d) for d in first_dirs)
+    for path in Path("docs/en/docs").rglob("*.md"):
+        if str(path).startswith(first_dirs_str):
+            continue
+        if path.parent == first_parent:
+            continue
+        yield path
+
+
+def iter_en_paths_to_translate() -> Iterable[Path]:
+    en_docs_root = Path("docs/en/docs/")
+    for path in iter_all_en_paths():
+        relpath = path.relative_to(en_docs_root)
+        if not str(relpath).startswith(non_translated_sections):
+            yield path
+
+
+@app.command()
+def translate_lang(language: Annotated[str, typer.Option(envvar="LANGUAGE")]) -> None:
+    paths_to_process = list(iter_en_paths_to_translate())
+    print("Original paths:")
+    for p in paths_to_process:
+        print(f"  - {p}")
+    print(f"Total original paths: {len(paths_to_process)}")
+    missing_paths: list[Path] = []
+    skipped_paths: list[Path] = []
+    for p in paths_to_process:
+        lang_path = generate_lang_path(lang=language, path=p)
+        if lang_path.exists():
+            skipped_paths.append(p)
+            continue
+        missing_paths.append(p)
+    print("Paths to skip:")
+    for p in skipped_paths:
+        print(f"  - {p}")
+    print(f"Total paths to skip: {len(skipped_paths)}")
+    print("Paths to process:")
+    for p in missing_paths:
+        print(f"  - {p}")
+    print(f"Total paths to process: {len(missing_paths)}")
+    for p in missing_paths:
+        print(f"Translating: {p}")
+        translate_page(language="es", en_path=p)
+        print(f"Done translating: {p}")
+
+
+def get_llm_translatable() -> list[str]:
+    translatable_langs = []
+    langs = get_langs()
+    for lang in langs:
+        if lang == "en":
+            continue
+        lang_prompt_path = Path(f"docs/{lang}/llm-prompt.md")
+        if lang_prompt_path.exists():
+            translatable_langs.append(lang)
+    return translatable_langs
+
+
+@app.command()
+def list_llm_translatable() -> list[str]:
+    translatable_langs = get_llm_translatable()
+    print("LLM translatable languages:", translatable_langs)
+    return translatable_langs
+
+
+@app.command()
+def llm_translatable_json(
+    language: Annotated[str | None, typer.Option(envvar="LANGUAGE")] = None,
+) -> None:
+    translatable_langs = get_llm_translatable()
+    if language:
+        if language in translatable_langs:
+            print(json.dumps([language]))
+            return
+        else:
+            raise typer.Exit(code=1)
+    print(json.dumps(translatable_langs))
+
+
+@app.command()
+def commands_json(
+    command: Annotated[str | None, typer.Option(envvar="COMMAND")] = None,
+) -> None:
+    available_commands = [
+        "translate-page",
+        "translate-lang",
+        "update-outdated",
+        "add-missing",
+        "update-and-add",
+        "remove-removable",
+    ]
+    default_commands = [
+        "remove-removable",
+        "update-outdated",
+        "add-missing",
+    ]
+    if command:
+        if command in available_commands:
+            print(json.dumps([command]))
+            return
+        else:
+            raise typer.Exit(code=1)
+    print(json.dumps(default_commands))
+
+
+@app.command()
+def list_removable(language: str) -> list[Path]:
+    removable_paths: list[Path] = []
+    lang_paths = Path(f"docs/{language}").rglob("*.md")
+    for path in lang_paths:
+        en_path = generate_en_path(lang=language, path=path)
+        if not en_path.exists():
+            removable_paths.append(path)
+    print(removable_paths)
+    return removable_paths
+
+
+@app.command()
+def list_all_removable() -> list[Path]:
+    all_removable_paths: list[Path] = []
+    langs = get_langs()
+    for lang in langs:
+        if lang == "en":
+            continue
+        removable_paths = list_removable(lang)
+        all_removable_paths.extend(removable_paths)
+    print(all_removable_paths)
+    return all_removable_paths
+
+
+@app.command()
+def remove_removable(language: Annotated[str, typer.Option(envvar="LANGUAGE")]) -> None:
+    removable_paths = list_removable(language)
+    for path in removable_paths:
+        path.unlink()
+        print(f"Removed: {path}")
+    print("Done removing all removable paths")
+
+
+@app.command()
+def remove_all_removable() -> None:
+    all_removable = list_all_removable()
+    for removable_path in all_removable:
+        removable_path.unlink()
+        print(f"Removed: {removable_path}")
+    print("Done removing all removable paths")
+
+
+@app.command()
+def list_missing(language: str) -> list[Path]:
+    missing_paths: list[Path] = []
+    en_lang_paths = list(iter_en_paths_to_translate())
+    for path in en_lang_paths:
+        lang_path = generate_lang_path(lang=language, path=path)
+        if not lang_path.exists():
+            missing_paths.append(path)
+    print(missing_paths)
+    return missing_paths
+
+
+@app.command()
+def list_outdated(language: str) -> list[Path]:
+    dir_path = Path(__file__).absolute().parent.parent
+    repo = git.Repo(dir_path)
+
+    outdated_paths: list[Path] = []
+    en_lang_paths = list(iter_en_paths_to_translate())
+    for path in en_lang_paths:
+        lang_path = generate_lang_path(lang=language, path=path)
+        if not lang_path.exists():
+            continue
+        en_commit_datetime = list(repo.iter_commits(paths=path, max_count=1))[
+            0
+        ].committed_datetime
+        lang_commit_datetime = list(repo.iter_commits(paths=lang_path, max_count=1))[
+            0
+        ].committed_datetime
+        if lang_commit_datetime < en_commit_datetime:
+            outdated_paths.append(path)
+    print(outdated_paths)
+    return outdated_paths
+
+
+@app.command()
+def update_outdated(
+    language: Annotated[str, typer.Option(envvar="LANGUAGE")],
+    max: Annotated[int, typer.Option(envvar="MAX")] = 10,
+) -> None:
+    outdated_paths = list_outdated(language)
+    for path in outdated_paths[:max]:
+        print(f"Updating lang: {language} path: {path}")
+        translate_page(language=language, en_path=path)
+        print(f"Done updating: {path}")
+    print("Done updating all outdated paths")
+
+
+@app.command()
+def add_missing(
+    language: Annotated[str, typer.Option(envvar="LANGUAGE")],
+    max: Annotated[int, typer.Option(envvar="MAX")] = 10,
+) -> None:
+    missing_paths = list_missing(language)
+    for path in missing_paths[:max]:
+        print(f"Adding lang: {language} path: {path}")
+        translate_page(language=language, en_path=path)
+        print(f"Done adding: {path}")
+    print("Done adding all missing paths")
+
+
+@app.command()
+def update_and_add(
+    language: Annotated[str, typer.Option(envvar="LANGUAGE")],
+    max: Annotated[int, typer.Option(envvar="MAX")] = 10,
+) -> None:
+    print(f"Updating outdated translations for {language}")
+    update_outdated(language=language, max=max)
+    print(f"Adding missing translations for {language}")
+    add_missing(language=language, max=max)
+    print(f"Done updating and adding for {language}")
+
+
+@app.command()
+def make_pr(
+    *,
+    language: Annotated[str | None, typer.Option(envvar="LANGUAGE")] = None,
+    command: Annotated[str | None, typer.Option(envvar="COMMAND")] = None,
+    github_token: Annotated[str, typer.Option(envvar="GITHUB_TOKEN")],
+    github_repository: Annotated[str, typer.Option(envvar="GITHUB_REPOSITORY")],
+    commit_in_place: Annotated[
+        bool, typer.Option(envvar="COMMIT_IN_PLACE", show_default=True)
+    ] = False,
+) -> None:
+    print("Setting up GitHub Actions git user")
+    repo = git.Repo(Path(__file__).absolute().parent.parent)
+    if not repo.is_dirty(untracked_files=True):
+        print("Repository is clean, no changes to commit")
+        return
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"],
+        check=True,
+    )
+    current_branch = repo.active_branch.name
+    if current_branch == "master" and commit_in_place:
+        print("Can't commit directly to master")
+        raise typer.Exit(code=1)
+
+    if not commit_in_place:
+        branch_name = "translate"
+        if language:
+            branch_name += f"-{language}"
+        if command:
+            branch_name += f"-{command}"
+        branch_name += f"-{secrets.token_hex(4)}"
+        print(f"Creating a new branch {branch_name}")
+        subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+    else:
+        branch_name = current_branch
+        print(f"Committing in place on branch {branch_name}")
+    print("Adding updated files")
+    git_path = Path("docs")
+    subprocess.run(["git", "add", str(git_path)], check=True)
+    print("Committing updated file")
+    message = "🌐 Update translations"
+    if language:
+        message += f" for {language}"
+    if command:
+        message += f" ({command})"
+    subprocess.run(["git", "commit", "-m", message], check=True)
+    print("Pushing branch")
+    subprocess.run(["git", "push", "origin", branch_name], check=True)
+    if not commit_in_place:
+        print("Creating PR")
+        g = Github(github_token)
+        gh_repo = g.get_repo(github_repository)
+        body = (
+            message
+            + "\n\nThis PR was created automatically using LLMs."
+            + f"\n\nIt uses the prompt file https://github.com/fastapi/fastapi/blob/master/docs/{language}/llm-prompt.md."
+            + "\n\nIn most cases, it's better to make PRs updating that file so that the LLM can do a better job generating the translations than suggesting changes in this PR."
+        )
+        pr = gh_repo.create_pull(
+            title=message, body=body, base="master", head=branch_name
+        )
+        print(f"Created PR: {pr.number}")
+    print("Finished")
+
+
+if __name__ == "__main__":
+    app()
+
+
+# FILE: scripts/topic_repos.py
+import logging
+import secrets
+import subprocess
+from pathlib import Path
+
+import yaml
+from github import Github
+from pydantic import BaseModel, SecretStr
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    github_repository: str
+    github_token: SecretStr
+
+
+class Repo(BaseModel):
+    name: str
+    html_url: str
+    stars: int
+    owner_login: str
+    owner_html_url: str
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = Settings()
+
+    logging.info(f"Using config: {settings.model_dump_json()}")
+    g = Github(settings.github_token.get_secret_value(), per_page=100)
+    r = g.get_repo(settings.github_repository)
+    repos = g.search_repositories(query="topic:fastapi")
+    repos_list = list(repos)
+    final_repos: list[Repo] = []
+    for repo in repos_list[:100]:
+        if repo.full_name == settings.github_repository:
+            continue
+        final_repos.append(
+            Repo(
+                name=repo.name,
+                html_url=repo.html_url,
+                stars=repo.stargazers_count,
+                owner_login=repo.owner.login,
+                owner_html_url=repo.owner.html_url,
+            )
+        )
+    data = [repo.model_dump() for repo in final_repos]
+
+    # Local development
+    # repos_path = Path("../docs/en/data/topic_repos.yml")
+    repos_path = Path("./docs/en/data/topic_repos.yml")
+    repos_old_content = repos_path.read_text(encoding="utf-8")
+    new_repos_content = yaml.dump(data, sort_keys=False, width=200, allow_unicode=True)
+    if repos_old_content == new_repos_content:
+        logging.info("The data hasn't changed. Finishing.")
+        return
+    repos_path.write_text(new_repos_content, encoding="utf-8")
+    logging.info("Setting up GitHub Actions git user")
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"],
+        check=True,
+    )
+    branch_name = f"fastapi-topic-repos-{secrets.token_hex(4)}"
+    logging.info(f"Creating a new branch {branch_name}")
+    subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+    logging.info("Adding updated file")
+    subprocess.run(["git", "add", str(repos_path)], check=True)
+    logging.info("Committing updated file")
+    message = "👥 Update FastAPI GitHub topic repositories"
+    subprocess.run(["git", "commit", "-m", message], check=True)
+    logging.info("Pushing branch")
+    subprocess.run(["git", "push", "origin", branch_name], check=True)
+    logging.info("Creating PR")
+    pr = r.create_pull(title=message, body=message, base="master", head=branch_name)
+    logging.info(f"Created PR: {pr.number}")
+    logging.info("Finished")
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: scripts/test.sh
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+export PYTHONPATH=./docs_src
+pytest -n auto --dist loadgroup  tests scripts/tests/ ${@}
+
+
+# FILE: scripts/test-cov.sh
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+bash scripts/test.sh --cov --cov-context=test ${@}
+
+
+# FILE: scripts/test-cov-html.sh
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+bash scripts/test-cov.sh --cov-report=term-missing --cov-report=html ${@}
+
+
+# FILE: scripts/sponsors.py
+import logging
+import secrets
+import subprocess
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+import httpx
+import yaml
+from github import Github
+from pydantic import BaseModel, SecretStr
+from pydantic_settings import BaseSettings
+
+github_graphql_url = "https://api.github.com/graphql"
+
+
+sponsors_query = """
+query Q($after: String) {
+  user(login: "tiangolo") {
+    sponsorshipsAsMaintainer(first: 100, after: $after) {
+      edges {
+        cursor
+        node {
+          sponsorEntity {
+            ... on Organization {
+              login
+              avatarUrl
+              url
+            }
+            ... on User {
+              login
+              avatarUrl
+              url
+            }
+          }
+          tier {
+            name
+            monthlyPriceInDollars
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+class SponsorEntity(BaseModel):
+    login: str
+    avatarUrl: str
+    url: str
+
+
+class Tier(BaseModel):
+    name: str
+    monthlyPriceInDollars: float
+
+
+class SponsorshipAsMaintainerNode(BaseModel):
+    sponsorEntity: SponsorEntity
+    tier: Tier
+
+
+class SponsorshipAsMaintainerEdge(BaseModel):
+    cursor: str
+    node: SponsorshipAsMaintainerNode
+
+
+class SponsorshipAsMaintainer(BaseModel):
+    edges: list[SponsorshipAsMaintainerEdge]
+
+
+class SponsorsUser(BaseModel):
+    sponsorshipsAsMaintainer: SponsorshipAsMaintainer
+
+
+class SponsorsResponseData(BaseModel):
+    user: SponsorsUser
+
+
+class SponsorsResponse(BaseModel):
+    data: SponsorsResponseData
+
+
+class Settings(BaseSettings):
+    sponsors_token: SecretStr
+    pr_token: SecretStr
+    github_repository: str
+    httpx_timeout: int = 30
+
+
+def get_graphql_response(
+    *,
+    settings: Settings,
+    query: str,
+    after: str | None = None,
+) -> dict[str, Any]:
+    headers = {"Authorization": f"token {settings.sponsors_token.get_secret_value()}"}
+    variables = {"after": after}
+    response = httpx.post(
+        github_graphql_url,
+        headers=headers,
+        timeout=settings.httpx_timeout,
+        json={"query": query, "variables": variables, "operationName": "Q"},
+    )
+    if response.status_code != 200:
+        logging.error(f"Response was not 200, after: {after}")
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    data = response.json()
+    if "errors" in data:
+        logging.error(f"Errors in response, after: {after}")
+        logging.error(data["errors"])
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    return data
+
+
+def get_graphql_sponsor_edges(
+    *, settings: Settings, after: str | None = None
+) -> list[SponsorshipAsMaintainerEdge]:
+    data = get_graphql_response(settings=settings, query=sponsors_query, after=after)
+    graphql_response = SponsorsResponse.model_validate(data)
+    return graphql_response.data.user.sponsorshipsAsMaintainer.edges
+
+
+def get_individual_sponsors(
+    settings: Settings,
+) -> defaultdict[float, dict[str, SponsorEntity]]:
+    nodes: list[SponsorshipAsMaintainerNode] = []
+    edges = get_graphql_sponsor_edges(settings=settings)
+
+    while edges:
+        for edge in edges:
+            nodes.append(edge.node)
+        last_edge = edges[-1]
+        edges = get_graphql_sponsor_edges(settings=settings, after=last_edge.cursor)
+
+    tiers: defaultdict[float, dict[str, SponsorEntity]] = defaultdict(dict)
+    for node in nodes:
+        tiers[node.tier.monthlyPriceInDollars][node.sponsorEntity.login] = (
+            node.sponsorEntity
+        )
+    return tiers
+
+
+def update_content(*, content_path: Path, new_content: Any) -> bool:
+    old_content = content_path.read_text(encoding="utf-8")
+
+    new_content = yaml.dump(new_content, sort_keys=False, width=200, allow_unicode=True)
+    if old_content == new_content:
+        logging.info(f"The content hasn't changed for {content_path}")
+        return False
+    content_path.write_text(new_content, encoding="utf-8")
+    logging.info(f"Updated {content_path}")
+    return True
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = Settings()
+    logging.info(f"Using config: {settings.model_dump_json()}")
+    g = Github(settings.pr_token.get_secret_value())
+    repo = g.get_repo(settings.github_repository)
+
+    tiers = get_individual_sponsors(settings=settings)
+    keys = list(tiers.keys())
+    keys.sort(reverse=True)
+    sponsors = []
+    for key in keys:
+        sponsor_group = []
+        for login, sponsor in tiers[key].items():
+            sponsor_group.append(
+                {"login": login, "avatarUrl": sponsor.avatarUrl, "url": sponsor.url}
+            )
+        sponsors.append(sponsor_group)
+    github_sponsors = {
+        "sponsors": sponsors,
+    }
+
+    # For local development
+    # github_sponsors_path = Path("../docs/en/data/github_sponsors.yml")
+    github_sponsors_path = Path("./docs/en/data/github_sponsors.yml")
+    updated = update_content(
+        content_path=github_sponsors_path, new_content=github_sponsors
+    )
+
+    if not updated:
+        logging.info("The data hasn't changed, finishing.")
+        return
+
+    logging.info("Setting up GitHub Actions git user")
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"],
+        check=True,
+    )
+    branch_name = f"fastapi-people-sponsors-{secrets.token_hex(4)}"
+    logging.info(f"Creating a new branch {branch_name}")
+    subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+    logging.info("Adding updated file")
+    subprocess.run(
+        [
+            "git",
+            "add",
+            str(github_sponsors_path),
+        ],
+        check=True,
+    )
+    logging.info("Committing updated file")
+    message = "👥 Update FastAPI People - Sponsors"
+    subprocess.run(["git", "commit", "-m", message], check=True)
+    logging.info("Pushing branch")
+    subprocess.run(["git", "push", "origin", branch_name], check=True)
+    logging.info("Creating PR")
+    pr = repo.create_pull(title=message, body=message, base="master", head=branch_name)
+    logging.info(f"Created PR: {pr.number}")
+    logging.info("Finished")
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: scripts/people.py
+import logging
+import secrets
+import subprocess
+import time
+from collections import Counter
+from collections.abc import Container
+from datetime import datetime, timedelta, timezone
+from math import ceil
+from pathlib import Path
+from typing import Annotated, Any
+
+import httpx
+import yaml
+from github import Github
+from pydantic import BaseModel, BeforeValidator, SecretStr
+from pydantic_settings import BaseSettings
+
+github_graphql_url = "https://api.github.com/graphql"
+questions_category_id = "DIC_kwDOCZduT84B6E2a"
+
+
+POINTS_PER_MINUTE_LIMIT = 84  # 5000 points per hour
+
+MINIMIZED_COMMENTS_REASONS_TO_EXCLUDE = {"abuse", "off-topic", "duplicate", "spam"}
+
+
+class RateLimiter:
+    def __init__(self) -> None:
+        self.last_query_cost: int = 1
+        self.remaining_points: int = 5000
+        self.reset_at: datetime = datetime.fromtimestamp(0, timezone.utc)
+        self.last_request_start_time: datetime = datetime.fromtimestamp(0, timezone.utc)
+        self.speed_multiplier: float = 1.0
+
+    def __enter__(self) -> "RateLimiter":
+        now = datetime.now(tz=timezone.utc)
+
+        # Handle primary rate limits
+        primary_limit_wait_time = 0.0
+        if self.remaining_points <= self.last_query_cost:
+            primary_limit_wait_time = (self.reset_at - now).total_seconds() + 2
+            logging.warning(
+                f"Approaching GitHub API rate limit, remaining points: {self.remaining_points}, "
+                f"reset time in {primary_limit_wait_time} seconds"
+            )
+
+        # Handle secondary rate limits
+        secondary_limit_wait_time = 0.0
+        points_per_minute = POINTS_PER_MINUTE_LIMIT * self.speed_multiplier
+        interval = 60 / (points_per_minute / self.last_query_cost)
+        time_since_last_request = (now - self.last_request_start_time).total_seconds()
+        if time_since_last_request < interval:
+            secondary_limit_wait_time = interval - time_since_last_request
+
+        final_wait_time = ceil(max(primary_limit_wait_time, secondary_limit_wait_time))
+        logging.info(f"Sleeping for {final_wait_time} seconds to respect rate limit")
+        time.sleep(max(final_wait_time, 1))
+
+        self.last_request_start_time = datetime.now(tz=timezone.utc)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        pass
+
+    def update_request_info(self, cost: int, remaining: int, reset_at: str) -> None:
+        self.last_query_cost = cost
+        self.remaining_points = remaining
+        self.reset_at = datetime.fromisoformat(reset_at.replace("Z", "+00:00"))
+
+
+rate_limiter = RateLimiter()
+
+
+discussions_query = """
+query Q($after: String, $category_id: ID) {
+  repository(name: "fastapi", owner: "fastapi") {
+    discussions(first: 30, after: $after, categoryId: $category_id) {
+      edges {
+        cursor
+        node {
+          number
+          author {
+            login
+            avatarUrl
+            url
+          }
+          createdAt
+          comments(first: 50) {
+            totalCount
+            nodes {
+              createdAt
+              author {
+                login
+                avatarUrl
+                url
+              }
+              isAnswer
+              replies(first: 10) {
+                totalCount
+                nodes {
+                  createdAt
+                  author {
+                    login
+                    avatarUrl
+                    url
+                  }
+                  minimizedReason
+                }
+              }
+              minimizedReason
+            }
+          }
+        }
+      }
+    }
+  }
+  rateLimit {
+    cost
+    remaining
+    resetAt
+  }
+}
+"""
+
+LowerStr = Annotated[
+    str, BeforeValidator(lambda v: v.lower() if isinstance(v, str) else v)
+]
+
+
+class Author(BaseModel):
+    login: str
+    avatarUrl: str | None = None
+    url: str | None = None
+
+
+class CommentsNode(BaseModel):
+    createdAt: datetime
+    author: Author | None = None
+    minimizedReason: LowerStr | None = None
+
+
+class Replies(BaseModel):
+    totalCount: int
+    nodes: list[CommentsNode]
+
+
+class DiscussionsCommentsNode(CommentsNode):
+    minimizedReason: LowerStr | None = None
+    replies: Replies
+
+
+class DiscussionsComments(BaseModel):
+    totalCount: int
+    nodes: list[DiscussionsCommentsNode]
+
+
+class DiscussionsNode(BaseModel):
+    number: int
+    author: Author | None = None
+    title: str | None = None
+    createdAt: datetime
+    comments: DiscussionsComments
+
+
+class DiscussionsEdge(BaseModel):
+    cursor: str
+    node: DiscussionsNode
+
+
+class Discussions(BaseModel):
+    edges: list[DiscussionsEdge]
+
+
+class DiscussionsRepository(BaseModel):
+    discussions: Discussions
+
+
+class DiscussionsResponseData(BaseModel):
+    repository: DiscussionsRepository
+
+
+class DiscussionsResponse(BaseModel):
+    data: DiscussionsResponseData
+
+
+class Settings(BaseSettings):
+    github_token: SecretStr
+    github_repository: str
+    httpx_timeout: int = 30
+    speed_multiplier: float = 1.0
+
+
+def get_graphql_response(
+    *,
+    settings: Settings,
+    query: str,
+    after: str | None = None,
+    category_id: str | None = None,
+) -> dict[str, Any]:
+    headers = {"Authorization": f"token {settings.github_token.get_secret_value()}"}
+    variables = {"after": after, "category_id": category_id}
+    response = httpx.post(
+        github_graphql_url,
+        headers=headers,
+        timeout=settings.httpx_timeout,
+        json={"query": query, "variables": variables, "operationName": "Q"},
+    )
+    if response.status_code != 200:
+        logging.error(
+            f"Response was not 200, after: {after}, category_id: {category_id}"
+        )
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    data = response.json()
+    if "errors" in data:
+        logging.error(f"Errors in response, after: {after}, category_id: {category_id}")
+        logging.error(data["errors"])
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    return data
+
+
+def get_graphql_question_discussion_edges(
+    *,
+    settings: Settings,
+    after: str | None = None,
+) -> list[DiscussionsEdge]:
+    with rate_limiter:
+        data = get_graphql_response(
+            settings=settings,
+            query=discussions_query,
+            after=after,
+            category_id=questions_category_id,
+        )
+
+    rate_limiter.update_request_info(
+        cost=data["data"]["rateLimit"]["cost"],
+        remaining=data["data"]["rateLimit"]["remaining"],
+        reset_at=data["data"]["rateLimit"]["resetAt"],
+    )
+    graphql_response = DiscussionsResponse.model_validate(data)
+    return graphql_response.data.repository.discussions.edges
+
+
+class DiscussionExpertsResults(BaseModel):
+    commenters: Counter[str]
+    last_month_commenters: Counter[str]
+    three_months_commenters: Counter[str]
+    six_months_commenters: Counter[str]
+    one_year_commenters: Counter[str]
+    authors: dict[str, Author]
+
+
+def get_discussion_nodes(settings: Settings) -> list[DiscussionsNode]:
+    discussion_nodes: list[DiscussionsNode] = []
+    discussion_edges = get_graphql_question_discussion_edges(settings=settings)
+
+    while discussion_edges:
+        for discussion_edge in discussion_edges:
+            discussion_nodes.append(discussion_edge.node)
+        last_edge = discussion_edges[-1]
+        discussion_edges = get_graphql_question_discussion_edges(
+            settings=settings, after=last_edge.cursor
+        )
+    return discussion_nodes
+
+
+def get_discussions_experts(
+    discussion_nodes: list[DiscussionsNode],
+) -> DiscussionExpertsResults:
+    commenters = Counter[str]()
+    last_month_commenters = Counter[str]()
+    three_months_commenters = Counter[str]()
+    six_months_commenters = Counter[str]()
+    one_year_commenters = Counter[str]()
+    authors: dict[str, Author] = {}
+
+    now = datetime.now(tz=timezone.utc)
+    one_month_ago = now - timedelta(days=30)
+    three_months_ago = now - timedelta(days=90)
+    six_months_ago = now - timedelta(days=180)
+    one_year_ago = now - timedelta(days=365)
+
+    for discussion in discussion_nodes:
+        discussion_author_name = None
+        if discussion.author:
+            authors[discussion.author.login] = discussion.author
+            discussion_author_name = discussion.author.login
+        discussion_commentors: dict[str, datetime] = {}
+        for comment in discussion.comments.nodes:
+            if (
+                comment.minimizedReason not in MINIMIZED_COMMENTS_REASONS_TO_EXCLUDE
+                and comment.author
+            ):
+                authors[comment.author.login] = comment.author
+                if comment.author.login != discussion_author_name:
+                    author_time = discussion_commentors.get(
+                        comment.author.login, comment.createdAt
+                    )
+                    discussion_commentors[comment.author.login] = max(
+                        author_time, comment.createdAt
+                    )
+            for reply in comment.replies.nodes:
+                if (
+                    reply.minimizedReason not in MINIMIZED_COMMENTS_REASONS_TO_EXCLUDE
+                    and reply.author
+                ):
+                    authors[reply.author.login] = reply.author
+                    if reply.author.login != discussion_author_name:
+                        author_time = discussion_commentors.get(
+                            reply.author.login, reply.createdAt
+                        )
+                        discussion_commentors[reply.author.login] = max(
+                            author_time, reply.createdAt
+                        )
+        for author_name, author_time in discussion_commentors.items():
+            commenters[author_name] += 1
+            if author_time > one_month_ago:
+                last_month_commenters[author_name] += 1
+            if author_time > three_months_ago:
+                three_months_commenters[author_name] += 1
+            if author_time > six_months_ago:
+                six_months_commenters[author_name] += 1
+            if author_time > one_year_ago:
+                one_year_commenters[author_name] += 1
+    discussion_experts_results = DiscussionExpertsResults(
+        authors=authors,
+        commenters=commenters,
+        last_month_commenters=last_month_commenters,
+        three_months_commenters=three_months_commenters,
+        six_months_commenters=six_months_commenters,
+        one_year_commenters=one_year_commenters,
+    )
+    return discussion_experts_results
+
+
+def get_top_users(
+    *,
+    counter: Counter[str],
+    authors: dict[str, Author],
+    skip_users: Container[str],
+    min_count: int = 2,
+) -> list[dict[str, Any]]:
+    users: list[dict[str, Any]] = []
+    for commenter, count in counter.most_common(50):
+        if commenter in skip_users:
+            continue
+        if count >= min_count:
+            author = authors[commenter]
+            users.append(
+                {
+                    "login": commenter,
+                    "count": count,
+                    "avatarUrl": author.avatarUrl,
+                    "url": author.url,
+                }
+            )
+    return users
+
+
+def get_users_to_write(
+    *,
+    counter: Counter[str],
+    authors: dict[str, Author],
+    min_count: int = 2,
+) -> list[dict[str, Any]]:
+    users: dict[str, Any] = {}
+    users_list: list[dict[str, Any]] = []
+    for user, count in counter.most_common(60):
+        if count >= min_count:
+            author = authors[user]
+            user_data = {
+                "login": user,
+                "count": count,
+                "avatarUrl": author.avatarUrl,
+                "url": author.url,
+            }
+            users[user] = user_data
+            users_list.append(user_data)
+    return users_list
+
+
+def update_content(*, content_path: Path, new_content: Any) -> bool:
+    old_content = content_path.read_text(encoding="utf-8")
+
+    new_content = yaml.dump(new_content, sort_keys=False, width=200, allow_unicode=True)
+    if old_content == new_content:
+        logging.info(f"The content hasn't changed for {content_path}")
+        return False
+    content_path.write_text(new_content, encoding="utf-8")
+    logging.info(f"Updated {content_path}")
+    return True
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = Settings()
+    logging.info(f"Using config: {settings.model_dump_json()}")
+    rate_limiter.speed_multiplier = settings.speed_multiplier
+    g = Github(settings.github_token.get_secret_value())
+    repo = g.get_repo(settings.github_repository)
+
+    discussion_nodes = get_discussion_nodes(settings=settings)
+    experts_results = get_discussions_experts(discussion_nodes=discussion_nodes)
+
+    authors = experts_results.authors
+    maintainers_logins = {"tiangolo"}
+    maintainers = []
+    for login in maintainers_logins:
+        user = authors[login]
+        maintainers.append(
+            {
+                "login": login,
+                "answers": experts_results.commenters[login],
+                "avatarUrl": user.avatarUrl,
+                "url": user.url,
+            }
+        )
+
+    experts = get_users_to_write(
+        counter=experts_results.commenters,
+        authors=authors,
+    )
+    last_month_experts = get_users_to_write(
+        counter=experts_results.last_month_commenters,
+        authors=authors,
+    )
+    three_months_experts = get_users_to_write(
+        counter=experts_results.three_months_commenters,
+        authors=authors,
+    )
+    six_months_experts = get_users_to_write(
+        counter=experts_results.six_months_commenters,
+        authors=authors,
+    )
+    one_year_experts = get_users_to_write(
+        counter=experts_results.one_year_commenters,
+        authors=authors,
+    )
+
+    people = {
+        "maintainers": maintainers,
+        "experts": experts,
+        "last_month_experts": last_month_experts,
+        "three_months_experts": three_months_experts,
+        "six_months_experts": six_months_experts,
+        "one_year_experts": one_year_experts,
+    }
+
+    # For local development
+    # people_path = Path("../docs/en/data/people.yml")
+    people_path = Path("./docs/en/data/people.yml")
+
+    updated = update_content(content_path=people_path, new_content=people)
+
+    if not updated:
+        logging.info("The data hasn't changed, finishing.")
+        return
+
+    logging.info("Setting up GitHub Actions git user")
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"],
+        check=True,
+    )
+    branch_name = f"fastapi-people-experts-{secrets.token_hex(4)}"
+    logging.info(f"Creating a new branch {branch_name}")
+    subprocess.run(["git", "checkout", "-b", branch_name], check=True)
+    logging.info("Adding updated file")
+    subprocess.run(["git", "add", str(people_path)], check=True)
+    logging.info("Committing updated file")
+    message = "👥 Update FastAPI People - Experts"
+    subprocess.run(["git", "commit", "-m", message], check=True)
+    logging.info("Pushing branch")
+    subprocess.run(["git", "push", "origin", branch_name], check=True)
+    logging.info("Creating PR")
+    pr = repo.create_pull(title=message, body=message, base="master", head=branch_name)
+    logging.info(f"Created PR: {pr.number}")
+    logging.info("Finished")
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: scripts/notify_translations.py
+import logging
+import random
+import sys
+import time
+from pathlib import Path
+from typing import Any, cast
+
+import httpx
+from github import Github
+from pydantic import BaseModel, SecretStr
+from pydantic_settings import BaseSettings
+
+awaiting_label = "awaiting-review"
+lang_all_label = "lang-all"
+approved_label = "approved-1"
+
+
+github_graphql_url = "https://api.github.com/graphql"
+questions_translations_category_id = "DIC_kwDOCZduT84CT5P9"
+
+all_discussions_query = """
+query Q($category_id: ID) {
+  repository(name: "fastapi", owner: "fastapi") {
+    discussions(categoryId: $category_id, first: 100) {
+      nodes {
+        title
+        id
+        number
+        labels(first: 10) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+translation_discussion_query = """
+query Q($after: String, $discussion_number: Int!) {
+  repository(name: "fastapi", owner: "fastapi") {
+    discussion(number: $discussion_number) {
+      comments(first: 100, after: $after) {
+        edges {
+          cursor
+          node {
+            id
+            url
+            body
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+add_comment_mutation = """
+mutation Q($discussion_id: ID!, $body: String!) {
+  addDiscussionComment(input: {discussionId: $discussion_id, body: $body}) {
+    comment {
+      id
+      url
+      body
+    }
+  }
+}
+"""
+
+update_comment_mutation = """
+mutation Q($comment_id: ID!, $body: String!) {
+  updateDiscussionComment(input: {commentId: $comment_id, body: $body}) {
+    comment {
+      id
+      url
+      body
+    }
+  }
+}
+"""
+
+
+class Comment(BaseModel):
+    id: str
+    url: str
+    body: str
+
+
+class UpdateDiscussionComment(BaseModel):
+    comment: Comment
+
+
+class UpdateCommentData(BaseModel):
+    updateDiscussionComment: UpdateDiscussionComment
+
+
+class UpdateCommentResponse(BaseModel):
+    data: UpdateCommentData
+
+
+class AddDiscussionComment(BaseModel):
+    comment: Comment
+
+
+class AddCommentData(BaseModel):
+    addDiscussionComment: AddDiscussionComment
+
+
+class AddCommentResponse(BaseModel):
+    data: AddCommentData
+
+
+class CommentsEdge(BaseModel):
+    node: Comment
+    cursor: str
+
+
+class Comments(BaseModel):
+    edges: list[CommentsEdge]
+
+
+class CommentsDiscussion(BaseModel):
+    comments: Comments
+
+
+class CommentsRepository(BaseModel):
+    discussion: CommentsDiscussion
+
+
+class CommentsData(BaseModel):
+    repository: CommentsRepository
+
+
+class CommentsResponse(BaseModel):
+    data: CommentsData
+
+
+class AllDiscussionsLabelNode(BaseModel):
+    id: str
+    name: str
+
+
+class AllDiscussionsLabelsEdge(BaseModel):
+    node: AllDiscussionsLabelNode
+
+
+class AllDiscussionsDiscussionLabels(BaseModel):
+    edges: list[AllDiscussionsLabelsEdge]
+
+
+class AllDiscussionsDiscussionNode(BaseModel):
+    title: str
+    id: str
+    number: int
+    labels: AllDiscussionsDiscussionLabels
+
+
+class AllDiscussionsDiscussions(BaseModel):
+    nodes: list[AllDiscussionsDiscussionNode]
+
+
+class AllDiscussionsRepository(BaseModel):
+    discussions: AllDiscussionsDiscussions
+
+
+class AllDiscussionsData(BaseModel):
+    repository: AllDiscussionsRepository
+
+
+class AllDiscussionsResponse(BaseModel):
+    data: AllDiscussionsData
+
+
+class Settings(BaseSettings):
+    model_config = {"env_ignore_empty": True}
+
+    github_repository: str
+    github_token: SecretStr
+    github_event_path: Path
+    github_event_name: str | None = None
+    httpx_timeout: int = 30
+    debug: bool | None = False
+    number: int | None = None
+
+
+class PartialGitHubEventIssue(BaseModel):
+    number: int | None = None
+
+
+class PartialGitHubEvent(BaseModel):
+    pull_request: PartialGitHubEventIssue | None = None
+
+
+def get_graphql_response(
+    *,
+    settings: Settings,
+    query: str,
+    after: str | None = None,
+    category_id: str | None = None,
+    discussion_number: int | None = None,
+    discussion_id: str | None = None,
+    comment_id: str | None = None,
+    body: str | None = None,
+) -> dict[str, Any]:
+    headers = {"Authorization": f"token {settings.github_token.get_secret_value()}"}
+    variables = {
+        "after": after,
+        "category_id": category_id,
+        "discussion_number": discussion_number,
+        "discussion_id": discussion_id,
+        "comment_id": comment_id,
+        "body": body,
+    }
+    response = httpx.post(
+        github_graphql_url,
+        headers=headers,
+        timeout=settings.httpx_timeout,
+        json={"query": query, "variables": variables, "operationName": "Q"},
+    )
+    if response.status_code != 200:
+        logging.error(
+            f"Response was not 200, after: {after}, category_id: {category_id}"
+        )
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    data = response.json()
+    if "errors" in data:
+        logging.error(f"Errors in response, after: {after}, category_id: {category_id}")
+        logging.error(data["errors"])
+        logging.error(response.text)
+        raise RuntimeError(response.text)
+    return cast(dict[str, Any], data)
+
+
+def get_graphql_translation_discussions(
+    *, settings: Settings
+) -> list[AllDiscussionsDiscussionNode]:
+    data = get_graphql_response(
+        settings=settings,
+        query=all_discussions_query,
+        category_id=questions_translations_category_id,
+    )
+    graphql_response = AllDiscussionsResponse.model_validate(data)
+    return graphql_response.data.repository.discussions.nodes
+
+
+def get_graphql_translation_discussion_comments_edges(
+    *, settings: Settings, discussion_number: int, after: str | None = None
+) -> list[CommentsEdge]:
+    data = get_graphql_response(
+        settings=settings,
+        query=translation_discussion_query,
+        discussion_number=discussion_number,
+        after=after,
+    )
+    graphql_response = CommentsResponse.model_validate(data)
+    return graphql_response.data.repository.discussion.comments.edges
+
+
+def get_graphql_translation_discussion_comments(
+    *, settings: Settings, discussion_number: int
+) -> list[Comment]:
+    comment_nodes: list[Comment] = []
+    discussion_edges = get_graphql_translation_discussion_comments_edges(
+        settings=settings, discussion_number=discussion_number
+    )
+
+    while discussion_edges:
+        for discussion_edge in discussion_edges:
+            comment_nodes.append(discussion_edge.node)
+        last_edge = discussion_edges[-1]
+        discussion_edges = get_graphql_translation_discussion_comments_edges(
+            settings=settings,
+            discussion_number=discussion_number,
+            after=last_edge.cursor,
+        )
+    return comment_nodes
+
+
+def create_comment(*, settings: Settings, discussion_id: str, body: str) -> Comment:
+    data = get_graphql_response(
+        settings=settings,
+        query=add_comment_mutation,
+        discussion_id=discussion_id,
+        body=body,
+    )
+    response = AddCommentResponse.model_validate(data)
+    return response.data.addDiscussionComment.comment
+
+
+def update_comment(*, settings: Settings, comment_id: str, body: str) -> Comment:
+    data = get_graphql_response(
+        settings=settings,
+        query=update_comment_mutation,
+        comment_id=comment_id,
+        body=body,
+    )
+    response = UpdateCommentResponse.model_validate(data)
+    return response.data.updateDiscussionComment.comment
+
+
+def main() -> None:
+    settings = Settings()
+    if settings.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+    logging.debug(f"Using config: {settings.model_dump_json()}")
+    g = Github(settings.github_token.get_secret_value())
+    repo = g.get_repo(settings.github_repository)
+    if not settings.github_event_path.is_file():
+        raise RuntimeError(
+            f"No github event file available at: {settings.github_event_path}"
+        )
+    contents = settings.github_event_path.read_text("utf-8")
+    github_event = PartialGitHubEvent.model_validate_json(contents)
+    logging.info(f"Using GitHub event: {github_event}")
+    number = (
+        github_event.pull_request and github_event.pull_request.number
+    ) or settings.number
+    if number is None:
+        raise RuntimeError("No PR number available")
+
+    # Avoid race conditions with multiple labels
+    sleep_time = random.random() * 10  # random number between 0 and 10 seconds
+    logging.info(
+        f"Sleeping for {sleep_time} seconds to avoid "
+        "race conditions and multiple comments"
+    )
+    time.sleep(sleep_time)
+
+    # Get PR
+    logging.debug(f"Processing PR: #{number}")
+    pr = repo.get_pull(number)
+    label_strs = {label.name for label in pr.get_labels()}
+    langs = []
+    for label in label_strs:
+        if label.startswith("lang-") and not label == lang_all_label:
+            langs.append(label[5:])
+    logging.info(f"PR #{pr.number} has labels: {label_strs}")
+    if not langs or lang_all_label not in label_strs:
+        logging.info(f"PR #{pr.number} doesn't seem to be a translation PR, skipping")
+        sys.exit(0)
+
+    # Generate translation map, lang ID to discussion
+    discussions = get_graphql_translation_discussions(settings=settings)
+    lang_to_discussion_map: dict[str, AllDiscussionsDiscussionNode] = {}
+    for discussion in discussions:
+        for edge in discussion.labels.edges:
+            label = edge.node.name
+            if label.startswith("lang-") and not label == lang_all_label:
+                lang = label[5:]
+                lang_to_discussion_map[lang] = discussion
+    logging.debug(f"Using translations map: {lang_to_discussion_map}")
+
+    # Messages to create or check
+    new_translation_message = f"Good news everyone! 😉 There's a new translation PR to be reviewed: #{pr.number} by @{pr.user.login}. 🎉 This requires 2 approvals from native speakers to be merged. 🤓"
+    done_translation_message = f"~There's a new translation PR to be reviewed: #{pr.number} by @{pr.user.login}~ Good job! This is done. 🍰☕"
+
+    # Normally only one language, but still
+    for lang in langs:
+        if lang not in lang_to_discussion_map:
+            log_message = f"Could not find discussion for language: {lang}"
+            logging.error(log_message)
+            raise RuntimeError(log_message)
+        discussion = lang_to_discussion_map[lang]
+        logging.info(
+            f"Found a translation discussion for language: {lang} in discussion: #{discussion.number}"
+        )
+
+        already_notified_comment: Comment | None = None
+        already_done_comment: Comment | None = None
+
+        logging.info(
+            f"Checking current comments in discussion: #{discussion.number} to see if already notified about this PR: #{pr.number}"
+        )
+        comments = get_graphql_translation_discussion_comments(
+            settings=settings, discussion_number=discussion.number
+        )
+        for comment in comments:
+            if new_translation_message in comment.body:
+                already_notified_comment = comment
+            elif done_translation_message in comment.body:
+                already_done_comment = comment
+        logging.info(
+            f"Already notified comment: {already_notified_comment}, already done comment: {already_done_comment}"
+        )
+
+        if pr.state == "open" and awaiting_label in label_strs:
+            logging.info(
+                f"This PR seems to be a language translation and awaiting reviews: #{pr.number}"
+            )
+            if already_notified_comment:
+                logging.info(
+                    f"This PR #{pr.number} was already notified in comment: {already_notified_comment.url}"
+                )
+            else:
+                logging.info(
+                    f"Writing notification comment about PR #{pr.number} in Discussion: #{discussion.number}"
+                )
+                comment = create_comment(
+                    settings=settings,
+                    discussion_id=discussion.id,
+                    body=new_translation_message,
+                )
+                logging.info(f"Notified in comment: {comment.url}")
+        elif pr.state == "closed" or approved_label in label_strs:
+            logging.info(f"Already approved or closed PR #{pr.number}")
+            if already_done_comment:
+                logging.info(
+                    f"This PR #{pr.number} was already marked as done in comment: {already_done_comment.url}"
+                )
+            elif already_notified_comment:
+                updated_comment = update_comment(
+                    settings=settings,
+                    comment_id=already_notified_comment.id,
+                    body=done_translation_message,
+                )
+                logging.info(f"Marked as done in comment: {updated_comment.url}")
+        else:
+            logging.info(
+                f"There doesn't seem to be anything to be done about PR #{pr.number}"
+            )
+    logging.info("Finished")
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: scripts/mkdocs_hooks.py
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+import material
+from mkdocs.config.defaults import MkDocsConfig
+from mkdocs.structure.files import File, Files
+from mkdocs.structure.nav import Link, Navigation, Section
+from mkdocs.structure.pages import Page
+
+non_translated_sections = [
+    "reference/",
+    "release-notes.md",
+    "fastapi-people.md",
+    "external-links.md",
+    "newsletter.md",
+    "management-tasks.md",
+    "management.md",
+]
+
+
+@lru_cache
+def get_missing_translation_content(docs_dir: str) -> str:
+    docs_dir_path = Path(docs_dir)
+    missing_translation_path = docs_dir_path.parent.parent / "missing-translation.md"
+    return missing_translation_path.read_text(encoding="utf-8")
+
+
+@lru_cache
+def get_translation_banner_content(docs_dir: str) -> str:
+    docs_dir_path = Path(docs_dir)
+    translation_banner_path = docs_dir_path / "translation-banner.md"
+    if not translation_banner_path.is_file():
+        translation_banner_path = (
+            docs_dir_path.parent.parent / "en" / "docs" / "translation-banner.md"
+        )
+    return translation_banner_path.read_text(encoding="utf-8")
+
+
+@lru_cache
+def get_mkdocs_material_langs() -> list[str]:
+    material_path = Path(material.__file__).parent
+    material_langs_path = material_path / "templates" / "partials" / "languages"
+    langs = [file.stem for file in material_langs_path.glob("*.html")]
+    return langs
+
+
+class EnFile(File):
+    pass
+
+
+def on_config(config: MkDocsConfig, **kwargs: Any) -> MkDocsConfig:
+    available_langs = get_mkdocs_material_langs()
+    dir_path = Path(config.docs_dir)
+    lang = dir_path.parent.name
+    if lang in available_langs:
+        config.theme["language"] = lang
+    if not (config.site_url or "").endswith(f"{lang}/") and lang != "en":
+        config.site_url = f"{config.site_url}{lang}/"
+    return config
+
+
+def resolve_file(*, item: str, files: Files, config: MkDocsConfig) -> None:
+    item_path = Path(config.docs_dir) / item
+    if not item_path.is_file():
+        en_src_dir = (Path(config.docs_dir) / "../../en/docs").resolve()
+        potential_path = en_src_dir / item
+        if potential_path.is_file():
+            files.append(
+                EnFile(
+                    path=item,
+                    src_dir=str(en_src_dir),
+                    dest_dir=config.site_dir,
+                    use_directory_urls=config.use_directory_urls,
+                )
+            )
+
+
+def resolve_files(*, items: list[Any], files: Files, config: MkDocsConfig) -> None:
+    for item in items:
+        if isinstance(item, str):
+            resolve_file(item=item, files=files, config=config)
+        elif isinstance(item, dict):
+            assert len(item) == 1
+            values = list(item.values())
+            if not values:
+                continue
+            if isinstance(values[0], str):
+                resolve_file(item=values[0], files=files, config=config)
+            elif isinstance(values[0], list):
+                resolve_files(items=values[0], files=files, config=config)
+            else:
+                raise ValueError(f"Unexpected value: {values}")
+
+
+def on_files(files: Files, *, config: MkDocsConfig) -> Files:
+    resolve_files(items=config.nav or [], files=files, config=config)
+    if "logo" in config.theme:
+        resolve_file(item=config.theme["logo"], files=files, config=config)
+    if "favicon" in config.theme:
+        resolve_file(item=config.theme["favicon"], files=files, config=config)
+    resolve_files(items=config.extra_css, files=files, config=config)
+    resolve_files(items=config.extra_javascript, files=files, config=config)
+    return files
+
+
+def generate_renamed_section_items(
+    items: list[Page | Section | Link], *, config: MkDocsConfig
+) -> list[Page | Section | Link]:
+    new_items: list[Page | Section | Link] = []
+    for item in items:
+        if isinstance(item, Section):
+            new_title = item.title
+            new_children = generate_renamed_section_items(item.children, config=config)
+            first_child = new_children[0]
+            if isinstance(first_child, Page):
+                if first_child.file.src_path.endswith("index.md"):
+                    # Read the source so that the title is parsed and available
+                    first_child.read_source(config=config)
+                    new_title = first_child.title or new_title
+            # Creating a new section makes it render it collapsed by default
+            # no idea why, so, let's just modify the existing one
+            # new_section = Section(title=new_title, children=new_children)
+            item.title = new_title.split("{ #")[0]
+            item.children = new_children
+            new_items.append(item)
+        else:
+            new_items.append(item)
+    return new_items
+
+
+def on_nav(
+    nav: Navigation, *, config: MkDocsConfig, files: Files, **kwargs: Any
+) -> Navigation:
+    new_items = generate_renamed_section_items(nav.items, config=config)
+    return Navigation(items=new_items, pages=nav.pages)
+
+
+def on_pre_page(page: Page, *, config: MkDocsConfig, files: Files) -> Page:
+    return page
+
+
+def on_page_markdown(
+    markdown: str, *, page: Page, config: MkDocsConfig, files: Files
+) -> str:
+    # Set metadata["social"]["cards_layout_options"]["title"] to clean title (without
+    # permalink)
+    title = page.title
+    clean_title = title.split("{ #")[0]
+    if clean_title:
+        page.meta.setdefault("social", {})
+        page.meta["social"].setdefault("cards_layout_options", {})
+        page.meta["social"]["cards_layout_options"]["title"] = clean_title
+
+    if isinstance(page.file, EnFile):
+        for excluded_section in non_translated_sections:
+            if page.file.src_path.startswith(excluded_section):
+                return markdown
+        missing_translation_content = get_missing_translation_content(config.docs_dir)
+        header = ""
+        body = markdown
+        if markdown.startswith("#"):
+            header, _, body = markdown.partition("\n\n")
+        return f"{header}\n\n{missing_translation_content}\n\n{body}"
+
+    docs_dir_path = Path(config.docs_dir)
+    en_docs_dir_path = docs_dir_path.parent.parent / "en/docs"
+
+    if docs_dir_path == en_docs_dir_path:
+        return markdown
+
+    # For translated pages add translation banner
+    translation_banner_content = get_translation_banner_content(config.docs_dir)
+    en_url = "https://fastapi.tiangolo.com/" + page.url.lstrip("/")
+    translation_banner_content = translation_banner_content.replace(
+        "ENGLISH_VERSION_URL", en_url
+    )
+    header = ""
+    body = markdown
+    if markdown.startswith("#"):
+        header, _, body = markdown.partition("\n\n")
+    return f"{header}\n\n{translation_banner_content}\n\n{body}"
+
+
+# FILE: scripts/lint.sh
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+mypy fastapi
+ty check fastapi
+ruff check fastapi tests docs_src scripts
+ruff format fastapi tests --check
+
+
+# FILE: scripts/label_approved.py
+import logging
+from typing import Literal
+
+from github import Github
+from github.PullRequestReview import PullRequestReview
+from pydantic import BaseModel, SecretStr
+from pydantic_settings import BaseSettings
+
+
+class LabelSettings(BaseModel):
+    await_label: str | None = None
+    number: int
+
+
+default_config = {"approved-2": LabelSettings(await_label="awaiting-review", number=2)}
+
+
+class Settings(BaseSettings):
+    github_repository: str
+    token: SecretStr
+    debug: bool | None = False
+    config: dict[str, LabelSettings] | Literal[""] = default_config
+
+
+settings = Settings()
+if settings.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+logging.debug(f"Using config: {settings.model_dump_json()}")
+g = Github(settings.token.get_secret_value())
+repo = g.get_repo(settings.github_repository)
+for pr in repo.get_pulls(state="open"):
+    logging.info(f"Checking PR: #{pr.number}")
+    pr_labels = list(pr.get_labels())
+    pr_label_by_name = {label.name: label for label in pr_labels}
+    reviews = list(pr.get_reviews())
+    review_by_user: dict[str, PullRequestReview] = {}
+    for review in reviews:
+        if review.user.login in review_by_user:
+            stored_review = review_by_user[review.user.login]
+            if review.submitted_at >= stored_review.submitted_at:
+                review_by_user[review.user.login] = review
+        else:
+            review_by_user[review.user.login] = review
+    approved_reviews = [
+        review for review in review_by_user.values() if review.state == "APPROVED"
+    ]
+    config = settings.config or default_config
+    for approved_label, conf in config.items():
+        logging.debug(f"Processing config: {conf.model_dump_json()}")
+        if conf.await_label is None or (conf.await_label in pr_label_by_name):
+            logging.debug(f"Processable PR: {pr.number}")
+            if len(approved_reviews) >= conf.number:
+                logging.info(f"Adding label to PR: {pr.number}")
+                pr.add_to_labels(approved_label)
+                if conf.await_label:
+                    logging.info(f"Removing label from PR: {pr.number}")
+                    pr.remove_from_labels(conf.await_label)
+logging.info("Finished")
+
+
+# FILE: scripts/general-llm-prompt.md
+### Your task
+
+Translate an English original content to a target language.
+
+The original content is written in Markdown, write the translation in Markdown as well.
+
+The original content will be surrounded by triple percentage signs (%%%). Do not include the triple percentage signs in the translation.
+
+### Technical terms in English
+
+For technical terms in English that don't have a common translation term, use the original term in English.
+
+### Content of code snippets
+
+Do not translate the content of code snippets, keep the original in English. For example, `list`, `dict`, keep them as is.
+
+### Content of code blocks
+
+Do not translate the content of code blocks, except for comments in the language which the code block uses.
+
+Examples:
+
+Source (English) - The code block is a bash code example with one comment:
+
+```bash
+# Print greeting
+echo "Hello, World!"
+```
+
+Result (German):
+
+```bash
+# Gruß ausgeben
+echo "Hello, World!"
+```
+
+Source (English) - The code block is a console example containing HTML tags. No comments, so nothing to change here:
+
+```console
+$ <font color="#4E9A06">fastapi</font> run <u style="text-decoration-style:solid">main.py</u>
+<span style="background-color:#009485"><font color="#D3D7CF"> FastAPI </font></span>  Starting server
+        Searching for package file structure
+```
+
+Result (German):
+
+```console
+$ <font color="#4E9A06">fastapi</font> run <u style="text-decoration-style:solid">main.py</u>
+<span style="background-color:#009485"><font color="#D3D7CF"> FastAPI </font></span>  Starting server
+        Searching for package file structure
+```
+
+Source (English) - The code block is a console example containing 5 comments:
+
+
+```console
+// Go to the home directory
+$ cd
+// Create a directory for all your code projects
+$ mkdir code
+// Enter into that code directory
+$ cd code
+// Create a directory for this project
+$ mkdir awesome-project
+// Enter into that project directory
+$ cd awesome-project
+```
+
+Result (German):
+
+```console
+// Gehe zum Home-Verzeichnis
+$ cd
+// Erstelle ein Verzeichnis für alle Ihre Code-Projekte
+$ mkdir code
+// Gehe in dieses Code-Verzeichnis
+$ cd code
+// Erstelle ein Verzeichnis für dieses Projekt
+$ mkdir awesome-project
+// Gehe in dieses Projektverzeichnis
+$ cd awesome-project
+```
+
+If there is an existing translation and its Mermaid diagram is in sync with the Mermaid diagram in the English source, except a few translated words, then use the Mermaid diagram of the existing translation. The human editor of the translation translated these words in the Mermaid diagram. Keep these translations, do not revert them back to the English source.
+
+Example:
+
+Source (English):
+
+```mermaid
+flowchart LR
+    subgraph global[global env]
+        harry-1[harry v1]
+    end
+    subgraph stone-project[philosophers-stone project]
+        stone(philosophers-stone) -->|requires| harry-1
+    end
+```
+
+Existing translation (German) - has three translations:
+
+```mermaid
+flowchart LR
+    subgraph global[globale Umgebung]
+        harry-1[harry v1]
+    end
+    subgraph stone-project[philosophers-stone-Projekt]
+        stone(philosophers-stone) -->|benötigt| harry-1
+    end
+```
+
+Result (German) - you change nothing:
+
+```mermaid
+flowchart LR
+    subgraph global[globale Umgebung]
+        harry-1[harry v1]
+    end
+    subgraph stone-project[philosophers-stone-Projekt]
+        stone(philosophers-stone) -->|benötigt| harry-1
+    end
+```
+
+### Special blocks
+
+There are special blocks of notes, tips and others that look like:
+
+/// note
+Here goes a note
+///
+
+To translate it, keep the same line and add the translation after a vertical bar.
+
+For example, if you were translating to Spanish, you would write:
+
+/// note | Nota
+
+Some examples in Spanish:
+
+Source (English):
+
+/// tip
+
+Result (Spanish):
+
+/// tip | Consejo
+
+Source (English):
+
+/// details | Preview
+
+Result (Spanish):
+
+/// details | Vista previa
+
+### Tab blocks
+
+There are special blocks surrounded by four slashes (////). They mark text, which will be rendered as part of a tab in the final document. The scheme is:
+
+//// tab | {tab title}
+{tab content, may span many lines}
+////
+
+Keep everything before the vertical bar (|) as is, including the vertical bar. Translate the tab title. Translate the tab content, applying the rules you know. Keep the four block closing slashes as is.
+
+Examples:
+
+Source (English):
+
+//// tab | Python 3.8+ non-Annotated
+Hello
+////
+
+Result (German):
+
+//// tab | Python 3.8+ nicht annotiert
+Hallo
+////
+
+Source (English) - Here there is nothing to translate in the tab title:
+
+//// tab | Linux, macOS, Windows Bash
+Hello again
+////
+
+Result (German):
+
+//// tab | Linux, macOS, Windows Bash
+Hallo wieder
+////
+
+### Headings
+
+Every Markdown heading in the English text (all levels) ends with a part inside curly brackets. This part denotes the hash of this heading, which is used in links to this heading. In translations, translate the heading, but do not translate this hash part, so that links do not break.
+
+Examples of how to translate a heading:
+
+Source (English):
+
+```
+## Alternative API docs { #alternative-api-docs }
+```
+
+Result (Spanish):
+
+```
+## Documentación de la API alternativa { #alternative-api-docs }
+```
+
+Source (English):
+
+```
+### Example { #example }
+```
+
+Result (German):
+
+```
+### Beispiel { #example }
+```
+
+### Links
+
+Use the following rules for links (apply both to Markdown-style links ([text](url)) and to HTML-style <a href="url">text</a> tags):
+
+- For relative URLs, only translate the link text. Do not translate the URL or its parts.
+
+Example:
+
+Source (English):
+
+```
+[One of the fastest Python frameworks available](#performance)
+```
+
+Result (German):
+
+```
+[Eines der schnellsten verfügbaren Python-Frameworks](#performance)
+```
+
+- For absolute URLs which DO NOT start EXACTLY with https://fastapi.tiangolo.com, only translate the link text and leave the URL unchanged.
+
+Example:
+
+Source (English):
+
+```
+<a href="https://sqlmodel.tiangolo.com/" class="external-link" target="_blank">SQLModel docs</a>
+```
+
+Result (German):
+
+```
+<a href="https://sqlmodel.tiangolo.com/" class="external-link" target="_blank">SQLModel-Dokumentation</a>
+```
+
+- For absolute URLs which DO start EXACTLY with https://fastapi.tiangolo.com, only translate the link text and change the URL by adding the language code (https://fastapi.tiangolo.com/{language_code}[rest part of the url]).
+
+Example:
+
+Source (English):
+
+```
+<a href="https://fastapi.tiangolo.com/tutorial/path-params/#documentation" class="external-link" target="_blank">Documentation</a>
+```
+
+Result (Spanish):
+
+```
+<a href="https://fastapi.tiangolo.com/es/tutorial/path-params/#documentation" class="external-link" target="_blank">Documentación</a>
+```
+
+- Do not add language codes for URLs that point to static assets (e.g., images, CSS, JavaScript).
+
+Example:
+
+Source (English):
+
+```
+<a href="https://fastapi.tiangolo.com/img/something.jpg" class="external-link" target="_blank">Something</a>
+```
+
+Result (Spanish):
+
+```
+<a href="https://fastapi.tiangolo.com/img/something.jpg" class="external-link" target="_blank">Algo</a>
+```
+
+- For internal links, only translate link text.
+
+Example:
+
+Source (English):
+
+```
+[Create Pull Requests](help-fastapi.md#create-a-pull-request){.internal-link target=_blank}
+```
+
+Result (German):
+
+```
+[Pull Requests erzeugen](help-fastapi.md#create-a-pull-request){.internal-link target=_blank}
+```
+
+- Do not translate anchor fragments in links (the part after `#`), as they must remain the same to work correctly.
+
+- If an existing translation has a link with an anchor fragment different to the anchor fragment in the English source, then this is an error. Fix this by using the anchor fragment of the English source.
+
+Example:
+
+Source (English):
+
+```
+[Body - Multiple Parameters: Singular values in body](body-multiple-params.md#singular-values-in-body){.internal-link target=_blank}
+```
+
+Existing wrong translation (German) - notice the wrongly translated anchor fragment:
+
+```
+[Body - Mehrere Parameter: Einfache Werte im Body](body-multiple-params.md#einzelne-werte-im-body){.internal-link target=_blank}.
+```
+
+Result (German) - you fix the anchor fragment:
+
+```
+[Body - Mehrere Parameter: Einfache Werte im Body](body-multiple-params.md#singular-values-in-body){.internal-link target=_blank}.
+```
+
+- Do not add anchor fragments at will, even if this makes sense. If the English source has no anchor, don't add one.
+
+Example:
+
+Source (English):
+
+```
+Create a [virtual environment](../virtual-environments.md){.internal-link target=_blank}
+```
+
+Wrong translation in German - Anchor added to the URL.
+
+```
+Erstelle eine [virtuelle Umgebung](../virtual-environments.md#create-a-virtual-environment){.internal-link target=_blank}
+```
+
+Good translation (German) - URL stays like in the English source.
+
+```
+Erstelle eine [Virtuelle Umgebung](../virtual-environments.md){.internal-link target=_blank}
+```
+
+**Important**: Always match the link syntax used in the English source document. If the English source uses Markdown-style links (`[text](url)`), the translation must also use Markdown-style links. If the English source uses HTML-style links (`<a href="url">text</a>`), the translation must also use HTML-style links. The link format in the translation must always mirror the link format in the English source.
+
+### HTML abbr elements
+
+Translate HTML abbr elements (`<abbr title="description">text</abbr>`) as follows:
+
+- The text inside abbr tag may be surrounded by further HTML or Markdown markup or quotes, for example <code>text</code> or `text` or "text". Preserve markup and only translate visible text inside the abbr element.
+
+- If the description (the text inside the title attribute) contains the full phrase for this abbreviation, then append a dash (-) to the full phrase, followed by the translation of the full phrase.
+
+Conversion scheme:
+
+Source (English):
+
+```
+<abbr title="{full phrase}">{abbreviation}</abbr>
+```
+
+Result:
+
+```
+<abbr title="{full phrase} - {translation of full phrase}">{abbreviation}</abbr>
+```
+
+Examples:
+
+Source (English):
+
+```
+<abbr title="Internet of Things">IoT</abbr>
+<abbr title="Central Processing Unit">CPU</abbr>
+<abbr title="too long; didn't read"><strong>TL;DR:</strong></abbr>
+```
+
+Result (German):
+
+```
+<abbr title="Internet of Things - Internet der Dinge">IoT</abbr>
+<abbr title="Central Processing Unit - Zentrale Verarbeitungseinheit">CPU</abbr>
+<abbr title="too long; didn't read - zu lang; hab's nicht gelesen"><strong>TL;DR:</strong></abbr>
+```
+
+- If the language to which you translate mostly uses the letters of the ASCII char set (for example Spanish, French, German, but not Russian, Chinese)

@@ -1,0 +1,162 @@
+[
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/puppet/ext/hiera/hiera.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/puppet/ext/hiera/hiera.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-44-37-149Z_baseline_hiera.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rabbitmq-server/docs/compatibility.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rabbitmq-server/docs/compatibility.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-44-53-620Z_baseline_compatibility.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-15-192Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/redis/codecov.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/redis/codecov.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-34-372Z_baseline_codecov.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/salt/.codeclimate.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/salt/.codeclimate.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-58-405Z_baseline_.codeclimate.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/spring-boot/documentation/spring-boot-docs/src/test/resources/com/example/myapp/config.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/spring-boot/documentation/spring-boot-docs/src/test/resources/com/example/myapp/config.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-06-856Z_baseline_config.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/terraform/testing/equivalence-tests/tests/variables_and_outputs/spec.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/terraform/testing/equivalence-tests/tests/variables_and_outputs/spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-18-848Z_baseline_spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/traefik/webui/tsconfig.node.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/traefik/webui/tsconfig.node.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-36-571Z_baseline_tsconfig.node.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/trivy/zizmor.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/trivy/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-47-997Z_baseline_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/vault/buf.gen.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/vault/buf.gen.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-47-03-968Z_baseline_buf.gen.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

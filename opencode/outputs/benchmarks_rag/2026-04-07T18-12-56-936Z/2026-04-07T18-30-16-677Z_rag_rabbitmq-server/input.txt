@@ -1,0 +1,3041 @@
+
+
+# FILE: consumer_timeouts.md
+# Consumer Timeouts
+
+Consumer timeouts (also known as "message locks") limit how long a consumer can hold unacknowledged messages before RabbitMQ takes action.
+
+**Note:** Consumer timeouts are **only supported for quorum queues**. Classic queues and stream queues do not support consumer timeouts.
+
+## Overview
+
+When a consumer receives a message in manual acknowledgement mode, it has a limited time to acknowledge (or reject) the message. If the timeout expires before the message is settled, RabbitMQ:
+
+1. Returns the message to the queue (making it available for redelivery)
+2. Marks the consumer as "timed out"
+3. Notifies the client via a protocol-specific mechanism
+
+## Configuration
+
+Consumer timeouts can be configured at four levels:
+
+### 1. Consumer Argument (Highest Priority)
+
+Set via the `x-consumer-timeout` argument when creating a consumer (in milliseconds):
+
+```erlang
+#'basic.consume'{arguments = [{<<"x-consumer-timeout">>, long, 60000}]}
+```
+
+This takes absolute precedence over all other settings.
+
+### 2. Queue Argument
+
+Set via the `x-consumer-timeout` argument when declaring a queue (in milliseconds):
+
+```erlang
+#'queue.declare'{arguments = [{<<"x-consumer-timeout">>, long, 60000}]}
+```
+
+### 3. Queue Policy
+
+Set via a policy with the `consumer-timeout` key (in milliseconds):
+
+```bash
+rabbitmqctl set_policy consumer-timeout-policy ".*" \
+  '{"consumer-timeout": 60000}' --apply-to quorum_queues
+```
+
+**Note:** When both a queue argument and a policy are set, the **minimum** of the two values is used.
+
+### 4. Global Configuration (Lowest Priority)
+
+Set in `rabbitmq.conf`:
+
+```ini
+consumer_timeout = 1800000
+```
+
+**Default:** 1,800,000 milliseconds (30 minutes)
+
+### Precedence Summary
+
+1. Consumer argument (`x-consumer-timeout` on `basic.consume`) - if set, used directly
+2. Otherwise: min(queue argument, queue policy) - if either is set
+3. Otherwise: global `consumer_timeout` configuration
+4. Otherwise: default of 30 minutes
+
+## Queue Type Support
+
+| Queue Type | Consumer Timeout Support |
+|------------|-------------------------|
+| Quorum queues | Full support |
+| Classic queues | Not supported |
+| Stream queues | Not supported |
+
+## Changes from v4.2.x
+
+In RabbitMQ 4.2.x and earlier, consumer timeouts **always closed the channel** with a `precondition_failed` error, regardless of client capabilities. This was disruptive as it terminated all consumers on the channel, not just the one that timed out.
+
+Starting with RabbitMQ 4.3, the behaviour is more graceful for clients that support the `consumer_cancel_notify` capability (which most modern clients do). Instead of closing the channel, the server sends a `basic.cancel` notification to cancel only the timed-out consumer, leaving the channel and other consumers intact.
+
+Clients that do not advertise the `consumer_cancel_notify` capability will still experience channel closure on timeout, maintaining backwards compatibility.
+
+## Timeout Behaviour
+
+When a consumer timeout occurs on a quorum queue:
+
+1. **Message return:** Timed-out messages are returned to the queue with "ready" status, available for redelivery to any consumer
+2. **Consumer state:** The consumer enters "timeout" status and will not receive new messages
+3. **Partial timeout:** Only messages that have exceeded their timeout are returned; other checked-out messages remain with the consumer until they also time out
+4. **Recovery:** The consumer can resume receiving messages only after all timed-out messages are settled (acknowledged, rejected, or the consumer is cancelled)
+
+### Protocol-Specific Actions
+
+When a timeout occurs, the server notifies the client using protocol-specific mechanisms:
+
+#### AMQP 0.9.1
+
+- **With `consumer_cancel_notify` capability:** Server sends `basic.cancel` to the consumer, channel remains open
+- **Without `consumer_cancel_notify` capability:** Server closes the channel
+
+#### AMQP 1.0 (Planned)
+
+Options under consideration (in order of preference):
+
+1. Spontaneously release the message using the `released` outcome (§3.4.4), if client supports it
+2. Detach the link with an error (and cancel the consumer with the queue)
+3. Terminate the session
+
+#### MQTT / STOMP (Planned)
+
+- Terminate the connection process
+
+## Design Rationale
+
+### Long vs Short Message Locks
+
+RabbitMQ uses relatively long message locks (default 30 minutes) without lock renewal, unlike some other message brokers. For comparison, Azure Service Bus defaults to 1-minute locks with a 5-minute maximum, requiring explicit lock renewal.
+
+This design choice reflects that:
+
+1. AMQP 0.9.1 has no protocol mechanism for lock renewal
+2. Many RabbitMQ workloads involve long-running message processing
+3. Short locks with mandatory renewal would be a significant change in programming model
+
+### Future Considerations: Lock Renewal
+
+If lock renewal were to be supported in the future, one option for AMQP 1.0 would be to use the `received` outcome as a heartbeat mechanism to renew message locks. The `received` outcome is non-terminal and can be sent multiple times. However, this would need careful design to avoid conflicts with its primary use case for resumable large message transfers.
+
+
+# FILE: SERVER_RELEASES.md
+# RabbitMQ Server Releases
+
+See [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) and [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages?tab=readme-ov-file).
+
+
+# FILE: README.md
+# RabbitMQ Server
+
+[![CI](https://github.com/rabbitmq/rabbitmq-server/actions/workflows/test-make.yaml/badge.svg)](https://github.com/rabbitmq/rabbitmq-server/actions/workflows/test-make.yaml)
+
+[RabbitMQ](https://rabbitmq.com) is a [feature rich](https://www.rabbitmq.com/docs),
+multi-protocol messaging and streaming broker. It supports:
+
+ * AMQP 1.0
+ * AMQP 0-9-1
+ * [RabbitMQ Stream Protocol](https://www.rabbitmq.com/docs/streams)
+ * MQTT 3.1, 3.1.1, and 5.0
+ * STOMP 1.0 through 1.2
+ * [MQTT over WebSocket](https://www.rabbitmq.com/docs/web-mqtt)
+ * [STOMP over WebSocket](https://www.rabbitmq.com/docs/web-stomp)
+ * AMQP 1.0 over WebSocket (supported in [VMware Tanzu RabbitMQ](https://www.vmware.com/products/app-platform/tanzu-rabbitmq))
+
+
+## Installation
+
+ * [Currently supported](https://www.rabbitmq.com/release-information) released series
+ * [Installation guides](https://www.rabbitmq.com/docs/download) for various platforms
+ * [Kubernetes Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)
+ * [Changelog](https://www.rabbitmq.com/release-information)
+ * [Releases](https://github.com/rabbitmq/rabbitmq-server/releases) on GitHub
+ * [Community Support Eligibility Policy](https://github.com/rabbitmq/rabbitmq-server/blob/main/COMMUNITY_SUPPORT.md)
+ * [Supported Erlang versions](https://www.rabbitmq.com/docs/which-erlang)
+
+
+## Tutorials and Documentation
+
+ * [RabbitMQ tutorials](https://www.rabbitmq.com/tutorials) and their [executable versions on GitHub](https://github.com/rabbitmq/rabbitmq-tutorials)
+ * [Documentation guides](https://rabbitmq.com/docs/)
+ * [RabbitMQ blog](https://blog.rabbitmq.com/)
+
+Some key doc guides include
+
+ * [CLI tools guide](https://www.rabbitmq.com/docs/cli)
+ * [Clustering](https://www.rabbitmq.com/docs/clustering) and [Cluster Formation](https://www.rabbitmq.com/docs/cluster-formation)
+ * [Configuration guide](https://www.rabbitmq.com/docs/configure)
+ * [Client libraries and tools](https://www.rabbitmq.com/client-libraries/devtools)
+ * [Monitoring](https://www.rabbitmq.com/docs/monitoring) and [Prometheus/Grafana](https://www.rabbitmq.com/docs/prometheus)
+ * [Upgrading](https://www.rabbitmq.com/docs/upgrade)
+ * [Kubernetes Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)
+ * [Production checklist](https://www.rabbitmq.com/docs/production-checklist)
+ * [Quorum queues](https://www.rabbitmq.com/docs/quorum-queues): a replicated, data safety- and consistency-oriented queue type
+ * [Streams](https://www.rabbitmq.com/docs/streams): a persistent and replicated append-only log with non-destructive consumer semantics
+ * [Runtime Parameters and Policies](https://www.rabbitmq.com/docs/parameters)
+ * [Runnable tutorials](https://github.com/rabbitmq/rabbitmq-tutorials/)
+
+RabbitMQ documentation is also [developed on GitHub](https://github.com/rabbitmq/rabbitmq-website/).
+
+## Commercial Features and Support
+
+ * [Commercial editions of RabbitMQ](https://tanzu.vmware.com/rabbitmq)
+ * [Commercial edition for Kubernetes](https://docs.vmware.com/en/VMware-RabbitMQ-for-Kubernetes/1/rmq/installation.html)
+ * [Commercial support](https://tanzu.vmware.com/rabbitmq/oss) from [Broadcom](https://vmware.com) for open source RabbitMQ
+
+## Getting Help from the Community
+
+Please read the [Community Support Eligibility Policy](https://github.com/rabbitmq/rabbitmq-server/blob/main/COMMUNITY_SUPPORT.md) document
+first.
+
+The recommended community forums are
+
+ * [GitHub Discussions](https://github.com/rabbitmq/rabbitmq-server/discussions/)
+ * [Community Discord server](https://rabbitmq.com/discord/)
+ * `#rabbitmq` on [Libera Chat](https://libera.chat/)
+
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and our [development process overview](https://www.rabbitmq.com/github).
+
+Questions about contributing, internals and so on are very welcome in [GitHub Discussions](https://github.com/rabbitmq/rabbitmq-server/discussions)
+or [community Discord server](https://www.rabbitmq.com/discord/) in the `contributors` channel.
+
+
+## Licensing
+
+RabbitMQ server is [licensed under the MPL 2.0](LICENSE-MPL-RabbitMQ).
+
+[Community Support Eligibility Policy](https://github.com/rabbitmq/rabbitmq-server/blob/main/COMMUNITY_SUPPORT.md)
+document explains the open source RabbitMQ support policy adopted by the RabbitMQ Core Team.
+
+
+## AI Agent Instructions
+
+See `AGENTS.md`.
+
+
+## Building From Source and Packaging
+
+ * [Contributor resources](https://github.com/rabbitmq/contribute)
+ * [Building RabbitMQ from Source](https://www.rabbitmq.com/docs/build-server)
+ * [Building RabbitMQ Distribution Packages](https://www.rabbitmq.com/docs/build-server)
+
+
+## Copyright
+
+(c) 2007-2026 Broadcom. All Rights Reserved. The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
+
+
+# FILE: PKG_WINDOWS.md
+# Build RabbitMQ Windows Package
+
+The RabbitMQ Windows installer is produced on Linux, together
+with the rest of the packages.
+
+See [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) and [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages?tab=readme-ov-file).
+
+
+# FILE: PKG_LINUX.md
+# Build RabbitMQ Packages using Linux
+
+See [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) and [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages?tab=readme-ov-file).
+
+
+# FILE: Makefile
+PROJECT = rabbitmq_server_release
+PROJECT_DESCRIPTION = RabbitMQ Server
+
+# Propagate PROJECT_VERSION (from the command line or environment) to
+# other components. If PROJECT_VERSION is unset, then an empty variable
+# is propagated and the default version will fallback to the default
+# value from rabbitmq-components.mk.
+export RABBITMQ_VERSION := $(PROJECT_VERSION)
+
+# Release artifacts are put in $(PACKAGES_DIR).
+PACKAGES_DIR ?= $(abspath PACKAGES)
+
+# List of plugins to include in a RabbitMQ release.
+include plugins.mk
+
+# An additional list of plugins to include in a RabbitMQ release,
+# on top of the standard plugins.
+#
+# Note: When including NIFs in a release make sure to build
+# them on the appropriate platform for the target environment.
+# For example build on Linux when targeting Docker.
+ADDITIONAL_PLUGINS ?=
+
+DEPS = rabbit_common rabbit $(PLUGINS) $(ADDITIONAL_PLUGINS)
+
+DEP_PLUGINS = rabbit_common/mk/rabbitmq-dist.mk \
+	      rabbit_common/mk/rabbitmq-run.mk
+
+DISABLE_DISTCLEAN = 1
+
+ifeq ($(filter-out xref,$(MAKECMDGOALS)),)
+XREF_SCOPE = app deps
+
+# For Elixir protocols the right fix is to include the consolidated/
+# folders in addition to ebin/. However this creates conflicts because
+# some modules are duplicated. So instead we ignore warnings from
+# protocols directly.
+XREF_IGNORE = [ \
+    {'Elixir.CSV.Encode',impl_for,1}, \
+    {'Elixir.JSON.Decoder',impl_for,1}, \
+    {'Elixir.JSON.Encoder',impl_for,1}, \
+    {'Elixir.RabbitMQ.CLI.Core.DataCoercion',impl_for,1}]
+
+# Include Elixir libraries in the Xref checks.
+xref: ERL_LIBS := $(ERL_LIBS):$(CURDIR)/apps:$(CURDIR)/deps:$(dir $(shell elixir --eval ':io.format "~s~n", [:code.lib_dir :elixir ]'))
+endif
+
+include rabbitmq-components.mk
+
+# Set PROJECT_VERSION, calculated in rabbitmq-components.mk,
+# in stone now, because in this Makefile we will be using it
+# multiple times (including for release file names and whatnot).
+PROJECT_VERSION := $(PROJECT_VERSION)
+
+# Fetch/build community plugins.
+#
+# To include community plugins in commands, use
+# `make COMMUNITY_PLUGINS=1` or export the variable.
+# They are not included otherwise. Note that only
+# the top-level Makefile can do this.
+#
+# Note that the community plugins will be fetched using
+# SSH and therefore may be subject to GH authentication.
+
+ifdef COMMUNITY_PLUGINS
+DEPS += $(RABBITMQ_COMMUNITY)
+endif
+
+# Plugins to enable for `gmake run-broker`, `gmake start-cluster`, etc.
+# To override:
+#     gmake ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream" run-broker
+#     gmake NODES=3 ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream rabbitmq_stream_management" start-cluster
+#
+# Note: ENABLED_PLUGINS only takes effect on first start. On subsequent starts,
+# the enabled_plugins file is preserved. To change plugins on restart, either:
+#   - Add the `virgin-test-tmpdir` target to gmake:
+#         gmake ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream" virgin-test-tmpdir run-broker
+#   - Delete the enabled_plugins file: rm /tmp/rabbitmq-test-instances/rabbit@*/enabled_plugins
+#   - Use rabbitmq-plugins: ./sbin/rabbitmq-plugins enable <plugin>
+ENABLED_PLUGINS ?= rabbitmq_management
+RABBITMQ_ENABLED_PLUGINS ?= $(call comma_list,$(ENABLED_PLUGINS))
+# This is necessary for the recursively called targets
+# used by `gmake start-cluster`.
+export RABBITMQ_ENABLED_PLUGINS
+
+include erlang.mk
+include mk/github-actions.mk
+
+# --------------------------------------------------------------------
+# Distribution - common variables and generic functions.
+# --------------------------------------------------------------------
+
+RSYNC ?= rsync
+RSYNC_V_0 =
+RSYNC_V_1 = -v
+RSYNC_V_2 = -v
+RSYNC_V = $(RSYNC_V_$(V))
+BASE_RSYNC_FLAGS += -a $(RSYNC_V) \
+	       --delete					\
+	       --delete-excluded			\
+	       --exclude '.sw?' --exclude '.*.sw?'	\
+	       --exclude '*.beam'			\
+	       --exclude '*.d'				\
+	       --exclude '*.pyc'			\
+	       --exclude '.git*'			\
+	       --exclude '.hg*'				\
+	       --exclude '.*.plt'			\
+	       --exclude 'erlang_ls.config'		\
+	       --exclude '$(notdir $(ERLANG_MK_TMP))'	\
+	       --exclude '_build/'			\
+	       --exclude '__pycache__/'			\
+	       --exclude 'tools/'			\
+	       --exclude 'ci/'				\
+	       --exclude 'cover/'			\
+	       --exclude 'deps/'			\
+	       --exclude 'doc/'				\
+	       --exclude 'docker/'			\
+	       --exclude 'ebin/'			\
+	       --exclude 'erl_crash.dump'		\
+	       --exclude 'escript/'			\
+	       --exclude 'MnesiaCore.*'			\
+	       --exclude '$(notdir $(DEPS_DIR))/'	\
+	       --exclude 'hexer*'			\
+	       --exclude 'logs/'			\
+	       --exclude 'PKG_*.md'			\
+	       --exclude '/plugins/'			\
+	       --include 'cli/plugins'			\
+	       --exclude '$(notdir $(DIST_DIR))/'	\
+	       --exclude '/$(notdir $(PACKAGES_DIR))/'	\
+	       --exclude '/PACKAGES/'			\
+	       --exclude '/amqp_client/doc/'		\
+	       --exclude '/amqp_client/rebar.config'	\
+	       --exclude '/cowboy/doc/'			\
+	       --exclude '/cowboy/examples/'		\
+	       --exclude '/rabbit/escript/'		\
+	       --exclude '/rabbitmq_cli/escript/'	\
+	       --exclude '/rabbitmq_mqtt/test/build/'	\
+	       --exclude '/rabbitmq_mqtt/test/test_client/'\
+	       --exclude '/rabbitmq_trust_store/examples/'\
+	       --exclude '/ranch/doc/'			\
+	       --exclude '/ranch/examples/'		\
+	       --exclude '/sockjs/examples/'		\
+	       --exclude '/workflow_sources/'
+
+SOURCE_DIST_RSYNC_FLAGS += $(BASE_RSYNC_FLAGS)          \
+	       --exclude 'packaging'			\
+	       --exclude 'test'
+
+# For source-bundle, explicitly include folders that are needed
+# for tests to execute. These are added before excludes from
+# the base flags so rsync honors the first match.
+SOURCE_BUNDLE_RSYNC_FLAGS += \
+	       --include 'rabbit_shovel_test/ebin'      \
+	       --include 'rabbit_shovel_test/ebin/*'    \
+	       --include 'rabbitmq_ct_helpers/tools'    \
+	       --include 'rabbitmq_ct_helpers/tools/*'  \
+               $(BASE_RSYNC_FLAGS)
+
+TAR ?= tar
+TAR_V_0 =
+TAR_V_1 = -v
+TAR_V_2 = -v
+TAR_V = $(TAR_V_$(V))
+
+GZIP ?= gzip
+BZIP2 ?= bzip2
+XZ ?= xz
+
+ZIP ?= zip
+ZIP_V_0 = -q
+ZIP_V_1 =
+ZIP_V_2 =
+ZIP_V = $(ZIP_V_$(V))
+
+ifeq ($(shell tar --version | grep -c "GNU tar"),0)
+# Skip all flags if this is Darwin (a.k.a. macOS, a.k.a. OS X)
+ifeq ($(shell uname | grep -c "Darwin"),0)
+TAR_FLAGS_FOR_REPRODUCIBLE_BUILDS = --uid 0 \
+				    --gid 0 \
+				    --numeric-owner \
+				    --no-acls \
+				    --no-fflags \
+				    --no-xattrs
+endif
+else
+TAR_FLAGS_FOR_REPRODUCIBLE_BUILDS = --owner 0 \
+				    --group 0 \
+				    --numeric-owner
+endif
+
+DIST_SUFFIXES ?= tar.xz
+
+# Function to create distribution targets
+# Args: $(1) - Full distribution path
+#       $(2) - RSYNC flags to use
+define create_dist_target
+$(1): $(ERLANG_MK_RECURSIVE_DEPS_LIST)
+	$${verbose} mkdir -p $$(dir $$@)
+	$${gen_verbose} $${RSYNC} $(2) ./ $$@/
+	$${verbose} echo "$(PROJECT_DESCRIPTION) $(PROJECT_VERSION)" > $$@/git-revisions.txt
+	$${verbose} echo "$(PROJECT) $$$$(git rev-parse HEAD) $$$$(git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD)" >> $$@/git-revisions.txt
+	$${verbose} echo "$$$$(TZ=UTC git --no-pager log -n 1 --format='%cd' --date='format-local:%Y%m%d%H%M.%S')" > $$@.git-times.txt
+	$${verbose} cat packaging/common/LICENSE.head > $$@/LICENSE
+	$${verbose} mkdir -p $$@/deps/licensing
+	$${verbose} set -e; for dep in $$$$(cat $(ERLANG_MK_RECURSIVE_DEPS_LIST) | LC_COLLATE=C sort); do \
+		$${RSYNC} $(2) \
+		 $$$$dep \
+		 $$@/deps; \
+		rm -f \
+		 $$@/deps/rabbit_common/rebar.config \
+		 $$@/deps/rabbit_common/rebar.lock; \
+		if test -f $$@/deps/$$$$(basename $$$$dep)/erlang.mk && \
+		   test "$$$$(wc -l $$@/deps/$$$$(basename $$$$dep)/erlang.mk | awk '{print $$$$1;}')" = "1" && \
+		   grep -qs -E "^[[:blank:]]*include[[:blank:]]+(erlang\.mk|.*/erlang\.mk)$$$$" $$@/deps/$$$$(basename $$$$dep)/erlang.mk; then \
+			echo "include ../../erlang.mk" > $$@/deps/$$$$(basename $$$$dep)/erlang.mk; \
+		fi; \
+		sed -E -i.bak "s|^[[:blank:]]*include[[:blank:]]+\.\./.*erlang.mk$$$$|include ../../erlang.mk|" \
+		 $$@/deps/$$$$(basename $$$$dep)/Makefile && \
+		rm $$@/deps/$$$$(basename $$$$dep)/Makefile.bak; \
+		if test -f "$$$$dep/license_info"; then \
+			cp "$$$$dep/license_info" "$$@/deps/licensing/license_info_$$$$(basename $$$$dep)"; \
+			cat "$$$$dep/license_info" >> $$@/LICENSE; \
+		fi; \
+		find "$$$$dep" -maxdepth 1 -name 'LICENSE-*' -exec cp '{}' $$@/deps/licensing \; ; \
+		(cd $$$$dep; \
+		 echo "$$$$(basename "$$$$dep") $$$$(git rev-parse HEAD) $$$$(git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD)") \
+		 >> "$$@/git-revisions.txt"; \
+		! test -d $$$$dep/.git || (cd $$$$dep; \
+		 echo "$$$$(TZ=UTC git --no-pager log -n 1 --format='%cd' --date='format-local:%Y%m%d%H%M.%S')") >> "$$@.git-times.txt"; \
+	done
+	$${verbose} cat packaging/common/LICENSE.tail >> $$@/LICENSE
+	$${verbose} find $$@/deps/licensing -name 'LICENSE-*' -exec cp '{}' $$@ \;
+	$${verbose} rm -rf $$@/deps/licensing
+	$${verbose} for file in $$$$(find $$@ -name '*.app.src'); do \
+		sed -E -i.bak \
+		  -e 's/[{]vsn[[:blank:]]*,[[:blank:]]*(""|"0.0.0")[[:blank:]]*}/{vsn, "$(PROJECT_VERSION)"}/' \
+		  -e 's/[{]broker_version_requirements[[:blank:]]*,[[:blank:]]*\[\][[:blank:]]*}/{broker_version_requirements, ["$(PROJECT_VERSION)"]}/' \
+		  $$$$file; \
+		rm $$$$file.bak; \
+	done
+	$${verbose} echo "PLUGINS := $(PLUGINS)" > $$@/plugins.mk
+	$${verbose} sort -r < "$$@.git-times.txt" | head -n 1 > "$$@.git-time.txt"
+	$${verbose} find $$@ -print0 | (TZ=UTC xargs -0 touch -t "$$$$(cat $$@.git-time.txt)")
+	$${verbose} rm "$$@.git-times.txt" "$$@.git-time.txt"
+
+$(1).manifest: $(1)
+	$${gen_verbose} cd $$(dir $$@) && \
+		find $$(notdir $$<) | LC_COLLATE=C sort > $$@
+
+$(1).tar.xz: $(1).manifest
+	$${gen_verbose} cd $$(dir $$@) && \
+		$${TAR} $${TAR_V} $${TAR_FLAGS_FOR_REPRODUCIBLE_BUILDS} --no-recursion -T $$(notdir $$<) -cf - | \
+		$${XZ} > $$@
+
+$(1).tar.gz: $(1).manifest
+	$${gen_verbose} cd $$(dir $$@) && \
+		$${TAR} $${TAR_V} $${TAR_FLAGS_FOR_REPRODUCIBLE_BUILDS} --no-recursion -T $$(notdir $$<) -cf - | \
+		$${GZIP} --best > $$@
+
+$(1).tar.bz2: $(1).manifest
+	$${gen_verbose} cd $$(dir $$@) && \
+		$${TAR} $${TAR_V} $${TAR_FLAGS_FOR_REPRODUCIBLE_BUILDS} --no-recursion -T $$(notdir $$<) -cf - | \
+		$${BZIP2} > $$@
+
+$(1).zip: $(1).manifest
+	$${verbose} rm -f $$@
+	$${gen_verbose} cd $$(dir $$@) && \
+		$${ZIP} $${ZIP_V} --names-stdin $$@ < $$(notdir $$<)
+
+endef
+
+# Function to create clean targets
+# Args: $(1) - Base name (e.g. SOURCE_DIST_BASE or BUNDLE_DIST_BASE)
+define create_clean_targets
+.PHONY: clean-$(1)
+
+clean-$(1):
+	$${gen_verbose} rm -rf -- $(1)-*
+
+# Add each clean target to the clean:: rule
+clean:: clean-$(1)
+endef
+
+# --------------------------------------------------------------------
+# Distribution - public targets
+# --------------------------------------------------------------------
+
+SOURCE_DIST_BASE ?= rabbitmq-server
+SOURCE_DIST ?= $(PACKAGES_DIR)/$(SOURCE_DIST_BASE)-$(PROJECT_VERSION)
+SOURCE_DIST_FILES = $(addprefix $(SOURCE_DIST).,$(DIST_SUFFIXES))
+
+.PHONY: source-dist
+source-dist: $(SOURCE_DIST_FILES)
+	@:
+
+$(eval $(call create_dist_target,$(SOURCE_DIST),$(SOURCE_DIST_RSYNC_FLAGS)))
+
+SOURCE_BUNDLE_BASE ?= rabbitmq-server-bundle
+SOURCE_BUNDLE_DIST ?= $(PACKAGES_DIR)/$(SOURCE_BUNDLE_BASE)-$(PROJECT_VERSION)
+SOURCE_BUNDLE_FILES = $(addprefix $(SOURCE_BUNDLE_DIST).,$(DIST_SUFFIXES))
+
+.PHONY: source-bundle
+source-bundle: $(SOURCE_BUNDLE_FILES)
+	@:
+
+$(eval $(call create_dist_target,$(SOURCE_BUNDLE_DIST),$(SOURCE_BUNDLE_RSYNC_FLAGS)))
+
+# Create the clean targets for both distributions
+$(eval $(call create_clean_targets,$(SOURCE_DIST_BASE)))
+$(eval $(call create_clean_targets,$(SOURCE_BUNDLE_BASE)))
+
+.PHONY: distclean-packages clean-unpacked-source-dist
+
+distclean:: distclean-packages
+
+distclean-packages:
+	$(gen_verbose) rm -rf -- $(PACKAGES_DIR)
+
+## If a dependency doesn't have a clean target - do not call it
+clean-unpacked-source-dist:
+	for d in deps/*; do \
+		if test -f $$d/Makefile; then \
+			(! make -n clean) || (make -C $$d clean || exit $$?); \
+		fi; \
+	done
+
+clean-deps:
+	git clean -xfffd deps
+
+# --------------------------------------------------------------------
+# Packaging.
+# --------------------------------------------------------------------
+
+.PHONY: packages package-deb \
+	package-rpm package-rpm-fedora package-rpm-suse \
+	package-windows \
+	package-generic-unix \
+	docker-image
+
+# This variable is exported so sub-make instances know where to find the
+# archive.
+PACKAGES_SOURCE_DIST_FILE ?= $(firstword $(SOURCE_DIST_FILES))
+
+RABBITMQ_PACKAGING_TARGETS = package-deb package-rpm \
+package-rpm-redhat package-rpm-fedora package-rpm-rhel8 \
+package-rpm-suse package-rpm-opensuse \
+package-windows
+
+ifneq ($(filter $(RABBITMQ_PACKAGING_TARGETS),$(MAKECMDGOALS)),)
+ifeq ($(RABBITMQ_PACKAGING_REPO),)
+$(error Cannot find rabbitmq-packaging repository dir; please clone from rabbitmq/rabbitmq-packaging and specify RABBITMQ_PACKAGING_REPO)
+endif
+endif
+
+$(RABBITMQ_PACKAGING_TARGETS): $(PACKAGES_SOURCE_DIST_FILE)
+	$(verbose) $(MAKE) -C $(RABBITMQ_PACKAGING_REPO) $@ \
+		SOURCE_DIST_FILE=$(abspath $(PACKAGES_SOURCE_DIST_FILE))
+
+package-generic-unix \
+docker-image: $(PACKAGES_SOURCE_DIST_FILE)
+	$(verbose) $(MAKE) -C packaging $@ \
+		SOURCE_DIST_FILE=$(abspath $(PACKAGES_SOURCE_DIST_FILE))
+
+packages: package-deb package-rpm package-windows package-generic-unix
+
+# --------------------------------------------------------------------
+# Installation.
+# --------------------------------------------------------------------
+
+.PHONY: manpages web-manpages distclean-manpages
+
+manpages web-manpages distclean-manpages:
+	$(MAKE) -C $(DEPS_DIR)/rabbit $@ DEPS_DIR=$(DEPS_DIR)
+
+.PHONY: install install-erlapp install-scripts install-bin install-man \
+	install-windows install-windows-erlapp install-windows-scripts \
+	install-windows-docs
+
+DESTDIR ?=
+
+PREFIX ?= /usr/local
+WINDOWS_PREFIX ?= rabbitmq-server-windows-$(PROJECT_VERSION)
+
+MANDIR ?= $(PREFIX)/share/man
+RMQ_ROOTDIR ?= $(PREFIX)/lib/erlang
+RMQ_BINDIR ?= $(RMQ_ROOTDIR)/bin
+RMQ_LIBDIR ?= $(RMQ_ROOTDIR)/lib
+RMQ_ERLAPP_DIR ?= $(RMQ_LIBDIR)/rabbitmq_server-$(PROJECT_VERSION)
+RMQ_AUTOCOMPLETE_DIR ?= $(RMQ_ROOTDIR)/autocomplete
+
+SCRIPTS = rabbitmq-defaults \
+	  rabbitmq-env \
+	  rabbitmq-server \
+	  rabbitmqctl \
+	  rabbitmq-plugins \
+	  rabbitmq-diagnostics \
+	  rabbitmq-queues \
+	  rabbitmq-upgrade \
+	  rabbitmq-streams \
+	  vmware-rabbitmq
+
+AUTOCOMPLETE_SCRIPTS = bash_autocomplete.sh zsh_autocomplete.sh
+
+WINDOWS_SCRIPTS = rabbitmq-defaults.bat \
+		  rabbitmq-env.bat \
+		  rabbitmq-plugins.bat \
+		  rabbitmq-diagnostics.bat \
+		  rabbitmq-queues.bat \
+		  rabbitmq-server.bat \
+		  rabbitmq-service.bat \
+		  rabbitmq-upgrade.bat \
+		  rabbitmq-streams.bat \
+		  vmware-rabbitmq.bat \
+		  rabbitmqctl.bat
+
+UNIX_TO_DOS ?= todos
+
+inst_verbose_0 = @echo " INST  " $@;
+inst_verbose = $(inst_verbose_$(V))
+
+install: install-erlapp install-scripts
+
+install-erlapp: dist
+	$(verbose) mkdir -p $(DESTDIR)$(RMQ_ERLAPP_DIR)
+	$(inst_verbose) cp -r \
+		LICENSE* \
+		$(DEPS_DIR)/rabbit/INSTALL \
+		$(DIST_DIR) \
+		$(DESTDIR)$(RMQ_ERLAPP_DIR)
+	$(verbose) echo "Put your EZs here and use rabbitmq-plugins to enable them." \
+		> $(DESTDIR)$(RMQ_ERLAPP_DIR)/$(notdir $(DIST_DIR))/README
+
+CLI_ESCRIPTS_DIR = escript
+
+install-escripts:
+	$(verbose) $(MAKE) -C $(DEPS_DIR)/rabbitmq_cli install \
+		PREFIX="$(RMQ_ERLAPP_DIR)/$(CLI_ESCRIPTS_DIR)"
+
+install-scripts: install-escripts
+	$(verbose) mkdir -p $(DESTDIR)$(RMQ_ERLAPP_DIR)/sbin
+	$(inst_verbose) for script in $(SCRIPTS); do \
+		cp "$(DEPS_DIR)/rabbit/scripts/$$script" \
+			"$(DESTDIR)$(RMQ_ERLAPP_DIR)/sbin"; \
+		chmod 0755 "$(DESTDIR)$(RMQ_ERLAPP_DIR)/sbin/$$script"; \
+	done
+
+# FIXME: We do symlinks to scripts in $(RMQ_ERLAPP_DIR))/sbin but this
+# code assumes a certain hierarchy to make relative symlinks.
+install-bin: install-scripts install-autocomplete-scripts
+	$(verbose) mkdir -p $(DESTDIR)$(RMQ_BINDIR)
+	$(inst_verbose) for script in $(SCRIPTS); do \
+		test -e $(DESTDIR)$(RMQ_BINDIR)/$$script || \
+			ln -sf ../lib/$(notdir $(RMQ_ERLAPP_DIR))/sbin/$$script \
+			 $(DESTDIR)$(RMQ_BINDIR)/$$script; \
+	done
+
+install-autocomplete-scripts:
+	$(verbose) mkdir -p $(DESTDIR)$(RMQ_AUTOCOMPLETE_DIR)
+	$(inst_verbose) for script in $(AUTOCOMPLETE_SCRIPTS); do \
+		cp "scripts/$$script" \
+			"$(DESTDIR)$(RMQ_AUTOCOMPLETE_DIR)" && \
+		chmod 0755 "$(DESTDIR)$(RMQ_AUTOCOMPLETE_DIR)/$$script"; \
+	done
+
+install-man: manpages
+	$(inst_verbose) sections=$$(ls -1 $(DEPS_DIR)/rabbit/docs/*.[1-9] \
+		| sed -E 's/.*\.([1-9])$$/\1/' | uniq | sort); \
+	for section in $$sections; do \
+		mkdir -p $(DESTDIR)$(MANDIR)/man$$section; \
+		for manpage in $(DEPS_DIR)/rabbit/docs/*.$$section; do \
+			gzip < $$manpage \
+			 > $(DESTDIR)$(MANDIR)/man$$section/$$(basename $$manpage).gz; \
+		done; \
+	done
+
+install-windows: install-windows-erlapp install-windows-scripts install-windows-docs
+
+install-windows-erlapp: dist
+	$(verbose) mkdir -p $(DESTDIR)$(WINDOWS_PREFIX)
+	$(inst_verbose) cp -r \
+		LICENSE* \
+		$(DEPS_DIR)/rabbit/INSTALL \
+		$(DIST_DIR) \
+		$(DESTDIR)$(WINDOWS_PREFIX)
+	$(verbose) echo "Put your EZs here and use rabbitmq-plugins.bat to enable them." \
+		> $(DESTDIR)$(WINDOWS_PREFIX)/$(notdir $(DIST_DIR))/README.txt
+	$(verbose) $(UNIX_TO_DOS) $(DESTDIR)$(WINDOWS_PREFIX)/plugins/README.txt
+
+install-windows-escripts:
+	$(verbose) $(MAKE) -C $(DEPS_DIR)/rabbitmq_cli install \
+		PREFIX="$(WINDOWS_PREFIX)/$(CLI_ESCRIPTS_DIR)"
+
+install-windows-scripts: install-windows-escripts
+	$(verbose) mkdir -p $(DESTDIR)$(WINDOWS_PREFIX)/sbin
+	$(inst_verbose) for script in $(WINDOWS_SCRIPTS); do \
+		cp "$(DEPS_DIR)/rabbit/scripts/$$script" \
+			"$(DESTDIR)$(WINDOWS_PREFIX)/sbin"; \
+		chmod 0755 "$(DESTDIR)$(WINDOWS_PREFIX)/sbin/$$script"; \
+	done
+
+install-windows-docs: install-windows-erlapp
+	$(verbose) mkdir -p $(DESTDIR)$(WINDOWS_PREFIX)/etc
+	$(inst_verbose) man $(DEPS_DIR)/rabbit/docs/rabbitmq-service.8 > tmp-readme-service.txt
+	$(verbose) col -bx < ./tmp-readme-service.txt > $(DESTDIR)$(WINDOWS_PREFIX)/readme-service.txt
+	$(verbose) rm -f ./tmp-readme-service.txt
+	$(verbose) for file in \
+	 $(DESTDIR)$(WINDOWS_PREFIX)/readme-service.txt \
+	 $(DESTDIR)$(WINDOWS_PREFIX)/LICENSE* \
+	 $(DESTDIR)$(WINDOWS_PREFIX)/INSTALL; do \
+		$(UNIX_TO_DOS) "$$file"; \
+		case "$$file" in \
+		*.txt) ;; \
+		*.example) ;; \
+		*) mv "$$file" "$$file.txt" ;; \
+		esac; \
+	done
+
+INTERNAL_DEPS := \
+	   amqp10_client \
+	   amqp10_common \
+	   amqp_client \
+	   oauth2_client \
+	   rabbit_common \
+	   rabbitmq_ct_client_helpers \
+	   rabbitmq_ct_helpers \
+	   rabbitmq_stream_common \
+	   trust_store_http
+
+TIER1_PLUGINS := \
+	   rabbitmq_amqp_client \
+	   rabbitmq_amqp1_0 \
+	   rabbitmq_auth_backend_cache \
+	   rabbitmq_auth_backend_http \
+	   rabbitmq_auth_backend_internal_loopback \
+	   rabbitmq_auth_backend_ldap \
+	   rabbitmq_auth_backend_oauth2 \
+	   rabbitmq_auth_mechanism_ssl \
+	   rabbitmq_aws \
+	   rabbitmq_consistent_hash_exchange \
+	   rabbitmq_event_exchange \
+	   rabbitmq_federation \
+	   rabbitmq_federation_management \
+	   rabbitmq_federation_prometheus \
+	   rabbitmq_jms_topic_exchange \
+	   rabbitmq_management \
+	   rabbitmq_management_agent \
+	   rabbitmq_mqtt \
+	   rabbitmq_peer_discovery_aws \
+	   rabbitmq_peer_discovery_common \
+	   rabbitmq_peer_discovery_consul \
+	   rabbitmq_peer_discovery_etcd \
+	   rabbitmq_peer_discovery_k8s \
+	   rabbitmq_prelaunch \
+	   rabbitmq_prometheus \
+	   rabbitmq_random_exchange \
+	   rabbitmq_recent_history_exchange \
+	   rabbitmq_sharding \
+	   rabbitmq_shovel \
+	   rabbitmq_shovel_management \
+	   rabbitmq_shovel_prometheus \
+	   rabbitmq_stomp \
+	   rabbitmq_stream \
+	   rabbitmq_stream_management \
+	   rabbitmq_top \
+	   rabbitmq_tracing \
+	   rabbitmq_trust_store \
+	   rabbitmq_web_dispatch \
+	   rabbitmq_web_mqtt \
+	   rabbitmq_web_mqtt_examples \
+	   rabbitmq_web_stomp \
+	   rabbitmq_web_stomp_examples
+
+YTT ?= ytt
+
+actions-workflows: .github/workflows/test.yaml .github/workflows/test-mixed-versions.yaml
+
+.PHONY: .github/workflows/test.yaml .github/workflows/test-mixed-versions.yaml
+
+.github/workflows/test.yaml: .github/workflows/templates/test.template.yaml
+	$(gen_verbose) $(YTT) \
+		--file $< \
+		--data-value-yaml internal_deps=[$(subst $(space),$(comma),$(foreach s,$(INTERNAL_DEPS),"$s"))] \
+		--data-value-yaml tier1_plugins=[$(subst $(space),$(comma),$(foreach s,$(TIER1_PLUGINS),"$s"))] \
+		| sed 's/^true:/on:/' \
+		| sed 's/pull_request: null/pull_request:/'> $@
+
+.github/workflows/test-mixed-versions.yaml: .github/workflows/templates/test-mixed-versions.template.yaml
+	$(gen_verbose) $(YTT) \
+		--file $< \
+		--data-value-yaml internal_deps=[$(subst $(space),$(comma),$(foreach s,$(INTERNAL_DEPS),"$s"))] \
+		--data-value-yaml tier1_plugins=[$(subst $(space),$(comma),$(foreach s,$(TIER1_PLUGINS),"$s"))] \
+		| sed 's/^true:/on:/' \
+		| sed 's/pull_request: null/pull_request:/'> $@
+
+
+# FILE: LICENSE
+RabbitMQ server and its tier 1 (core) plugins source code is licensed under the MPL 2.0. For
+the MPL2, please see LICENSE-MPL-RabbitMQ.
+
+Some RabbitMQ server OCF files are licensed under the Apache Software License 2.0.
+For the ASL2, please see LICENSE-APACHE2.
+
+If you have any questions regarding licensing, please contact us at
+rabbitmq-core@groups.vmware.com.
+
+
+# FILE: GEMINI.md
+# Instructions for AI Agents
+
+## Overview
+
+This repository contains open source [RabbitMQ](https://www.rabbitmq.com/), a multi-protocol
+messaging and streaming broker that supports AMQP 1.0, AMQP 0-9-1, MQTTv5, the [RabbitMQ Stream Protocol](https://www.rabbitmq.com/docs/streams), STOMP 1.2,
+MQTT-over-WebSockets, and STOMP-over-WebSockets.
+
+
+## Website and GitHub Repositories
+
+To learn more about RabbitMQ and its features, visit [rabbitmq.com](https://www.rabbitmq.com/).
+
+The mainline repository on GitHub is [`rabbitmq/rabbitmq-server`](https://github.com/rabbitmq/rabbitmq-server/),
+the website repository is [`rabbitmq/rabbitmq-website`](https://github.com/rabbitmq/rabbitmq-website/).
+
+
+## Building and Testing
+
+The GNU Make 4-based build system is described in `CONTRIBUTING.md`.
+
+Consult `CONTRIBUTING.md` before running any tests, in particular to learn how to run
+a specific suite, group of cases or a single test case.
+
+When looking for GNU Make 4, consult `gmake` as well as `make`.
+
+### Dialyzer and xref
+
+Use `gmake dialyze` and `gmake xref` to run static code analysis tools
+from individual `deps/` component directories (see below).
+
+
+## Repository Structure
+
+ * `deps/rabbit`: the core RabbitMQ server, the most important part of the codebase
+ * `deps/rabbit_common`: internal library for common modules
+ * `deps/rabbitmq_amqp1_0`: a no-op plugin that exists for backwards compatibility since AMQP 1.0 is a core protocol as of RabbitMQ 4.0
+ * `deps/rabbitmq_amqp_client`: Erlang AMQP 1.0 client with RabbitMQ-specific management operations
+ * `deps/rabbitmq_auth_backend_http`: external HTTP server-based authentication (authN), authorization (authZ) backend
+ * `deps/rabbitmq_auth_backend_internal_loopback`: a `localhost`-only version of the internal authN, authZ backend
+ * `deps/rabbitmq_auth_backend_ldap`: LDAP authN, authZ plugin
+ * `deps/rabbitmq_auth_backend_oauth2`: OAuth 2.0 authN, authZ backend
+ * `deps/rabbitmq_auth_backend_cache`: a caching layer for other authN, authZ backends
+ * `deps/rabbitmq_auth_mechanism_ssl`: X.509 certificate-based authentication support
+ * `deps/rabbitmq_aws`: AWS API client library
+ * `deps/rabbitmq_cli`: standard CLI tools (`rabbitmqctl`, `rabbitmq-plugins`, `rabbitmq-diagnostics`, etc.); note that [`rabbitmqadmin` v2](https://www.rabbitmq.com/docs/management-cli) lives in a separate repository, [`rabbitmq/rabbitmqadmin-ng`](https://github.com/rabbitmq/rabbitmqadmin-ng)
+ * `deps/rabbitmq_codegen`: generates AMQP 0-9-1 serialization modules from machine-readable specification documents
+ * `deps/rabbitmq_consistent_hash_exchange`: consistent hashing exchange (`x-consistent-hash`)
+ * `deps/rabbitmq_ct_client_helpers`: Common Test helpers for managing connections, channels
+ * `deps/rabbitmq_ct_helpers`: Common Test helpers used by RabbitMQ test suites
+ * `deps/rabbitmq_event_exchange`: exposes internal events to AMQP 0-9-1 clients
+ * `deps/rabbitmq_exchange_federation`: exchange federation
+ * `deps/rabbitmq_queue_federation`: queue federation
+ * `deps/rabbitmq_federation`: a no-op plugin that depends on `rabbitmq_queue_federation` and `rabbitmq_exchange_federation`
+ * `deps/rabbitmq_federation_common`: a common library used by federation plugins
+ * `deps/rabbitmq_federation_management`: management UI extension for federation
+ * `deps/rabbitmq_federation_prometheus`: Prometheus metrics for federation
+ * `deps/rabbitmq_jms_topic_exchange`: JMS topic exchange (`x-jms-topic`) with SQL selection rules
+ * `deps/rabbitmq_management`: management plugin, including the HTTP API and management UI code
+ * `deps/rabbitmq_management/priv/www`: management UI code
+ * `deps/rabbitmq_management_agent`: collects node-wide metrics reported by the management plugin
+ * `deps/rabbitmq_mqtt`: MQTT protocol support
+ * `deps/rabbitmq_peer_discovery_aws`: AWS EC2-based peer discovery
+ * `deps/rabbitmq_peer_discovery_common`: common library for peer discovery backends
+ * `deps/rabbitmq_peer_discovery_consul`: Consul-based peer discovery
+ * `deps/rabbitmq_peer_discovery_etcd`: etcd-based peer discovery (v3 API)
+ * `deps/rabbitmq_peer_discovery_k8s`: Kubernetes peer discovery
+ * `deps/rabbitmq_prelaunch`: internal component used very early on node boot
+ * `deps/rabbitmq_prometheus`: Prometheus plugin
+ * `deps/rabbitmq_random_exchange`: random exchange (`x-random`)
+ * `deps/rabbitmq_recent_history_exchange`: recent history exchange (`x-recent-history`)
+ * `deps/rabbitmq_sharding`: an opinionated exchange plugin that's lost relevance in the age of [super streams](https://www.rabbitmq.com/docs/streams)
+ * `deps/rabbitmq_shovel`: the shovel plugin
+ * `deps/rabbitmq_shovel_management`: management UI extension for shovel
+ * `deps/rabbitmq_shovel_prometheus`: Prometheus metrics for shovel
+ * `deps/rabbitmq_stomp`: STOMP protocol support
+ * `deps/rabbitmq_stream`: the streaming subsystem and a RabbitMQ Stream Protocol implementation
+ * `deps/rabbitmq_stream_common`: common library for streams
+ * `deps/rabbitmq_stream_management`: management UI extension for streams
+ * `deps/rabbitmq_top`: `top`-like Erlang runtime process viewer
+ * `deps/rabbitmq_tracing`: a plugin that traces messages
+ * `deps/rabbitmq_trust_store`: an opinionated alternative to traditional TLS peer verification
+ * `deps/rabbitmq_web_dispatch`: a shared foundation for all HTTP- and WebSocket-based plugins
+ * `deps/rabbitmq_web_mqtt`: MQTT-over-WebSockets
+ * `deps/rabbitmq_web_mqtt_examples`: MQTT-over-WebSockets examples (with a Web UI part)
+ * `deps/rabbitmq_web_stomp`: STOMP-over-WebSockets
+ * `deps/rabbitmq_web_stomp_examples`: STOMP-over-WebSockets examples (with a Web UI part)
+ * `docs/compatibility.json`: machine-readable Erlang/Elixir compatibility matrix for all releases from 3.11.0 onwards. See `docs/COMPATIBILITY.md` for maintenance instructions
+ * `scripts` contains shell scripts that drive the server and CLI tools
+ * `packaging` contains *some* packaging-related code; release artifacts source can be found in [`rabbitmq/rabbitmq-packaging`](https://github.com/rabbitmq/rabbitmq-packaging)
+ * `selenium` contains Selenium tests for the management UI and the OAuth 2 plugin
+ * `release-notes` contains release notes all the way back to 1.0.0 previews
+
+
+## Key Dependencies
+
+Dependency sources, repositories, and versions are defined in `rabbitmq-components.mk`.
+
+These dependencies are cloned by `gmake` during the build process:
+
+ * `deps/ranch` is [Ranch](https://github.com/ninenines/ranch), a socket acceptor library used by all protocol implementations
+ * `deps/ra` is [Ra](https://github.com/rabbitmq/ra), our [Raft](https://raft.github.io/) implementation
+ * `deps/aten` is [`aten`](https://github.com/rabbitmq/aten), an implementation of [adaptive accrual failure detector](https://dl.acm.org/doi/10.1145/1244002.1244129) for Ra
+ * `deps/osiris` is [`osiris`](https://github.com/rabbitmq/osiris), a library that underpins the streaming subsystem
+ * `deps/khepri` is [`khepri`](https://github.com/rabbitmq/khepri), an embedded distributed Ra-based [schema data store](https://www.rabbitmq.com/docs/metadata-store)
+ * `deps/cuttlefish` is [`cuttlefish`](https://github.com/Kyorai/cuttlefish/), a `rabbitmq.conf` parser and translation library
+ * `deps/cowboy` is the HTTP server and API framework used by the RabbitMQ HTTP API and other HTTP and WebSockets-based plugins
+ * `deps/thoas` is [Thoas](https://github.com/lpil/thoas), a JSON parser and generator
+ * `deps/seshat` is [`seshat`](https://github.com/rabbitmq/seshat), a counters (metrics) library
+
+
+## Build System Files, Build Artifacts, Test Run Logs
+
+ * `erlang.mk` is the heart of the Make-based build system
+ * `rabbitmq-components.mk` lists all dependencies, their sources (e.g. a Git repo or `hex.pm`) and target version
+ * `mk`, `./*.mk`, `deps/rabbit_common/mk` are various Make files included into `Makefile`
+ * `ebin`, `sbin`, `escript`, `plugins` directories contain build artifacts
+ * `logs` contains Common Test run logs. Inspect it when troubleshooting test failures
+ * `rebar.config`: Rebar configuration; Rebar is used sparingly throughout the codebase; Make is the primary build tool
+
+
+## Target Erlang and Elixir Versions
+
+RabbitMQ [targets Erlang `27.x`](https://www.rabbitmq.com/docs/which-erlang) and a reasonably [recent Elixir](https://github.com/elixir-lang/elixir/releases) (e.g. `1.18.x`, `1.19.x`).
+
+Per-release Erlang and Elixir compatibility ranges in machine-readable format
+can be found in `docs/compatibility.json`.
+
+
+## GitHub Actions
+
+This repository uses GitHub Actions for CI and releases. Find them at their usual place in `.github/workflows`
+and [on the Web](https://github.com/rabbitmq/rabbitmq-server/actions/).
+
+Jobs and run results can be inspected via `gh` on the command line.
+
+### Release Infrastructure
+
+ * [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages) contains workflows for producing open source RabbitMQ releases
+ * [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) contains OCI build environment images
+
+
+## Comments
+
+ * Only add very important comments, both in tests and in the implementation
+ * Keep comments concise and to the point
+ * Add comments above the line they are referring to, not at the end of the line (an example of what's not to do: `1 + 1. %% equals 2`)
+ * Make sure to use proper English grammar, in particular articles, punctuation and full stops at the end of sentences except for Markdown list items
+
+
+## Git and GitHub (sans Actions) Instructions
+
+### General
+
+ * Never add yourself to the list of commit co-authors
+ * Never mention yourself in commit messages in any way (no "Generated by", no AI tool links, etc)
+
+### Branches
+
+The currently developed branches are:
+
+ * `main` (becomes 4.4.0)
+ * `v4.3.x`
+ * `v4.2.x`
+ * `v4.1.x`
+
+### Backporting
+
+When backporting commits to older branches,
+always use `git cherry-pick -x` to include a reference to the original commit.
+
+### Fetching GitHub PRs
+
+When fetching a GitHub pull request details or diffs, prefer the Web option over the `gh` CLI tool.
+`gh` can require an explicit operation approval.
+
+
+## Writing Style Guide
+
+ * Never add full stops to Markdown list items
+
+
+## After Completing a Task
+
+### Iterative Reviews
+
+After completing a task, perform up to twenty iterative reviews of your changes.
+In every iteration, look for meaningful improvements that were missed, for gaps in test coverage, and for deviations from the instructions in this file.
+
+If no meaningful improvements are found for three iterations in a row, report it and stop iterating.
+
+
+# FILE: CONTRIBUTING.md
+## Overview
+
+RabbitMQ projects use pull requests to discuss, collaborate on and accept code contributions.
+Pull requests is the primary place of discussing code changes.
+
+## Repository Layout
+
+See `AGENTS.md`.
+
+## How to Contribute
+
+The process is fairly standard:
+
+ * Make sure you (or your employer/client) [signs the Contributor License Agreement](https://github.com/rabbitmq/cla) if needed (see below)
+ * Present your idea to the RabbitMQ core team using [GitHub Discussions](https://github.com/rabbitmq/rabbitmq-server/discussions) or [RabbitMQ community Discord server](https://rabbitmq.com/discord)
+ * Fork the repository or repositories you plan on contributing to
+ * Run `git clean -xfffd && gmake clean && gmake distclean && gmake` to build all subprojects from scratch
+ * Create a branch with a descriptive name
+ * Make your changes, run tests, ensure correct code formatting, commit with a [descriptive message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html), push to your fork
+ * Submit pull requests with an explanation what has been changed and **why**
+ * Be patient. We will get to your pull request eventually
+
+
+## Running Tests
+
+Test suites of individual subprojects can be run from the subproject directory under
+`deps/*`. For example, for the core broker:
+
+``` shell
+# Running all server suites in parallel will take between 30 and 40 minutes on reasonably
+# recent multi-core machines. This is rarely necessary in development environments.
+# Running individual test suites or groups of test suites can be enough.
+#
+
+# Before you start: this will terminate all running nodes, make processes and Common Test processes
+killall -9 beam.smp; killall -9 erl; killall -9 make; killall -9 epmd; killall -9 erl_setup_child; killall -9 ct_run
+
+# the core broker subproject
+cd deps/rabbit
+
+# cleans build artifacts
+gmake clean; gmake distclean
+git clean -xfffd
+
+# builds the broker and all of its dependencies
+gmake
+# runs an integration test suite, tests/rabbit_fifo_SUITE with CT (Common Test)
+gmake ct-rabbit_fifo
+# runs an integration test suite, tests/quorum_queue_SUITE with CT (Common Test)
+gmake ct-quorum_queue
+# runs an integration test suite, tests/queue_parallel_SUITE with CT (Common Test)
+gmake ct-queue_parallel
+# runs a unit test suite tests/unit_log_management_SUITE with CT (Common Test)
+gmake ct-unit_log_management
+```
+
+### Running Specific Groups or Tests
+
+All `ct-*` Make targets support a `t=` argument which are transformed to [`-group` and `-case` Common Test runner options](https://www.erlang.org/doc/apps/common_test/run_test_chapter.html).
+
+``` shell
+# Runs a a group of tests named 'all_tests_with_prefix' in suite 'test/rabbit_mgmt_http_SUITE.erl'
+gmake ct-rabbit_mgmt_http t="all_tests_with_prefix"
+
+# Runs a test named 'users_test' in group 'all_tests_with_prefix' in suite 'test/rabbit_mgmt_http_SUITE.erl'
+gmake ct-rabbit_mgmt_http t="all_tests_with_prefix:users_test"
+# Runs a test named 'queues_test' in group 'all_tests_with_prefix' in suite 'test/rabbit_mgmt_http_SUITE.erl'
+gmake ct-rabbit_mgmt_http t="all_tests_with_prefix:queues_test"
+```
+
+### Running Tests with a Specific Schema Data Store
+
+Set `RABBITMQ_METADATA_STORE` to either `khepri` or `mnesia` to make the Common Test suites
+use a specific [schema data store]() (metadata store):
+
+``` shell
+RABBITMQ_METADATA_STORE=khepri gmake ct-quorum_queue
+```
+
+Or, with Nu shell:
+
+```nu
+with-env {'RABBITMQ_METADATA_STORE': 'khepri'} { gmake ct-quorum_queue }
+```
+
+### Running Mixed Version Tests
+
+For some components, it's important to run tests in a mixed-version cluster, to make sure the upgrades
+are handled correctly. For example, you may want to make sure that the quorum_queue suite passes, when
+there's a mix of RabbitMQ 4.1 and 4.2 nodes in the cluster.
+
+Here's how you can do that:
+
+```shell
+# download the older version, eg:
+https://github.com/rabbitmq/rabbitmq-server/releases/download/v4.1.1/rabbitmq-server-generic-unix-4.1.1.tar.xz
+
+# unpack it
+tar xf rabbitmq-server-generic-unix-4.1.1.tar.xz
+
+# run the test with SECONDARY_DIST pointing at the extracted folder
+SECONDARY_DIST=rabbitmq_server-4.1.1 make -C deps/rabbit ct-quorum_queue
+```
+
+Odd-numbered nodes (eg. 1 and 3) will be started using the main repository, while even-numbered nodes (eg. node 2)
+will run the older version.
+
+## Running Single Nodes from Source
+
+``` shell
+# Run from repository root.
+# Starts a node with management and two stream plugins enabled
+gmake ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream rabbitmq_stream_management" run-broker
+```
+
+**Note:** The `ENABLED_PLUGINS` variable only takes effect when starting a fresh node. On subsequent restarts, RabbitMQ preserves the enabled_plugins file, ignoring the `ENABLED_PLUGINS` value. To change the plugin list on restart, do one of the following:
+* Add the `virgin-test-tmpdir` target (this will delete all data!):
+    ```
+    gmake ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream rabbitmq_stream_management" virgin-test-tmpdir run-broker
+    ```
+* Delete the `enabled_plugins` file:
+    ```
+    rm /tmp/rabbitmq-test-instances/rabbit@*/enabled_plugins`
+    ```
+* Use the `./sbin/rabbitmq-plugins enable/disable` commands.
+
+The nodes will be started in the background. They will use `rabbit@{hostname}` for its name, so CLI will be able to contact
+it without an explicit `-n` (`--node`) argument:
+
+```shell
+# Run from repository root.
+./sbin/rabbitmq-diagnostics status
+```
+
+## Running Clusters from Source
+
+``` shell
+# Run from repository root.
+# Starts a three node cluster with management and two stream plugins enabled
+gmake NODES=3 ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream rabbitmq_stream_management" start-cluster
+```
+
+The node will use `rabbit-{n}@{hostname}` for names, so CLI must
+be explicitly given explicit an `-n` (`--node`) argument in order to
+contact one of the nodes:
+
+ * `rabbit-1`
+ * `rabbit-2`
+ * `rabbit-3`
+
+The names of the nodes can be looked up via
+
+``` shell
+epmd -names
+```
+
+``` shell
+# Run from repository root.
+# Makes CLI tools talk to node rabbit-2
+sbin/rabbitmq-diagnostics cluster_status -n rabbit-2
+
+# Run from repository root.
+# Makes CLI tools talk to node rabbit-1
+sbin/rabbitmq-diagnostics status -n rabbit-1
+```
+
+To stop a previously started cluster:
+
+``` shell
+# Run from repository root.
+# Stops a three node cluster started earlier
+gmake stop-cluster NODES=3
+```
+
+
+## Working on Management UI with BrowserSync
+
+When working on management UI code, besides starting the node with
+
+``` shell
+# starts a node with management and two stream plugins enabled
+gmake ENABLED_PLUGINS="rabbitmq_management rabbitmq_stream rabbitmq_stream_management" run-broker
+```
+
+(or any other set of plugins), it is highly recommended to use [BrowserSync](https://browsersync.io/#install)
+to shorten the edit/feedback cycle for JS files, CSS, and so on.
+
+First, install BrowserSync using NPM:
+
+``` shell
+npm install -g browser-sync
+```
+
+Assuming a node running locally with HTTP API on port `15672`, start
+a BrowserSync proxy like so:
+
+``` shell
+cd deps/rabbitmq_management/priv/www
+
+browser-sync start --proxy localhost:15672 --serverStatic . --files .
+```
+
+BrowserSync will automatically open a browser window for you to use. The window
+will automatically refresh when one of the static (templates, JS, CSS) files change.
+
+All HTTP requests that BrowserSync does not know how to handle will be proxied to
+the HTTP API at `localhost:15672`.
+
+
+## Formatting the RabbitMQ CLI
+
+The RabbitMQ CLI uses the standard [Elixir code formatter](https://hexdocs.pm/mix/main/Mix.Tasks.Format.html). To ensure correct code formatting of the CLI:
+
+```
+cd deps/rabbitmq_cli
+mix format
+```
+
+Running `make` will validate the CLI formatting and issue any necessary warnings. Alternatively, run the format checker in the `deps/rabbitmq_cli` directory:
+
+```
+mix format --check-formatted
+```
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+
+## Contributor Agreement
+
+Before submitting your first pull request, please submit a signed copy of our
+[Contributor Agreement](https://github.com/rabbitmq/cla) over email  to `teamrabbitmq </> gmail dot c0m` with the subject of "RabbitMQ CLA".
+
+Team RabbitMQ will not be able to accept contributions from individuals and legal entities (companies, non-profits)
+that haven't signed the CLA.
+
+## Where to Ask Questions
+
+If something isn't clear, feel free to ask on [GitHub Discussions](https://github.com/rabbitmq/rabbitmq-server/discussions)
+and [community Discord server](https://rabbitmq.com/discord).
+
+
+# FILE: COMMUNITY_SUPPORT.md
+
+# RabbitMQ Community Support Eligibility 
+
+This document explains who is eligible for community support for open source RabbitMQ.
+
+### What is Community Support?
+
+Community support is defined as all questions, root cause analysis requests, issue reports, and other interactions the RabbitMQ core team has with open source RabbitMQ users on GitHub
+and our community forums.
+
+### How is Community Support Related to Patch Releases?
+
+Being covered by community support for a release series also means that patch releases, general and security-related ones,
+are produced regularly and are available publicly. Patch releases, even if produced, **will not be made available to non-paying users** for series out of community support, with potential
+exception for very high severity CVEs.
+
+### What is Broadcom's Obligation to Reply to Messages or Issues Reported?
+
+The RabbitMQ Core team at Broadcom has no obligation to reply to any message or issue posted by the community of open source RabbitMQ users. 
+
+### Who is Eligible for community support
+
+The following groups of users are eligible for community support:
+
+ * Users who regularly contribute to RabbitMQ development (a definition of "contribution" is provided at the end of this document)
+ * Users who use [the most recent release series](https://www.rabbitmq.com/release-information) and provide detailed and well researched issue reports, including responsibly disclosed security vulnerabilities
+
+All other users are not eligible for community support from the RabbitMQ Core Team.
+
+Users with a [commercial support license](https://tanzu.vmware.com/rabbitmq/oss) or a [commercial edition license](https://tanzu.vmware.com/rabbitmq) should
+use commercial support channels.
+
+### Exceptions: Reports that Will Always Be Investigated
+
+The RabbitMQ core team will always investigate the following issues, even if they are reported by an ineligible user:
+
+ * Responsibly disclosed security vulnerabilities
+ * Detailed issues with a proof that data safety may be at risk
+ * Detailed issues with a proof that a node may fail to start, join the cluster, or rejoin the cluster
+
+### Exceptions: Question that Will Be Ignored
+
+Unless overwhelming evidence of a systemic problem in RabbitMQ is demonstrated, the following issues will get minimum or no attention at all from the core team:
+
+* Questions related to [OAuth2 configuration](https://www.rabbitmq.com/docs/oauth2), [OAuth 2 configuration examples](https://www.rabbitmq.com/docs/oauth2-examples) and [troubleshooting of OAuth 2](https://www.rabbitmq.com/docs/troubleshooting-oauth2)
+* Questions related to [TLS configuration](https://www.rabbitmq.com/docs/ssl) and [troubleshooting of TLS connections](https://www.rabbitmq.com/docs/troubleshooting-ssl)
+* Questions related to [troubleshooting of network connectivity](https://www.rabbitmq.com/docs/troubleshooting-networking) 
+* Questions related to [LDAP configuration](https://www.rabbitmq.com/docs/ldap) and [troubleshooting](https://www.rabbitmq.com/docs/ldap#troubleshooting)
+
+These topics represent some of the most time consuming questions to investigate and respond to thoroughly. Guidance and investigations related to these features will only be available to customers with VMware Tanzu RabbitMQ commercial licenses.
+
+## Definition of "contribution"
+
+For the purpose of this policy, the RabbitMQ team defines a "contribution" as any of the following:
+
+* A pull request that fixes any bug, introduces a new feature, clarifies example documentation, or introduces any other behavior change that may not be easy to categorize but the team is willing to accept
+* An issue report that includes RabbitMQ and Erlang versions used, a reasonably detailed problem definition, a detailed set of specific steps that can be followed in order to quickly reproduce the behavior, and all the necessary evidence: log snippets from all nodes with relevant information, metrics dashboards over a relevant period of time,
+  code snippets that demonstrate application behavior, and any other information necessary to quickly and efficiently reproduce the reported behavior at least some of the time
+* Executable benchmarks (for example, using PerfTest) that demonstrate regressions
+* Donated infrastructure or services (this can be IaaS provider credits, credits for services, and anything else that the RabbitMQ core team can use to build and distribute open source RabbitMQ packages, tools, libraries)
+* Meaningful contributions to RabbitMQ documentation, not including typo fixes, grammar corrections, re-wording. Contributions must include new original content, produced by a human, that makes it easier to install, operate, upgrade, and communicate with RabbitMQ from applications
+* A detailed, RFC-style feature request where the status quo, the end goal, the pros and the cons of the proposed feature are well defined
+* Meaningful build system updates previously pre-approved by the RabbitMQ core team
+
+The above rules equally apply to contributions to RabbitMQ, officially supported RabbitMQ client libraries, key RabbitMQ dependencies (Erlang/OTP, Ra, Osiris, Khepri, Cuttlefish, Horus), and the Kubernetes cluster Operators maintained by the RabbitMQ core team.
+
+## Release Series Eligible for Community Support
+
+Only releases in the latest minor series of the latest major version are eligible for community support. Currently this is RabbitMQ 4.0.x in the 4.x major series.
+
+All patches (bug fixes and improvements alike) will only be available for the latest minor series in the latest major series. This applies to all changes contributed by the community.
+
+For example, if the latest supported series (minor) is 4.0.x, all core and community contributions will ship in a 4.0.x release until a newer minor or major comes out (say, 4.1.x). 
+
+The RabbitMQ team will not backport patches to older release series (such as 3.13.x) of open source RabbitMQ, including cases where a patch was contributed by the community.
+Patch releases for older release series are exclusively available to users with VMware Tanzu RabbitMQ commercial licenses.
+
+
+# FILE: CODE_OF_CONDUCT.md
+# Contributor Code of Conduct
+
+As contributors and maintainers of this project, and in the interest of fostering an open
+and welcoming community, we pledge to respect all people who contribute through reporting
+issues, posting feature requests, updating documentation, submitting pull requests or
+patches, and other activities.
+
+We are committed to making participation in this project a harassment-free experience for
+everyone, regardless of level of experience, gender, gender identity and expression,
+sexual orientation, disability, personal appearance, body size, race, ethnicity, age,
+religion, or nationality.
+
+Examples of unacceptable behavior by participants include:
+
+ * The use of sexualized language or imagery
+ * Personal attacks
+ * Trolling or insulting/derogatory comments
+ * Public or private harassment
+ * Publishing other's private information, such as physical or electronic addresses,
+   without explicit permission
+ * Other unethical or unprofessional conduct
+
+Project maintainers have the right and responsibility to remove, edit, or reject comments,
+commits, code, wiki edits, issues, and other contributions that are not aligned to this
+Code of Conduct, or to ban temporarily or permanently any contributor for other behaviors
+that they deem inappropriate, threatening, offensive, or harmful.
+
+By adopting this Code of Conduct, project maintainers commit themselves to fairly and
+consistently applying these principles to every aspect of managing this project. Project
+maintainers who do not follow or enforce the Code of Conduct may be permanently removed
+from the project team.
+
+This Code of Conduct applies both within project spaces and in public spaces when an
+individual is representing the project or its community.
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by
+contacting a project maintainer at [rabbitmq-core@groups.vmware.com](mailto:rabbitmq-core@groups.vmware.com). All complaints will
+be reviewed and investigated and will result in a response that is deemed necessary and
+appropriate to the circumstances. Maintainers are obligated to maintain confidentiality
+with regard to the reporter of an incident.
+
+This Code of Conduct is adapted from the
+[Contributor Covenant](https://contributor-covenant.org), version 1.3.0, available at
+[contributor-covenant.org/version/1/3/0/](https://contributor-covenant.org/version/1/3/0/)
+
+
+# FILE: CLAUDE.md
+# Instructions for AI Agents
+
+## Overview
+
+This repository contains open source [RabbitMQ](https://www.rabbitmq.com/), a multi-protocol
+messaging and streaming broker that supports AMQP 1.0, AMQP 0-9-1, MQTTv5, the [RabbitMQ Stream Protocol](https://www.rabbitmq.com/docs/streams), STOMP 1.2,
+MQTT-over-WebSockets, and STOMP-over-WebSockets.
+
+
+## Website and GitHub Repositories
+
+To learn more about RabbitMQ and its features, visit [rabbitmq.com](https://www.rabbitmq.com/).
+
+The mainline repository on GitHub is [`rabbitmq/rabbitmq-server`](https://github.com/rabbitmq/rabbitmq-server/),
+the website repository is [`rabbitmq/rabbitmq-website`](https://github.com/rabbitmq/rabbitmq-website/).
+
+
+## Building and Testing
+
+The GNU Make 4-based build system is described in `CONTRIBUTING.md`.
+
+Consult `CONTRIBUTING.md` before running any tests, in particular to learn how to run
+a specific suite, group of cases or a single test case.
+
+When looking for GNU Make 4, consult `gmake` as well as `make`.
+
+### Dialyzer and xref
+
+Use `gmake dialyze` and `gmake xref` to run static code analysis tools
+from individual `deps/` component directories (see below).
+
+
+## Repository Structure
+
+ * `deps/rabbit`: the core RabbitMQ server, the most important part of the codebase
+ * `deps/rabbit_common`: internal library for common modules
+ * `deps/rabbitmq_amqp1_0`: a no-op plugin that exists for backwards compatibility since AMQP 1.0 is a core protocol as of RabbitMQ 4.0
+ * `deps/rabbitmq_amqp_client`: Erlang AMQP 1.0 client with RabbitMQ-specific management operations
+ * `deps/rabbitmq_auth_backend_http`: external HTTP server-based authentication (authN), authorization (authZ) backend
+ * `deps/rabbitmq_auth_backend_internal_loopback`: a `localhost`-only version of the internal authN, authZ backend
+ * `deps/rabbitmq_auth_backend_ldap`: LDAP authN, authZ plugin
+ * `deps/rabbitmq_auth_backend_oauth2`: OAuth 2.0 authN, authZ backend
+ * `deps/rabbitmq_auth_backend_cache`: a caching layer for other authN, authZ backends
+ * `deps/rabbitmq_auth_mechanism_ssl`: X.509 certificate-based authentication support
+ * `deps/rabbitmq_aws`: AWS API client library
+ * `deps/rabbitmq_cli`: standard CLI tools (`rabbitmqctl`, `rabbitmq-plugins`, `rabbitmq-diagnostics`, etc.); note that [`rabbitmqadmin` v2](https://www.rabbitmq.com/docs/management-cli) lives in a separate repository, [`rabbitmq/rabbitmqadmin-ng`](https://github.com/rabbitmq/rabbitmqadmin-ng)
+ * `deps/rabbitmq_codegen`: generates AMQP 0-9-1 serialization modules from machine-readable specification documents
+ * `deps/rabbitmq_consistent_hash_exchange`: consistent hashing exchange (`x-consistent-hash`)
+ * `deps/rabbitmq_ct_client_helpers`: Common Test helpers for managing connections, channels
+ * `deps/rabbitmq_ct_helpers`: Common Test helpers used by RabbitMQ test suites
+ * `deps/rabbitmq_event_exchange`: exposes internal events to AMQP 0-9-1 clients
+ * `deps/rabbitmq_exchange_federation`: exchange federation
+ * `deps/rabbitmq_queue_federation`: queue federation
+ * `deps/rabbitmq_federation`: a no-op plugin that depends on `rabbitmq_queue_federation` and `rabbitmq_exchange_federation`
+ * `deps/rabbitmq_federation_common`: a common library used by federation plugins
+ * `deps/rabbitmq_federation_management`: management UI extension for federation
+ * `deps/rabbitmq_federation_prometheus`: Prometheus metrics for federation
+ * `deps/rabbitmq_jms_topic_exchange`: JMS topic exchange (`x-jms-topic`) with SQL selection rules
+ * `deps/rabbitmq_management`: management plugin, including the HTTP API and management UI code
+ * `deps/rabbitmq_management/priv/www`: management UI code
+ * `deps/rabbitmq_management_agent`: collects node-wide metrics reported by the management plugin
+ * `deps/rabbitmq_mqtt`: MQTT protocol support
+ * `deps/rabbitmq_peer_discovery_aws`: AWS EC2-based peer discovery
+ * `deps/rabbitmq_peer_discovery_common`: common library for peer discovery backends
+ * `deps/rabbitmq_peer_discovery_consul`: Consul-based peer discovery
+ * `deps/rabbitmq_peer_discovery_etcd`: etcd-based peer discovery (v3 API)
+ * `deps/rabbitmq_peer_discovery_k8s`: Kubernetes peer discovery
+ * `deps/rabbitmq_prelaunch`: internal component used very early on node boot
+ * `deps/rabbitmq_prometheus`: Prometheus plugin
+ * `deps/rabbitmq_random_exchange`: random exchange (`x-random`)
+ * `deps/rabbitmq_recent_history_exchange`: recent history exchange (`x-recent-history`)
+ * `deps/rabbitmq_sharding`: an opinionated exchange plugin that's lost relevance in the age of [super streams](https://www.rabbitmq.com/docs/streams)
+ * `deps/rabbitmq_shovel`: the shovel plugin
+ * `deps/rabbitmq_shovel_management`: management UI extension for shovel
+ * `deps/rabbitmq_shovel_prometheus`: Prometheus metrics for shovel
+ * `deps/rabbitmq_stomp`: STOMP protocol support
+ * `deps/rabbitmq_stream`: the streaming subsystem and a RabbitMQ Stream Protocol implementation
+ * `deps/rabbitmq_stream_common`: common library for streams
+ * `deps/rabbitmq_stream_management`: management UI extension for streams
+ * `deps/rabbitmq_top`: `top`-like Erlang runtime process viewer
+ * `deps/rabbitmq_tracing`: a plugin that traces messages
+ * `deps/rabbitmq_trust_store`: an opinionated alternative to traditional TLS peer verification
+ * `deps/rabbitmq_web_dispatch`: a shared foundation for all HTTP- and WebSocket-based plugins
+ * `deps/rabbitmq_web_mqtt`: MQTT-over-WebSockets
+ * `deps/rabbitmq_web_mqtt_examples`: MQTT-over-WebSockets examples (with a Web UI part)
+ * `deps/rabbitmq_web_stomp`: STOMP-over-WebSockets
+ * `deps/rabbitmq_web_stomp_examples`: STOMP-over-WebSockets examples (with a Web UI part)
+ * `docs/compatibility.json`: machine-readable Erlang/Elixir compatibility matrix for all releases from 3.11.0 onwards. See `docs/COMPATIBILITY.md` for maintenance instructions
+ * `scripts` contains shell scripts that drive the server and CLI tools
+ * `packaging` contains *some* packaging-related code; release artifacts source can be found in [`rabbitmq/rabbitmq-packaging`](https://github.com/rabbitmq/rabbitmq-packaging)
+ * `selenium` contains Selenium tests for the management UI and the OAuth 2 plugin
+ * `release-notes` contains release notes all the way back to 1.0.0 previews
+
+
+## Key Dependencies
+
+Dependency sources, repositories, and versions are defined in `rabbitmq-components.mk`.
+
+These dependencies are cloned by `gmake` during the build process:
+
+ * `deps/ranch` is [Ranch](https://github.com/ninenines/ranch), a socket acceptor library used by all protocol implementations
+ * `deps/ra` is [Ra](https://github.com/rabbitmq/ra), our [Raft](https://raft.github.io/) implementation
+ * `deps/aten` is [`aten`](https://github.com/rabbitmq/aten), an implementation of [adaptive accrual failure detector](https://dl.acm.org/doi/10.1145/1244002.1244129) for Ra
+ * `deps/osiris` is [`osiris`](https://github.com/rabbitmq/osiris), a library that underpins the streaming subsystem
+ * `deps/khepri` is [`khepri`](https://github.com/rabbitmq/khepri), an embedded distributed Ra-based [schema data store](https://www.rabbitmq.com/docs/metadata-store)
+ * `deps/cuttlefish` is [`cuttlefish`](https://github.com/Kyorai/cuttlefish/), a `rabbitmq.conf` parser and translation library
+ * `deps/cowboy` is the HTTP server and API framework used by the RabbitMQ HTTP API and other HTTP and WebSockets-based plugins
+ * `deps/thoas` is [Thoas](https://github.com/lpil/thoas), a JSON parser and generator
+ * `deps/seshat` is [`seshat`](https://github.com/rabbitmq/seshat), a counters (metrics) library
+
+
+## Build System Files, Build Artifacts, Test Run Logs
+
+ * `erlang.mk` is the heart of the Make-based build system
+ * `rabbitmq-components.mk` lists all dependencies, their sources (e.g. a Git repo or `hex.pm`) and target version
+ * `mk`, `./*.mk`, `deps/rabbit_common/mk` are various Make files included into `Makefile`
+ * `ebin`, `sbin`, `escript`, `plugins` directories contain build artifacts
+ * `logs` contains Common Test run logs. Inspect it when troubleshooting test failures
+ * `rebar.config`: Rebar configuration; Rebar is used sparingly throughout the codebase; Make is the primary build tool
+
+
+## Target Erlang and Elixir Versions
+
+RabbitMQ [targets Erlang `27.x`](https://www.rabbitmq.com/docs/which-erlang) and a reasonably [recent Elixir](https://github.com/elixir-lang/elixir/releases) (e.g. `1.18.x`, `1.19.x`).
+
+Per-release Erlang and Elixir compatibility ranges in machine-readable format
+can be found in `docs/compatibility.json`.
+
+
+## GitHub Actions
+
+This repository uses GitHub Actions for CI and releases. Find them at their usual place in `.github/workflows`
+and [on the Web](https://github.com/rabbitmq/rabbitmq-server/actions/).
+
+Jobs and run results can be inspected via `gh` on the command line.
+
+### Release Infrastructure
+
+ * [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages) contains workflows for producing open source RabbitMQ releases
+ * [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) contains OCI build environment images
+
+
+## Comments
+
+ * Only add very important comments, both in tests and in the implementation
+ * Keep comments concise and to the point
+ * Add comments above the line they are referring to, not at the end of the line (an example of what's not to do: `1 + 1. %% equals 2`)
+ * Make sure to use proper English grammar, in particular articles, punctuation and full stops at the end of sentences except for Markdown list items
+
+
+## Git and GitHub (sans Actions) Instructions
+
+### General
+
+ * Never add yourself to the list of commit co-authors
+ * Never mention yourself in commit messages in any way (no "Generated by", no AI tool links, etc)
+
+### Branches
+
+The currently developed branches are:
+
+ * `main` (becomes 4.4.0)
+ * `v4.3.x`
+ * `v4.2.x`
+ * `v4.1.x`
+
+### Backporting
+
+When backporting commits to older branches,
+always use `git cherry-pick -x` to include a reference to the original commit.
+
+### Fetching GitHub PRs
+
+When fetching a GitHub pull request details or diffs, prefer the Web option over the `gh` CLI tool.
+`gh` can require an explicit operation approval.
+
+
+## Writing Style Guide
+
+ * Never add full stops to Markdown list items
+
+
+## After Completing a Task
+
+### Iterative Reviews
+
+After completing a task, perform up to twenty iterative reviews of your changes.
+In every iteration, look for meaningful improvements that were missed, for gaps in test coverage, and for deviations from the instructions in this file.
+
+If no meaningful improvements are found for three iterations in a row, report it and stop iterating.
+
+
+# FILE: AGENTS.md
+# Instructions for AI Agents
+
+## Overview
+
+This repository contains open source [RabbitMQ](https://www.rabbitmq.com/), a multi-protocol
+messaging and streaming broker that supports AMQP 1.0, AMQP 0-9-1, MQTTv5, the [RabbitMQ Stream Protocol](https://www.rabbitmq.com/docs/streams), STOMP 1.2,
+MQTT-over-WebSockets, and STOMP-over-WebSockets.
+
+
+## Website and GitHub Repositories
+
+To learn more about RabbitMQ and its features, visit [rabbitmq.com](https://www.rabbitmq.com/).
+
+The mainline repository on GitHub is [`rabbitmq/rabbitmq-server`](https://github.com/rabbitmq/rabbitmq-server/),
+the website repository is [`rabbitmq/rabbitmq-website`](https://github.com/rabbitmq/rabbitmq-website/).
+
+
+## Building and Testing
+
+The GNU Make 4-based build system is described in `CONTRIBUTING.md`.
+
+Consult `CONTRIBUTING.md` before running any tests, in particular to learn how to run
+a specific suite, group of cases or a single test case.
+
+When looking for GNU Make 4, consult `gmake` as well as `make`.
+
+### Dialyzer and xref
+
+Use `gmake dialyze` and `gmake xref` to run static code analysis tools
+from individual `deps/` component directories (see below).
+
+
+## Repository Structure
+
+ * `deps/rabbit`: the core RabbitMQ server, the most important part of the codebase
+ * `deps/rabbit_common`: internal library for common modules
+ * `deps/rabbitmq_amqp1_0`: a no-op plugin that exists for backwards compatibility since AMQP 1.0 is a core protocol as of RabbitMQ 4.0
+ * `deps/rabbitmq_amqp_client`: Erlang AMQP 1.0 client with RabbitMQ-specific management operations
+ * `deps/rabbitmq_auth_backend_http`: external HTTP server-based authentication (authN), authorization (authZ) backend
+ * `deps/rabbitmq_auth_backend_internal_loopback`: a `localhost`-only version of the internal authN, authZ backend
+ * `deps/rabbitmq_auth_backend_ldap`: LDAP authN, authZ plugin
+ * `deps/rabbitmq_auth_backend_oauth2`: OAuth 2.0 authN, authZ backend
+ * `deps/rabbitmq_auth_backend_cache`: a caching layer for other authN, authZ backends
+ * `deps/rabbitmq_auth_mechanism_ssl`: X.509 certificate-based authentication support
+ * `deps/rabbitmq_aws`: AWS API client library
+ * `deps/rabbitmq_cli`: standard CLI tools (`rabbitmqctl`, `rabbitmq-plugins`, `rabbitmq-diagnostics`, etc.); note that [`rabbitmqadmin` v2](https://www.rabbitmq.com/docs/management-cli) lives in a separate repository, [`rabbitmq/rabbitmqadmin-ng`](https://github.com/rabbitmq/rabbitmqadmin-ng)
+ * `deps/rabbitmq_codegen`: generates AMQP 0-9-1 serialization modules from machine-readable specification documents
+ * `deps/rabbitmq_consistent_hash_exchange`: consistent hashing exchange (`x-consistent-hash`)
+ * `deps/rabbitmq_ct_client_helpers`: Common Test helpers for managing connections, channels
+ * `deps/rabbitmq_ct_helpers`: Common Test helpers used by RabbitMQ test suites
+ * `deps/rabbitmq_event_exchange`: exposes internal events to AMQP 0-9-1 clients
+ * `deps/rabbitmq_exchange_federation`: exchange federation
+ * `deps/rabbitmq_queue_federation`: queue federation
+ * `deps/rabbitmq_federation`: a no-op plugin that depends on `rabbitmq_queue_federation` and `rabbitmq_exchange_federation`
+ * `deps/rabbitmq_federation_common`: a common library used by federation plugins
+ * `deps/rabbitmq_federation_management`: management UI extension for federation
+ * `deps/rabbitmq_federation_prometheus`: Prometheus metrics for federation
+ * `deps/rabbitmq_jms_topic_exchange`: JMS topic exchange (`x-jms-topic`) with SQL selection rules
+ * `deps/rabbitmq_management`: management plugin, including the HTTP API and management UI code
+ * `deps/rabbitmq_management/priv/www`: management UI code
+ * `deps/rabbitmq_management_agent`: collects node-wide metrics reported by the management plugin
+ * `deps/rabbitmq_mqtt`: MQTT protocol support
+ * `deps/rabbitmq_peer_discovery_aws`: AWS EC2-based peer discovery
+ * `deps/rabbitmq_peer_discovery_common`: common library for peer discovery backends
+ * `deps/rabbitmq_peer_discovery_consul`: Consul-based peer discovery
+ * `deps/rabbitmq_peer_discovery_etcd`: etcd-based peer discovery (v3 API)
+ * `deps/rabbitmq_peer_discovery_k8s`: Kubernetes peer discovery
+ * `deps/rabbitmq_prelaunch`: internal component used very early on node boot
+ * `deps/rabbitmq_prometheus`: Prometheus plugin
+ * `deps/rabbitmq_random_exchange`: random exchange (`x-random`)
+ * `deps/rabbitmq_recent_history_exchange`: recent history exchange (`x-recent-history`)
+ * `deps/rabbitmq_sharding`: an opinionated exchange plugin that's lost relevance in the age of [super streams](https://www.rabbitmq.com/docs/streams)
+ * `deps/rabbitmq_shovel`: the shovel plugin
+ * `deps/rabbitmq_shovel_management`: management UI extension for shovel
+ * `deps/rabbitmq_shovel_prometheus`: Prometheus metrics for shovel
+ * `deps/rabbitmq_stomp`: STOMP protocol support
+ * `deps/rabbitmq_stream`: the streaming subsystem and a RabbitMQ Stream Protocol implementation
+ * `deps/rabbitmq_stream_common`: common library for streams
+ * `deps/rabbitmq_stream_management`: management UI extension for streams
+ * `deps/rabbitmq_top`: `top`-like Erlang runtime process viewer
+ * `deps/rabbitmq_tracing`: a plugin that traces messages
+ * `deps/rabbitmq_trust_store`: an opinionated alternative to traditional TLS peer verification
+ * `deps/rabbitmq_web_dispatch`: a shared foundation for all HTTP- and WebSocket-based plugins
+ * `deps/rabbitmq_web_mqtt`: MQTT-over-WebSockets
+ * `deps/rabbitmq_web_mqtt_examples`: MQTT-over-WebSockets examples (with a Web UI part)
+ * `deps/rabbitmq_web_stomp`: STOMP-over-WebSockets
+ * `deps/rabbitmq_web_stomp_examples`: STOMP-over-WebSockets examples (with a Web UI part)
+ * `docs/compatibility.json`: machine-readable Erlang/Elixir compatibility matrix for all releases from 3.11.0 onwards. See `docs/COMPATIBILITY.md` for maintenance instructions
+ * `scripts` contains shell scripts that drive the server and CLI tools
+ * `packaging` contains *some* packaging-related code; release artifacts source can be found in [`rabbitmq/rabbitmq-packaging`](https://github.com/rabbitmq/rabbitmq-packaging)
+ * `selenium` contains Selenium tests for the management UI and the OAuth 2 plugin
+ * `release-notes` contains release notes all the way back to 1.0.0 previews
+
+
+## Key Dependencies
+
+Dependency sources, repositories, and versions are defined in `rabbitmq-components.mk`.
+
+These dependencies are cloned by `gmake` during the build process:
+
+ * `deps/ranch` is [Ranch](https://github.com/ninenines/ranch), a socket acceptor library used by all protocol implementations
+ * `deps/ra` is [Ra](https://github.com/rabbitmq/ra), our [Raft](https://raft.github.io/) implementation
+ * `deps/aten` is [`aten`](https://github.com/rabbitmq/aten), an implementation of [adaptive accrual failure detector](https://dl.acm.org/doi/10.1145/1244002.1244129) for Ra
+ * `deps/osiris` is [`osiris`](https://github.com/rabbitmq/osiris), a library that underpins the streaming subsystem
+ * `deps/khepri` is [`khepri`](https://github.com/rabbitmq/khepri), an embedded distributed Ra-based [schema data store](https://www.rabbitmq.com/docs/metadata-store)
+ * `deps/cuttlefish` is [`cuttlefish`](https://github.com/Kyorai/cuttlefish/), a `rabbitmq.conf` parser and translation library
+ * `deps/cowboy` is the HTTP server and API framework used by the RabbitMQ HTTP API and other HTTP and WebSockets-based plugins
+ * `deps/thoas` is [Thoas](https://github.com/lpil/thoas), a JSON parser and generator
+ * `deps/seshat` is [`seshat`](https://github.com/rabbitmq/seshat), a counters (metrics) library
+
+
+## Build System Files, Build Artifacts, Test Run Logs
+
+ * `erlang.mk` is the heart of the Make-based build system
+ * `rabbitmq-components.mk` lists all dependencies, their sources (e.g. a Git repo or `hex.pm`) and target version
+ * `mk`, `./*.mk`, `deps/rabbit_common/mk` are various Make files included into `Makefile`
+ * `ebin`, `sbin`, `escript`, `plugins` directories contain build artifacts
+ * `logs` contains Common Test run logs. Inspect it when troubleshooting test failures
+ * `rebar.config`: Rebar configuration; Rebar is used sparingly throughout the codebase; Make is the primary build tool
+
+
+## Target Erlang and Elixir Versions
+
+RabbitMQ [targets Erlang `27.x`](https://www.rabbitmq.com/docs/which-erlang) and a reasonably [recent Elixir](https://github.com/elixir-lang/elixir/releases) (e.g. `1.18.x`, `1.19.x`).
+
+Per-release Erlang and Elixir compatibility ranges in machine-readable format
+can be found in `docs/compatibility.json`.
+
+
+## GitHub Actions
+
+This repository uses GitHub Actions for CI and releases. Find them at their usual place in `.github/workflows`
+and [on the Web](https://github.com/rabbitmq/rabbitmq-server/actions/).
+
+Jobs and run results can be inspected via `gh` on the command line.
+
+### Release Infrastructure
+
+ * [`rabbitmq/server-packages`](https://github.com/rabbitmq/server-packages) contains workflows for producing open source RabbitMQ releases
+ * [`rabbitmq/build-env-images`](https://github.com/rabbitmq/build-env-images) contains OCI build environment images
+
+
+## Comments
+
+ * Only add very important comments, both in tests and in the implementation
+ * Keep comments concise and to the point
+ * Add comments above the line they are referring to, not at the end of the line (an example of what's not to do: `1 + 1. %% equals 2`)
+ * Make sure to use proper English grammar, in particular articles, punctuation and full stops at the end of sentences except for Markdown list items
+
+
+## Git and GitHub (sans Actions) Instructions
+
+### General
+
+ * Never add yourself to the list of commit co-authors
+ * Never mention yourself in commit messages in any way (no "Generated by", no AI tool links, etc)
+
+### Branches
+
+The currently developed branches are:
+
+ * `main` (becomes 4.4.0)
+ * `v4.3.x`
+ * `v4.2.x`
+ * `v4.1.x`
+
+### Backporting
+
+When backporting commits to older branches,
+always use `git cherry-pick -x` to include a reference to the original commit.
+
+### Fetching GitHub PRs
+
+When fetching a GitHub pull request details or diffs, prefer the Web option over the `gh` CLI tool.
+`gh` can require an explicit operation approval.
+
+
+## Writing Style Guide
+
+ * Never add full stops to Markdown list items
+
+
+## After Completing a Task
+
+### Iterative Reviews
+
+After completing a task, perform up to twenty iterative reviews of your changes.
+In every iteration, look for meaningful improvements that were missed, for gaps in test coverage, and for deviations from the instructions in this file.
+
+If no meaningful improvements are found for three iterations in a row, report it and stop iterating.
+
+
+# FILE: packaging/Makefile
+all: package-generic-unix
+	@:
+
+# --------------------------------------------------------------------
+# Packaging.
+# --------------------------------------------------------------------
+
+.PHONY: package-generic-unix \
+	docker-image \
+	docker-image-push
+
+PACKAGES_DIR ?= ../PACKAGES
+SOURCE_DIST_FILE ?= $(wildcard $(PACKAGES_DIR)/rabbitmq-server-*.tar.xz)
+
+ifneq ($(filter-out clean,$(MAKECMDGOALS)),)
+ifeq ($(SOURCE_DIST_FILE),)
+$(error Cannot find source archive; please specify SOURCE_DIST_FILE)
+endif
+ifneq ($(words $(SOURCE_DIST_FILE)),1)
+$(error Multiple source archives found; please specify SOURCE_DIST_FILE)
+endif
+ifeq ($(filter %.tar.xz %.txz,$(SOURCE_DIST_FILE)),)
+$(error The source archive must a tar.xz archive)
+endif
+ifeq ($(wildcard $(SOURCE_DIST_FILE)),)
+$(error The source archive must exist)
+endif
+endif
+
+ifndef NO_CLEAN
+DO_CLEAN := clean
+endif
+
+VARS = SOURCE_DIST_FILE="$(abspath $(SOURCE_DIST_FILE))" \
+       PACKAGES_DIR="$(abspath $(PACKAGES_DIR))" \
+       SIGNING_KEY="$(SIGNING_KEY)"
+
+package-generic-unix: $(SOURCE_DIST_FILE)
+	$(gen_verbose) $(MAKE) -C generic-unix $(VARS) all $(DO_CLEAN)
+
+docker-image:
+	$(gen_verbose) $(MAKE) -C docker-image $(VARS) all $(DO_CLEAN)
+
+docker-image-push:
+	$(gen_verbose) $(MAKE) -C docker-image $(VARS) push $(DO_CLEAN)
+
+.PHONY: clean
+
+clean:
+	for subdir in generic-unix docker-image; do \
+		$(MAKE) -C "$$subdir" clean; \
+	done
+
+
+# FILE: docs/compatibility.json
+{
+  "4.2.4": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.2.3": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.2.2": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.2.1": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.2.0": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.8": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.1.7": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.1.6": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  },
+  "4.1.5": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.4": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.3": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.2": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.1": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.1.0": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.9": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.8": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.7": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.6": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.5": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.19.0)"
+  },
+  "4.0.4": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "4.0.3": {
+    "erlang": "[26.2,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "4.0.2": {
+    "erlang": "[26.2,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "4.0.1": {
+    "erlang": "[26.2,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "4.0.0": {
+    "erlang": "[26.2,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "3.13.7": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "3.13.6": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "3.13.5": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "3.13.4": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.18.0)"
+  },
+  "3.13.3": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.13.2": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.13.1": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.13.0": {
+    "erlang": "[26.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.12.14": {
+    "erlang": "[25.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.12.13": {
+    "erlang": "[25.0,26.3)",
+    "elixir": "[1.13.4,1.17.0)"
+  },
+  "3.12.12": {
+    "erlang": "[25.0,26.3)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.11": {
+    "erlang": "[25.0,26.3)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.10": {
+    "erlang": "[25.0,26.3)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.9": {
+    "erlang": "[25.0,26.2)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.8": {
+    "erlang": "[25.0,26.2)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.7": {
+    "erlang": "[25.0,26.2)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.6": {
+    "erlang": "[25.0,26.2)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.5": {
+    "erlang": "[25.0,26.2)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.4": {
+    "erlang": "[25.0,26.1)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.3": {
+    "erlang": "[25.0,26.1)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.2": {
+    "erlang": "[25.0,26.1)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.1": {
+    "erlang": "[25.0,26.1)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.12.0": {
+    "erlang": "[25.0,26.1)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.28": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.27": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.26": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.25": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.24": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.23": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.22": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.21": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.20": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.19": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.16.0)"
+  },
+  "3.11.18": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.17": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.16": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.15": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.14": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.13": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.12": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.11": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.10": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.9": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.8": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.7": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.6": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.5": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.4": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.3": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.2": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.1": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  },
+  "3.11.0": {
+    "erlang": "[25.0,25.4)",
+    "elixir": "[1.13.4,1.15.0)"
+  }
+}
+
+
+# FILE: docs/COMPATIBILITY.md
+# Maintaining `compatibility.json`
+
+This document describes how `docs/compatibility.json` was built and how it
+should be maintained going forward.
+
+## Purpose
+
+`compatibility.json` is a machine-readable compatibility matrix that maps each
+RabbitMQ release version to its supported Erlang/OTP and Elixir version ranges.
+It uses mathematical interval notation familiar to Maven and NuGet users.
+
+See [GitHub Discussion #15438](https://github.com/rabbitmq/rabbitmq-server/discussions/15438)
+for the original proposal.
+
+## File Format
+
+The file is a JSON object keyed by RabbitMQ version string, ordered
+newest-first. Each value contains `erlang` and `elixir` keys with version
+ranges in interval notation:
+
+```json
+{
+  "4.2.4": {
+    "erlang": "[26.2,28.0)",
+    "elixir": "[1.13.4,1.20.0)"
+  }
+}
+```
+
+`[` means inclusive, `)` means exclusive. For example, `[26.2,28.0)` means
+`26.2 <= version < 28.0`.
+
+## Scope
+
+The file covers RabbitMQ 3.11.0 onwards. Earlier releases are not included.
+
+Only final releases are included. Betas, release candidates, and alphas are
+excluded.
+
+## Data Sources
+
+### Erlang Version Ranges
+
+The Erlang minimum and maximum version for each RabbitMQ release come from the compatibility
+table in the RabbitMQ website repository at `docs/which-erlang.md`:
+
+https://github.com/rabbitmq/rabbitmq-website/blob/main/docs/which-erlang.md
+
+That file contains two HTML tables (supported and unsupported series) with
+columns for RabbitMQ versions, minimum required Erlang/OTP, and maximum
+supported Erlang/OTP.
+
+To convert the HTML table values to interval notation:
+
+- The minimum becomes the inclusive lower bound
+- The maximum `X.Y.x` becomes the exclusive upper bound `X.(Y+1)`
+- Example: min `26.2`, max `27.x` becomes `[26.2,28.0)`
+- Example: min `25.0`, max `26.2.x` becomes `[25.0,26.3)`
+- Example: min `25.0`, max `25.3.x` becomes `[25.0,25.4)`
+
+Preserve the precision from the HTML table. If the table says `24.3.4.8`, use
+that exact value in the interval.
+
+When a release exists in the git tags but is not explicitly listed in the HTML
+table, assign it the same Erlang range as its siblings in the same release
+series and compatibility group.
+
+### Elixir Version Ranges
+
+The Elixir range for each release comes from the `elixir` field in
+`deps/rabbitmq_cli/mix.exs` at the corresponding git tag.
+
+To extract the Elixir constraint for a release:
+
+```bash
+git show v4.2.4:deps/rabbitmq_cli/mix.exs | grep -oP 'elixir:\s*"\K[^"]+'
+```
+
+This returns a string like `>= 1.13.4 and < 1.20.0`, which converts to
+interval notation as `[1.13.4,1.20.0)`.
+
+To extract all Elixir constraints at once:
+
+```bash
+for tag in $(git tag -l 'v3.11.*' 'v3.12.*' 'v3.13.*' 'v4.*' \
+    | grep -v -E '(beta|rc|alpha)' | sort -V); do
+  elixir=$(git show "$tag:deps/rabbitmq_cli/mix.exs" 2>/dev/null \
+    | grep -oP 'elixir:\s*"\K[^"]+')
+  echo "$tag: $elixir"
+done
+```
+
+## Adding a New Release
+
+When a new RabbitMQ version is released:
+
+1. Determine the Erlang range from `docs/which-erlang.md` in the website
+   repository, or from the release notes if the website has not been updated
+   yet. If neither source has been updated, use the same Erlang range as the
+   previous release in the same series, and update it later when the
+   authoritative data is available
+2. Extract the Elixir constraint from `deps/rabbitmq_cli/mix.exs` at the new
+   release tag
+3. Add the new entry at the top of the JSON object (newest-first ordering)
+4. Validate the file is well-formed: `jq . docs/compatibility.json > /dev/null`
+5. Verify the entry count matches the number of release tags:
+   `jq 'keys | length' docs/compatibility.json`
+
+## Relationship to Other Files
+
+`docs/compatibility.json` is separate from `.github/versions.json`. The
+`versions.json` file lists RabbitMQ and Erlang versions for populating GitHub
+Discussions template dropdowns and is auto-updated by
+`.github/scripts/update-versions.sh`. It serves a different purpose and should
+not be combined with the compatibility matrix.
+
+
+# FILE: selenium/run-suites.sh
+#!/usr/bin/env bash
+
+SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+SUITE_FILE=${1:-"full-suite-management-ui"}
+OVERALL_TEST_RESULT=0
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+SUCCESSFUL_SUITES=()
+FAILED_SUITES=()
+
+TOTAL_SUITES=$(wc -l $SCRIPT/$SUITE_FILE | awk '{print $1}')
+
+while read SUITE
+do
+  echo -e "=== Running suite (${TOTAL_SUITES}/${GREEN}${#SUCCESSFUL_SUITES[@]}/${RED}${#FAILED_SUITES[@]}${NC}) $SUITE ============================================"
+  echo " "
+  
+  ENV_MODES="docker" $SCRIPT/suites/$SUITE
+  TEST_RESULT="$?"
+  TEST_STATUS="${GREEN}Succeeded${NC}"
+  if [ "$TEST_RESULT" -ne 0 ]
+  then
+    OVERALL_TEST_RESULT=$TEST_RESULT
+    TEST_STATUS=" ${RED}Failed${NC}"
+    FAILED_SUITES+=($SUITE)
+  else
+    SUCCESSFUL_SUITES+=($SUITE)
+  fi
+  echo -e "=== $TEST_STATUS $SUITE ==========================================="
+  echo " "
+done <<< "$(cat $SCRIPT/$SUITE_FILE | sort)"
+
+echo -e "=== Summary (${TOTAL_SUITES}/${GREEN}${#SUCCESSFUL_SUITES[@]}/${RED}${#FAILED_SUITES[@]}${NC}) ============================================"
+if [ ${#SUCCESSFUL_SUITES[@]} -gt 0 ]; then echo -e " > ${GREEN}Successful suites ${NC}"; fi
+for f in ${SUCCESSFUL_SUITES[@]}
+do
+  echo "   - $f"
+done
+
+if [ ${#FAILED_SUITES[@]} -gt 0 ]; then echo -e " > ${RED}Failed suites ${NC}"; fi
+for f in ${FAILED_SUITES[@]}
+do
+  echo "   - $f"
+done
+
+echo "Terminating with $OVERALL_TEST_RESULT"
+exit $OVERALL_TEST_RESULT
+
+
+# FILE: selenium/package.json
+{
+  "name": "selenium",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "fakeportal": "node fakeportal/app.js",
+    "fakeproxy": "node fakeportal/proxy.js",
+    "test": " eval $(cat $ENV_FILE ) && mocha --recursive --trace-warnings --timeout 40000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chromedriver": "^147.0",
+    "ejs": "^5.0.1",
+    "express": "^5.1.0",
+    "geckodriver": "^6.0.2",
+    "http-proxy": "^1.18.1",
+    "mqtt": "^5.14.1",
+    "path": "^0.12.7",
+    "proxy": "^4.0.0",
+    "rhea": "^3.0.4",
+    "selenium-webdriver": "^4.37.0",
+    "xmlhttprequest": "^1.8.0",
+    "amqplib": "1.0.3"
+  },
+  "devDependencies": {
+    "chai": "^6.2.0",
+    "mocha": "^11.7.4",
+    "request": "^2.88.2",
+    "standard": "^17.1.2"
+  }
+}
+
+
+# FILE: selenium/clean.sh
+#!/usr/bin/env bash
+
+rm -r $TMPDIR/rabbitmq-test-instances
+
+
+# FILE: selenium/README.md
+# Automated End-to-End testing with Mocha and Selenium
+
+## What is it?
+
+It is a solution that allows you to write end-to-end tests in Javascript. The solution
+takes care of:
+
+    - generating the required RabbitMQ configuration  
+    - deploying RabbitMQ with the generated configuration in 3 ways:  
+        - from source via `make run-broker`.
+        - with docker via a single docker instance.
+        - with docker compose via a 3-node cluster.
+    - deploying any other dependencies required by the test case such as:
+        - keycloak
+        - uaa
+        - ldap
+        - http authentication backend
+        - http proxy
+        - http portal
+    - running the test cases
+    - capturing the logs from RabbitMQ and all the dependencies
+    - stopping RabbitMQ and all the dependencies
+
+## Integration with Github actions
+
+These are the three github workflows that run end-to-end tests:
+- [test-management-ui.yaml](.github/workflows/test-management-ui.yaml) Runs all the test suites
+listed on the file [short-suite-management-ui](selenium/short-suite-management-ui). It tests the management ui deployed on a 3-node cluster. It is invoked on every push to a branch.
+- [test-management-ui-for-prs.yaml](.github/workflows/test-management-ui.yaml) Runs all the test suites
+listed on the file [full-suite-management-ui](selenium/full-suite-management-ui). It tests the management ui deployed on a single docker instance. It is invoked on every push to a PR.
+- [test-authnz.yaml](.github/workflows/test-authnz.yaml) Runs all the test suites
+listed on the file [full-suite-authnz-messaging](selenium/full-suite-authnz-messaging). It is invoked on every push to a PR and/or branch.
+
+
+## Prerequisites
+
+The following must be installed to run the tests:
+- make
+- docker
+- curl
+
+# Organization of test cases
+
+`test` folder contains the test cases written in Javascript using Mocha framework.
+Test cases are grouped into folders based on the area of functionality.
+For instance, `test/basic-auth` contains test cases that validates basic authentication. Another example, a bit more complex, is `test/oauth` where the test cases are stored in subfolders. For instance, `test/oauth/with-sp-initiated` which validate OAuth 2 authorization where users come to RabbitMQ without any token and RabbitMQ initiates the authorization process.  
+
+The `test` folder also contains the necessary configuration files. For instance, `test/basic-auth` contains `rabbitmq.conf` file which is also shared by other test cases such as `test/definitions` or `test/limits`.
+
+`suites` folder contains one bash script per test suite. A test suite executes all the test cases under
+a folder with certain configuration. More on configuration on the next section.
+
+`bin` folder contains as it is expected utility scripts used to run the test suites.
+
+
+# How to run the tests
+
+There are two ways to run the tests.
+
+**Headless mode** - This is the mode used by the CI. But you can also run it locally. In this mode, you do
+not see any browser interaction, everything happens in the background, i.e. rabbitmq, tests, the browser, and any component the test depends on such as UAA.
+
+**The interactive mode** - This mode is convenient when we are still working on RabbitMQ source code and/or in the selenium tests. In this mode, you run RabbitMQ and tests directly from source to speed things up. The components, such as, UAA or keycloak, run in docker.
+
+**IMPORTANT** - If you intend to switch between version of RabbitMQ, make sure
+you run `./clean.sh` to clear any state left from the last test run. 
+
+
+## Run tests in headless-mode
+
+To run just one suite, you proceed as follows:
+```
+suites/authnz-mgt/oauth-with-uaa.sh
+```
+
+And to a group of suites, like the CI does, you run the command below which runs all
+the management ui suites. If you do not pass `full-suite-management-ui`, `run-suites.sh`
+defaults to `full-suite-management-ui`.
+```
+./run-suites.sh full-suite-management-ui
+```
+
+Other suites files available are:
+
+- `short-suite-management-ui` which only runs a short set of suites
+- `full-suite-authnz` which runs all the suites related to testing auth backends vs protocols
+
+If you want to test your local changes, you can still build an image with these 2 commands from the
+root folder of the `rabbitmq-server` repo:
+```
+cd ../../../../
+make package-generic-unix
+make docker-image
+```
+
+
+To run a suite with a particular docker image you do it like this:
+```
+cd deps/rabbitmq_management/selenium
+RABBITMQ_DOCKER_IMAGE=pivotalrabbitmq/rabbitmq:3.11.0-rc.2.51.g4f3e539.dirty suites/authnz-mgt/oauth-with-uaa-with-mgt-prefix.sh
+```
+
+To customise the Selenium docker image, use the env variable `SELENIUM_DOCKER_IMAGE`:
+
+```
+cd deps/rabbitmq_management/selenium
+SELENIUM_DOCKER_IMAGE=tds-rabbitmq-docker-virtual.usw1.packages.broadcom.com/selenium/standalone-chromium:133.0 ./suites/authnz-mgt/basic-auth.sh
+```
+
+To customise the temporary directory for test configuration and intermediate container configuration, use `CONF_DIR_PREFIX`. This
+variable defaults to `/tmp`.
+
+```
+cd deps/rabbitmq_management/selenium
+CONF_DIR_PREFIX="$PWD/temp" ./suites/authnz-mgt/basic-auth.sh
+```
+
+## Run tests interactively using your local chrome browser
+
+First you make sure that you have Node.js ready to run the test cases.
+```
+cd selenium
+npm install
+```
+
+Before you can run a single test case or all the test cases for a suite, you need to
+run RabbitMQ from source and all the components the test cases depends on, if any.
+
+For instance, say you want to run the test cases for the suite `suites/oauth-with-uaa.sh`.
+
+First, open a terminal and launch RabbitMQ in the foreground:
+```
+suites/authnz-mgt/oauth-with-uaa.sh start-rabbitmq
+```
+
+Then, launch all the components, the suite depends on, in the background:
+```
+suites/authnz-mgt/oauth-with-uaa.sh start-others
+```
+
+And finally, run all the test cases for the suite:
+```
+suites/authnz-mgt/oauth-with-uaa.sh test
+```
+
+Or just one test case:
+```
+suites/authnz-mgt/oauth-with-uaa.sh test happy-login.js
+```
+
+**NOTE**: Nowadays, it is not possible to run all test in interactive mode. It is doable but it has not
+been implemented yet.
+
+
+If your test requires two RabbitMQ servers, typically required when testing WSR or shovels or federation, 
+you can run the second server, a.k.a. `downstream`, as follows:
+```
+suites/<yoursuite>.sh start-other-rabbitmq
+```
+
+## Test case configuration
+
+RabbitMQ and other components such as UAA, or Keycloak, require configuration files which varies
+depending on the test case scenario. These configuration files must be dynamically generated using these two other files:
+- one or many configuration files
+- and one or many **.env** file which declare environment variables used to template the former configuration file in order to generate a final configuration file
+
+Configuration files may contain reference to environment variables. And configuration files
+may should follow this naming convention: `<prefix>[.<profile>]*<suffix>`. For instance:
+- `basic-auth/rabbitmq.conf` It is a configuration file whose **prefix** is `rabbitmq`, the **suffix** is `.conf` and it has no profile associated to it. Inside, it has no reference to environment variables hence the final
+configuration file is the raw configuration file.
+- `oauth/rabbitmq.conf` Same as `basic-auth/rabbitmq.conf` but this file does have reference to environment variables so the final file will have those variable replaced with their final values
+- `oauth/rabbitmq.mgt-prefix.conf` It is a configuration file with the profile `mgt-prefix`
+
+The .env files should follow the naming convention: `.env.<profile>[.<profile>]*`. For instance:
+- `.env.docker` It is an .env file which is  used when the profile `docker` is activated
+- `oauth/.env.docker.uaa` It is a .env file used when using `oauth` as test folder and the profiles `docker` and `uaa` are both activated
+
+To generate a `rabbitmq.conf` file the process is as follows:
+1. Merge any applicable .env file from the test case's configuration folder and from the parent folder, i.e. under `/test` folder and generate a `/tmp/rabbitmq/.env` file
+2. Merge any applicable rabbitmq.conf file from the test case's configuration and resolve all the environment variable using `/tmp/rabbitmq/.env` file to produce `/tmp/selenium/<test-suite-name>/rabbitmq/rabbitmq.conf`
+
+## Profiles
+
+The most common profiles are:
+- `docker` profile used to indicate that RabbitMQ, the tests and selenium+browser run in docker. This profile is automatically activated when running in headless mode
+- `local` profile used to indicate that RabbitMQ and the tests and the browser run locally. This profile is
+automatically activated when running in interactive mode
+
+The rest of the components the test cases depends on will typically run in docker such as uaa, keycloak, and the rest.
+
+Besides these two profiles, mutually exclusive, you can have as many profiles as needed. It is just a matter of naming the appropriate file (.env, or rabbitmq.conf, etc) with the profile and activating the profile in the test suite script. For instance `suites/authnz-mgt/oauth-with-uaa.sh` activates two profiles by declaring them in `PROFILES` environment variable as shown below:
+```
+PROFILES="uaa uaa-oauth-provider"
+```
+
+## Chrome vs Chrome driver version mismatch
+
+If you find the following error when you first attempt to run one of the selenium tests
+```
+SessionNotCreatedError: session not created: This version of ChromeDriver only supports Chrome version 108
+Current browser version is 110.0.5481.100 with binary path /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+```
+It is because your current Chrome version is newer than the `chromedriver` configured in package.json.
+```
+  ....
+  "dependencies": {
+    "chromedriver": "^110.0.0",
+  ...
+```
+To fix the problem, bump the version in your package.json to match your local chrome version and run again the
+following command:
+```
+  npm install
+```
+
+## Build mocha-test image using a different Dockefile
+
+```bash 
+MOCHA_DOCKER_FILE=\location\of\my\Dockerfile ./run-suites.sh
+```
+
+## Issues deploying UAA 
+
+If you are not able to successfully run any test case that depends on UAA 
+because UAA fails to start, make sure you are using VZ emulation in your docker 
+engine. Without VZ emulation, the uaa docker container cannot start.
+
+
+# FILE: selenium/Dockerfile
+FROM node:24 AS base
+
+WORKDIR /code
+
+COPY package.json package.json
+
+FROM base AS test
+RUN npm install --verbose
+
+ENTRYPOINT [ "npm" ]
+CMD [ "" ]
+
+
+# FILE: scripts/zsh_autocomplete.sh
+_rabbitmqctl_complete() {
+    if [ -x /usr/lib/rabbitmq/bin/rabbitmqctl ]; then
+        local word completions a
+        local LANG=en_US.UTF-8
+        read -cl a
+        word="$1"
+        completions="$(export LANG=en_US.UTF-8; export LC_CTYPE=en_US.UTF-8; /usr/lib/rabbitmq/bin/rabbitmqctl --auto-complete ${=a})"
+        reply=( "${(ps:\n:)completions}" )
+    fi
+}
+
+compctl -f -K _rabbitmqctl_complete rabbitmqctl
+
+compctl -f -K _rabbitmqctl_complete rabbitmq-plugins
+
+compctl -f -K _rabbitmqctl_complete rabbitmq-diagnostics
+
+# FILE: scripts/rabbitmqctl-autocomplete.sh
+if [ -n "$BASH_VERSION" ]; then
+    . /usr/lib/rabbitmq/autocomplete/bash_autocomplete.sh
+fi
+
+# FILE: scripts/bash_autocomplete.sh
+_rabbitmqctl_complete() {
+    if [ -x /usr/lib/rabbitmq/bin/rabbitmqctl ]; then
+        COMPREPLY=()
+        local LANG=en_US.UTF-8
+        local word="${COMP_WORDS[COMP_CWORD]}"
+        local completions="$(export LANG=en_US.UTF-8; export LC_CTYPE=en_US.UTF-8; /usr/lib/rabbitmq/bin/rabbitmqctl --auto-complete $COMP_LINE)"
+        COMPREPLY=( $(compgen -W "$completions" -- "$word") )
+    fi
+}
+
+complete -f -F _rabbitmqctl_complete rabbitmqctl
+
+complete -f -F _rabbitmqctl_complete rabbitmq-plugins
+
+complete -f -F _rabbitmqctl_complete rabbitmq-diagnostics
+
+# FILE: packaging/docker-image/docker-entrypoint.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+# allow the container to be started with `--user`
+if [[ "$1" == rabbitmq* ]] && [ "$(id -u)" = '0' ]; then
+	if [ "$1" = 'rabbitmq-server' ]; then
+		find /var/lib/rabbitmq \! -user rabbitmq -exec chown rabbitmq '{}' +
+	fi
+
+	exec gosu rabbitmq "$BASH_SOURCE" "$@"
+fi
+
+deprecatedEnvVars=(
+	RABBITMQ_DEFAULT_PASS_FILE
+	RABBITMQ_DEFAULT_USER_FILE
+	RABBITMQ_MANAGEMENT_SSL_CACERTFILE
+	RABBITMQ_MANAGEMENT_SSL_CERTFILE
+	RABBITMQ_MANAGEMENT_SSL_DEPTH
+	RABBITMQ_MANAGEMENT_SSL_FAIL_IF_NO_PEER_CERT
+	RABBITMQ_MANAGEMENT_SSL_KEYFILE
+	RABBITMQ_MANAGEMENT_SSL_VERIFY
+	RABBITMQ_SSL_CACERTFILE
+	RABBITMQ_SSL_CERTFILE
+	RABBITMQ_SSL_DEPTH
+	RABBITMQ_SSL_FAIL_IF_NO_PEER_CERT
+	RABBITMQ_SSL_KEYFILE
+	RABBITMQ_SSL_VERIFY
+	RABBITMQ_VM_MEMORY_HIGH_WATERMARK
+)
+hasOldEnv=
+for old in "${deprecatedEnvVars[@]}"; do
+	if [ -n "${!old:-}" ]; then
+		echo >&2 "error: $old is set but deprecated"
+		hasOldEnv=1
+	fi
+done
+if [ -n "$hasOldEnv" ]; then
+	echo >&2 'error: deprecated environment variables detected'
+	echo >&2
+	echo >&2 'Please use a configuration file instead; visit https://www.rabbitmq.com/configure.html to learn more'
+	echo >&2
+	exit 1
+fi
+
+# if long and short hostnames are not the same, use long hostnames
+if [ -z "${RABBITMQ_USE_LONGNAME:-}" ] && [ "$(hostname)" != "$(hostname -s)" ]; then
+	: "${RABBITMQ_USE_LONGNAME:=true}"
+fi
+
+exec "$@"
+
+# FILE: packaging/docker-image/Makefile
+# PROJECT_VERSION defaults to:
+#   1. the version exported by rabbitmq-server-release;
+#   2. the version stored in `git-revisions.txt`, if it exists;
+#   3. a version based on git-describe(1), if it is a Git clone;
+#   4. 0.0.0
+
+PROJECT_VERSION := $(RABBITMQ_VERSION)
+
+ifeq ($(PROJECT_VERSION),)
+PROJECT_VERSION := $(shell \
+if test -f git-revisions.txt; then \
+	head -n1 git-revisions.txt | \
+	awk '{print $$$(words $(PROJECT_DESCRIPTION) version);}'; \
+else \
+	(git describe --dirty --abbrev=7 --tags --always --first-parent \
+	 2>/dev/null || echo rabbitmq_v0_0_0) | \
+	sed -e 's/^rabbitmq_v//' -e 's/^v//' -e 's/_/./g' -e 's/-/+/' \
+	 -e 's/-/./g'; \
+fi)
+endif
+
+ifeq ($(filter-out all dist push clean,$(MAKECMDGOALS)),)
+GENERIC_UNIX_ARCHIVE ?= $(wildcard $(PACKAGES_DIR)/rabbitmq-server-generic-unix-$(PROJECT_VERSION).tar.xz)
+
+ifeq ($(GENERIC_UNIX_ARCHIVE),)
+$(error Cannot find generic-unix archive; please specify GENERIC_UNIX_ARCHIVE)
+endif
+
+VERSION ?= $(patsubst rabbitmq-server-generic-unix-%.tar.xz,%,$(notdir $(GENERIC_UNIX_ARCHIVE)))
+ifeq ($(VERSION),)
+$(error Cannot determine version; please specify VERSION)
+endif
+
+IMAGE_TAG_1 ?= $(subst +,-,$(VERSION))
+endif
+
+REPO ?= pivotalrabbitmq/rabbitmq
+
+all: dist
+
+dist:
+	cp -f $(GENERIC_UNIX_ARCHIVE) package-generic-unix.tar.xz
+	docker build --pull \
+	  --build-arg RABBITMQ_VERSION=$(VERSION) \
+	  --tag $(REPO):$(IMAGE_TAG_1) \
+	  .
+
+push:
+	docker push $(REPO):$(IMAGE_TAG_1)
+ifdef IMAGE_TAG_2
+	docker tag $(REPO):$(IMAGE_TAG_1) $(REPO):$(IMAGE_TAG_2)
+	docker push $(REPO):$(IMAGE_TAG_2)
+endif
+
+clean:
+	rm -f rabbitmq_server-*
+
+
+# FILE: packaging/docker-image/Dockerfile
+ARG OTP_VERSION="27"
+
+FROM erlang:${OTP_VERSION}-slim AS base
+
+RUN set -eux; \
+	export DEBIAN_FRONTEND=noninteractive; \
+	apt-get update; \
+	apt-get install --yes --no-install-recommends \
+		ca-certificates \
+		gosu \
+		tzdata \
+		gnupg \
+		wget \
+		xz-utils \
+	; \
+	rm -rf /var/lib/apt/lists/*; \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false;
+
+FROM base AS rabbitmq
+
+ENV RABBITMQ_DATA_DIR=/var/lib/rabbitmq
+
+RUN set -eux; \
+# Create rabbitmq system user & group, fix permissions & allow root user to connect to the RabbitMQ Erlang VM
+	groupadd --system rabbitmq; \
+	useradd --uid 999 --system --home-dir "$RABBITMQ_DATA_DIR" --gid rabbitmq rabbitmq; \
+	mkdir -p "$RABBITMQ_DATA_DIR" /etc/rabbitmq /etc/rabbitmq/conf.d /tmp/rabbitmq-ssl /var/log/rabbitmq; \
+	chown -fR rabbitmq:rabbitmq "$RABBITMQ_DATA_DIR" /etc/rabbitmq /etc/rabbitmq/conf.d /tmp/rabbitmq-ssl /var/log/rabbitmq; \
+	chmod 1777 "$RABBITMQ_DATA_DIR" /etc/rabbitmq /etc/rabbitmq/conf.d /tmp/rabbitmq-ssl /var/log/rabbitmq; \
+	ln -sf "$RABBITMQ_DATA_DIR/.erlang.cookie" /root/.erlang.cookie
+
+# Use the latest stable RabbitMQ release (https://www.rabbitmq.com/download.html)
+ARG RABBITMQ_VERSION=4.0.0
+ENV RABBITMQ_VERSION=${RABBITMQ_VERSION}
+ENV RABBITMQ_HOME=/opt/rabbitmq
+
+# Add RabbitMQ to PATH
+ENV PATH=$RABBITMQ_HOME/sbin:$PATH
+
+COPY package-generic-unix.tar.xz /usr/local/src/rabbitmq-$RABBITMQ_VERSION.tar.xz
+
+RUN set -eux; \
+	RABBITMQ_PATH="/usr/local/src/rabbitmq-$RABBITMQ_VERSION"; \
+	mkdir -p "$RABBITMQ_HOME"; \
+	tar --extract --file "$RABBITMQ_PATH.tar.xz" --directory "$RABBITMQ_HOME" --strip-components 1; \
+	rm -rf "$RABBITMQ_PATH"*; \
+# Do not default SYS_PREFIX to RABBITMQ_HOME, leave it empty
+	grep -qE '^SYS_PREFIX=\$\{RABBITMQ_HOME\}$' "$RABBITMQ_HOME/sbin/rabbitmq-defaults"; \
+	sed -i 's/^SYS_PREFIX=.*$/SYS_PREFIX=/' "$RABBITMQ_HOME/sbin/rabbitmq-defaults"; \
+	grep -qE '^SYS_PREFIX=$' "$RABBITMQ_HOME/sbin/rabbitmq-defaults"; \
+	chown -R rabbitmq:rabbitmq "$RABBITMQ_HOME";
+
+# set home so that any `--user` knows where to put the erlang cookie
+ENV HOME=$RABBITMQ_DATA_DIR
+# Hint that the data (a.k.a. home dir) dir should be separate volume
+VOLUME $RABBITMQ_DATA_DIR
+
+# warning: the VM is running with native name encoding of latin1 which may cause Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 (which can be verified by running "locale" in your shell)
+# Setting all environment variables that control language preferences, behaviour differs - https://www.gnu.org/software/gettext/manual/html_node/The-LANGUAGE-variable.html#The-LANGUAGE-variable
+# https://docs.docker.com/samples/library/ubuntu/#locales
+ENV LANG=C.UTF-8
+ENV LANGUAGE=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+COPY --chown=rabbitmq:rabbitmq 10-defaults.conf 20-management_agent.disable_metrics_collector.conf /etc/rabbitmq/conf.d/
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+CMD ["rabbitmq-server"]
+
+
+# FILE: release-notes/README.md
+# Release Notes
+
+This directory contains the source of release notes starting with RabbitMQ `3.5.7`
+as well as archived notes for earlier releases.
+
+The notes are published together with releases [on GitHub](https://github.com/rabbitmq/rabbitmq-server/releases)
+and most commonly discovered via the [change log page](https://rabbitmq.com/changelog.html).
+
+This may include WIP notes for unreleased versions or preview releases.
+
+## Archived Pre-GitHub Notes
+
+This directory contains release notes for releases from `1.1.x` through `3.5.0`,
+which pre-date the migration to GitHub. They are preserved both for historical
+purposes and to keep the [change log](https://rabbitmq.com/changelog.html) links functional,
+so their names were not modified to match the `X.Y.Z.md` pattern.
+
+
+# FILE: release-notes/README-3.5.0.txt
+Release: RabbitMQ 3.5.0
+
+Release Highlights
+==================
+
+server
+------
+bug fixes
+26527 Prevent huge GM / mirror memory consumption under load by adding flow
+      control to messages via GM (since 2.6.0)
+26636 Fix inconsistencies and hangs when a node comes back online before its
+      disappearance is fulled treated (since 3.1.0)
+26622 Ensure channels don't deliver confirms when a pause mode lasts (since
+      3.3.5)
+26628 When using autoheal, ensure the leader waits for the winner to finish
+      the autoheal process (since 3.3.0)
+26467 Fix promotion of offline mirrors, in particular if the mirror crashed
+      (since 3.4.0)
+26631 Work around a possible hang in Erlang's "global" (since 3.4.2)
+26614 Ensure rabbitmqctl.bat exits with code 1 if ERLANG_HOME is incorrect
+      (since 1.0.0)
+26426 Ensure epmd is restarted on Windows if it ends up running as a normal
+      user and thus getting killed on logout (since 1.0.0)
+26595 Fix a crash when querying SSL certificate info while the connection is
+      closing (since 2.1.1)
+26610 Restore the timeout error message while waiting for other cluster nodes
+      (since 3.4.0)
+26477 Only send 'user_authentication_success' event if
+      rabbit_reader:auth_phase/2 accepts the user (since 3.3.0)
+
+enhancements
+26183 Move priority queues from an external plugin to the broker
+26327 Embed messages smaller than a configurable size in the queue index
+26457 Add read buffer cache to improve on-disk messages consumption
+26543 Improve I/O performance by reading or writing several file segments
+      in one operation
+26465 New "pause_if_all_down" partition handling mode
+26463 Ensure new mirrors are started when old ones go down when ha-mode=exactly
+26469 Support separate authentication/authorisation backends
+26475 Add "rabbitmqctl rename_cluster_node"
+25430 Further limit queue's journal size to avoid excessive memory use
+26545 Prohibit deletion of amq.* exchanges
+26393 Add more info to "user_authentication_*" events
+26444 Improve performance parsing AMQP tables / arrays
+26602 Add routing decision information to firehose messages
+26615 Notify systemd when RabbitMQ is started, if "sd_notify" is available
+26603 Improve unacked messages requeueing performance in priority queues
+26427 Silence connection errors from load balancer sanity checks
+26471 Log when HiPE is enabled
+
+feature removal
+26257 Remove support for the legacy (2.x compatible) form of the
+      "cluster_nodes" configuration directive
+
+
+management plugin
+-----------------
+bug fixes
+26613 Fix exception on the node details page if the node goes
+      online or offline while viewing (since 3.4.0)
+
+enhancements
+26522 Provide statistics about accesses to message store and queue index
+24781 Provide statistics about file I/O
+24921 rabbitmqadmin: Support Python 3
+25652 Add a "move messages" UI
+26561 Show per-queue disk message read/write rates
+26598 Show cross-cluster networking statistics
+26621 Display a warning when the management database is overloaded
+24700 Support if-unused and if-empty for queue / exchange deletion
+
+
+LDAP plugin
+-----------
+bug fixes
+26601 Ensure tag_queries respects other_bind setting
+
+
+MQTT plugin
+-----------
+enhancements
+26278 Support authentication via SSL certificate
+
+
+Web-STOMP plugin
+----------------
+enhancements
+26504 Add configuration parameter for cowboy connection pool size
+
+
+tracing plugin
+--------------
+enhancements
+26619 Improve how logs are written to disk to increase performance
+26620 Allow tracing plugin to truncate message bodies to increase performance
+
+
+java client
+-----------
+bug fixes
+26576 Make sure Channel#abort ignores IOExceptions as the docs say
+
+enhancements
+26571 Undeprecate QueueingConsumer
+26617 Dynamically calculate number of consumer work service executor threads
+
+feature removal
+26007 Remove deprecated ConnectionFactory#getNumConsumerThreads,
+      ConnectionFactory#setNumConsumerThreads, BasicProperties setters (in
+      favour of BasicProperties.Builder) and Channel#recoveryAsync
+
+
+.net client
+-----------
+bug fixes
+26508 Synchronise SessionManager Count method (since 3.3.5)
+
+enhancements
+24699 Add a unit test to ensure channels are notified when a connection is
+      closed
+26329 Dispatch consumer methods concurrently
+26420 Move the .NET guide to www.rabbitmq.com
+26459 Use timer for heartbeats to reduce the number of threads and memory
+      consumption
+26483 Add ISubscription and IQueueingBasicConsumer interfaces
+26505 Upgrade to Visual Studio 2013 project files
+26507 Use a static exchange types array instead of creating a new list each
+      time (since 3.3.5)
+26509 Switch to auto-properties (since 3.3.5)
+26510 Use a separate lock object in BlockingCell (since 3.3.5)
+26511 Assorted doc string and member name prefix changes (since 3.3.5)
+26512 Use EventHandler<T> and similar instead of homebrew event handler
+      classes (since 3.3.5)
+26513 Improve how authentication method names and URI schemas are compared in
+      ConnectionFactory (since 3.3.5)
+26514 Use TryParse instead of Parse in PrimitiveParser (since 3.3.5)
+26534 Remove MSI installer
+26550 Support TLS connections without client certificates
+
+
+building and packaging
+----------------------
+bug fixes
+26539 Use "exec" to run rabbitmq-server in rabbitmq-script-wrapper to ensure
+      signals are correctly propagated (since 2.8.3)
+26524 Improve error message when build dependencies are missing on Mac OS X
+      (since 3.1.0)
+26525 Do not install rabbitmq.config.example if DOC_INSTALL_DIR is unset
+      (since 3.2.0)
+26526 Replace GNU patch specific "--no-backup-if-mismatch" by a portable
+      combination of patch(1) and find(1) (since 3.4.0)
+
+
+Upgrading
+=========
+To upgrade a non-clustered RabbitMQ from release 2.1.1 or later, simply install
+the new version. All configuration and persistent message data is retained.
+
+To upgrade a clustered RabbitMQ from release 2.1.1 or later, install the new
+version on all the nodes and follow the instructions at
+https://www.rabbitmq.com/clustering.html#upgrading .
+
+To upgrade RabbitMQ from release 2.1.0, first upgrade to 2.1.1 (all data will be
+retained), and then to the current version as described above.
+
+When upgrading from RabbitMQ versions prior to 2.1.0, the existing data will be
+moved to a backup location and a fresh, empty database will be cre

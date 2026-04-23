@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:42:32.835Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296f62cdbffetF3IbsW75Lyku0",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/ansible/test/units/config/test.yml",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/ansible/test/units/config/test.yml\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\n# mock config defs with diff use cases\nconfig_entry: &entry\n    name: test config\n    default: DEFAULT\n    description:\n      - This does nothing, its for testing\n    env:\n      - name: ENVVAR\n    ini:\n      - section: defaults\n        key: inikey\n    type: string\nconfig_entry_multi: &entry_multi\n    name: has more than one entry per config source\n    default: DEFAULT\n    description:\n      - This does nothing, its for testing\n    env:\n      - name: MATTERLESS\n      - name: MATTERMORE\n    ini:\n      - section: defaults\n        key: matterless\n      - section: defaults\n        key: mattermore\n    type: string\nconfig_entry_bool:\n    <<: *entry\n    type: bool\n    default: False\nconfig_entry_list:\n    <<: *entry\n    type: list\n    default: [DEFAULT]\nconfig_entry_deprecated:\n    <<: *entry\n    deprecated: &dep\n        why: 'cause i wanna'\n        version: 9.2\n        alternative: 'none whatso ever'\nconfig_entry_multi_deprecated:\n    <<: *entry_multi\n    deprecated: *dep\nconfig_entry_multi_deprecated_source:\n    <<: *entry_multi\n    env:\n      - name: MATTERLESS\n        deprecated: *dep\n      - name: MATTERMORE\n    ini:\n      - section: defaults\n        key: matterless\n        deprecated: *dep\n      - section: defaults\n        key: mattermore\n\n```"
+}

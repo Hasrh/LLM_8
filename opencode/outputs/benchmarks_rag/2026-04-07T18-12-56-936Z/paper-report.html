@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>OpenCode security audit benchmark — RAG and baselines (technical report)</title>
+<style>
+@page { size: A4; margin: 14mm 16mm; }
+body { font-family: "DejaVu Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.42; font-size: 10pt; max-width: 100%; margin: 0; }
+h1 { font-size: 16pt; margin: 0 0 0.4em 0; line-height: 1.2; }
+h2 { font-size: 12pt; margin: 1.05em 0 0.45em 0; page-break-after: avoid; border-bottom: 2px solid #334155; padding-bottom: 0.25em; page-break-before: auto; }
+h2.first { page-break-before: avoid; margin-top: 0.6em; }
+h2.page { page-break-before: always; }
+h3 { font-size: 10.5pt; margin: 1em 0 0.35em 0; page-break-after: avoid; color: #1e293b; }
+p { margin: 0.45em 0; text-align: justify; hyphens: auto; }
+.abstract { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 12px 0; font-size: 9.5pt; }
+.figure { margin: 12px 0; page-break-inside: avoid; }
+.chart-wrap { border: 1px solid #94a3b8; padding: 12px; margin: 10px 0; page-break-inside: avoid; background: #fff; }
+.chart-title { font-weight: 700; font-size: 10pt; margin-bottom: 8px; }
+.chart-sub { font-size: 8.5pt; color: #475569; margin: 0 0 8px 0; line-height: 1.35; }
+.chart-hist { display: table; width: 100%; table-layout: fixed; height: 200px; }
+.hcol { display: table-cell; vertical-align: bottom; text-align: center; padding: 0 3px; }
+.hcnt { display: block; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+.hbar { width: 68%; margin: 0 auto; background: #1d4ed8; border-radius: 3px 3px 0 0; min-height: 6px; }
+.hlbl { display: block; font-size: 7.5pt; color: #475569; margin-top: 6px; line-height: 1.15; }
+.bar-table { width: 100%; font-size: 9pt; border-collapse: collapse; }
+.bar-table td { padding: 5px 4px; vertical-align: middle; border: none; }
+.bar-table .cn { width: 28%; font-size: 8.5pt; }
+.bar-table .tdtrack { width: 57%; }
+.bar-table .outer { width: 280px; height: 20px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.bar-table .inner { height: 20px; border-radius: 3px; }
+.bar-table .pct { width: 15%; text-align: right; font-size: 8.5pt; }
+.cmp-flex { display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: space-between; align-items: flex-end; width: 100%; gap: 10px; margin-top: 10px; }
+.cmp-box { flex: 1 1 0; min-width: 0; text-align: center; border: 1px solid #e2e8f0; padding: 10px 6px; border-radius: 6px; background: #fafafa; }
+.cmplab { font-weight: 700; font-size: 9pt; margin-bottom: 6px; line-height: 1.2; }
+.cmp-sub { font-size: 7.5pt; color: #64748b; margin-top: 4px; line-height: 1.2; }
+.cmp-num { font-size: 10.5pt; font-weight: 700; margin: 3px 0; }
+.cmp-bar { width: 44px; margin: 5px auto 0 auto; border-radius: 3px 3px 0 0; }
+.summary-suite, .matrix, .pct-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 8px 0; page-break-inside: avoid; }
+.summary-suite th, .summary-suite td, .matrix th, .matrix td, .pct-table th, .pct-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
+.summary-suite th, .matrix thead th, .pct-table th { background: #e2e8f0; font-weight: 600; }
+.matrix .num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
+.matrix .na { text-align: center; color: #94a3b8; }
+.matrix .rowh { font-weight: 600; text-align: left; background: #f8fafc; width: 32%; }
+.matrix .c0 { width: 32%; }
+.matrix .c1 { width: 22%; }
+.matrix .c2 { width: 22%; }
+.matrix .c3 { width: 22%; }
+.thsmall { font-weight: 400; font-size: 7pt; color: #64748b; }
+.small { font-size: 8.5pt; color: #475569; }
+.cite { font-size: 8.5pt; color: #64748b; margin: 6px 0; font-style: italic; }
+.caption { font-size: 9pt; line-height: 1.48; margin: 10px 0 14px 0; padding: 10px 12px; border-left: 4px solid #334155; background: #f8fafc; text-align: justify; page-break-inside: avoid; }
+.caption strong { color: #0f172a; }
+.lead { font-size: 9.5pt; margin: 0.5em 0 0.65em 0; }
+ul.disc { margin: 0.35em 0 0.5em 1.2em; }
+ul.disc li { margin: 0.25em 0; }
+.mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; }
+.callout { font-size: 9pt; line-height: 1.45; margin: 10px 0; padding: 10px 12px; border: 1px solid #94a3b8; background: #fffbeb; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>OpenCode security audit benchmark — RAG and baselines (technical report)</h1>
+<p class="small">Primary artifact: <span class="mono">/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z</span> · Generated <span class="mono">2026-04-07T19:51:03.021Z</span></p>
+
+<div class="abstract">
+<strong>Abstract.</strong> We report automated heuristic verification for three configurations, always listed in evaluation order <strong>① OpenCode + RAG</strong> (repository roots, Pinecone retrieval, five checks including control-grounding), <strong>② GPT direct</strong> (single-file, four checks, OpenAI <code>gpt-5.4-mini</code> in this dataset), <strong>③ OpenCode baseline</strong> (agent, four checks, no retrieval). The headline mean for ② (~0.905 on [0,1]) is <em>not</em> “94% accuracy”; it is the mean fraction of checks passed under a four-item rubric. RAG uses a stricter five-item rubric and larger, truncated inputs. Section 2 quantifies ingestion; Section 6 explains confounders (model identity, input cardinality, rubric size).
+</div>
+
+<h2 class="first">1. Experimental design</h2>
+
+<h3>1.1 Configurations (fixed ordering)</h3>
+<ol>
+<li><strong>① OpenCode + RAG</strong> — <code>mode: rag</code>; agent loop; top-5 ISO control chunks from Pinecone; verification includes <em>control-grounding</em> (cited control IDs must appear in retrieved set). Targets: <em>repository roots</em> under <code>samples/bench50/*</code>, text ingested with a hard character ceiling.</li>
+<li><strong>② GPT direct</strong> — <code>mode: direct</code>; single completion; no retrieval corpus; four verification checks. Targets: <em>single files</em> (same bench50 corpus family, one path per run).</li>
+<li><strong>③ OpenCode baseline</strong> — <code>mode: baseline</code>; OpenCode agent with file attachment; four checks; no vector retrieval.</li>
+</ol>
+
+<h3>1.2 Verification rubric (implementation)</h3>
+<p>All checks are implemented in <span class="mono">packages/opencode/src/security/verification.ts</span> and operate on parsed markdown sections. Brief definitions:</p>
+<table class="summary-suite">
+<tr><th>Check</th><th>Definition (operational)</th><th>Modes</th></tr>
+<tr><td>structural-completeness</td><td>Required headings: Executive Summary, Findings, Final Risk Overview.</td><td>all</td></tr>
+<tr><td>evidence-grounding</td><td>Each parsed finding has non-empty evidence field.</td><td>all</td></tr>
+<tr><td>consistency</td><td>Heuristic consistency of severity vs issue text vs recommendation.</td><td>all</td></tr>
+<tr><td>empty-generic-detection</td><td>Report length and generic-phrase filter (short or boilerplate ⇒ fail).</td><td>all</td></tr>
+<tr><td>control-grounding</td><td>Control IDs cited in findings must match retrieved control IDs (regex on finding control field).</td><td>RAG only</td></tr>
+</table>
+<p>Headline score = (# checks passed) / (# checks in that mode). Full pass requires 100% of checks in that mode.</p>
+
+<h3>1.3 Models (measured confounder)</h3>
+<table class="summary-suite">
+<tr><th>Configuration</th><th>Provider / model (from run metadata)</th></tr>
+<tr><td>① OpenCode + RAG</td><td>opencode / qwen3.6-plus-free</td></tr>
+<tr><td>② GPT direct</td><td>openai / gpt-5.4-mini</td></tr>
+
+</table>
+<p><strong>Confounder:</strong> ② uses a different foundation model than ①/③ in this benchmark export. Any cross-suite difference partly reflects model capability and tokenizer behavior, not only retrieval vs non-retrieval.</p>
+
+<h2>2. Input scale and context (observed)</h2>
+<p>Directory ingest for RAG uses <code>DEFAULT_MAX_CHARS = 120000</code> (<span class="mono">packages/opencode/src/security/schema.ts</span>). When cumulative file text exceeds this, ingestion truncates (<code>clipped: true</code> in metadata).</p>
+
+<table class="summary-suite">
+<tr><th>Metric</th><th>① OpenCode + RAG</th><th>② GPT direct</th><th>③ OpenCode baseline</th></tr>
+<tr><td>Runs with metadata</td><td>50</td><td>50</td><td>—</td></tr>
+<tr><td>Mean <code>files</code> count (metadata)</td><td>5530</td><td>1.0</td><td>—</td></tr>
+<tr><td>Runs with <code>clipped: true</code></td><td>50 / 50</td><td>2 / 50</td><td>—</td></tr>
+<tr><td>Mean <code>input.txt</code> size (bytes)</td><td>120,477</td><td>7,507</td><td>—</td></tr>
+</table>
+
+<h3>2.1 Context window vs this benchmark</h3>
+<p><strong>② GPT direct is not “winning because it hits the context window.”</strong> In these runs, ② ingests <em>one file per target</em>; observed mean <code>input.txt</code> size is orders of magnitude smaller than ①’s aggregated repo slice. Under-filling context reduces truncation pressure and usually stabilizes formatting. ① routinely sets <code>clipped: true</code> and presents tens of thousands of files scanned in metadata — the model sees a partial, concatenated corpus, which increases failure rates on structure and evidence parsers independent of “running out of tokens” in the API sense.</p>
+<p><strong>Why ~0.905 is not “94%.”</strong> The value 0.905 is a mean on [0,1] over four boolean checks per run (headline for ②). Equivalently, ~90.5% of those check outcomes are passes in expectation (~3.62 of 4 per run on average). It is not an accuracy against ground-truth vulnerabilities.</p>
+
+<h2>3. Results — ① OpenCode + RAG (primary)</h2>
+<p class="lead">This section summarizes the <strong>primary</strong> experimental arm: OpenCode in RAG mode over bench50 repository roots, with ISO control retrieval and five verification predicates per run. Every numeric quantity below is derived from the same <em>n</em> = 50 rows as the primary <span class="mono">results.json</span> passed to this renderer. A “run” is one target repository processed end-to-end; “completed” means the pipeline produced a scored verification artifact without a top-level error.</p>
+<p>We report two parallel summaries. The <strong>headline</strong> row uses all five checks and divides by five, so it is the quantity that Figure 1 histograms. The <strong>shared-four</strong> rows restrict to the checks that also exist in ② and ③; they are the only fair within-run contrasts against those baselines and match the upper bar in Figure 3. Control-grounding affects only the headline, not the shared-four column; a large gap between the two means therefore indicates that grounding passes or failures are materially moving the five-check average relative to the four-check slice—Figure 2’s control-grounding row gives the marginal pass rate.</p>
+<table class="summary-suite">
+<tr><th>Metric</th><th>Value</th></tr>
+<tr><td>Completed</td><td>50 / 50</td></tr>
+<tr><td>Errors</td><td>0</td></tr>
+<tr><td>Headline mean (÷5 checks)</td><td>0.736</td></tr>
+<tr><td>Median headline</td><td>0.800</td></tr>
+<tr><td>σ (headline)</td><td>0.103</td></tr>
+<tr><td>Full pass (5/5)</td><td>1 (2.0%)</td></tr>
+<tr><td>Mean on four shared checks only</td><td>0.725</td></tr>
+<tr><td>All four shared pass</td><td>12 (24.0%)</td></tr>
+</table>
+<p><strong>Reading the summary table.</strong> <em>Headline mean</em> is the arithmetic mean of per-run scores in [0,1] where each score counts how many of the five checks passed. Because each check is Boolean, individual run scores take only the values 0.0, 0.2, …, 1.0; the mean is therefore a weighted average of those mass points, not a continuous latent variable. <em>Median headline</em> is robust to outliers: if it sits above the mean, the distribution has a left tail (some very low scores); if below, a right tail. <em>σ (headline)</em> quantifies spread in the same units as the mean; for bench50-sized <em>n</em>, a σ near 0.10 typically indicates that most mass sits on two adjacent discrete scores (here 0.60 and 0.80), which is exactly the pattern Figure 1 displays.</p>
+<p><em>Full pass (5/5)</em> is a stricter operational criterion than the mean: it counts runs where every predicate, including control-grounding, succeeded. A low full-pass rate with a moderate mean is common when one check is hard and the others are easy—readers should inspect Figure 2 to see which row is the bottleneck. <em>Mean on four shared checks</em> recomputes each run’s score using only structural-completeness, evidence-grounding, consistency, and empty-generic-detection, then divides by four; <em>All four shared pass</em> is the fraction of runs where all four of those passed, ignoring control-grounding. That pair is the correct bridge to §3.1 and Figure 3.</p>
+<p><strong>Discrete headline mass.</strong> On the five-check scale, score 0.60 means exactly three checks passed and two failed; 0.80 means four passed and one failed; 1.00 means a perfect sweep. In this dataset: 0.60 → <strong>17</strong> runs; 0.80 → <strong>32</strong>; 1.00 → <strong>1</strong>. Together, 49 of 50 completed runs (98.0% of successful runs) land on those two scores alone, which justifies interpreting the experiment as “usually one or two check failures per repo” rather than a smooth degradation of quality.</p>
+
+<h3>3.1 Reference runs — ② and ③ (headline ÷4)</h3>
+<p class="lead">Configurations ② and ③ use a <strong>four-check</strong> headline (no control-grounding). Their headline mean is therefore <em>not</em> comparable to ①’s headline mean without normalization; §4 and Figure 3 use the shared-four construction for that purpose. The table below still lists headline ÷4 for ②/③ because that is what those pipelines optimize locally, and because readers often want the raw benchmark export numbers side by side.</p>
+<table class="summary-suite">
+<tr><th>Configuration</th><th>n</th><th>Headline mean</th><th>Full pass</th><th>Mean (4 shared)</th><th>All 4 shared pass</th></tr>
+<tr><td>② GPT direct</td><td>50</td><td>0.905</td><td>62.0%</td><td>0.905</td><td>62.0%</td></tr>
+<tr><td>③ OpenCode baseline</td><td colspan="5">— (pass opencode results.json)</td></tr>
+</table>
+<p><strong>② GPT direct.</strong> The headline mean 0.905 is the average fraction of the <em>four</em> checks passed per run. It is numerically similar to the “Mean (4 shared)” column for ② because the shared-four set is exactly those four checks. <strong>Full pass</strong> is the percentage of runs with score 1.0 on that four-check scale—i.e. all structural, evidence, consistency, and generic-content predicates passed. This number must not be quoted as “accuracy” against ground truth; it only measures conformance to the automated rubric in <span class="mono">verification.ts</span>. The high headline mean under ② co-occurs with small single-file inputs and a different model than ① (§1.3), so it does not isolate the effect of “no RAG.”</p>
+<div class="callout"><strong>③ OpenCode baseline missing from this PDF.</strong> Regenerate with the merged OpenCode bench50 JSON as the third argument, for example: <span class="mono">bun benchmark/render-benchmark-pdf.ts /home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z &lt;path/to/gpt/results.json&gt; outputs/benchmarks/merged-opencode-bench50.json</span> — or produce a fresh baseline with <span class="mono">./benchmark/run-opencode-baseline-only.sh benchmark/targets-50.txt</span> so ③ targets the same single files as ②. Without that file, Figure 3 and Table 1 omit the third column and cross-suite prose should avoid claiming baseline numbers.</div>
+
+<h2>4. Distributional summary (percentiles)</h2>
+<p class="lead">Percentiles describe where most of the probability mass sits without assuming a parametric family. We report them for <em>headline</em> scores (different denominators per configuration) and again for the <em>shared-four</em> sub-score (common [0,1] scale across ①–③). Empirical percentiles are order statistics: p50 is the median; the interval [p25, p75] is a robust interquartile range. For discrete per-run scores, several percentiles may coincide (e.g. if more than half of runs share the same headline value).</p>
+<p>Percentiles of <em>headline</em> verification score per configuration (empirical CDF, no parametric assumption).</p>
+<table class="pct-table">
+<tr><th>Configuration</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr>
+<tr><td>① OpenCode + RAG (headline ÷5)</td><td class="num">0.600</td><td class="num">0.600</td><td class="num">0.800</td><td class="num">0.800</td><td class="num">0.800</td></tr>
+<tr><td>② GPT direct (headline ÷4)</td><td class="num">0.750</td><td class="num">0.750</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td></tr>
+
+</table>
+<p>Same for <strong>shared-four</strong> score (fraction of shared checks passed):</p>
+<table class="pct-table">
+<tr><th>Configuration</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr>
+<tr><td>① OpenCode + RAG</td><td class="num">0.500</td><td class="num">0.500</td><td class="num">0.750</td><td class="num">0.750</td><td class="num">1.000</td></tr>
+<tr><td>② GPT direct</td><td class="num">0.750</td><td class="num">0.750</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td></tr>
+
+</table>
+
+<h3>4.1 Reading the percentile tables</h3>
+<p class="lead">The headline rows use different scales: ① divides by five checks, ② and ③ by four. Therefore <strong>do not compare p50 values across those rows as if they were the same random variable</strong>. Use the <em>shared-four</em> block for cross-configuration shape comparisons on a common [0,1] score. For ①, the gap between p50 and p75 shows concentration: a tight IQR implies most runs fail the same small subset of checks (see Figure 2). For ②, high p90 with p50 near 1.0 indicates many perfect four-check runs and a long lower tail—consistent with occasional structural or generic-content failures.</p>
+<p>If p10 for ① sits at or below 0.60 while p50 is 0.80, at least 10% of runs scored no better than a single-check failure on the five-check scale even though the “typical” run loses only one check—report both median and tail when writing a paper’s results paragraph. If shared-four p90 for ② is 1.0 but for ① is lower, the gap is consistent with harder inputs and/or the extra grounding constraint, not necessarily with worse security reasoning in an absolute sense.</p>
+
+<h2 class="page">5. Figures and captions</h2>
+<p class="lead">The following plots summarize the <strong>primary</strong> configuration (① OpenCode + RAG, <em>n</em> = 50). Figure 3 adds ② and ③ on a <em>harmonized</em> four-check sub-score so that bar heights are not artifacts of different denominators. When reproducing this section in a paper, we recommend placing Figure 1–3 in order and citing Table 1 for per-check detail.</p>
+
+<h3>5.1 Figure 1 — Headline score histogram (① only)</h3>
+<div class="figure"><div class="chart-wrap"><div class="chart-title">Figure 1. ① OpenCode + RAG — headline verification score (÷5 checks), n = 50</div><div class="chart-hist"><div class="hcol"><span class="hcnt">0</span><div class="hbar" style="height:8px"></div><span class="hlbl">0.00–0.55</span></div><div class="hcol"><span class="hcnt">17</span><div class="hbar" style="height:85px"></div><span class="hlbl">0.55–0.65</span></div><div class="hcol"><span class="hcnt">0</span><div class="hbar" style="height:8px"></div><span class="hlbl">0.65–0.75</span></div><div class="hcol"><span class="hcnt">32</span><div class="hbar" style="height:160px"></div><span class="hlbl">0.75–0.85</span></div><div class="hcol"><span class="hcnt">0</span><div class="hbar" style="height:8px"></div><span class="hlbl">0.85–0.95</span></div><div class="hcol"><span class="hcnt">1</span><div class="hbar" style="height:8px"></div><span class="hlbl">0.95–1.00</span></div></div></div></div>
+<div class="caption">
+<strong>Figure 1 — interpretation.</strong> The horizontal axis partitions the <em>headline</em> verification score for ① into bins on [0,1]; the vertical bars count runs falling in each bin. Because the headline score is the fraction of <strong>five</strong> checks passed, only discrete values {0.0, 0.2, …, 1.0} are mathematically possible; in practice this dataset clusters at <strong>0.60</strong> (17 runs) and <strong>0.80</strong> (32 runs), corresponding to exactly one or two failed checks among five. The modal bin is <strong>0.75–0.85</strong> (32 runs). The single-run mass at 1.00 (1 run) represents a rare case where all five checks, including control-grounding, pass. This histogram should be read as a <em>compression</em> of a five-dimensional boolean outcome into one scalar, not as a continuous latent “quality” measure.
+</div>
+
+<h3>5.2 Figure 2 — Check-wise pass rates (① only)</h3>
+<div class="figure"><div class="chart-wrap"><div class="chart-title">Figure 2. ① OpenCode + RAG — pass rate by check (includes control-grounding)</div><table class="bar-table"><tr><td class="cn">consistency</td><td class="tdtrack"><div class="outer"><div class="inner" style="width:296px;background:#16a34a"></div></div></td><td class="pct">50/50 (100%)</td></tr><tr><td class="cn">control-grounding</td><td class="tdtrack"><div class="outer"><div class="inner" style="width:231px;background:#ca8a04"></div></div></td><td class="pct">39/50 (78%)</td></tr><tr><td class="cn">empty-generic-detection</td><td class="tdtrack"><div class="outer"><div class="inner" style="width:195px;background:#ca8a04"></div></div></td><td class="pct">33/50 (66%)</td></tr><tr><td class="cn">evidence-grounding</td><td class="tdtrack"><div class="outer"><div class="inner" style="width:178px;background:#ca8a04"></div></div></td><td class="pct">30/50 (60%)</td></tr><tr><td class="cn">structural-completeness</td><td class="tdtrack"><div class="outer"><div class="inner" style="width:189px;background:#ca8a04"></div></div></td><td class="pct">32/50 (64%)</td></tr></table></div></div>
+<div class="caption">
+<strong>Figure 2 — interpretation.</strong> Each row names one automated check from the verifier; the shaded bar is the percentage of the 50 runs in which that check <em>passed</em>. The grey track is 100% width. The check with the <strong>highest</strong> pass rate here is <strong>consistency</strong> at 100% (50/50). The <strong>lowest</strong> pass rate is <strong>evidence-grounding</strong> at 60% (30/50); that bottleneck usually explains the 0.60 and 0.80 mass in Figure 1 (one or two failed checks on a five-check scale). <strong>Control-grounding</strong> (RAG-only) passes in 78% of runs; failures mean the model cited a control token that did not appear in the retrieved set for that run—either a hallucinated ID or a formatting mismatch with the parser’s regex. Readers should cross-reference Figure 2 with <strong>Table 1</strong>, which places the same percentages beside ② and ③ for shared checks.
+</div>
+
+<h3>5.3 Figure 3 — Shared-four comparison (①, ②, ③)</h3>
+<div class="figure"><div class="chart-wrap"><div class="chart-title">Figure 3. Shared-four comparison (fixed column order: ① → ② → ③)</div><p class="chart-sub">Figure 3 uses the same four boolean checks for every configuration. Values are <em>not</em> percentages out of 100 unless labeled; mean 0.905 means on average 90.5% of those four checks passed per run (i.e. ~3.62 of 4).</p><div class="cmp-flex"><div class="cmp-box" style="order:1"><div class="cmplab">① OpenCode + RAG</div><div class="cmp-sub">Mean · 4 shared checks (0–1 scale)</div><div class="cmp-num">0.725</div><div class="cmp-bar" style="height:80px;background:#1d4ed8"></div><div class="cmp-sub">Runs with all 4 shared passed</div><div class="cmp-num">24.0%</div><div class="cmp-bar" style="height:24px;background:#3b82f6"></div></div><div class="cmp-box" style="order:2"><div class="cmplab">② GPT direct</div><div class="cmp-sub">Mean · 4 shared checks (0–1 scale)</div><div class="cmp-num">0.905</div><div class="cmp-bar" style="height:100px;background:#6d28d9"></div><div class="cmp-sub">Runs with all 4 shared passed</div><div class="cmp-num">62.0%</div><div class="cmp-bar" style="height:62px;background:#a78bfa"></div></div></div></div></div>
+<div class="caption">
+<strong>Figure 3 — interpretation.</strong> Columns are fixed in evaluation order: <strong>① OpenCode + RAG</strong>, then <strong>② GPT direct</strong>. Within each column, the <em>taller</em> upper bar encodes the mean of the four checks that exist in every mode (structure, evidence, consistency, generic-content filter). The <em>lower</em> bar encodes the fraction of runs where <strong>all four</strong> of those checks pass simultaneously—a stricter criterion than the mean. Numerically, ① achieves a shared-four mean of <strong>0.725</strong> and an all-four pass rate of <strong>24.0%</strong>; ② yields <strong>0.905</strong> and <strong>62.0%</strong>. If ②’s mean exceeds ①’s, that reflects the confounders in §1.3 and §2 (model change, input cardinality, absence of a fifth check), not a proof that raw GPT is a superior security auditor. The scientific role of Figure 3 is to separate <em>template-level</em> agreement with the rubric from the <em>retrieval-grounding</em> obligation that only ① enforces (Figure 2, bottom rows / Table 1).
+</div>
+
+<h2>6. Synthesis for the paper text</h2>
+<p class="lead">A concise paragraph suitable for adaptation in a results section might read: <em>“Under the OpenCode heuristic verifier, RAG over repository roots (50 runs) achieved a mean headline score of 0.736 on five checks (median 0.800, σ = 0.103). The empirical distribution (Figure 1) is concentrated at scores 0.60 and 0.80, consistent with one–two failed checks per run. Check-wise analysis (Figure 2) shows that evidence-grounding is the binding constraint (60% pass), while control-grounding succeeds in 78% of runs. On the four checks shared with non-RAG baselines (Figure 3), the mean shared-four score is 0.725 for RAG versus 0.905 for GPT direct, with the caveat that GPT uses a different model and smaller inputs (§1.3, §2).”</em></p>
+
+<h3>6.1 Threats to validity</h3>
+<ul class="disc">
+<li><strong>Construct validity:</strong> Scores measure agreement with parser rules, not real vulnerability density.</li>
+<li><strong>Internal validity:</strong> Confounded comparison between ② and ①/③ via model family and prompt shape.</li>
+<li><strong>External validity:</strong> Bench50 snapshots may not represent proprietary codebases or other languages.</li>
+</ul>
+
+<h3>6.2 Ordering convention (reporting)</h3>
+<ul class="disc">
+<li>Configurations are labeled <strong>① → ② → ③</strong> throughout; this fixes reader expectation for an OpenCode-centric paper and does not imply ① dominates every numeric column.</li>
+<li><strong>Why ② can exceed ① on shared-four:</strong> smaller non-clipped inputs; no fifth check; different model (§1.3); single-shot outputs often satisfy markdown structure detectors.</li>
+<li><strong>What ① adds:</strong> measurable control-grounding (78% here) and per-run <code>retrieved_controls.json</code> for audit trails—absent in ②/③.</li>
+<li><strong>③ vs ②:</strong> With aligned file lists, both use four checks; residual gaps reflect agent vs one-shot generation, not retrieval.</li>
+</ul>
+
+<h2>7. Table 1 — Check-level pass rates (all configurations)</h2>
+<p class="lead">Table 1 reports, for each check and each configuration, the percentage of runs in which that check’s boolean predicate evaluated to true. Cells marked “—” indicate that the check is undefined for that configuration (e.g. control-grounding applies only to RAG). Percentages are row-comparable across columns for the same check name; they are <em>not</em> calibrated to sum to 100% across rows.</p>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col" class="c0">Verification check</th>
+<th scope="col" class="c1">① OpenCode + RAG<br/><span class="thsmall">pass rate %</span></th>
+<th scope="col" class="c2">② GPT direct<br/><span class="thsmall">pass rate %</span></th>
+<th scope="col" class="c3">③ OpenCode baseline<br/><span class="thsmall">pass rate %</span></th>
+</tr>
+</thead>
+<tbody><tr><th scope="row" class="rowh">structural-completeness</th><td class="num">64</td><td class="num">64</td><td class="na">—</td></tr><tr><th scope="row" class="rowh">evidence-grounding</th><td class="num">60</td><td class="num">100</td><td class="na">—</td></tr><tr><th scope="row" class="rowh">consistency</th><td class="num">100</td><td class="num">100</td><td class="na">—</td></tr><tr><th scope="row" class="rowh">empty-generic-detection</th><td class="num">66</td><td class="num">98</td><td class="na">—</td></tr><tr><th scope="row" class="rowh">control-grounding</th><td class="num">78</td><td class="na">—</td><td class="na">—</td></tr></tbody>
+</table>
+<p class="cite">Table 1. Percentage of runs in which each check passed. “—” = check not defined for that suite (control-grounding is RAG-only). Rows follow a fixed order so PDF engines do not permute columns.</p>
+<p class="caption">
+<strong>Reading Table 1 after Figure 2.</strong> Figure 2 is the RAG-only projection of the first numeric column of Table 1. For shared checks, compare column ① to ② and ③ to see whether failures are systematic (e.g. structural gaps in RAG but not in GPT) or model-specific. Large gaps on <code>evidence-grounding</code> or <code>structural-completeness</code> between ① and ② are consistent with truncated multi-file context in ① overwhelming the parser’s expectation of well-formed per-finding blocks. If ③ is available, it helps isolate whether those gaps come from the <em>agent</em> loop (③ vs ②) versus <em>retrieval + grounding</em> (① vs ③).
+</p>
+
+<h2>8. Limitations &amp; reproducibility</h2>
+<p class="lead">This report is an <strong>instrumentation snapshot</strong>: it measures how often model outputs satisfy syntactic and light-semantic rules in a fixed verifier, not whether the underlying repositories are secure. A run can score 1.0 on all checks while missing real vulnerabilities, or fail structural checks while containing useful narrative. Readers should treat every percentage as <em>rubric pass rate</em>, not labeled precision/recall against a CVE oracle.</p>
+<p><strong>Verifier limitations.</strong> Structural-completeness keys off markdown headings and section boundaries; alternate report templates can fail despite coherent content. Evidence-grounding only tests non-emptiness of a parsed evidence field, not factual correctness of the cited lines. Consistency is a short heuristic over severity strings and recommendation text. Empty-generic-detection is a length and phrase filter—legitimate terse reports can be penalized. Control-grounding enforces alignment between cited ISO control tokens and the retrieval set returned for that run; it does not prove that the cited control is the best match for the finding.</p>
+<p><strong>Benchmark corpus.</strong> Bench50 is a convenience sample of public snapshots; it may over- or under-represent languages, build systems, and risk profiles relative to an enterprise monorepo. Cloning dates, default branches, and omitted secrets mean the same target string can yield different effective inputs over time. Pinecone index contents and embedding model versions should be pinned in any formal study; this PDF does not embed API revision metadata beyond what each run recorded.</p>
+<p><strong>Reproducibility.</strong> Regenerate this PDF with <span class="mono">bun benchmark/render-benchmark-pdf.ts &lt;rag_dir&gt; [gpt.json] [opencode.json]</span>. Align ③ with ②’s file list using <span class="mono">./benchmark/run-opencode-baseline-only.sh benchmark/targets-50.txt</span>. Archive <code>results.json</code>, per-run <code>verification.json</code>, <code>metadata.json</code>, <code>input.txt</code>, and <code>retrieved_controls.json</code> (for RAG) so third parties can recompute tables without re-invoking paid APIs. Document model IDs and temperature settings from each run folder when citing numbers in a camera-ready paper.</p>
+
+</body>
+</html>

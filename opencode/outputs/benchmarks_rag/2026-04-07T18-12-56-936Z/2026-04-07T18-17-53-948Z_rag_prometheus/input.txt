@@ -1,0 +1,1984 @@
+
+
+# FILE: renovate.json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "separateMultipleMajor": true,
+  "baseBranchPatterns": [
+    "main"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "schedule": [
+    "* * 21 * *"
+  ],
+  "timezone": "UTC",
+  "github-actions": {
+    "managerFilePatterns": [
+      "scripts/**"
+    ]
+  },
+  "prBodyNotes": [
+    "```release-notes",
+    "NONE",
+    "```"
+  ],
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 5,
+  "packageRules": [
+    {
+      "description": "Don't update replace directives",
+      "matchPackageNames": [
+        "github.com/fsnotify/fsnotify"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Don't update prometheus-io namespace packages",
+      "matchPackageNames": [
+        "@prometheus-io/**"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Group AWS Go dependencies",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/aws/**"
+      ],
+      "groupName": "AWS Go dependencies"
+    },
+    {
+      "description": "Group Azure Go dependencies",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/Azure/**"
+      ],
+      "groupName": "Azure Go dependencies"
+    },
+    {
+      "description": "Group Kubernetes Go dependencies",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "k8s.io/**"
+      ],
+      "groupName": "Kubernetes Go dependencies"
+    },
+    {
+      "description": "Group OpenTelemetry Go dependencies",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "go.opentelemetry.io/**"
+      ],
+      "groupName": "OpenTelemetry Go dependencies"
+    },
+    {
+      "description": "Group Mantine UI dependencies",
+      "matchFileNames": [
+        "web/ui/mantine-ui/package.json"
+      ],
+      "groupName": "Mantine UI",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "enabled": true
+    },
+    {
+      "description": "Group React App dependencies",
+      "matchFileNames": [
+        "web/ui/react-app/package.json"
+      ],
+      "groupName": "React App",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "enabled": true
+    },
+    {
+      "description": "Group module dependencies",
+      "matchFileNames": [
+        "web/ui/module/**/package.json"
+      ],
+      "groupName": "Modules",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "enabled": true
+    }
+  ],
+  "branchPrefix": "deps-update/",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "security-update"
+    ]
+  },
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardApproval": false
+}
+
+
+# FILE: SECURITY.md
+# Reporting a security issue
+
+The Prometheus security policy, including how to report vulnerabilities, can be
+found here:
+
+<https://prometheus.io/docs/operating/security/>
+
+
+# FILE: SECURITY-INSIGHTS.yml
+header:
+  schema-version: '1.0.0'
+  expiration-date: '2025-07-30T01:00:00.000Z'
+  last-updated: '2024-07-30'
+  last-reviewed: '2024-07-30'
+  project-url: https://github.com/prometheus/prometheus
+  changelog: https://github.com/prometheus/prometheus/blob/main/CHANGELOG.md
+  license: https://github.com/prometheus/prometheus/blob/main/LICENSE
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:
+    - https://github.com/prometheus/prometheus/blob/main/MAINTAINERS.md
+contribution-policy:
+  accepts-pull-requests: true
+  accepts-automated-pull-requests: true
+dependencies:
+  third-party-packages: true
+  dependencies-lists:
+    - https://github.com/prometheus/prometheus/blob/main/go.mod
+    - https://github.com/prometheus/prometheus/blob/main/web/ui/package.json
+  env-dependencies-policy:
+    policy-url: https://github.com/prometheus/prometheus/blob/main/CONTRIBUTING.md#dependency-management
+distribution-points:
+  - https://github.com/prometheus/prometheus/releases
+documentation:
+  - https://prometheus.io/docs/introduction/overview/
+security-contacts:
+  - type: email
+    value: prometheus-team@googlegroups.com
+security-testing:
+  - tool-type: sca
+    tool-name: Dependabot
+    tool-version: latest
+    integration:
+      ad-hoc: false
+      ci: true
+      before-release: true
+  - tool-type: sast
+    tool-name: CodeQL
+    tool-version: latest
+    integration:
+      ad-hoc: false
+      ci: true
+      before-release: true
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  security-policy: https://github.com/prometheus/prometheus/security/policy
+
+
+# FILE: RELEASE.md
+# Releases
+
+This page describes the release process and the currently planned schedule for upcoming releases as well as the respective release shepherd. Release shepherds are chosen on a voluntary basis.
+
+## Release schedule
+
+Release cadence of first pre-releases being cut is 6 weeks.
+Please see [the v2.55 RELEASE.md](https://github.com/prometheus/prometheus/blob/release-2.55/RELEASE.md) for the v2 release series schedule.
+
+| release series | date of first pre-release (year-month-day) | release shepherd                                                        |
+|----------------|--------------------------------------------|-------------------------------------------------------------------------|
+| v3.0           | 2024-11-14                                 | Jan Fajerski (GitHub: @jan--f)                                          |
+| v3.1           | 2024-12-17                                 | Bryan Boreham (GitHub: @bboreham)                                       |
+| v3.2           | 2025-01-28                                 | Jan Fajerski (GitHub: @jan--f)                                          |
+| v3.3           | 2025-03-11                                 | Ayoub Mrini (Github: @machine424)                                       |
+| v3.4           | 2025-04-29                                 | Jan-Otto Kröpke (Github: @jkroepke)                                     |
+| v3.5 LTS       | 2025-06-03                                 | Bryan Boreham (GitHub: @bboreham)                                       |
+| v3.6           | 2025-08-01                                 | Ayoub Mrini (Github: @machine424)                                       |
+| v3.7           | 2025-09-25                                 | Arthur Sens and George Krajcsovits (Github: @ArthurSens and @krajorama) |
+| v3.8           | 2025-11-06                                 | Jan Fajerski (GitHub: @jan--f)                                          |
+| v3.9           | 2025-12-18                                 | Bryan Boreham (GitHub: @bboreham)                                       |
+| v3.10          | 2026-02-05                                 | Ganesh Vernekar (Github: @codesome)                                     |
+| v3.11          | 2026-03-25                                 | Julien Pivotto (GitHub: @roidelapluie)                                  |
+| v3.12          | 2026-05-06                                 | **volunteer welcome**                                                   |
+
+If you are interested in volunteering please create a pull request against the [prometheus/prometheus](https://github.com/prometheus/prometheus) repository and propose yourself for the release series of your choice.
+
+## Release shepherd responsibilities
+
+The release shepherd is responsible for the entire release series of a minor release, meaning all pre- and patch releases of a minor release. The process formally starts with the initial pre-release, but some preparations should be done a few days in advance.
+
+* We aim to keep the main branch in a working state at all times. In principle, it should be possible to cut a release from main at any time. In practice, things might not work out as nicely. A few days before the pre-release is scheduled, the shepherd should check the state of main. Following their best judgement, the shepherd should try to expedite bug fixes that are still in progress but should make it into the release. On the other hand, the shepherd may hold back merging last-minute invasive and risky changes that are better suited for the next minor release.
+* On the date listed in the table above, the release shepherd cuts the first pre-release (using the suffix `-rc.0`) and creates a new branch called  `release-<major>.<minor>` starting at the commit tagged for the pre-release. In general, a pre-release is considered a release candidate (that's what `rc` stands for) and should therefore not contain any known bugs that are planned to be fixed in the final release.
+* With the pre-release, the release shepherd is responsible for running and monitoring a benchmark run of the pre-release for 3 days, after which, if successful, the pre-release is promoted to a stable release.
+* If regressions or critical bugs are detected, they need to get fixed before cutting a new pre-release (called `-rc.1`, `-rc.2`, etc.).
+
+See the next section for details on cutting an individual release.
+
+## How to cut an individual release
+
+These instructions are currently valid for the Prometheus server, i.e. the [prometheus/prometheus repository](https://github.com/prometheus/prometheus). Applicability to other Prometheus repositories depends on the current state of each repository. We aspire to unify the release procedures as much as possible.
+
+### Branch management and versioning strategy
+
+We use [Semantic Versioning](https://semver.org/).
+
+We maintain a separate branch for each minor release, named `release-<major>.<minor>`, e.g. `release-2.1`, `release-3.0`.
+
+Note that branch protection kicks in automatically for any branches whose name starts with `release-`. Never use names starting with `release-` for branches that are not release branches.
+
+The usual flow is to merge new features and changes into the main branch and to merge bug fixes into the latest release branch. Bug fixes are then merged into main from the latest release branch. The main branch should always contain all commits from the latest release branch. As long as main hasn't deviated from the release branch, new commits can also go to main, followed by merging main back into the release branch.
+
+If a bug fix got accidentally merged into main after non-bug-fix changes in main, the bug-fix commits have to be cherry-picked into the release branch, which then have to be merged back into main. Try to avoid that situation.
+
+Maintaining the release branches for older minor releases happens on a best effort basis.
+
+### 0. Updating dependencies and promoting/demoting experimental features
+
+A few days before a major or minor release, consider updating the dependencies.
+
+Note that we use [Dependabot](.github/dependabot.yml) to continuously update most things automatically. Therefore, most dependencies should be up to date.
+Check the [dependencies GitHub label](https://github.com/prometheus/prometheus/labels/dependencies) to see if there are any pending updates.
+
+This bot currently does not manage `+incompatible` and `v0.0.0` in the version specifier for Go modules.
+
+Note that after a dependency update, you should look out for any weirdness that
+might have happened. Such weirdnesses include but are not limited to: flaky
+tests, differences in resource usage, panic.
+
+In case of doubt or issues that can't be solved in a reasonable amount of time,
+you can skip the dependency update or only update select dependencies. In such a
+case, you have to create an issue or pull request in the GitHub project for
+later follow-up.
+
+This is also a good time to consider any experimental features and feature
+flags for promotion to stable or for deprecation or ultimately removal. Do any
+of these in pull requests, one per feature.
+
+> NOTE: As a validation step check if all security alerts are closed after this step: https://github.com/prometheus/prometheus/security/dependabot. Sometimes it's ok
+> if not critical and e.g. fix is not released yet (or it does not relate to 
+> upgrading) or when we are unaffected.
+ 
+#### Manually updating Go dependencies
+
+This is usually only needed for `+incompatible` and `v0.0.0` non-semver updates.
+
+```bash
+make update-all-go-deps
+```
+
+#### Manually updating React dependencies
+
+The React application recently moved to a monorepo system with multiple internal npm packages. Dependency upgrades are
+quite sensitive for the time being.
+
+In case you want to update the UI dependencies, you can run the following command:
+
+```bash
+make update-npm-deps
+```
+
+Once this step completes, please verify that no additional `node_modules` directory was created in any of the module subdirectories
+(which could indicate conflicting dependency versions across modules). Then run `make ui-build` to verify that the build is still working.
+
+Note: Once in a while, the npm dependencies should also be updated to their latest release versions (major or minor) with `make upgrade-npm-deps`,
+though this may be done at convenient times (e.g. by the UI maintainers) that are out-of-sync with Prometheus releases.
+
+### 1. Prepare your release
+
+At the start of a new major or minor release cycle create the corresponding release branch based on the main branch. For example if we're releasing `3.7.0` and the previous stable release is `3.6.0` we need to create a `release-3.7` branch. Note that all releases are handled in protected release branches, see the [Branch management and versioning strategy](#branch-management-and-versioning-strategy) section. Release candidates and patch releases for any given major or minor release happen in the same `release-<major>.<minor>` branch. Do not create `release-<version>` for patch or release candidate releases.
+
+Changes for a patch release or release candidate should be merged into the previously mentioned release branch via pull request.
+
+Bump the version in the `VERSION` file and update `CHANGELOG.md`. Do this in a proper PR pointing to the release branch as this gives others the opportunity to chime in on the release in general and on the addition to `CHANGELOG.md` in particular. For a release candidate, append something like `-rc.0` to the version (with the corresponding changes to the tag name, the release name etc.).
+
+Use [`scripts/generate_release_notes.sh`](scripts/generate_release_notes.sh) to produce a starting point for the `CHANGELOG.md` entries. It requires the [`release-notes`](https://github.com/kubernetes/release/tree/master/cmd/release-notes) tool and a `GITHUB_TOKEN` with read access to the repository:
+
+Run it for the target release version (RC, final, or patch; for example `v3.11.0-rc.0`, `v3.11.0`, or `v3.11.1`):
+
+```bash
+GITHUB_TOKEN=<token> scripts/generate_release_notes.sh 3.Y_SET_ME.Z_SET_ME
+```
+
+Review the output carefully before adding it to `CHANGELOG.md`:
+
+- Remove entries already present in a previous release's Changelog. Duplicates can appear for fixes merged to the previous release branch.
+- `CHANGELOG.md` should only document changes relevant to users of Prometheus, including external API changes, performance improvements, and new features. Do not document changes of internal interfaces, code refactorings and clean-ups, changes to the build process, etc. People interested in these are asked to refer to the git history.
+
+Then bump the UI module version:
+
+```bash
+make ui-bump-version
+```
+
+All of the above goes to make a PR, which you should create targeting the `release-x.y` branch, then wait for CI to complete and get an approval.
+Once the PR is ready, merge it into the release branch and pull it down to your work area. Then you are ready for the next step:
+
+### 2. Draft the new release
+
+Tag the new release via the following commands:
+
+```bash
+tag="v$(< VERSION)"
+git tag -s "${tag}" -m "${tag}"
+git push origin "${tag}"
+```
+
+Alternatively, you can use this handy `.gitconfig` alias.
+
+```ini
+[alias]
+  tag-release = "!f() { tag=v${1:-$(cat VERSION)} ; git tag -s ${tag} -m ${tag} && git push origin ${tag}; }; f"
+```
+
+Then release with `git tag-release`.
+
+Signing a tag with a GPG key is appreciated, but in case you can't add a GPG key to your Github account using the following [procedure](https://help.github.com/articles/generating-a-gpg-key/), you can replace the `-s` flag by `-a` flag of the `git tag` command to only annotate the tag without signing.
+
+Once a tag is created, the release process through Github Actions will be triggered for this tag and Github Actions will draft the GitHub release using the `prombot` account.
+
+Finally, wait for the build step for the tag to finish. The point here is to wait for tarballs to be uploaded to the Github release and the container images to be pushed to the Docker Hub and Quay.io. Once that has happened, click _Publish release_, which will make the release publicly visible and create a GitHub notification.
+**Note:** for a release candidate version ensure the _This is a pre-release_ box is checked when drafting the release in the Github UI. The CI job should take care of this but it's a good idea to double check before clicking _Publish release_.`
+
+### 3. Tag the library release
+
+Go modules versioning requires strict use of semver. Because we do not commit to
+avoid code-level breaking changes for the libraries between minor releases of
+the Prometheus server, we use major version zero releases for the libraries.
+
+Tagging the new library release works similar to the normal release tagging,
+but without the subsequent build and publish steps. Use the following commands:
+
+```bash
+tag="v$(./scripts/get_module_version.sh)"
+git tag -s "${tag}" -m "${tag}"
+git push origin "${tag}"
+```
+
+### 4. Wrapping up
+
+For release candidate versions (`v3.6.0-rc.0`), run the benchmark for 3 days using the `/prombench vX.Y.Z` command, `vX.Y.Z` being the latest stable patch release's tag of the previous minor release series, such as `v3.5.2`.
+
+If the release has happened in the latest release branch, merge the changes into main.
+
+Once the binaries have been uploaded, announce the release on `prometheus-announce@googlegroups.com`. (Please do not use `prometheus-users@googlegroups.com` for announcements anymore.) Check out previous announcement mails for inspiration.
+
+Finally, in case there is no release shepherd listed for the next release yet, find a volunteer.
+
+
+# FILE: README.md
+<h1 align="center" style="border-bottom: none">
+    <a href="https://prometheus.io" target="_blank"><img alt="Prometheus" src="/documentation/images/prometheus-logo.svg"></a><br>Prometheus
+</h1>
+
+<p align="center">Visit <a href="https://prometheus.io" target="_blank">prometheus.io</a> for the full documentation,
+examples and guides.</p>
+
+<div align="center">
+
+[![CI](https://github.com/prometheus/prometheus/actions/workflows/ci.yml/badge.svg)](https://github.com/prometheus/prometheus/actions/workflows/ci.yml)
+[![Docker Repository on Quay](https://quay.io/repository/prometheus/prometheus/status)][quay]
+[![Docker Pulls](https://img.shields.io/docker/pulls/prom/prometheus.svg?maxAge=604800)][hub]
+[![Go Report Card](https://goreportcard.com/badge/github.com/prometheus/prometheus)](https://goreportcard.com/report/github.com/prometheus/prometheus)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/486/badge)](https://bestpractices.coreinfrastructure.org/projects/486)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/prometheus/prometheus/badge)](https://securityscorecards.dev/viewer/?uri=github.com/prometheus/prometheus)
+[![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/prometheus/badge)](https://clomonitor.io/projects/cncf/prometheus)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/prometheus/prometheus)
+[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/prometheus.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:prometheus)
+
+</div>
+
+Prometheus, a [Cloud Native Computing Foundation](https://cncf.io/) project, is a systems and service monitoring system. It collects metrics
+from configured targets at given intervals, evaluates rule expressions,
+displays the results, and can trigger alerts when specified conditions are observed.
+
+The features that distinguish Prometheus from other metrics and monitoring systems are:
+
+* A **multi-dimensional** data model (time series defined by metric name and set of key/value dimensions)
+* PromQL, a **powerful and flexible query language** to leverage this dimensionality
+* No dependency on distributed storage; **single server nodes are autonomous**
+* An HTTP **pull model** for time series collection
+* **Pushing time series** is supported via an intermediary gateway for batch jobs
+* Targets are discovered via **service discovery** or **static configuration**
+* Multiple modes of **graphing and dashboarding support**
+* Support for hierarchical and horizontal **federation**
+
+## Architecture overview
+
+![Architecture overview](documentation/images/architecture.svg)
+
+## Install
+
+There are various ways to install Prometheus.
+
+### Precompiled binaries
+
+Precompiled binaries for released versions are available in the
+[*download* section](https://prometheus.io/download/)
+on [prometheus.io](https://prometheus.io). Using the latest production release binary
+is the recommended way to install Prometheus.
+See the [Installing](https://prometheus.io/docs/introduction/install/)
+chapter in the documentation for all the details.
+
+### Docker images
+
+Docker images are available on [Quay.io](https://quay.io/repository/prometheus/prometheus) or [Docker Hub](https://hub.docker.com/r/prom/prometheus/).
+
+You can launch a Prometheus container for trying it out with
+
+```bash
+docker run --name prometheus -d -p 127.0.0.1:9090:9090 prom/prometheus
+```
+
+Prometheus will now be reachable at <http://localhost:9090/>.
+
+### Building from source
+
+To build Prometheus from source code, you need:
+
+* Go: Version specified in [go.mod](./go.mod) or greater.
+* NodeJS: Version specified in [.nvmrc](./web/ui/.nvmrc) or greater.
+* npm: Version 10 or greater (check with `npm --version` and [here](https://www.npmjs.com/)).
+
+Start by cloning the repository:
+
+```bash
+git clone https://github.com/prometheus/prometheus.git
+cd prometheus
+```
+
+You can use the `go` tool to build and install the `prometheus`
+and `promtool` binaries into your `GOPATH`:
+
+```bash
+go install github.com/prometheus/prometheus/cmd/...
+prometheus --config.file=your_config.yml
+```
+
+*However*, when using `go install` to build Prometheus, Prometheus will expect to be able to
+read its web assets from local filesystem directories under `web/ui/static`. In order for
+these assets to be found, you will have to run Prometheus from the root of the cloned
+repository. Note also that this directory does not include the React UI unless it has been
+built explicitly using `make assets` or `make build`.
+
+An example of the above configuration file can be found [here.](https://github.com/prometheus/prometheus/blob/main/documentation/examples/prometheus.yml)
+
+You can also build using `make build`, which will compile in the web assets so that
+Prometheus can be run from anywhere:
+
+```bash
+make build
+./prometheus --config.file=your_config.yml
+```
+
+The Makefile provides several targets:
+
+* *build*: build the `prometheus` and `promtool` binaries (includes building and compiling in web assets)
+* *test*: run the tests
+* *test-short*: run the short tests
+* *format*: format the source code
+* *vet*: check the source code for common errors
+* *assets*: build the React UI
+
+### Service discovery plugins
+
+Prometheus is bundled with many service discovery plugins. You can customize
+which service discoveries are included in your build using Go build tags.
+
+To exclude service discoveries when building with `make build`, add the desired
+tags to the `.promu.yml` file under `build.tags.all`:
+
+```yaml
+build:
+    tags:
+        all:
+            - netgo
+            - builtinassets
+            - remove_all_sd           # Exclude all optional SDs
+            - enable_kubernetes_sd    # Re-enable only kubernetes
+```
+
+Then run `make build` as usual. Alternatively, when using `go build` directly:
+
+```bash
+go build -tags "remove_all_sd,enable_kubernetes_sd" ./cmd/prometheus
+```
+
+Available build tags:
+* `remove_all_sd` - Exclude all optional service discoveries (keeps file_sd, static_sd, and http_sd)
+* `enable_<name>_sd` - Re-enable a specific SD when using `remove_all_sd`
+
+If you add out-of-tree plugins, which we do not endorse at the moment,
+additional steps might be needed to adjust the `go.mod` and `go.sum` files. As
+always, be extra careful when loading third party code.
+
+### Building the Docker image
+
+You can build a docker image locally with the following commands:
+
+```bash
+make promu
+promu crossbuild -p linux/amd64
+make npm_licenses
+make common-docker-amd64
+```
+
+The `make docker` target is intended only for use in our CI system and will not
+produce a fully working image when run locally.
+
+## Using Prometheus as a Go Library
+
+Within the Prometheus project, repositories such as [prometheus/common](https://github.com/prometheus/common) and
+[prometheus/client-golang](https://github.com/prometheus/client-golang) are designed as re-usable libraries.
+
+The [prometheus/prometheus](https://github.com/prometheus/prometheus) repository builds a stand-alone program and is not
+designed for use as a library. We are aware that people do use parts as such,
+and we do not put any deliberate inconvenience in the way, but we want you to be
+aware that no care has been taken to make it work well as a library. For instance,
+you may encounter errors that only surface when used as a library.
+
+### Remote Write
+
+We are publishing our Remote Write protobuf independently at
+[buf.build](https://buf.build/prometheus/prometheus/assets).
+
+You can use that as a library:
+
+```shell
+go get buf.build/gen/go/prometheus/prometheus/protocolbuffers/go@latest
+```
+
+This is experimental.
+
+### Prometheus code base
+
+In order to comply with [go mod](https://go.dev/ref/mod#versions) rules,
+Prometheus release number do not exactly match Go module releases.
+
+For the
+Prometheus v3.y.z releases, we are publishing equivalent v0.3y.z tags. The y in v0.3y.z is always padded to two digits, with a leading zero if needed.
+
+Therefore, a user that would want to use Prometheus v3.0.0 as a library could do:
+
+```shell
+go get github.com/prometheus/prometheus@v0.300.0
+```
+
+For the
+Prometheus v2.y.z releases, we published the equivalent v0.y.z tags.
+
+Therefore, a user that would want to use Prometheus v2.35.0 as a library could do:
+
+```shell
+go get github.com/prometheus/prometheus@v0.35.0
+```
+
+This solution makes it clear that we might break our internal Go APIs between
+minor user-facing releases, as [breaking changes are allowed in major version
+zero](https://semver.org/#spec-item-4).
+
+## React UI Development
+
+For more information on building, running, and developing on the React-based UI, see the React app's [README.md](web/ui/README.md).
+
+## More information
+
+* Godoc documentation is available via [pkg.go.dev](https://pkg.go.dev/github.com/prometheus/prometheus). Due to peculiarities of Go Modules, v3.y.z will be displayed as v0.3y.z (the y in v0.3y.z is always padded to two digits, with a leading zero if needed), while v2.y.z will be displayed as v0.y.z.
+* See the [Community page](https://prometheus.io/community) for how to reach the Prometheus developers and users on various communication channels.
+
+## Contributing
+
+Refer to [CONTRIBUTING.md](https://github.com/prometheus/prometheus/blob/main/CONTRIBUTING.md)
+
+## License
+
+Apache License 2.0, see [LICENSE](https://github.com/prometheus/prometheus/blob/main/LICENSE).
+
+[hub]: https://hub.docker.com/r/prom/prometheus/
+[quay]: https://quay.io/repository/prometheus/prometheus
+
+
+# FILE: Makefile
+# Copyright The Prometheus Authors
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Needs to be defined before including Makefile.common to auto-generate targets
+DOCKER_ARCHS ?= amd64 armv7 arm64 ppc64le riscv64 s390x
+DOCKERFILE_ARCH_EXCLUSIONS ?= Dockerfile.distroless:riscv64
+DOCKER_REGISTRY_ARCH_EXCLUSIONS ?= quay.io:riscv64
+
+UI_PATH = web/ui
+BUILD_UI ?= all
+UI_NODE_MODULES_PATH = $(UI_PATH)/node_modules
+REACT_APP_NPM_LICENSES_TARBALL = "npm_licenses.tar.bz2"
+
+PROMTOOL = ./promtool
+TSDB_BENCHMARK_NUM_METRICS ?= 1000
+TSDB_BENCHMARK_DATASET ?= ./tsdb/testdata/20kseries.json
+TSDB_BENCHMARK_OUTPUT_DIR ?= ./benchout
+
+GOLANGCI_LINT_OPTS ?= --timeout 4m
+GOYACC_VERSION ?= v0.6.0
+
+include Makefile.common
+
+ifeq (arm, $(GOHOSTARCH))
+	PROTOC_ARCH ?= aarch_64
+else
+	PROTOC_ARCH ?= x86_64
+endif
+
+PROTOC_VERSION ?= 3.15.8
+PROTOC_URL     ?= https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-linux-$(PROTOC_ARCH).zip
+
+DOCKER_IMAGE_NAME       ?= prometheus
+
+# Only build UI if PREBUILT_ASSETS_STATIC_DIR is not set
+ifdef PREBUILT_ASSETS_STATIC_DIR
+  SKIP_UI_BUILD = true
+endif
+
+.PHONY: update-npm-deps
+update-npm-deps:
+	@echo ">> updating npm dependencies"
+	./scripts/npm-deps.sh "minor"
+
+.PHONY: upgrade-npm-deps
+upgrade-npm-deps:
+	@echo ">> upgrading npm dependencies"
+	./scripts/npm-deps.sh "latest"
+
+.PHONY: ui-bump-version
+ui-bump-version:
+	version=$$(./scripts/get_module_version.sh) && ./scripts/ui_release.sh --bump-version "$${version}"
+	cd web/ui && npm install
+	git add "./web/ui/package-lock.json" "./**/package.json"
+
+.PHONY: ui-install
+ui-install:
+	cd $(UI_PATH) && npm install
+	# The old React app has been separated from the npm workspaces setup to avoid
+	# issues with conflicting dependencies. This is a temporary solution until the
+	# new Mantine-based UI is fully integrated and the old app can be removed.
+	cd $(UI_PATH)/react-app && npm install
+
+.PHONY: ui-build
+ui-build:
+ifeq ($(BUILD_UI),mantine)
+	cd $(UI_PATH) && CI="" npm run build:mantine-ui
+else
+	cd $(UI_PATH) && CI="" npm run build
+endif
+
+.PHONY: ui-build-module
+ui-build-module:
+	cd $(UI_PATH) && npm run build:module
+
+.PHONY: ui-test
+ui-test:
+	cd $(UI_PATH) && CI=true npm run test
+
+.PHONY: ui-lint
+ui-lint:
+	cd $(UI_PATH) && npm run lint
+	# The old React app has been separated from the npm workspaces setup to avoid
+	# issues with conflicting dependencies. This is a temporary solution until the
+	# new Mantine-based UI is fully integrated and the old app can be removed.
+	cd $(UI_PATH)/react-app && npm run lint
+
+.PHONY: generate-promql-functions
+generate-promql-functions: ui-install
+	@echo ">> generating PromQL function signatures"
+	@cd $(UI_PATH)/mantine-ui/src/promql/tools && $(GO) run ./gen_functions_list > ../functionSignatures.ts
+	@echo ">> generating PromQL function documentation"
+	@cd $(UI_PATH)/mantine-ui/src/promql/tools && $(GO) run ./gen_functions_docs $(CURDIR)/docs/querying/functions.md > ../functionDocs.tsx
+	@echo ">> formatting generated files"
+	@cd $(UI_PATH)/mantine-ui && npx prettier --write --print-width 120 src/promql/functionSignatures.ts src/promql/functionDocs.tsx
+
+.PHONY: check-generated-promql-functions
+check-generated-promql-functions: generate-promql-functions
+	@echo ">> checking generated PromQL functions"
+	@git diff --exit-code -- $(UI_PATH)/mantine-ui/src/promql/functionSignatures.ts $(UI_PATH)/mantine-ui/src/promql/functionDocs.tsx || (echo "Generated PromQL function files are out of date. Please run 'make generate-promql-functions' and commit the changes." && false)
+
+.PHONY: assets
+ifndef SKIP_UI_BUILD
+assets: check-node-version ui-install ui-build
+
+.PHONY: npm_licenses
+npm_licenses: ui-install
+	@echo ">> bundling npm licenses"
+	rm -f $(REACT_APP_NPM_LICENSES_TARBALL) npm_licenses
+	ln -s . npm_licenses
+	find npm_licenses/$(UI_NODE_MODULES_PATH) -iname "license*" | tar cfj $(REACT_APP_NPM_LICENSES_TARBALL) --files-from=-
+	rm -f npm_licenses
+else
+assets:
+	@echo '>> skipping assets build, pre-built assets provided'
+
+npm_licenses:
+	@echo '>> skipping assets npm licenses, pre-built assets provided'
+endif
+
+.PHONY: assets-compress
+assets-compress: assets
+	@echo '>> compressing assets'
+	scripts/compress_assets.sh
+
+.PHONY: assets-tarball
+assets-tarball: assets
+	@echo '>> packaging assets'
+	scripts/package_assets.sh
+
+.PHONY: protoc
+protoc:
+	@echo ">> Installing protoc"
+	$(eval PROTOC_TMP := $(shell mktemp))
+	curl -s -o $(PROTOC_TMP) -L $(PROTOC_URL) 
+	unzip -u $(PROTOC_TMP) bin/protoc -d $(FIRST_GOPATH)
+	chmod +x $(FIRST_GOPATH)/bin/protoc
+	rm -v $(PROTOC_TMP)
+
+.PHONY: parser
+parser:
+	@echo ">> running goyacc to generate the .go file."
+ifeq (, $(shell command -v goyacc 2> /dev/null))
+	@echo "goyacc not installed so skipping"
+	@echo "To install: \"go install golang.org/x/tools/cmd/goyacc@$(GOYACC_VERSION)\" or run \"make install-goyacc\""
+else
+	$(MAKE) promql/parser/generated_parser.y.go
+endif
+
+promql/parser/generated_parser.y.go: promql/parser/generated_parser.y
+	@echo ">> running goyacc to generate the .go file."
+	@$(FIRST_GOPATH)/bin/goyacc -l -o promql/parser/generated_parser.y.go promql/parser/generated_parser.y
+
+.PHONY: clean-parser
+clean-parser:
+	@echo ">> cleaning generated parser"
+	@rm -f promql/parser/generated_parser.y.go
+
+.PHONY: check-generated-parser
+check-generated-parser: clean-parser promql/parser/generated_parser.y.go
+	@echo ">> checking generated parser"
+	@git diff --exit-code -- promql/parser/generated_parser.y.go || (echo "Generated parser is out of date. Please run 'make parser' and commit the changes." && false)
+
+.PHONY: install-goyacc
+install-goyacc:
+	@echo ">> installing goyacc $(GOYACC_VERSION)"
+	@go install golang.org/x/tools/cmd/goyacc@$(GOYACC_VERSION)
+
+.PHONY: test
+# If we only want to only test go code we have to change the test target
+# which is called by all.
+ifeq ($(GO_ONLY),1)
+test: common-test check-go-mod-version
+else
+test: check-generated-parser common-test check-node-version ui-build-module ui-test ui-lint check-go-mod-version
+endif
+
+.PHONY: tarball
+tarball: npm_licenses common-tarball
+
+.PHONY: docker
+docker: npm_licenses common-docker
+
+.PHONY: build
+build: assets npm_licenses assets-compress common-build
+
+.PHONY: bench_tsdb
+bench_tsdb: $(PROMU)
+	@echo ">> building promtool"
+	@GO111MODULE=$(GO111MODULE) $(PROMU) build --prefix $(PREFIX) promtool
+	@echo ">> running benchmark, writing result to $(TSDB_BENCHMARK_OUTPUT_DIR)"
+	@$(PROMTOOL) tsdb bench write --metrics=$(TSDB_BENCHMARK_NUM_METRICS) --out=$(TSDB_BENCHMARK_OUTPUT_DIR) $(TSDB_BENCHMARK_DATASET)
+	@$(GO) tool pprof -svg $(PROMTOOL) $(TSDB_BENCHMARK_OUTPUT_DIR)/cpu.prof > $(TSDB_BENCHMARK_OUTPUT_DIR)/cpuprof.svg
+	@$(GO) tool pprof --inuse_space -svg $(PROMTOOL) $(TSDB_BENCHMARK_OUTPUT_DIR)/mem.prof > $(TSDB_BENCHMARK_OUTPUT_DIR)/memprof.inuse.svg
+	@$(GO) tool pprof --alloc_space -svg $(PROMTOOL) $(TSDB_BENCHMARK_OUTPUT_DIR)/mem.prof > $(TSDB_BENCHMARK_OUTPUT_DIR)/memprof.alloc.svg
+	@$(GO) tool pprof -svg $(PROMTOOL) $(TSDB_BENCHMARK_OUTPUT_DIR)/block.prof > $(TSDB_BENCHMARK_OUTPUT_DIR)/blockprof.svg
+	@$(GO) tool pprof -svg $(PROMTOOL) $(TSDB_BENCHMARK_OUTPUT_DIR)/mutex.prof > $(TSDB_BENCHMARK_OUTPUT_DIR)/mutexprof.svg
+
+.PHONY: cli-documentation
+cli-documentation:
+	$(GO) run ./cmd/prometheus/ --write-documentation > docs/command-line/prometheus.md
+	$(GO) run ./cmd/promtool/ write-documentation > docs/command-line/promtool.md
+
+.PHONY: check-go-mod-version
+check-go-mod-version:
+	@echo ">> checking go.mod version matching"
+	@./scripts/check-go-mod-version.sh
+
+.PHONY: update-features-testdata
+update-features-testdata:
+	@echo ">> updating features testdata"
+	@$(GO) test ./cmd/prometheus -run TestFeaturesAPI -update-features
+
+GO_SUBMODULE_DIRS := documentation/examples/remote_storage internal/tools web/ui/mantine-ui/src/promql/tools compliance
+
+.PHONY: update-all-go-deps
+update-all-go-deps: update-go-deps
+	$(foreach dir,$(GO_SUBMODULE_DIRS),$(MAKE) update-go-deps-in-dir DIR=$(dir);)
+	@echo ">> syncing Go workspace"
+	@$(GO) work sync
+
+.PHONY: update-go-deps-in-dir
+update-go-deps-in-dir:
+	@echo ">> updating Go dependencies in ./$(DIR)/"
+	@cd ./$(DIR) && for m in $$($(GO) list -mod=readonly -m -f '{{ if and (not .Indirect) (not .Main)}}{{.Path}}{{end}}' all); do \
+		$(GO) get $$m; \
+	done
+	@cd ./$(DIR) && $(GO) mod tidy
+
+.PHONY: check-node-version
+check-node-version:
+	@./scripts/check-node-version.sh
+
+.PHONY: bump-go-version
+bump-go-version:
+	@echo ">> bumping Go minor version"
+	@./scripts/bump_go_version.sh
+
+.PHONY: generate-fuzzing-seed-corpus
+generate-fuzzing-seed-corpus:
+	@echo ">> Generating fuzzing seed corpus"
+	@$(GO) generate -tags fuzzing ./util/fuzzing/corpus_gen
+
+
+# FILE: MAINTAINERS.md
+# Maintainers
+
+## Please keep this file in sync with the CODEOWNERS file!
+
+General maintainers:
+* Bryan Boreham (bjboreham@gmail.com / @bboreham)
+* Ayoub Mrini (ayoubmrini424@gmail.com / @machine424)
+* Julien Pivotto (roidelapluie@prometheus.io / @roidelapluie)
+* György Krajcsovits (<gyorgy.krajcsovits@grafana.com> / @krajorama)
+* Bartłomiej Płotka (<bwplotka@gmail.com> / @bwplotka)
+* Arve Knudsen (<arve.knudsen@gmail.com> / @aknuds1)
+
+Maintainers for specific parts of the codebase:
+* `cmd`
+  * `promtool`: David Leadbeater (<dgl@dgl.cx> / @dgl)
+* `discovery`
+  * `hetzner`: (@jooola) (@apricote)
+  * `k8s`: Frederic Branczyk (<fbranczyk@gmail.com> / @brancz), Pranshu Srivastava (<rexagod@gmail.com> / @rexagod)
+  * `stackit`: Jan-Otto Kröpke (<mail@jkroepke.de> / @jkroepke)
+  * `consul`: Mohammad Varmazyar (<mrvarmazyar@gmail.com> / @mrvarmazyar)
+  * `scaleway`: Rémy Léone (rleone@scaleway.com / @remyleone)
+* `documentation`
+  * `prometheus-mixin`: Matthias Loibl (<mail@matthiasloibl.com> / @metalmatze)
+* `storage`
+  * `remote`: Callum Styan (<callumstyan@gmail.com> / @cstyan), Tom Wilkie (tom.wilkie@gmail.com / @tomwilkie), Alex Greenbank (<alexgreenbank@yahoo.com> / @alexgreenbank)
+    * `otlptranslator`: Arthur Silva Sens (<arthursens2005@gmail.com> / @ArthurSens, Jesús Vázquez (<jesus.vazquez@grafana.com> / @jesusvazquez)
+* `tsdb`: Ganesh Vernekar (<ganesh@grafana.com> / @codesome), Jesús Vázquez (<jesus.vazquez@grafana.com> / @jesusvazquez)
+* `web`
+  * `ui`: Julius Volz (<julius.volz@gmail.com> / @juliusv)
+    * `module`: Augustin Husson (<husson.augustin@gmail.com> / @nexucis)
+* `Makefile` and related build configuration: Simon Pasquier (<pasquier.simon@gmail.com> / @simonpasquier), Ben Kochie (<superq@gmail.com> / @SuperQ)
+
+For the sake of brevity, not all subtrees are explicitly listed. Due to the
+size of this repository, the natural changes in focus of maintainers over time,
+and nuances of where particular features live, this list will always be
+incomplete and out of date. However the listed maintainer(s) should be able to
+direct a PR/question to the right person.
+
+v3 release coordinators:
+* Alex Greenbank (<alexgreenbank@yahoo.com> / @alexgreenbank)
+* Carrie Edwards (<carrie.edwards@grafana.com> / @carrieedwards)
+* Fiona Liao (<fiona.liao@grafana.com> / @fionaliao)
+* Jan Fajerski (<github@fajerski.name> / @jan--f)
+* Jesús Vázquez (<jesus.vazquez@grafana.com> / @jesusvazquez)
+* Nico Pazos (<nicolas.pazos-mendez@grafana.com> / @npazosmendez)
+* Owen Williams (<owen.williams@grafana.com> / @ywwg)
+* Tom Braack (<me@shorez.de> / @sh0rez)
+
+
+# FILE: LICENSE
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: Dockerfile
+ARG ARCH="amd64"
+ARG OS="linux"
+FROM quay.io/prometheus/busybox-${OS}-${ARCH}:latest
+LABEL maintainer="The Prometheus Authors <prometheus-developers@googlegroups.com>"
+LABEL org.opencontainers.image.authors="The Prometheus Authors" \
+      org.opencontainers.image.vendor="Prometheus" \
+      org.opencontainers.image.title="Prometheus" \
+      org.opencontainers.image.description="The Prometheus monitoring system and time series database" \
+      org.opencontainers.image.source="https://github.com/prometheus/prometheus" \
+      org.opencontainers.image.url="https://github.com/prometheus/prometheus" \
+      org.opencontainers.image.documentation="https://prometheus.io/docs" \
+      org.opencontainers.image.licenses="Apache License 2.0" \
+      io.prometheus.image.variant="busybox"
+
+ARG ARCH="amd64"
+ARG OS="linux"
+COPY .build/${OS}-${ARCH}/prometheus        /bin/prometheus
+COPY .build/${OS}-${ARCH}/promtool          /bin/promtool
+COPY documentation/examples/prometheus.yml  /etc/prometheus/prometheus.yml
+COPY LICENSE                                /LICENSE
+COPY NOTICE                                 /NOTICE
+COPY npm_licenses.tar.bz2                   /npm_licenses.tar.bz2
+
+WORKDIR /prometheus
+RUN chown -R nobody:nobody /etc/prometheus /prometheus && chmod g+w /prometheus
+
+USER       nobody
+EXPOSE     9090
+VOLUME     [ "/prometheus" ]
+ENTRYPOINT [ "/bin/prometheus" ]
+CMD        [ "--config.file=/etc/prometheus/prometheus.yml", \
+             "--storage.tsdb.path=/prometheus" ]
+
+
+# FILE: CONTRIBUTING.md
+# Contributing
+
+Prometheus uses GitHub to manage reviews of pull requests.
+
+* If you are a new contributor see: [Steps to Contribute](#steps-to-contribute)
+
+* If you have a trivial fix or improvement, go ahead and create a pull request,
+  addressing (with `@...`) a suitable maintainer of this repository (see
+  [MAINTAINERS.md](MAINTAINERS.md)) in the description of the pull request.
+
+* If you plan to do something more involved, first discuss your ideas
+  on our [mailing list](https://groups.google.com/forum/?fromgroups#!forum/prometheus-developers).
+  This will avoid unnecessary work and surely give you and us a good deal
+  of inspiration. Also please see our [non-goals issue](https://github.com/prometheus/docs/issues/149) on areas that the Prometheus community doesn't plan to work on.
+
+* Relevant coding style guidelines are the [Go Code Review
+  Comments](https://go.dev/wiki/CodeReviewComments)
+  and the _Formatting and style_ section of Peter Bourgon's [Go: Best
+  Practices for Production
+  Environments](https://peter.bourgon.org/go-in-production/#formatting-and-style).
+
+* Be sure to sign off on the [DCO](https://github.com/probot/dco#how-it-works).
+
+## Steps to Contribute
+
+Should you wish to work on an issue, please claim it first by commenting on the GitHub issue that you want to work on it. This is to prevent duplicated efforts from contributors on the same issue.
+
+Please check the [`low-hanging-fruit`](https://github.com/prometheus/prometheus/issues?q=is%3Aissue+is%3Aopen+label%3A%22low+hanging+fruit%22) label to find issues that are good for getting started. If you have questions about one of the issues, with or without the tag, please comment on them and one of the maintainers will clarify it. For a quicker response, contact us over [IRC](https://prometheus.io/community).
+
+You can [spin up a prebuilt dev environment](https://gitpod.io/#https://github.com/prometheus/prometheus) using Gitpod.io.
+
+For complete instructions on how to compile see: [Building From Source](https://github.com/prometheus/prometheus#building-from-source)
+
+For quickly compiling and testing your changes do:
+
+```bash
+# For building.
+go build ./cmd/prometheus/
+./prometheus
+
+# For testing.
+make test         # Make sure all the tests pass before you commit and push :)
+```
+
+To run a collection of Go linters through [`golangci-lint`](https://github.com/golangci/golangci-lint), do:
+```bash
+make lint
+```
+
+If it reports an issue and you think that the warning needs to be disregarded or is a false-positive, you can add a special comment `//nolint:linter1[,linter2,...]` before the offending line. Use this sparingly though, fixing the code to comply with the linter's recommendation is in general the preferred course of action. See [this section of the golangci-lint documentation](https://golangci-lint.run/usage/false-positives/#nolint-directive) for more information.
+
+All our issues are regularly tagged so that you can also filter down the issues involving the components you want to work on. For our labeling policy refer [the wiki page](https://github.com/prometheus/prometheus/wiki/Label-Names-and-Descriptions).
+
+## Pull Request Checklist
+
+* Branch from the main branch and, if needed, rebase to the current main branch before submitting your pull request. If it doesn't merge cleanly with main you may be asked to rebase your changes.
+
+* Commits should be as small as possible, while ensuring that each commit is correct independently (i.e., each commit should compile and pass tests).
+
+* If your patch is not getting reviewed or you need a specific person to review it, you can @-reply a reviewer asking for a review in the pull request or a comment, or you can ask for a review on the IRC channel [#prometheus-dev](https://web.libera.chat/?channels=#prometheus-dev) on irc.libera.chat (for the easiest start, [join via Element](https://app.element.io/#/room/#prometheus-dev:matrix.org)).
+
+* Add tests relevant to the fixed bug or new feature.
+
+## Dependency management
+
+The Prometheus project uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies on external packages.
+
+To add or update a new dependency, use the `go get` command:
+
+```bash
+# Pick the latest tagged release.
+go get example.com/some/module/pkg@latest
+
+# Pick a specific version.
+go get example.com/some/module/pkg@vX.Y.Z
+```
+
+Tidy up the `go.mod` and `go.sum` files:
+
+```bash
+go mod tidy
+```
+
+You have to commit the changes to `go.mod` and `go.sum` before submitting the pull request.
+
+## Working with the PromQL parser
+
+The PromQL parser grammar is located in `promql/parser/generated_parser.y` and it can be built using `make parser`.
+The parser is built using [goyacc](https://pkg.go.dev/golang.org/x/tools/cmd/goyacc)
+
+If doing some sort of debugging, then it is possible to add some verbose output. After generating the parser, then you
+can modify the `./promql/parser/generated_parser.y.go` manually.
+
+```golang
+// As of writing this was somewhere around line 600.
+var (
+	yyDebug        = 0 // This can be a number 0 -> 5.
+	yyErrorVerbose = false  // This can be set to true.
+)
+
+```
+
+
+# FILE: CODE_OF_CONDUCT.md
+# Prometheus Community Code of Conduct
+
+Prometheus follows the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).
+
+
+# FILE: CLAUDE.md
+@AGENTS.md
+
+
+# FILE: CHANGELOG.md
+# Changelog
+
+## 3.11.0 / 2026-04-02
+
+- [CHANGE] Hetzner SD: The `__meta_hetzner_datacenter` label is deprecated for the role `robot` but kept for backward compatibility, use the `__meta_hetzner_robot_datacenter` label instead. For the role `hcloud`, the label is deprecated and will stop working after the 1 July 2026. #17850
+- [CHANGE] Hetzner SD: The `__meta_hetzner_hcloud_datacenter_location` and `__meta_hetzner_hcloud_datacenter_location_network_zone` labels are deprecated, use the `__meta_hetzner_hcloud_location` and `__meta_hetzner_hcloud_location_network_zone` labels instead. #17850
+- [CHANGE] Promtool: Redirect debug output to stderr to avoid interfering with stdout-based tool output. #18346
+- [FEATURE] AWS SD: Add Elasticache Role. #18099
+- [FEATURE] AWS SD: Add RDS Role. #18206
+- [FEATURE] Azure SD: Add support for Azure Workload Identity authentication method. #17207
+- [FEATURE] Discovery: Introduce `prometheus_sd_last_update_timestamp_seconds` metric to track the last time a service discovery update was sent to consumers. #18194
+- [FEATURE] Kubernetes SD: Add support for node role selectors for pod roles. #18006
+- [FEATURE] Kubernetes SD: Introduce pod-based labels for deployment, cronjob, and job controller names: `__meta_kubernetes_pod_deployment_name`, `__meta_kubernetes_pod_cronjob_name` and `__meta_kubernetes_pod_job_name`, respectively. #17774
+- [FEATURE] PromQL: Add `</` and `>/` operators for trimming observations from native histograms. #17904
+- [FEATURE] PromQL: Add experimental `histogram_quantiles` variadic function for computing multiple quantiles at once. #17285
+- [FEATURE] TSDB: Add `storage.tsdb.retention.percentage` configuration to configure the maximum percent of disk usable for TSDB storage. #18080
+- [FEATURE] TSDB: Add an experimental `fast-startup` feature flag that writes a `series_state.json` file to the WAL directory to track active series state across restarts. #18303
+- [FEATURE] TSDB: Add an experimental `st-storage` feature flag. When enabled, Prometheus stores ingested start timestamps (ST, previously called Created Timestamp) from scrape or OTLP in the TSDB and Agent WAL, and exposes them via Remote Write 2. #18062
+- [FEATURE] TSDB: Add an experimental `xor2-encoding` feature flag for the new TSDB block float sample chunk encoding that is optimized for scraped data and allows encoding start timestamps. #18062
+- [ENHANCEMENT] HTTP client: Add AWS `external_id` support for sigv4. #17916
+- [ENHANCEMENT] Kubernetes SD: Deduplicate deprecation warning logs from the Kubernetes API to reduce noise. #17829
+- [ENHANCEMENT] TSDB: Remove old temporary checkpoints when creating a Checkpoint. #17598
+- [ENHANCEMENT] UI: Add autocomplete support for experimental `first_over_time` and `ts_of_first_over_time` PromQL functions. #18318
+- [ENHANCEMENT] Vultr SD: Upgrade govultr library from v2 to v3 for continued security patches and maintenance. #18347
+- [PERF] PromQL: Improve performance and reduce heap allocations in joins (VectorBinop)/And/Or/Unless. #17159
+- [PERF] PromQL: Partially address performance regression in native histogram aggregations due to using `KahanAdd`. #18252
+- [PERF] Remote write: Optimize WAL watching used for RW sending to reuse internal buffers. #18250
+- [PERF] TSDB: Optimize LabelValues intersection performance for matchers. #18069
+- [PERF] UI: Skip restacking on hover in stacked series charts. #18230
+- [BUGFIX] AWS SD: Fix EC2 SD ignoring the configured `endpoint` option, a regression from the AWS SDK v2 migration. #18133
+- [BUGFIX] AWS SD: Fix panic in EC2 SD when DescribeAvailabilityZones returns nil ZoneName or ZoneId. #18133
+- [BUGFIX] Agent: Fix memory leak caused by duplicate SeriesRefs being loaded as active series. #17538
+- [BUGFIX] Alerting: Fix alert state incorrectly resetting to pending when the FOR period is increased in the config file. #18244
+- [BUGFIX] Azure SD: Fix system-assigned managed identity not working when `client_id` is empty. #18323
+- [BUGFIX] Consul SD: Fix filter parameter not being applied to health service endpoint, causing Node and Node.Meta filters to be ignored. #17349
+- [BUGFIX] Kubernetes SD: Fix duplicate targets generated by `*DualStack` EndpointSlices policies. #18192
+- [BUGFIX] OTLP: Fix ErrTooOldSample being returned as HTTP 500 instead of 400 in PRW v2 histogram write paths, preventing infinite client retry loops. #18084
+- [BUGFIX] OTLP: Fix exemplars getting mixed between incorrect parts of a histogram. #18056
+- [BUGFIX] PromQL: Do not skip histogram buckets in queries where histogram trimming is used. #18263
+- [BUGFIX] Remote write: Fix `prometheus_remote_storage_sent_batch_duration_seconds` measuring before the request was sent. #18214
+- [BUGFIX] Rules: Fix alert state restoration when rule labels contain Go template expressions. #18375
+- [BUGFIX] Scrape: Fix panic when parsing bare label names without an equal sign in brace-only metric notation. #18229
+- [BUGFIX] TSDB: Fail early when `use-uncached-io` feature flag is set on unsupported environments. #18219
+- [BUGFIX] TSDB: Fall back to CLI flag values when retention is removed from config file. #18200
+- [BUGFIX] TSDB: Fix memory leaks in buffer pools by clearing reference fields before returning buffers to pools. #17895
+- [BUGFIX] TSDB: Fix missing mmap of histogram chunks during WAL replay. #18306
+- [BUGFIX] TSDB: Fix storage.tsdb.retention.time unit mismatch in file causing retention to be 1e6 times longer than configured. #18200
+- [BUGFIX] Tracing: Fix missing traceID in query log when tracing is enabled, previously only spanID was emitted. #18189
+- [BUGFIX] UI: Fix tooltip Y-offset drift when using multiple graph panels. #18228
+- [BUGFIX] UI: Update retention display in runtime info when config is reloaded. #18200
+
+## 3.10.0 / 2026-02-24
+
+Prometheus now offers a distroless Docker image variant alongside the default
+busybox image. The distroless variant provides enhanced security with a minimal
+base image, uses UID/GID 65532 (nonroot) instead of nobody, and removes the
+VOLUME declaration. Both variants are available with `-busybox` and `-distroless`
+tag suffixes (e.g., `prom/prometheus:latest-busybox`, `prom/prometheus:latest-distroless`).
+The busybox image remains the default with no suffix for backwards compatibility
+(e.g., `prom/prometheus:latest` points to the busybox variant).
+
+For users migrating existing **named** volumes from the busybox image to the distroless variant, the ownership can be adjusted with:
+```
+docker run --rm -v prometheus-data:/prometheus alpine chown -R 65532:65532 /prometheus
+```
+Then, the container can be started with the old volume with:
+```
+docker run -v prometheus-data:/prometheus prom/prometheus:latest-distroless
+```
+User migrating from bind mounts might need to ajust permissions too, depending on their setup.
+
+- [CHANGE] Alerting: Add `alertmanager` dimension to following metrics: `prometheus_notifications_dropped_total`, `prometheus_notifications_queue_capacity`, `prometheus_notifications_queue_length`. #16355
+- [CHANGE] UI: Hide expanded alert annotations by default, enabling more information density on the `/alerts` page. #17611
+- [FEATURE] AWS SD: Add MSK Role. #17600
+- [FEATURE] PromQL: Add `fill()` / `fill_left()` / `fill_right()` binop modifiers for specifying default values for missing series. #17644
+- [FEATURE] Web: Add OpenAPI 3.2 specification for the HTTP API at `/api/v1/openapi.yaml`. #17825
+- [FEATURE] Dockerfile: Add distroless image variant using UID/GID 65532 and no VOLUME declaration. Busybox image remains default. #17876
+- [FEATURE] Web: Add on-demand wall time profiling under `<URL>/debug/pprof/fgprof`. #18027
+- [ENHANCEMENT] PromQL: Add more detail to histogram quantile monotonicity info annotations. #15578
+- [ENHANCEMENT] Alerting: Independent alertmanager sendloops. #16355
+- [ENHANCEMENT] TSDB: Experimental support for early compaction of stale series in the memory with configurable threshold `stale_series_compaction_threshold` in the config file. #16929
+- [ENHANCEMENT] Service Discovery: Service discoveries are now removable from the Prometheus binary through the Go build tag `remove_all_sd` and individual service discoveries can be re-added with the build tags `enable_<sd name>_sd`. Users can build a custom Prometheus with only the necessary SDs for a smaller binary size. #17736
+- [ENHANCEMENT] Promtool: Support promql syntax features `promql-duration-expr` and `promql-extended-range-selectors`. #17926
+- [PERF] PromQL: Avoid unnecessary label extraction in PromQL functions. #17676
+- [PERF] PromQL: Improve performance of regex matchers like `.*-.*-.*`. #17707
+- [PERF] OTLP: Add label caching for OTLP-to-Prometheus conversion to reduce allocations and improve latency. #17860
+- [PERF] API: Compute `/api/v1/targets/relabel_steps` in a single pass instead of re-running relabeling for each prefix. #17969
+- [PERF] tsdb: Optimize LabelValues intersection performance for matchers. #18069
+- [BUGFIX] PromQL: Prevent query strings containing only UTF-8 continuation bytes from crashing Prometheus. #17735
+- [BUGFIX] Web: Fix missing `X-Prometheus-Stopping` header for `/-/ready` endpoint in `NotReady` state. #17795
+- [BUGFIX] PromQL: Fix PromQL `info()` function returning empty results when filtering by a label that exists on both the input metric and `target_info`. #17817
+- [BUGFIX] TSDB: Fix a bug during exemplar buffer grow/shrink that could cause exemplars to be incorrectly discarded. #17863
+- [BUGFIX] UI: Fix broken graph display after page reload, due to broken Y axis min encoding/decoding. #17869
+- [BUGFIX] TSDB: Fix memory leaks in buffer pools by clearing reference fields (Labels, Histogram pointers, metadata strings) before returning buffers to pools. #17879
+- [BUGFIX] PromQL: info function: fix series without identifying labels not being returned. #17898
+- [BUGFIX] OTLP: Filter `__name__` from OTLP attributes to prevent duplicate labels. #17917
+- [BUGFIX] TSDB: Fix division by zero when computing stale series ratio with empty head. #17952
+- [BUGFIX] OTLP: Fix potential silent data loss for sum metrics. #17954
+- [BUGFIX] PromQL: Fix smoothed interpolation across counter resets. #17988
+- [BUGFIX] PromQL: Fix panic with `@` modifier on empty ranges. #18020
+- [BUGFIX] PromQL: Fix `avg_over_time` for a single native histogram. #18058
+
+## 3.9.1 / 2026-01-07
+
+ - [BUGFIX] Agent: fix crash shortly after startup from invalid type of object. #17802
+ - [BUGFIX] Scraping: fix relabel keep/drop not working. #17807
+
+## 3.9.0 / 2026-01-06
+
+- [CHANGE] Native Histograms are no longer experimental! Make the `native-histogram` feature flag a no-op. Use `scrape_native_histograms` config option instead. #17528
+- [CHANGE] API: Add maximum limit of 10,000 sets of statistics to TSDB status endpoint. #17647
+- [FEATURE] API: Add /api/v1/features for clients to understand which features are supported. #17427
+- [FEATURE] Promtool: Add `start_timestamp` field for unit tests. #17636
+- [FEATURE] Promtool: Add `--format seriesjson` option to `tsdb dump` to output just series labels in JSON format. #13409
+- [FEATURE] Add `--storage.tsdb.delay-compact-file.path` flag for better interoperability with Thanos. #17435
+- [FEATURE] UI: Add an option on the query drop-down menu to duplicate that query panel. #17714
+- [ENHANCEMENT]: TSDB: add flag `--storage.tsdb.block-reload-interval` to configure TSDB Block Reload Interval. #16728
+- [ENHANCEMENT] UI: Add graph option to start the chart's Y axis at zero. #17565
+- [ENHANCEMENT] Scraping: Classic protobuf format no longer requires the unit in the metric name. #16834
+- [ENHANCEMENT] PromQL, Rules, SD, Scraping: Add native histograms to complement existing summaries. #17374
+- [ENHANCEMENT] Notifications: Add a histogram `prometheus_notifications_latency_histogram_seconds` to complement the existing summary. #16637
+- [ENHANCEMENT] Remote-write: Add custom scope support for AzureAD authentication. #17483
+- [ENHANCEMENT] SD: add a `config` label with job name for most `prometheus_sd_refresh` metrics. #17138
+- [ENHANCEMENT] TSDB: New histogram `prometheus_tsdb_sample_ooo_delta`, the distribution of out-of-order samples in seconds. Collected for all samples, accepted or not. #17477
+- [ENHANCEMENT] Remote-read: Validate histograms received via remote-read. #17561
+- [PERF] TSDB: Small optimizations to postings index. #17439
+- [PERF] Scraping: Speed up relabelling of series. #17530
+- [PERF] PromQL: Small optimisations in binary operators. #17524, #17519.
+- [BUGFIX] UI: PromQL autocomplete now shows the correct type and HELP text for OpenMetrics counters whose samples end in `_total`. #17682
+- [BUGFIX] UI: Fixed codemirror-promql incorrectly showing label completion suggestions after the closing curly brace of a vector selector. #17602
+- [BUGFIX] UI: Query editor no longer suggests a duration unit if one is already present after a number. #17605
+- [BUGFIX] PromQL: Fix some "vector cannot contain metrics with the same labelset" errors when experimental delayed name removal is enabled. #17678
+- [BUGFIX] PromQL: Fix possible corruption of PromQL text if the query had an empty `ignoring()` and non-empty grouping. #17643
+- [BUGFIX] PromQL: Fix resets/changes to return empty results for anchored selectors when all samples are outside the range. #17479
+- [BUGFIX] PromQL: Check more consistently for many-to-one matching in filter binary operators. #17668
+- [BUGFIX] PromQL: Fix collision in unary negation with non-overlapping series. #17708
+- [BUGFIX] PromQL: Fix collision in label_join and label_replace with non-overlapping series. #17703
+- [BUGFIX] PromQL: Fix bug with inconsistent results for queries with OR expression when experimental delayed name removal is enabled. #17161
+- [BUGFIX] PromQL: Ensure that `rate`/`increase`/`delta` of histograms results in a gauge histogram. #17608
+- [BUGFIX] PromQL: Do not panic while iterating over invalid histograms. #17559
+- [BUGFIX] TSDB: Reject chunk files whose encoded chunk length overflows int. #17533
+- [BUGFIX] TSDB: Do not panic during resolution reduction of invalid histograms. #17561
+- [BUGFIX] Remote-write Receive: Avoid duplicate labels when experimental type-and-unit-label feature is enabled. #17546
+- [BUGFIX] OTLP Receiver: Only write metadata to disk when experimental metadata-wal-records feature is enabled. #17472
+
+## 3.8.1 / 2025-12-16
+
+* [BUGFIX] remote: Fix Remote Write receiver, so it does not send wrong response headers for v1 flow and cause Prometheus senders to emit false partial error log and metrics. #17683
+
+## 3.8.0 / 2025-11-28
+
+* [CHANGE] Remote-write: Update receiving to [2.0-rc.4 spec](https://github.com/prometheus/docs/blob/60c24e450010df38cfcb4f65df874f6f9b26dbcb/docs/specs/prw/remote_write_spec_2_0.md). "created timestamp" (CT) is now called "start timestamp" (ST). #17411
+* [CHANGE] TSDB: Native Histogram Custom Bounds with a NaN threshold are now rejected. #17287
+* [FEATURE] OAuth2: support jwt-bearer grant-type (RFC7523 3.1). #17592
+* [FEATURE] Dockerfile: Add OpenContainers spec labels to Dockerfile. #16483
+* [FEATURE] SD: Add unified AWS service discovery for ec2, lightsail and ecs services. #17406
+* [FEATURE] Native histograms are now a stable, but optional feature, use the `scrape_native_histograms` config setting. #17232 #17315
+* [FEATURE] UI: Support anchored and smoothed keyword in promql editor. #17239
+* [FEATURE] UI: Show detailed relabeling steps for each discovered target. #17337
+* [FEATURE] Alerting: Add urlQueryEscape to template functions. #17403
+* [FEATURE] Promtool: Add  Remote-Write 2.0 support to `promtool push metrics` via the `--protobuf_message` flag. #17417
+* [ENHANCEMENT] Clarify the docs about handling negative native histograms.  #17249
+* [ENHANCEMENT] Mixin: Add static UID to the remote-write dashboard. #17256
+* [ENHANCEMENT] PromQL: Reconcile mismatched NHCB bounds in `Add` and `Sub`. #17278
+* [ENHANCEMENT] Alerting: Add "unknown" state for alerting rules that haven't been evaluated yet. #17282
+* [ENHANCEMENT] Scrape: Allow simultaneous use of classic histogram → NHCB conversion and zero-timestamp ingestion. #17305
+* [ENHANCEMENT] UI: Add smoothed/anchored in explain. #17334
+* [ENHANCEMENT] OTLP: De-duplicate any `target_info` samples with the same timestamp for the same series. #17400
+* [ENHANCEMENT] Document `use_fips_sts_endpoint` in `sigv4` config sections. #17304
+* [ENHANCEMENT] Document Prometheus Agent. #14519
+* [PERF] PromQL: Speed up parsing of variadic functions. #17316
+* [PERF] UI: Speed up alerts/rules/... pages by not rendering collapsed content. #17485
+* [PERF] UI: Performance improvement when getting label name and values in promql editor. #17194
+* [PERF] UI: Speed up /alerts for many firing alerts via virtual scrolling.  #17254
+* [BUGFIX] PromQL: Fix slice indexing bug in info function on churning series. #17199
+* [BUGFIX] API: Reduce lock contention on `/api/v1/targets`. #17306
+* [BUGFIX] PromQL: Consistent handling of gauge vs. counter histograms in aggregations. #17312
+* [BUGFIX] TSDB: Allow NHCB with -Inf as the first custom value. #17320
+* [BUGFIX] UI: Fix duplicate loading of data from the API speed up rendering of some pages. #17357
+* [BUGFIX] Old UI: Fix createExpressionLink to correctly build /graph URLs so links from Alerts/Rules work again. #17365
+* [BUGFIX] PromQL: Avoid panic when parsing malformed `info` call. #17379
+* [BUGFIX] PromQL: Include histograms when enforcing sample_limit. #17390
+* [BUGFIX] Config: Fix panic if TLS CA file is absent. #17418
+* [BUGFIX] PromQL: Fix `histogram_fraction` for classic histograms and NHCB if lower bound is in the first bucket. #17424
+
+## 3.7.3 / 2025-10-29
+
+* [BUGFIX] UI: Revert changed (and breaking) redirect behavior for `-web.external-url` if `-web.route-prefix` is configured, which was introduced in #17240. #17389
+* [BUGFIX] Fix federation of some native histograms. #17299 #17409
+* [BUGFIX] promtool: `check config` would fail when `--lint=none` flag was set. #17399 #17414
+* [BUGFIX] Remote-write: fix a deadlock in the queue resharding logic that can lead to suboptimal queue behavior. #17412
+
+## 3.7.2 / 2025-10-22
+
+* [BUGFIX] AWS SD: Fix AWS SDK v2 credentials handling for EC2 and Lightsail discovery. #17355
+* [BUGFIX] AWS SD: Load AWS region from IMDS when not set. #17376
+* [BUGFIX] Relabeling: Fix `labelmap` action validation with the legacy metric name validation scheme. #17372
+* [BUGFIX] PromQL: Fix parsing failure when `anchored` and `smoothed` are used as metric names and label names. #17353
+* [BUGFIX] PromQL: Fix formatting of range vector selectors with `smoothed`/`anchored` modifier. #17354
+
+## 3.7.1 / 2025-10-16
+
+* [BUGFIX] OTLP: Prefix `key_` to label name when translating an OTel attribute name starting with a single underscore, and keep multiple consecutive underscores in label name when translating an OTel attribute name. This reverts the breaking changes introduced in 3.7.0. #17344
+
+## 3.7.0 / 2025-10-15
+
+* [CHANGE] Remote-write: the following metrics are deprecated:
+   - `prometheus_remote_storage_samples_in_total`, use `prometheus_wal_watcher_records_read_total{type="samples"}` and `prometheus_remote_storage_samples_dropped_total` instead,
+   - `prometheus_remote_storage_histograms_in_total`, use `prometheus_wal_watcher_records_read_total{type=~".*histogram_samples"}` and `prometheus_remote_storage_histograms_dropped_total` instead,
+   - `prometheus_remote_storage_exemplars_in_total`, use `prometheus_wal_watcher_records_read_total{type="exemplars"}` and `prometheus_remote_storage_exemplars_dropped_total` instead,
+   - `prometheus_remote_storage_highest_timestamp_in_seconds`, use the more accurate `prometheus_remote_storage_queue_highest_timestamp_seconds` instead in dashboards and alerts to properly account for relabeling and for more accuracy. #17065
+* [FEATURE] PromQL: Add support for experimental anchored and smoothed rate behind feature flag `promql-extended-range-selectors`. #16457
+* [FEATURE] Federation: Add support for native histograms with custom buckets (NHCB). #17215
+* [FEATURE] PromQL: Add `first_over_time(...)` and `ts_of_first_over_time(...)` behind feature flag `experimental-promql-functions`. #16963 #17021
+* [FEATURE] Remote-write: Add support for Azure Workload Identity as an authentication method for the receiver. #16788
+* [FEATURE] Remote-write: Add type and unit labels to outgoing time series in remote-write 2.0 when the `type-and-unit-labels` feature flag is enabled. #17033
+* [FEATURE] OTLP: Write start time of metrics as created time zero samples into TSDB when `created-timestamp-zero-ingestion` feature flag is enabled. #16951
+* [ENHANCEMENT] PromQL: Add warn-level annotations for counter reset conflicts in certain histogram operations. #17051 #17094
+* [ENHANCEMENT] UI: Add scrape interval and scrape timeout to targets page. #17158
+* [ENHANCEMENT] TSDB: Reduce the resolution of native histograms read from chunks or remote read if the schema is exponential. #17213
+* [ENHANCEMENT] Remote write: Add logging for unexpected metadata in sample batches, when metadata entries are found in samples-only batches. #17034 #17082
+* [ENHANCEMENT] Rules: Support concurrent evaluation for rules querying `ALERTS` and `ALERTS_FOR_STATE`. #17064
+* [ENHANCEMENT] TSDB: Add logs to improve visibility into internal operations. #17074
+* [PERF] OTLP: Write directly to TSDB instead of passing through a Remote-Write adapter when receiving OTLP metrics. #16951
+* [PERF] OTLP: Reduce number of logs emitted from OTLP endpoint. No need to log duplicate sample errors. #17201
+* [PERF] PromQL: Move more work to preprocessing step. #16896
+* [PERF] PromQL: Reduce allocations when walking the syntax tree. #16593
+* [PERF] TSDB: Optimize appender creation, slightly speeding up startup. #16922
+* [PERF] TSDB: Improve speed of querying a series with multiple matchers. #13971
+* [BUGFIX] Alerting: Mutating alerts relabeling (using `replace` actions, etc.) within a `alertmanager_config.alert_relabel_configs` block is now scoped correctly and no longer yields altered alerts to subsequent blocks. #17063
+* [BUGFIX] Config: Infer valid escaping scheme when scrape config validation scheme is set. #16923
+* [BUGFIX] TSDB: Correctly handle appending mixed-typed samples to the same series. #17071 #17241 #17290 #17295 #17296
+* [BUGFIX] Remote-write: Prevent sending unsupported native histograms with custom buckets (NHCB) over Remote-write 1.0, log warning. #17146
+* [BUGFIX] TSDB: Fix metadata entries handling on `metadata-wal-records` experimental feature for native histograms with custom buckets (NHCB) in protobuf scraping. #17156
+* [BUGFIX] TSDB: Ignore Native Histograms with invalid schemas during WAL/WBL replay. #17214
+* [BUGFIX] PromQL: Avoid empty metric names in annotations for `histogram_quantile()`. #16794
+* [BUGFIX] PromQL: Correct inaccurate character positions in errors for some aggregate expressions. #16996 #17031
+* [BUGFIX] PromQL: Fix `info()` function on churning series. #17135
+* [BUGFIX] PromQL: Set native histogram to gauge type when subtracting or multiplying/dividing with negative factors. #17004
+* [BUGFIX] TSDB: Reject unsupported native histogram schemas when attempting to append to TSDB. For scrape and remote-write implement reducing the resolution to fit the maximum if the schema is within the -9 to 52. #17189
+* [BUGFIX] Remote-write: Fix HTTP handler to return after writing error response for invalid compression. #17050
+* [BUGFIX] Remote-write: Return HTTP error `400` instead of `5xx` for wrongly formatted Native Histograms. #17210
+* [BUGFIX] Scrape: Prevent staleness markers from generating unnecessary series. #16429
+* [BUGFIX] TSDB: Avoid misleading `Failed to calculate size of \"wal\" dir` error logs during WAL clean-up. #17006
+* [BUGFIX] TSDB: Prevent erroneously dropping series records during WAL checkpoints. #17029
+* [BUGFIX] UI: Fix redirect to path of `-web.external-url` if `-web.route-prefix` is configured. #17240
+* [BUGFIX] Remote-write: Do not panic on invalid symbol table in remote-write 2.0. #17160
+
+## 3.6.0 / 2025-09-17
+
+* [FEATURE] PromQL: Add `step()`, and `min()` and `max()` on durations, behind feature flag `promql-duration-expr`. #16777
+* [FEATURE] API: Add a `/v1/status/tsdb/blocks` endpoint exposing metadata about loaded blocks. #16695
+* [FEATURE] Templates: Add `toDuration()` and `now()` functions. #16619
+* [ENHANCEMENT] Discovery: Add support for attaching namespace metadata to targets. #16831
+* [ENHANCEMENT] OTLP: Support new `UnderscoreEscapingWithoutSuffixes` strategy via `otlp.translation_strategy`. #16849
+* [ENHANCEMENT] OTLP: Support including scope metadata as metric labels via `otlp.promote_scope_metadata`. #16878
+* [ENHANCEMENT] OTLP: Add `__type__` and `__unit__` labels when feature flag `type-and-unit-labels` is enabled. #16630
+* [ENHANCEMENT] Tracing: Send the traceparent HTTP header during scrapes. #16425
+* [ENHANCEMENT] UI: Add option to disable info and warning query messages under `Query page settings`. #16901
+* [ENHANCEMENT] UI: Improve metadata handling for `_count/_sum/_bucket` suffixes. #16910
+* [ENHANCEMENT] TSDB: Track stale series in the Head block via the `prometheus_tsdb_head_stale_series` metric. #16925
+* [PERF] PromQL: Improve performance due to internal optimizations. #16797
+* [BUGFIX] Config: Fix "unknown global name escaping method" error messages produced during config validation. #16801
+* [BUGFIX] Discovery: Fix race condition during shutdown. #16820
+* [BUGFIX] OTLP: Generate `target_info` samples between the earliest and latest samples per resource. #16737
+* [BUGFIX] PromQL: Fail when `NaN` is passed as parameter to `topk()`, `bottomk()`, `limitk()` and `limit_ratio()`. #16725
+* [BUGFIX] PromQL: Fix extrapolation for native counter histograms. #16828
+* [BUGFIX] PromQL: Reduce numerical errors by disabling some optimizations. #16895
+* [BUGFIX] PromQL: Fix inconsistencies when using native histograms in subqueries. #16879
+* [BUGFIX] PromQL: Fix inconsistent annotations for `rate()` and `increase()` on histograms when feature flag `type-and-unit-labels` is enabled. #16915
+* [BUGFIX] Scraping: Fix memory corruption in `slicelabels` builds. #16946
+* [BUGFIX] TSDB: Fix panic on append when feature flag `created-timestamp-zero-ingestion` is enabled. #16332
+* [BUGFIX] TSDB: Fix panic on append for native histograms with empty buckets. #16893
+
+## 3.5.0 / 2025-07-14
+
+* [FEATURE] PromQL: Add experimental type and unit metadata labels, behind feature flag `type-and-unit-labels`. #16228 #16632 #16718 #16743
+* [FEATURE] PromQL: Add `ts_of_(min|max|last)_over_time`, behind feature flag `experimental-promql-functions`. #16722 #16733
+* [FEATURE] Scraping: Add global option `always_scrape_classic_histograms` to scrape a classic histogram even if it is also exposed as native. #16452
+* [FEATURE] OTLP: New config options `promote_all_resource_attributes` and `ignore_resource_attributes`. #16426
+* [FEATURE] Discovery: New service discovery for STACKIT Cloud. #16401
+* [ENHANCEMENT] Hetzner SD: Add `label_selector` to filter servers. #16512
+* [ENHANCEMENT] PromQL: support non-constant parameter in aggregations like `quantile` and `topk`. #16404
+* [ENHANCEMENT] UI: Better total target count display when using `keep_dropped_targets` option. #16604
+* [ENHANCEMENT] UI: Add simple filtering on the `/rules` page. #16605
+* [ENHANCEMENT] UI: Display query stats in hover tooltip over table query tab. #16723
+* [ENHANCEMENT] UI: Clear search field on `/targets` page. #16567
+* [ENHANCEMENT] Rules: Check that rules parse without error earlier at startup. #16601
+* [ENHANCEMENT] Promtool: Optional fuzzy float64 comparison in rules unittests. #16395
+* [PERF] PromQL: Reuse `histogramStatsIterator` where possible. #16686
+* [PERF] PromQL: Reuse storage for custom bucket values for native histograms. #16565
+* [PERF] UI: Optimize memoization and search debouncing on `/targets` page. #16589
+* [PERF] UI: Fix full-page re-rendering when opening status nav menu. #16590
+* [PERF] Kubernetes SD: use service cache.Indexer to achieve better performance. #16365
+* [PERF] TSDB: Optionally use Direct IO for chunks writing. #15365
+* [PERF] TSDB: When fetching label values, stop work earlier if the limit is reached. #16158
+* [PERF] Labels: Simpler/faster stringlabels encoding. #16069
+* [PERF] Scraping: Reload scrape pools concurrently. #16595 #16783
+* [BUGFIX] Top-level: Update GOGC before loading TSDB. #16491
+* [BUGFIX] Config: Respect GOGC environment variable if no "runtime" block exists. #16558
+* [BUGFIX] PromQL: Fix native histogram `last_over_time`. #16744
+* [BUGFIX] PromQL: Fix reported parser position range in errors for aggregations wrapped in ParenExpr #16041 #16754
+* [BUGFIX] PromQL: Don't emit a value from `histogram_fraction` or `histogram_quantile` if classic and native histograms are present at the same timestamp. #16552
+* [BUGFIX] PromQL: Incorrect rounding of `[1001ms]` to `[1s]` and similar. #16478
+* [BUGFIX] PromQL: Fix inconsistent / sometimes negative `histogram_count` and `histogram_sum`. #16682
+* [BUGFIX] PromQL: Improve handling of NaNs in native histograms. #16724
+* [BUGFIX] PromQL: Fix unary operator precedence in duration expressions. #16713
+* [BUGFIX] PromQL: Improve consistency of `avg` aggregation and `avg_over_time`. #16569 #16773
+* [BUGFIX] UI: Add query warnings and info to graph view. #16753 #16759
+* [BUGFIX] API: Add HTTP `Vary: Origin` header to responses to avoid cache poisoning. #16008
+* [BUGFIX] Discovery: Avoid deadlocks by taking locks in consistent order. #16587
+* [BUGFIX] Remote-write: For Azure AD auth, allow empty `client_id` to suppport system assigned managed identity. #16421
+* [BUGFIX] Scraping: Fix rare memory corruption bug. #16623
+* [BUGFIX] Scraping: continue handling custom-bucket histograms after an exponential histogram is encountered. #16720
+* [BUGFIX] OTLP: Default config not respected when `otlp:` block is unset. #16693
+
+## 3.4.2 / 2025-06-26
+
+* [BUGFIX] OTLP receiver: Fix default configuration not being respected if the `otlp:` block is unset in the config file. #16693
+
+## 3.4.1 / 2025-05-31
+
+* [BUGFIX] Parser: Add reproducer for a dangling-reference issue in parsers. #16633
+
+## 3.4.0 / 2025-05-17
+
+* [CHANGE] Config: Make setting out-of-order native histograms feature (`--enable-feature=ooo-native-histograms`) a no-op. Out-of-order native histograms are now always enabled when `out_of_order_time_window` is greater than zero and `--enable-feature=native-histograms` is set. #16207
+* [FEATURE] OTLP translate: Add feature flag for optionally translating OTel explicit bucket histograms into native histograms with custom buckets. #15850
+* [FEATURE] OTLP translate: Add option to receive OTLP metrics without translating names or attributes. #16441
+* [FEATURE] PromQL: allow arithmetic operations in durations in PromQL parser. #16249
+* [FEATURE] OTLP receiver: Add primitive support for ingesting OTLP delta metrics as-is. #16360
+* [ENHANCEMENT] PromQL: histogram_fraction for bucket histograms. #16095
+* [ENHANCEMENT] TSDB: add `prometheus_tsdb_wal_replay_unknown_refs_total` and `prometheus_tsdb_wbl_replay_unknown_refs_total` metrics to track unknown series references during WAL/WBL replay. #16166
+* [ENHANCEMENT] Scraping: Add config option for escaping scheme request. #16066
+* [ENHANCEMENT] Config: Add global config option for convert_classic_histograms_to_nhcb. #16226
+* [ENHANCEMENT] Alerting: make batch size configurable (`--alertmanager.notification-batch-size`). #16254
+* [PERF] Kubernetes SD: make endpointSlice discovery more efficient. #16433
+* [BUGFIX] Config: Fix auto-reload on changes to rule and scrape config files. #16340
+* [BUGFIX] Scraping: Skip native histogram series if ingestion is disabled. #16218
+* [BUGFIX] TSDB: Handle metadata/tombstones/exemplars for duplicate series during WAL replay. #16231
+* [BUGFIX] TSDB: Avoid processing exemplars outside the valid time range during WAL replay. #16242
+* [BUGFIX] Promtool: Add feature flags for PromQL features. #16443
+* [BUGFIX] Rules: correct logging of alert name & template data. #15093
+* [BUGFIX] PromQL: Use arithmetic mean for `histogram_stddev()` and `histogram_stdvar()` . #16444
+
+## 3.3.0 / 2025-04-15
+
+* [FEATURE] PromQL: Implement `idelta()` and `irate()` for native histograms. #15853
+* [ENHANCEMENT] Scaleway SD: Add `__meta_scaleway_instance_public_ipv4_addresses` and `__meta_scaleway_instance_public_ipv6_addresses` labels. #14228
+* [ENHANCEMENT] TSDB: Reduce locking while reloading blocks. #12920
+* [ENHANCEMENT] PromQL: Allow UTF-8 labels in `label_replace()`. #15974
+* [ENHANCEMENT] Promtool: `tsdb create-blocks-from openmetrics` can now read from a Pipe. #16011
+* [ENHANCEMENT] Rules: Add support for anchors and aliases in rule files. #14957
+* [ENHANCEMENT] Dockerfile: Make `/prometheus` writable. #16073
+* [ENHANCEMENT] API: Include scrape pool name for dropped targets in `/api/v1/targets`. #16085
+* [ENHANCEMENT] UI: Improve time formatting and copying of selectors. #15999 #16165
+* [ENHANCEMENT] UI: Bring back vertical grid lines and graph legend series toggling instructions. #16163 #16164
+* [ENHANCEMENT] Mixin: The `cluster` label can be customized using `clusterLabel`. #15826
+* [PERF] TSDB: Optimize some operations on head chunks by taking shortcuts. #12659
+* [PERF] TSDB & Agent: Reduce memory footprint during WL replay. #15778
+* [PERF] Remote-Write: Reduce memory footprint during WAL replay. #16197
+* [PERF] API: Reduce memory footprint during header parsing. #16001
+* [PERF] Rules: Improve dependency evaluation, enabling better concurrency. #16039
+* [PERF] Scraping: Improve scraping performance for native histograms. #15731
+* [PERF] Scraping: Improve parsing of created timestamps. #16072
+* [BUGFIX] Scraping: Bump cache iteration after error to avoid false duplicate detections. #16174
+* [BUGFIX] Scraping: Skip native histograms series when ingestion is disabled. #16218
+* [BUGFIX] PromQL: Fix counter reset detection for native histograms. #15902 #15987
+* [BUGFIX] PromQL: Fix inconsistent behavior with an empty range. #15970
+* [BUGFIX] PromQL: Fix inconsistent annotation in `quantile_over_time()`. #16018
+* [BUGFIX] PromQL: Prevent `label_join()` from producing duplicates. #15975
+* [BUGFIX] PromQL: Ignore native histograms in `scalar()`, `sort()` and `sort_desc()`. #15964
+* [BUGFIX] PromQL: Fix annotations for binary operations between incompatible native histograms. #15895
+* [BUGFIX] Alerting: Consider alert relabeling when deciding whether alerts are dropped. #15979
+* [BUGFIX] Config: Set `GoGC` to the default value in case of an empty configuration. #16052
+* [BUGFIX] TSDB: Fix unknown series errors and potential data loss during WAL replay when inactive series are removed from the head and reappear before the next WAL checkpoint. #16060
+* [BUGFIX] Scaleway SD: The public IP will no longer be set to `__meta_meta_scaleway_instance_public_ipv4` if it is an IPv6 address. #14228
+* [BUGFIX] UI: Display the correct value of Alerting rules' `keep_firing_for`. #16211
+
+## 3.2.1 / 2025-02-25
+
+* [BUGFIX] Don't send `Accept` header `escape=allow-utf-8` when `metric_name_validation_scheme: legacy` is configured. #16061
+
+## 3.2.0 / 2025-02-17
+
+* [CHANGE] relabel: Replace actions can now use UTF-8 characters in `targetLabel` field. Note that `$<chars>` or `${<chars>}` will be expanded. This also apply to `replacement` field for `LabelMap` action. #15851
+* [CHANGE] rulefmt: Rule names can use UTF-8 characters, except `{` and `}` characters (due to common mistake checks). #15851
+* [FEATURE] remote/otlp: Add feature flag `otlp-deltatocumulative` to support conversion from delta to cumulative. #15165
+* [ENHANCEMENT] openstack SD: Discover Octavia loadbalancers. #15539
+* [ENHANCEMENT] scrape: Add metadata for automatic metrics to WAL for `metadata-wal-records` feature. #15837
+* [ENHANCEMENT] promtool: Support linting of scrape interval, through lint option `too-long-scrape-interval`. #15719
+* [ENHANCEMENT] promtool: Add --ignore-unknown-fields option. #15706
+* [ENHANCEMENT] ui: Make "hide empty rules" and "hide empty rules" persistent #15807
+* [ENHANCEMENT] web/api: Add a limit parameter to `/query` and `/query_range`. #15552
+* [ENHANCEMENT] api: Add fields Node and ServerTime to `/status`. #15784
+* [PERF] Scraping: defer computing labels for dropped targets until they are needed by the UI. #15261
+* [BUGFIX] remotewrite2: Fix invalid metadata bug for metrics without metadata. #15829
+* [BUGFIX] remotewrite2: Fix the unit field propagation. #15825
+* [BUGFIX] scrape: Fix WAL metadata for histograms and summaries. #15832
+* [BUGFIX] ui: Merge duplicate "Alerts page settings" sections. #15810
+* [BUGFIX] PromQL: Fix `<aggr_over_time>` functions with histograms. #15711
+
+## 3.1.0 / 2025-01-02
+
+ * [SECURITY] upgrade golang.org/x/crypto to address reported CVE-2024-45337. #15691
+ * [CHANGE] Notifier: Increment prometheus_notifications_errors_total by the number of affected alerts rather than per batch. #15428
+ * [CHANGE] API: list rules field "groupNextToken:omitempty" renamed to "groupNextToken". #15400
+ * [ENHANCEMENT] OTLP translate: keep identifying attributes in target_info. #15448
+ * [ENHANCEMENT] Paginate rule groups, add infinite scroll to rules within groups. #15677
+ * [ENHANCEMENT] TSDB: Improve calculation of space used by labels. #13880
+ * [ENHANCEMENT] Rules: new metric rule_group_last_rule_duration_sum_seconds. #15672
+ * [ENHANCEMENT] Observability: Export 'go_sync_mutex_wait_total_seconds_total' metric. #15339
+ * [ENHANCEMENT] Remote-Write: optionally use a DNS resolver that picks a random IP. #15329
+ * [PERF] Optimize `l=~".+"` matcher. #15474, #15684
+ * [PERF] TSDB: Cache all symbols for compaction. #15455
+ * [PERF] TSDB: MemPostings: keep a map of label values slices. #15426
+ * [PERF] Remote-Write: Remove interning hook. #15456
+ * [PERF] Scrape: optimize string manipulation for experimental native histograms with custom buckets. #15453
+ * [PERF] TSDB: reduce memory allocations. #15465, #15427
+ * [PERF] Storage: Implement limit in mergeGenericQuerier. #14489
+ * [PERF] TSDB: Optimize inverse matching. #14144
+ * [PERF] Regex: use stack memory for lowercase copy of string. #15210
+ * [PERF] TSDB: When deleting from postings index, pause to unlock and let readers read. #15242
+ * [BUGFIX] Main: Avoid possible segfault at exit. (#15724)
+ * [BUGFIX] Rules: Do not run rules concurrently if uncertain about dependencies. #15560
+ * [BUGFIX] PromQL: Adds test for `absent`, `absent_over_time` and `deriv` func with histograms. #15667
+ * [BUGFIX] PromQL: Fix various bugs related to quoting UTF-8 characters. #15531
+ * [BUGFIX] Scrape: fix nil panic after scrape loop reload. #15563
+ * [BUGFIX] Remote-write: fix panic on repeated log message. #15562
+ * [BUGFIX] Scrape: reload would ignore always_scrape_classic_histograms and convert_classic_histograms_to_nhcb configs. #15489
+ * [BUGFIX] TSDB: fix data corruption in experimental native histograms. #15482
+ * [BUGFIX] PromQL: Ignore histograms in all time related functions. #15479
+ * [BUGFIX] OTLP receiver: Convert metric metadata. #15416
+ * [BUGFIX] PromQL: Fix `resets` function for histograms. #15527
+ * [BUGFIX] PromQL: Fix behaviour of `changes()` for mix of histograms and floats. #15469
+ * [BUGFIX] PromQL: Fix behaviour of some aggregations with histograms. #15432
+ * [BUGFIX] allow quoted exemplar keys in openmetrics text format. #15260
+ * [BUGFIX] TSDB: fixes for rare conditions when loading write-behind-log (WBL). #15380
+ * [BUGFIX] `round()` function did not remove `__name__` label. #15250
+ * [BUGFIX] Promtool: analyze block shows metric name with 0 cardinality. #15438
+ * [BUGFIX] PromQL: Fix `count_values` for histograms. #15422
+ * [BUGFIX] PromQL: fix issues with comparison binary operations with `bool` modifier and native histograms. #15413
+ * [BUGFIX] PromQL: fix incorrect "native histogram ignored in aggregation" annotations. #15414
+ * [BUGFIX] PromQL: Corrects the behaviour of some operator and aggregators with Native Histograms. #15245
+ * [BUGFIX] TSDB: Always return unknown hint for first sample in non-gauge histogram chunk. #15343
+ * [BUGFIX] PromQL: Clamp functions: Ignore any points with native histograms. #15169
+ * [BUGFIX] TSDB: Fix race on stale values in headAppender. #15322
+ * [BUGFIX] UI: Fix selector / series formatting for empty metric names. #15340
+ * [BUGFIX] OTLP receiver: Allow colons in non-standard units. #15710
+
+## 3.0.1 / 2024-11-28
+
+The first bug fix release for Prometheus 3.
+
+* [BUGFIX] Promql: Make subqueries left open. #15431
+* [BUGFIX] Fix memory leak when query log is enabled. #15434
+* [BUGFIX] Support utf8 names on /v1/label/:name/values endpoint. #15399
+
+## 3.0.0 / 2024-11-14
+
+This release includes new features such as a brand new UI and UTF-8 support enabled by default. As this marks the first new major version in seven years, several breaking changes are introduced. The breaking changes are mainly around the removal of deprecated feature flags and CLI arguments, and the full list can be found below. For users that want to upgrade we recommend to read through our [migration guide](https://prometheus.io/docs/prometheus/3.0/migration/).
+
+* [CHANGE] Set the `GOMAXPROCS` variable automatically to match the Linux CPU quota. Use `--no-auto-gomaxprocs` to disable it. The `auto-gomaxprocs` feature flag was removed. #15376
+* [CHANGE] Set the `GOMEMLIMIT` variable automatically to match the Linux container memory limit. Use `--no-auto-gomemlimit` to disable it. The `auto-gomemlimit` feature flag was removed. #15373
+* [CHANGE] Scraping: Remove implicit fallback to the Prometheus text format in case of invalid/missing Content-Type and fail the scrape instead. Add ability to specify a `fallback_scrape_protocol` in the scrape config. #15136
+* [CHANGE] Remote-write: default enable_http2 to false. #15219
+* [CHANGE] Scraping: normalize "le" and "quantile" label values upon ingestion. #15164
+* [CHANGE] Scraping: config `scrape_classic_histograms` was renamed to `always_scrape_classic_histograms`. #15178
+* [CHANGE] Config: remove expand-external-labels flag, expand external labels env vars by default. #14657
+* [CHANGE] Disallow configuring AM with the v1 api. #13883
+* [CHANGE] regexp `.` now matches all characters (performance improvement). #14505
+* [CHANGE] `holt_winters` is now called `double_exponential_smoothing` and moves behind the [experimental-promql-functions feature flag](https://prometheus.io/docs/prometheus/latest/feature_flags/#experimental-promql-functions). #14930
+* [CHANGE] API: The OTLP receiver endpoint can now be enabled using `--web.enable-otlp-receiver` instead of `--enable-feature=otlp-write-receiver`. #14894
+* [CHANGE] Prometheus will not add or remove port numbers from the target address. `no-default-scrape-port` feature flag removed. #14160
+* [CHANGE] Logging: the format of log lines has changed a little, along with the adoption of Go's Structured Logging package. #14906
+* [CHANGE] Don't create extra `_created` timeseries if feature-flag `created-timestamp-zero-ingestion` is enabled. #14738
+* [CHANGE] Float literals and time durations being the same is now a stable fetaure. #15111
+* [CHANGE] UI: The old web UI has been replaced by a completely new one that is less cluttered and adds a few new features (PromLens-style tree view, better metrics explorer, "Explain" tab). However, it is still missing some features of the old UI (notably, exemplar display and heatmaps). To switch back to the old UI, you can use the feature flag `--enable-feature=old-ui` for the time being. #14872
+* [CHANGE] PromQL: Range selectors and the lookback delta are now left-open, i.e. a sample coinciding with the lower time limit is excluded rather than included. #13904
+* [CHANGE] Kubernetes SD: Remove support for `discovery.k8s.io/v1beta1` API version of EndpointSlice. This version is no longer served as of Kubernetes v1.25. #14365
+* [CHANGE] Kubernetes SD: Remove support for `networking.k8s.io/v1beta1` API version of Ingress. This version is no longer served as of Kubernetes v1.22. #14365
+* [CHANGE] UTF-8: Enable UTF-8 support by default. Prometheus now allows all UTF-8 characters in metric and label names. The corresponding `utf8-name` feature flag has been removed. #14705, #15258
+* [CHANGE] Console: Remove example files for the console feature. Users can continue using the console feature by supplying their own JavaScript and templates. #14807
+* [CHANGE] SD: Enable the new service discovery manager by default. This SD manager does not restart unchanged discoveries upon reloading. This makes reloads faster and reduces pressure on service discoveries' sources. The corresponding `new-service-discovery-manager` feature flag has been removed. #14770
+* [CHANGE] Agent mode has been promoted to stable. The feature flag `agent` has been removed. To run Prometheus in Agent mode, use the new `--agent` cmdline arg instead. #14747
+* [CHANGE] Remove deprecated `remote-write-receiver`,`promql-at-modifier`, and `promql-negative-offset` feature flags. #13456, #14526
+* [CHANGE] Remove deprecated `storage.tsdb.allow-overlapping-blocks`, `alertmanager.timeout`, and `storage.tsdb.retention` flags. #14640, #14643
+* [FEATURE] OTLP receiver: Ability to skip UTF-8 normalization using `otlp.translation_strategy = NoUTF8EscapingWithSuffixes` configuration option. #15384
+* [FEATURE] Support config reload automatically - feature flag `auto-reload-config`. #14769, #15011
+* [ENHANCEMENT] Scraping, rules: handle targets reappearing, or rules moving group, when out-of-order is enabled. #14710
+* [ENHANCEMENT] Tools: add debug printouts to promtool rules unit testing #15196
+* [ENHANCEMENT] Scraping: support Created-Timestamp feature on native histograms. #14694
+* [ENHANCEMENT] UI: Many fixes and improvements. #14898, #14899, #14907, #14908, #14912, #14913, #14914, #14931, #14940, #14945, #14946, #14972, #14981, #14982, #14994, #15096
+* [ENHANCEMENT] UI: Web UI now displays notifications, e.g. when starting up and shutting down. #15082
+* [ENHANCEMENT] PromQL: Introduce exponential interpolation for native histograms. #14677
+* [ENHANCEMENT] TSDB: Add support for ingestion of out-of-order native histogram samples. #14850, #14546
+* [ENHANCEMENT] Alerts: remove metrics for removed Alertmanagers. #13909
+* [ENHANCEMENT] Kubernetes SD: Support sidecar containers in endpoint discovery. #14929
+* [ENHANCEMENT] Consul SD: Support catalog filters. #11224
+* [ENHANCEMENT] Move AM discovery page from "Monitoring status" to "Server status". #14875
+* [PERF] TSDB: Parallelize deletion of postings after head compaction. #14975
+* [PERF] TSDB: Chunk encoding: shorten some write sequences. #14932
+* [PERF] TSDB: Grow postings by doubling. #14721
+* [PERF] Relabeling: Optimize adding a constant label pair. #12180
+* [BUGFIX] Scraping: Don't log errors on empty scrapes. #15357
+* [BUGFIX] UI: fix selector / series formatting for empty metric names. #15341
+* [BUGFIX] PromQL: Fix stddev+stdvar aggregations to always ignore native histograms. #14941
+* [BUGFIX] PromQL: Fix stddev+stdvar aggregations to treat Infinity consistently. #14941
+* [BUGFIX] OTLP receiver: Preserve colons when generating metric names in suffix adding mode (this mode is always enabled, unless one uses Prometheus as a library). #15251
+* [BUGFIX] Scraping: Unit was missing when using protobuf format. #15095
+* [BUGFIX] PromQL: Only return "possible non-counter" annotation when `rate` returns points. #14910
+* [BUGFIX] TSDB: Chunks could have one unnecessary zero byte at the end. #14854
+* [BUGFIX] "superfluous response.WriteHeader call" messages in log. #14884
+* [BUGFIX] PromQL: Unary negation of native histograms. #14821
+* [BUGFIX] PromQL: Handle stale marker in native histogram series (e.g. if series goes away and comes back). #15025
+* [BUGFIX] Autoreload: Reload invalid yaml files. #14947
+* [BUGFIX] Scrape: Do not override target parameter labels with config params. #11029
+
+## 2.53.5 / 2025-06-30
+
+* [ENHANCEMENT] TSDB: Add backward compatibility with the upcoming TSDB block index v3 #16762
+* [BUGFIX] Top-level: Update GOGC before loading TSDB #16521
+
+## 2.53.4 / 2025-03-18
+
+* [BUGFIX] Runtime: fix GOGC is being set to 0 when installed with empty prometheus.yml file resulting high cpu usage. #16090
+* [BUGFIX] Scrape: fix dropping valid metrics after previous scrape failed. #16220
+
+## 2.53.3 / 2024-11-04
+
+* [BUGFIX] Scraping: allow multiple samples on same series, with explicit timestamps. #14685, #14740
+
+## 2.53.2 / 2024-08-09
+
+Fix a bug where Prometheus would crash with a segmentation fault if a remote-read
+request accessed a block on disk at about the same time as TSDB created a new block.
+
+* [BUGFIX] Remote-Read: Resolve occasional segmentation fault on query. #14515,#14523
+
+## 2.55.1 / 2024-11-04
+
+* [BUGFIX] `round()` function did not remove `__name__` label. #15250
+
+## 2.55.0 / 2024-10-22
+
+* [FEATURE] PromQL: Add experimental `info` function. #14495
+* [FEATURE] Support UTF-8 characters in label names - feature flag `utf8-names`. #14482, #14880, #14736, #14727
+* [FEATURE] Scraping: Add the ability to set custom `http_headers` in config. #14817
+* [FEATURE] Scraping: Support feature flag `created-timestamp-zero-ingestion` in OpenMetrics. #14356, #14815
+* [FEATURE] Scraping: `scrape_failure_log_file` option to log failures to a file. #14734
+* [FEATURE] OTLP receiver: Optional promotion of resource attributes to series labels. #14200
+* [FEATURE] Remote-Write: Support Google Cloud Monitoring authorization. #14346
+* [FEATURE] Promtool: `tsdb create-blocks` new option to add labels. #14403
+* [FEATURE] Promtool: `promtool test` adds `--junit` flag to format results. #14506
+* [FEATURE] TSDB: Add `delayed-compaction` feature flag, for people running many Prometheus to randomize timing. #12532
+* [ENHANCEMENT] OTLP receiver: Warn on exponential histograms with zero count and non-zero sum. #14706
+* [ENHANCEMENT] OTLP receiver: Interrupt translation on context cancellation/timeout. #14612
+* [ENHANCEMENT] Remote Read client: Enable streaming remote read if the server supports it. #11379
+* [ENHANCEMENT] Remote-Write: Don't reshard if we haven't successfully sent a sample since last update. #14450
+* [ENHANCEMENT] PromQL: Delay deletion of `__name__` label to the end of the query evaluation. This is **experimental** and enabled under the feature-flag `promql-delayed-name-removal`. #14477
+* [ENHANCEMENT] PromQL: Experimental `sort_by_label` and `sort_by_label_desc` sort by all labels when label is equal. #14655, #14985
+* [ENHANCEMENT] PromQL: Clarify error message logged when Go runtime panic occurs during query evaluation. #14621
+* [ENHANCEMENT] PromQL: Use Kahan summation for better accuracy in `avg` and `avg_over_time`. #14413
+* [ENHANCEMENT] Tracing: Improve PromQL tracing, including showing the operation performed for aggregates, operators, and calls. #14816
+* [ENHANCEMENT] API: Support multiple listening addresses. #14665
+* [ENHANCEMENT] TSDB: Backward compatibility with upcoming index v3. #14934
+* [PERF] TSDB: Query in-order and out-of-order series together. #14354, #14693, #14714, #14831, #14874, #14948, #15120
+* [PERF] TSDB: Streamline reading of overlapping out-of-order head chunks. #14729
+* [BUGFIX] PromQL: make sort_by_label stable. #14985
+* [BUGFIX] SD: Fix dropping targets (with feature flag `new-service-discovery-manager`). #13147
+* [BUGFIX] SD: Stop storing stale targets (with feature flag `new-service-discovery-manager`). #13622
+* [BUGFIX] Scraping: exemplars could be dropped in protobuf scraping. #14810
+* [BUGFIX] Remote-Write: fix metadata sending for experimental Remote-Write V2. #14766
+* [BUGFIX] Remote-Write: Return 4xx not 5xx when timeseries has duplicate label. #14716
+* [BUGFIX] Experimental Native Histograms: many fixes for incorrect results, panics, warnings. #14513, #14575, #14598, #14609, #14611, #14771, #14821
+* [BUGFIX] TSDB: Only count unknown record types in `record_decode_failures_total` metric. #14042
+
+## 2.54.1 / 2024-08-27
+
+* [BUGFIX] Scraping: allow multiple samples on same series, with explicit timestamps (mixing samples of the same series with and without timestamps is still rejected). #14685
+* [BUGFIX] Docker SD: fix crash in `match_first_network` mode when container is reconnected to a new network. #14654
+* [BUGFIX] PromQL: fix experimental native histograms getting corrupted due to vector selector bug in range queries. #14538
+* [BUGFIX] PromQL: fix experimental native histogram counter reset detection on stale samples. #14514
+* [BUGFIX] PromQL: fix native histograms getting corrupted due to vector selector bug in range queries. #14605
+
+## 2.54.0 / 2024-08-09
+
+Release 2.54 brings a release candidate of a major new version of [Remote Write: 2.0](https://prometheus.io/docs/specs/remote_write_spec_2_0/).
+This is experimental at this time and may still change.
+Remote-write v2 is enabled by default, but can be disabled via feature-flag `web.remote-write-receiver.accepted-protobuf-messages`.
+
+* [CHANGE] Remote-Write: `highest_timestamp_in_seconds` and `queue_highest_sent_timestamp_seconds` metrics now initialized to 0. #14437
+* [CHANGE] API: Split warnings from info annotations in API response. #14327
+* [FEATURE] Remote-Write: Version 2.0 experimental, plus metadata in WAL via feature flag `metadata-wal-records` (defaults on). #14395,#14427,#14444
+* [FEATURE] PromQL: add limitk() and limit_ratio() aggregation operators. #12503
+* [ENHANCEMENT] PromQL: Accept underscores in literal numbers, e.g. 1_000_000 for 1 million. #12821
+* [ENHANCEMENT] PromQL: float literal numbers and durations are now interchangeable (experimental). Example: `time() - my_timestamp > 10m`. #9138
+* [ENHANCEMENT] PromQL: use Kahan summation for sum(). #14074,#14362
+* [ENHANCEMENT] PromQL (experimental native histograms): Optimize `histogram_count` and `histogram_sum` functions. #14097
+* [ENHANCEMENT] TSDB: Better support for out-of-order experimental native histogram samples. #14438
+* [ENHANCEMENT] TSDB: Optimise seek within index. #14393
+* [ENHANCEMENT] TSDB: Optimise deletion of stale series. #14307
+* [ENHANCEMENT] TSDB: Reduce locking to optimise adding and removing series. #13286,#14286
+* [ENHANCEMENT] TSDB: Small optimisation: streamline special handling for out-of-order data. #14396,#14584
+* [ENHANCEMENT] Regexps: Optimize patterns with multiple prefixes. #13843,#14368
+* [ENHANCEMENT] Regexps: Optimize patterns containing multiple literal strings. #14173
+* [ENHANCEMENT] AWS SD: expose Primary IPv6 addresses as __meta_ec2_primary_ipv6_addresses. #14156
+* [ENHANCEMENT] Docker SD: add MatchFirstNetwork for containers with multiple networks. #10490
+* [ENHANCEMENT] OpenStack SD: Use `flavor.original_name` if available. #14312
+* [ENHANCEMENT] UI (experimental native histograms): more accurate representation. #13680,#14430
+* [ENHANCEMENT] Agent: `out_of_order_time_window` config option now applies to agent. #14094
+* [ENHANCEMENT] Notifier: Send any outstanding Alertmanager notifications when shutting down. #14290
+* [ENHANCEMENT] Rules: Add label-matcher support to Rules API. #10194
+* [ENHANCEMENT] HTTP API: Add url to message logged on error while sending response. #14209
+* [BUGFIX] TSDB: Exclude OOO chunks mapped after compaction starts (introduced by #14396). #14584
+* [BUGFIX] CLI: escape `|` characters when generating docs. #14420
+* [BUGFIX] PromQL (experimental native histograms): Fix some binary operators between native histogram values. #14454
+* [BUGFIX] TSDB: LabelNames API could fail during compaction. #14279
+* [BUGFIX] TSDB: Fix rare issue where pending OOO read can be left dangling if creating querier fails. #14341
+* [BUGFIX] TSDB: fix check for context cancellation in LabelNamesFor. #14302
+* [BUGFIX] Rules: Fix rare panic on reload. #14366
+* [BUGFIX] Config: In YAML marshalling, do not output a regexp field if it was never set. #14004
+* [BUGFIX] Remote-Write: reject samples with future timestamps. #14304
+* [BUGFIX] Remote-Write: Fix data corruption in remote write if max_sample_age is applied. #14078
+* [BUGFIX] Notifier: Fix Alertmanager discovery not updating under heavy load. #14174
+* [BUGFIX] Regexes: some Unicode characters were not matched by case-insensitive comparison. #14170,#14299
+* [BUGFIX] Remote-Read: Resolve occasional segmentation fault on query. #14515
+
+## 2.53.1 / 2024-07-10
+
+Fix a bug which would drop samples in remote-write if the sending flow stalled
+for longer than it takes to write one "WAL segment". How long this takes depends on the size
+of your Prometheus; as a rough guide with 10 million series it is about 2-3 minutes.
+
+* [BUGFIX] Remote-write: stop dropping samples in catch-up #14446
+
+## 2.53.0 / 2024-06-16
+
+This release changes the default for GOGC, the Go runtime control for the trade-off between excess memory use and CPU usage. We have found that Prometheus operates with minimal additional CPU usage, but greatly reduced memory by adjusting the upstream Go default from 100 to 75.
+
+* [CHANGE] Rules: Execute 1 query instead of N (where N is the number of alerts within alert rule) when restoring alerts. #13980 #14048
+* [CHANGE] Runtime: Change GOGC threshold from 100 to 75 #14176 #14285
+* [FEATURE] Rules: Add new option `query_offset` for each rule group via rule group configuration file and `rule_query_offset` as part of the global configuration to have more resilience for remote write delays. #14061 #14216 #14273
+* [ENHANCEMENT] Rules: Add `rule_group_last_restore_duration_seconds` metric to measure the time it takes to restore a rule group. #13974
+* [ENHANCEMENT] OTLP: Improve remote write format translation performance by using label set hashes for metric identifiers instead of string based ones. #14006 #13991
+* [ENHANCEMENT] TSDB: Optimize querying with regexp matchers. #13620
+* [BUGFIX] OTLP: Don't generate target_info unless there are metrics and at least one identifying label is defined. #13991
+* [BUGFIX] Scrape: Do no try to ingest native histograms when the native histograms feature is turned off. This happened when protobuf scrape was enabled by for example the created time feature. #13987
+* [BUGFIX] Scaleway SD: Use the instance's public IP if no private IP is available as the `__address__` meta label. #13941
+* [BUGFIX] Query logger: Do not leak file descriptors on error. #13948
+* [BUGFIX] TSDB: Let queries with heavy regex matches be cancelled and not use up the CPU. #14096 #14103 #14118 #14199
+* [BUGFIX] API: Do not warn if result count is equal to the limit, only when exceeding the limit for the series, label-names and label-values APIs. #14116
+* [BUGFIX] TSDB: Fix head stats and hooks when replaying a corrupted snapshot. #14079
+
+## 2.52.1 / 2024-05-29
+
+* [BUGFIX] Linode SD: Fix partial fetch when discovery would return more than 500 elements. #14141
+
+## 2.52.0 / 2024-05-07
+
+* [CHANGE] TSDB: Fix the predicate checking for blocks which are beyond the retention period to include the ones right at the retention boundary. #9633
+* [CHANGE] Scrape: Multiple samples (even with different timestamps) are treated as duplicates during one scrape.
+* [FEATURE] Kubernetes SD: Add a new metric `prometheus_sd_kubernetes_failures_total` to track failed requests to Kubernetes API. #13554
+* [FEATURE] Kubernetes SD: Add node and zone metadata labels when using the endpointslice role. #13935
+* [FEATURE] Azure SD/Remote Write: Allow usage of Azure authorization SDK. #13099
+* [FEATURE] Alerting: Support native histogram templating. #13731
+* [FEATURE] Linode SD: Support IPv6 range discovery and region filtering. #13774
+* [ENHANCEMENT] PromQL: Performance improvements for queries with regex matchers. #13461
+* [ENHANCEMENT] PromQL: Performance improvements when using aggregation operators. #13744
+* [ENHANCEMENT] PromQL: Validate label_join destination label. #13803
+* [ENHANCEMENT] Scrape: Increment `prometheus_target_scrapes_sample_duplicate_timestamp_total` metric on duplicated series during one scrape. #12933
+* [ENHANCEMENT] TSDB: Many improvements in performance. #13742 #13673 #13782
+* [ENHANCEMENT] TSDB: Pause regular block compactions if the head needs to be compacted (prioritize head as it increases memory consumption). #13754
+* [ENHANCEMENT] Observability: Improved logging during signal handling termination. #13772
+* [ENHANCEMENT] Observability: All log lines for drop series use "num_dropped" key consistently. #13823
+* [ENHANCEMENT] Observability: Log chunk snapshot and mmapped chunk replay duration during WAL replay. #13838
+* [ENHANCEMENT] Observability: Log if the block is being created from WBL during compaction. #13846
+* [BUGFIX] PromQL: Fix inaccurate sample number statistic when querying histograms. #13667
+* [BUGFIX] PromQL: Fix `histogram_stddev` and `histogram_stdvar` for cases where the histogram has negative buckets. #13852
+* [BUGFIX] PromQL: Fix possible duplicated label name and values in a metric result for specific queries. #13845
+* [BUGFIX] Scrape: Fix setting native histogram schema factor during scrape. #13846
+* [BUGFIX] TSDB: Fix counting of histogram samples when creating WAL checkpoint stats. #13776
+* [BUGFIX] TSDB: Fix cases of compacting empty heads. #13755
+* [BUGFIX] TSDB: Count float histograms in WAL checkpoint. #13844
+* [BUGFIX] Remote Read: Fix memory leak due to broken requests. #13777
+* [BUGFIX] API: Stop building response for `/api/v1/series/` when the API request was cancelled. #13766
+* [BUGFIX] promtool: Fix panic on `promtool tsdb analyze --extended` when no native histograms are present. #13976
+
+## 2.51.2 / 2024-04-09
+
+Bugfix release.
+
+[BUGFIX] Notifier: could hang when using relabeling on alerts #13861
+
+## 2.51.1 / 2024-03-27
+
+Bugfix release.
+
+* [BUGFIX] PromQL: Re-instate validation of label_join destination label #13803
+* [BUGFIX] Scraping (experimental native histograms): Fix handling of the min bucket factor on sync of targets #13846
+* [BUGFIX] PromQL: Some queries could return the same series twice (library use only) #13845
+
+## 2.51.0 / 2024-03-18
+
+This version is built with Go 1.22.1.
+
+There is a new optional build tag "dedupelabels", which s

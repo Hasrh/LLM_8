@@ -1,0 +1,2904 @@
+
+
+# FILE: otelcol-ci-config.yml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  file:
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 18   # Jaeger will reject file uploads larger than 20MB by default
+    # path: /data/metrics.json
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file]
+
+
+# FILE: TESTING.md
+# Testing
+
+This document contains the Moby code testing guidelines. It should answer any 
+questions you may have as an aspiring Moby contributor.
+
+## Test suites
+
+Moby has two test suites (and one legacy test suite):
+
+* Unit tests - use standard `go test` and
+  [gotest.tools/v3/assert](https://pkg.go.dev/gotest.tools/v3/assert) assertions. They are located in
+  the package they test. Unit tests should be fast and test only their own 
+  package.
+* API integration tests - use standard `go test` and
+  [gotest.tools/v3/assert](https://pkg.go.dev/gotest.tools/v3/assert) assertions. They are located in
+  `./integration/<component>` directories, where `component` is: container,
+  image, volume, etc. These tests perform HTTP requests to an API endpoint and
+  check the HTTP response and daemon state after the call.
+
+The legacy test suite `integration-cli/` is deprecated. No new tests will be 
+added to this suite. Any tests in this suite which require updates should be 
+ported to either the unit test suite or the new API integration test suite.
+
+## Writing new tests
+
+Most code changes will fall into one of the following categories.
+
+### Writing tests for new features
+
+New code should be covered by unit tests. If the code is difficult to test with
+unit tests, then that is a good sign that it should be refactored to make it
+easier to reuse and maintain. Consider accepting unexported interfaces instead
+of structs so that fakes can be provided for dependencies.
+
+If the new feature includes a completely new API endpoint then a new API 
+integration test should be added to cover the success case of that endpoint.
+
+If the new feature does not include a completely new API endpoint consider 
+adding the new API fields to the existing test for that endpoint. A new 
+integration test should **not** be added for every new API field or API error 
+case. Error cases should be handled by unit tests.
+
+### Writing tests for bug fixes
+
+Bugs fixes should include a unit test case which exercises the bug.
+
+A bug fix may also include new assertions in existing integration tests for the
+API endpoint.
+
+### Writing new integration tests
+
+Note the `integration-cli` tests are deprecated; new tests will be rejected by
+the CI.
+
+Instead, implement new tests under `integration/`.
+
+### Integration tests environment considerations
+
+When adding new tests or modifying existing tests under `integration/`, testing
+environment should be properly considered. [`skip.If`](https://pkg.go.dev/gotest.tools/v3/skip#If) from 
+[gotest.tools/v3/skip](https://pkg.go.dev/gotest.tools/v3/skip) can be used to make the 
+test run conditionally. Full testing environment conditions can be found at 
+[environment.go](https://github.com/moby/moby/blob/311b2c87e125c6d4198014369e313135cf928a8a/testutil/environment/environment.go)
+
+Here is a quick example. If the test needs to interact with a docker daemon on 
+the same host, the following condition should be checked within the test code
+
+```go
+package example
+
+import (
+	"testing"
+
+	"gotest.tools/v3/skip"
+)
+
+func TestSomething(t *testing.T) {
+	skip.If(t, testEnv.IsRemoteDaemon(), "test requires a local daemon")
+
+	// your integration test code
+}
+```
+
+If a remote daemon is detected, the test will be skipped.
+
+## Running tests
+
+### Unit Tests
+
+To run the unit test suite:
+
+```bash
+make test-unit
+```
+
+or `hack/test/unit` from inside a `make shell` container or properly
+configured environment.
+
+The following environment variables may be used to run a subset of tests:
+
+* `TESTDIRS` - paths to directories to be tested, defaults to `./...`
+* `TESTFLAGS` - flags passed to `go test`, to run tests which match a pattern
+  use `TESTFLAGS="-test.run TestNameOrPrefix"`
+
+### Integration Tests
+
+To run the integration test suite:
+
+```bash
+make test-integration
+```
+
+This make target runs both the "integration" suite and the "integration-cli"
+suite.
+
+You can specify which integration test dirs to build and run by specifying
+the list of dirs in the TEST_INTEGRATION_DIR environment variable.
+
+You can also explicitly skip either suite by setting (any value) in
+TEST_SKIP_INTEGRATION and/or TEST_SKIP_INTEGRATION_CLI environment variables.
+
+Flags specific to each suite can be set in the TESTFLAGS_INTEGRATION and
+TESTFLAGS_INTEGRATION_CLI environment variables.
+
+If all you want is to specify a test filter to run, you can set the
+`TEST_FILTER` environment variable. This ends up getting passed directly to `go
+test -run` (or `go test -check-f`, depending on the test suite). It will also
+automatically set the other above mentioned environment variables accordingly.
+
+### Go Version
+
+You can change a version of golang used for building stuff that is being tested
+by setting `GO_VERSION` variable, for example:
+
+```bash
+make GO_VERSION=1.24.8 test
+```
+
+
+# FILE: SECURITY.md
+# Security Policy
+
+The maintainers of the Moby project take security seriously. If you discover
+a security issue, please bring it to their attention right away!
+
+## Reporting a Vulnerability
+
+Please **DO NOT** file a public issue, instead send your report privately
+to [security@docker.com](mailto:security@docker.com).
+
+Reporter(s) can expect a response within 72 hours, acknowledging the issue was
+received.
+
+## Review Process
+
+After receiving the report, an initial triage and technical analysis is
+performed to confirm the report and determine its scope. We may request
+additional information in this stage of the process.
+
+Once a reviewer has confirmed the relevance of the report, a draft security
+advisory will be created on GitHub. The draft advisory will be used to discuss
+the issue with maintainers, the reporter(s), and where applicable, other
+affected parties under embargo.
+
+If the vulnerability is accepted, a timeline for developing a patch, public
+disclosure, and patch release will be determined. If there is an embargo period
+on public disclosure before the patch release, the reporter(s) are expected to
+participate in the discussion of the timeline and abide by agreed upon dates
+for public disclosure.
+
+## Accreditation
+
+Security reports are greatly appreciated and we will publicly thank you,
+although we will keep your name confidential if you request it. We also like to
+send gifts - if you're into swag, make sure to let us know. We do not currently
+offer a paid security bounty program at this time.
+
+## Supported Versions
+
+This project uses long-lived branches to maintain releases. Refer to
+[BRANCHES-AND-TAGS.md](project/BRANCHES-AND-TAGS.md) in the default branch to
+learn about the current maintenance status of each branch.
+
+
+# FILE: ROADMAP.md
+Moby Project Roadmap
+====================
+
+### How should I use this document?
+
+This document provides description of items that the project decided to prioritize. This should
+serve as a reference point for Moby contributors to understand where the project is going, and
+help determine if a contribution could be conflicting with some longer term plans.
+
+The fact that a feature isn't listed here doesn't mean that a patch for it will automatically be
+refused! We are always happy to receive patches for new cool features we haven't thought about,
+or didn't judge to be a priority. Please however understand that such patches might take longer
+for us to review.
+
+### How can I help?
+
+Short term objectives are listed in
+[Issues](https://github.com/moby/moby/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap). Our
+goal is to split down the workload in such way that anybody can jump in and help. Please comment on
+issues if you want to work on it to avoid duplicating effort! Similarly, if a maintainer is already
+assigned on an issue you'd like to participate in, pinging him on GitHub to offer your help is
+the best way to go.
+
+### How can I add something to the roadmap?
+
+The roadmap process is new to the Moby Project: we are only beginning to structure and document the
+project objectives. Our immediate goal is to be more transparent, and work with our community to
+focus our efforts on fewer prioritized topics.
+
+We hope to offer in the near future a process allowing anyone to propose a topic to the roadmap, but
+we are not quite there yet. For the time being, it is best to discuss with the maintainers on an
+issue, in the Slack channel, or in person at the Moby Summits that happen every few months.
+
+# 1. Features and refactoring
+
+## 1.1 Runtime improvements
+
+Over time we have accumulated a lot of functionality in the container runtime
+aspect of Moby while also growing in other areas. Much of the container runtime
+pieces are now duplicated work available in other, lower level components such
+as [containerd](https://containerd.io).
+
+Moby currently only utilizes containerd for basic runtime state management, e.g. starting
+and stopping a container, which is what the pre-containerd 1.0 daemon provided.
+Now that containerd is a full-fledged container runtime which supports full
+container life-cycle management, we would like to start relying more on containerd
+and removing the bits in Moby which are now duplicated. This will necessitate
+a significant effort to refactor and even remove large parts of Moby's codebase.
+
+Tracking issues:
+
+- [#38043](https://github.com/moby/moby/issues/38043) Proposal: containerd image integration
+
+## 1.2 Image Builder
+
+Work is ongoing to integrate [BuildKit](https://github.com/moby/buildkit) into
+Moby and replace the "v0" build implementation. Buildkit offers better cache
+management, parallelizable build steps, and better extensibility while also
+keeping builds portable, a chief tenent of Moby's builder.
+
+Upon completion of this effort, users will have a builder that performs better
+while also being more extensible, enabling users to provide their own custom
+syntax which can be either Dockerfile-like or something completely different.
+
+See [buildpacks on buildkit](https://github.com/tonistiigi/buildkit-pack) as an
+example of this extensibility.
+
+New features for the builder and Dockerfile should be implemented first in the
+BuildKit backend using an external Dockerfile implementation from the container
+images. This allows everyone to test and evaluate the feature without upgrading
+their daemon. New features should go to the experimental channel first, and can be
+part of the `docker/dockerfile:experimental` image. From there they graduate to
+`docker/dockerfile:latest` and binary releases. The Dockerfile frontend source
+code is temporarily located at
+[https://github.com/moby/buildkit/tree/master/frontend/dockerfile](https://github.com/moby/buildkit/tree/master/frontend/dockerfile)
+with separate new features defined with go build tags.
+
+Tracking issues:
+
+- [#32925](https://github.com/moby/moby/issues/32925) discussion: builder future: buildkit
+
+## 1.3 Rootless Mode
+
+Running the daemon requires elevated privileges for many tasks. We would like to
+support running the daemon as a normal, unprivileged user without requiring `suid`
+binaries.
+
+Tracking issues:
+
+- [#37375](https://github.com/moby/moby/issues/37375) Proposal: allow running `dockerd` as an unprivileged user (aka rootless mode)
+
+## 1.4 Testing
+
+Moby has many tests, both unit and integration. Moby needs more tests which can
+cover the full spectrum functionality and edge cases out there.
+
+Tests in the `integration-cli` folder should also be migrated into (both in
+location and style) the `integration` folder. These newer tests are simpler to
+run in isolation, simpler to read, simpler to write, and more fully exercise the
+API. Meanwhile tests of the docker CLI should generally live in docker/cli.
+
+Tracking issues:
+
+- [#32866](https://github.com/moby/moby/issues/32866) Replace integration-cli suite with API test suite
+
+## 1.5 Internal decoupling
+
+A lot of work has been done in trying to decouple Moby internals. This process of creating
+standalone projects with a well defined function that attract a dedicated community should continue.
+As well as integrating `containerd` we would like to integrate [BuildKit](https://github.com/moby/buildkit)
+as the next standalone component.
+We see gRPC as the natural communication layer between decoupled components.
+
+In addition to pushing out large components into other projects, much of the
+internal code structure, and in particular the
+["Daemon"](https://pkg.go.dev/github.com/moby/moby/v2/daemon#Daemon) object,
+should be split into smaller, more manageable, and more testable components.
+
+
+# FILE: README.md
+The Moby Project
+================
+
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/moby/moby/v2)](https://pkg.go.dev/github.com/moby/moby/v2)
+![GitHub License](https://img.shields.io/github/license/moby/moby)
+[![Go Report Card](https://goreportcard.com/badge/github.com/moby/moby/v2)](https://goreportcard.com/report/github.com/moby/moby/v2)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/moby/moby/badge)](https://scorecard.dev/viewer/?uri=github.com/moby/moby)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10989/badge)](https://www.bestpractices.dev/projects/10989)
+
+
+![Moby Project logo](docs/static_files/moby-project-logo.png "The Moby Project")
+
+Moby is an open-source project created by Docker to enable and accelerate software containerization.
+
+It provides a "Lego set" of toolkit components, the framework for assembling them into custom container-based systems, and a place for all container enthusiasts and professionals to experiment and exchange ideas.
+Components include container build tools, a container registry, orchestration tools, a runtime and more, and these can be used as building blocks in conjunction with other tools and projects.
+
+## Principles
+
+Moby is an open project guided by strong principles, aiming to be modular, flexible and without too strong an opinion on user experience.
+It is open to the community to help set its direction.
+
+- Modular: the project includes lots of components that have well-defined functions and APIs that work together.
+- Batteries included but swappable: Moby includes enough components to build fully featured container systems, but its modular architecture ensures that most of the components can be swapped by different implementations.
+- Usable security: Moby provides secure defaults without compromising usability.
+- Developer focused: The APIs are intended to be functional and useful to build powerful tools.
+They are not necessarily intended as end user tools but as components aimed at developers.
+Documentation and UX is aimed at developers not end users.
+
+## Audience
+
+The Moby Project is intended for engineers, integrators and enthusiasts looking to modify, hack, fix, experiment, invent and build systems based on containers.
+It is not for people looking for a commercially supported system, but for people who want to work and learn with open source code.
+
+## Relationship with Docker
+
+The components and tools in the Moby Project are initially the open source components that Docker and the community have built for the Docker Project.
+New projects can be added if they fit with the community goals. Docker is committed to using Moby as the upstream for the Docker Product.
+However, other projects are also encouraged to use Moby as an upstream, and to reuse the components in diverse ways, and all these uses will be treated in the same way. External maintainers and contributors are welcomed.
+
+The Moby project is not intended as a location for support or feature requests for Docker products, but as a place for contributors to work on open source code, fix bugs, and make the code more useful.
+The releases are supported by the maintainers, community and users, on a best efforts basis only. For customers who want enterprise or commercial support, [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Mirantis Container Runtime](https://www.mirantis.com/software/mirantis-container-runtime/) are the appropriate products for these use cases.
+
+-----
+
+Legal
+=====
+
+*Brought to you courtesy of our legal counsel. For more context,
+please see the [NOTICE](https://github.com/moby/moby/blob/master/NOTICE) document in this repo.*
+
+Use and transfer of Moby may be subject to certain restrictions by the
+United States and other governments.
+
+It is your responsibility to ensure that your use and/or transfer does not
+violate applicable laws.
+
+For more information, please see https://www.bis.doc.gov
+
+Licensing
+=========
+Moby is licensed under the Apache License, Version 2.0. See
+[LICENSE](https://github.com/moby/moby/blob/master/LICENSE) for the full
+license text.
+
+
+# FILE: Makefile
+DOCKER ?= docker
+BUILDX ?= $(DOCKER) buildx
+
+DOCKER_GITCOMMIT := $(shell git rev-parse HEAD)
+export DOCKER_GITCOMMIT
+
+# allow overriding the repository and branch that validation scripts are running
+# against these are used in hack/validate/.validate to check what changed in the PR.
+export VALIDATE_REPO
+export VALIDATE_BRANCH
+export VALIDATE_ORIGIN_BRANCH
+
+export PAGER
+export GIT_PAGER
+
+# env vars passed through directly to Docker's build scripts
+# to allow things like `make KEEPBUNDLE=1 binary` easily
+# `project/PACKAGERS.md` have some limited documentation of some of these
+#
+# DOCKER_LDFLAGS can be used to pass additional parameters to -ldflags
+# option of "go build". For example, a built-in graphdriver priority list
+# can be changed during build time like this:
+#
+# make DOCKER_LDFLAGS="-X github.com/moby/moby/v2/daemon/graphdriver.priority=overlay2,zfs" dynbinary
+#
+DOCKER_ENVS := \
+	-e BUILDFLAGS \
+	-e KEEPBUNDLE \
+	-e DOCKER_BUILD_ARGS \
+	-e DOCKER_BUILDKIT \
+	-e DOCKER_CLI_PATH \
+	-e DOCKERCLI_VERSION \
+	-e DOCKERCLI_REPOSITORY \
+	-e DOCKERCLI_INTEGRATION_VERSION \
+	-e DOCKERCLI_INTEGRATION_REPOSITORY \
+	-e DOCKER_DEBUG \
+	-e DOCKER_EXPERIMENTAL \
+	-e DOCKER_FIREWALL_BACKEND \
+	-e DOCKER_GITCOMMIT \
+	-e DOCKER_GRAPHDRIVER \
+	-e DOCKER_IGNORE_BR_NETFILTER_ERROR \
+	-e DOCKER_LDFLAGS \
+	-e DOCKER_PORT \
+	-e DOCKER_REMAP_ROOT \
+	-e DOCKER_ROOTLESS \
+	-e DOCKER_STORAGE_OPTS \
+	-e DOCKER_TEST_HOST \
+	-e DOCKER_USERLANDPROXY \
+	-e DOCKERD_ARGS \
+	-e DELVE_PORT \
+	-e FIREWALLD \
+	-e GITHUB_ACTIONS \
+	-e TEST_FORCE_VALIDATE \
+	-e TEST_INTEGRATION_DIR \
+	-e TEST_INTEGRATION_USE_GRAPHDRIVER \
+	-e TEST_INTEGRATION_FAIL_FAST \
+	-e TEST_SKIP_INTEGRATION \
+	-e TEST_SKIP_INTEGRATION_CLI \
+	-e TESTCOVERAGE \
+	-e TESTDEBUG \
+	-e TESTDIRS \
+	-e TESTFLAGS \
+	-e TESTFLAGS_INTEGRATION \
+	-e TESTFLAGS_INTEGRATION_CLI \
+	-e TEST_FILTER \
+	-e TIMEOUT \
+	-e VALIDATE_REPO \
+	-e VALIDATE_BRANCH \
+	-e VALIDATE_ORIGIN_BRANCH \
+	-e VERSION \
+	-e PLATFORM \
+	-e DEFAULT_PRODUCT_LICENSE \
+	-e PRODUCT \
+	-e PACKAGER_NAME \
+	-e PAGER \
+	-e GIT_PAGER \
+	-e OTEL_EXPORTER_OTLP_ENDPOINT \
+	-e OTEL_EXPORTER_OTLP_PROTOCOL \
+	-e OTEL_SERVICE_NAME
+# note: we _cannot_ add "-e DOCKER_BUILDTAGS" here because even if it's unset in the shell, that would shadow the "ENV DOCKER_BUILDTAGS" set in our Dockerfile, which is very important for our official builds
+
+# to allow `make BIND_DIR=. shell` or `make BIND_DIR= test`
+# (default to no bind mount if DOCKER_HOST is set)
+# note: BINDDIR is supported for backwards-compatibility here
+BIND_DIR := $(if $(BINDDIR),$(BINDDIR),$(if $(DOCKER_HOST),,.))
+
+# DOCKER_MOUNT can be overridden, but use at your own risk!
+ifndef DOCKER_MOUNT
+DOCKER_MOUNT := $(if $(BIND_DIR),-v "$(BIND_DIR):/go/src/github.com/docker/docker/$(BIND_DIR)")
+DOCKER_MOUNT := $(if $(DOCKER_BINDDIR_MOUNT_OPTS),$(DOCKER_MOUNT):$(DOCKER_BINDDIR_MOUNT_OPTS),$(DOCKER_MOUNT))
+
+# This allows the test suite to be able to run without worrying about the underlying fs used by the container running the daemon (e.g. aufs-on-aufs), so long as the host running the container is running a supported fs.
+# The volume will be cleaned up when the container is removed due to `--rm`.
+# Note that `BIND_DIR` will already be set to `bundles` if `DOCKER_HOST` is not set (see above BIND_DIR line), in such case this will do nothing since `DOCKER_MOUNT` will already be set.
+DOCKER_MOUNT := $(if $(DOCKER_MOUNT),$(DOCKER_MOUNT),-v /go/src/github.com/docker/docker/bundles) -v "$(CURDIR)/.git:/go/src/github.com/docker/docker/.git"
+
+DOCKER_MOUNT_CACHE := -v docker-dev-cache:/root/.cache -v docker-mod-cache:/go/pkg/mod/
+DOCKER_MOUNT_CLI := $(if $(DOCKER_CLI_PATH),-v $(shell dirname $(DOCKER_CLI_PATH)):/usr/local/cli,)
+
+ifdef BIND_GIT
+	# Gets the common .git directory (even from inside a git worktree)
+	GITDIR := $(shell realpath $(shell git rev-parse --git-common-dir))
+	MOUNT_GITDIR := $(if $(GITDIR),-v "$(GITDIR):$(GITDIR)")
+endif
+
+DOCKER_MOUNT := $(DOCKER_MOUNT) $(DOCKER_MOUNT_CACHE) $(DOCKER_MOUNT_CLI) $(DOCKER_MOUNT_BASH_COMPLETION) $(MOUNT_GITDIR)
+endif # ifndef DOCKER_MOUNT
+
+# This allows to set the docker-dev container name
+DOCKER_CONTAINER_NAME := $(if $(CONTAINER_NAME),--name $(CONTAINER_NAME),)
+
+DOCKER_IMAGE := docker-dev
+DOCKER_PORT_FORWARD := $(if $(DOCKER_PORT),-p "$(DOCKER_PORT)",)
+DELVE_PORT_FORWARD := $(if $(DELVE_PORT),-p "$(DELVE_PORT)",)
+
+DOCKER_FLAGS := $(DOCKER) run --rm --privileged $(DOCKER_CONTAINER_NAME) $(DOCKER_ENVS) $(DOCKER_MOUNT) $(DOCKER_PORT_FORWARD) $(DELVE_PORT_FORWARD)
+
+define \n
+
+endef
+
+# if this session isn't interactive, then we don't want to allocate a
+# TTY, which would fail, but if it is interactive, we do want to attach
+# so that the user can send e.g. ^C through.
+INTERACTIVE := $(shell [ -t 0 ] && echo 1 || echo 0)
+ifeq ($(INTERACTIVE), 1)
+	DOCKER_FLAGS += -t
+endif
+
+# on GitHub Runners input device is not a TTY but we allocate a pseudo-one,
+# otherwise keep STDIN open even if not attached if not a GitHub Runner.
+ifeq ($(GITHUB_ACTIONS),true)
+	DOCKER_FLAGS += -t
+else
+	DOCKER_FLAGS += -i
+endif
+
+DOCKER_RUN_DOCKER := $(DOCKER_FLAGS) "$(DOCKER_IMAGE)"
+
+DOCKER_BUILD_ARGS += --build-arg=GO_VERSION
+DOCKER_BUILD_ARGS += --build-arg=DOCKERCLI_VERSION
+DOCKER_BUILD_ARGS += --build-arg=DOCKERCLI_REPOSITORY
+DOCKER_BUILD_ARGS += --build-arg=DOCKERCLI_INTEGRATION_VERSION
+DOCKER_BUILD_ARGS += --build-arg=DOCKERCLI_INTEGRATION_REPOSITORY
+ifdef DOCKER_SYSTEMD
+DOCKER_BUILD_ARGS += --build-arg=SYSTEMD=true
+endif
+ifdef FIREWALLD
+DOCKER_BUILD_ARGS += --build-arg=FIREWALLD=true
+endif
+
+BUILD_OPTS := ${DOCKER_BUILD_ARGS}
+BUILD_CMD := $(BUILDX) build
+BAKE_CMD := $(BUILDX) bake
+
+default: binary
+
+.PHONY: all
+all: build ## validate all checks, build linux binaries, run all tests,\ncross build non-linux binaries, and generate archives
+	$(DOCKER_RUN_DOCKER) bash -c 'hack/validate/default && hack/make.sh'
+
+.PHONY: binary
+binary: bundles ## build statically linked linux binaries
+	$(BAKE_CMD) binary
+
+.PHONY: dynbinary
+dynbinary: bundles ## build dynamically linked linux binaries
+	$(BAKE_CMD) dynbinary
+
+.PHONY: cross
+cross: bundles ## cross build the binaries
+	$(BAKE_CMD) binary-cross
+
+bundles:
+	mkdir bundles
+
+.PHONY: clean
+clean: clean-cache
+
+.PHONY: clean-cache
+clean-cache: ## remove the docker volumes that are used for caching in the dev-container
+	docker volume rm -f docker-dev-cache docker-mod-cache
+
+.PHONY: help
+help: ## this help
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {gsub("\\\\n",sprintf("\n%22c",""), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+.PHONY: install
+install: ## install the linux binaries
+	KEEPBUNDLE=1 hack/make.sh install-binary
+
+.PHONY: run
+run: build ## run the docker daemon in a container
+	$(DOCKER_RUN_DOCKER) sh -c "KEEPBUNDLE=1 hack/make.sh install-binary run"
+ 
+.PHONY: build
+ifeq ($(BIND_DIR), .)
+build: shell_target := --target=dev-base
+else
+build: shell_target := --target=dev
+endif
+build: validate-bind-dir bundles
+	$(BUILD_CMD) $(BUILD_OPTS) $(shell_target) --load -t "$(DOCKER_IMAGE)" .
+
+.PHONY: shell
+shell: build  ## start a shell inside the build env
+	$(DOCKER_RUN_DOCKER) bash
+
+.PHONY: dev
+dev: build  ## start a dev mode inside the build env
+	$(DOCKER_RUN_DOCKER) hack/dev.sh
+
+.PHONY: test
+test: build test-unit ## run the unit, integration and docker-py tests
+	$(DOCKER_RUN_DOCKER) hack/make.sh dynbinary test-integration test-docker-py
+
+.PHONY: test-docker-py
+test-docker-py: build ## run the docker-py tests
+	$(DOCKER_RUN_DOCKER) hack/make.sh dynbinary test-docker-py
+
+.PHONY: test-integration-cli
+test-integration-cli: test-integration ## (DEPRECATED) use test-integration
+
+.PHONY: test-integration
+ifneq ($(and $(TEST_SKIP_INTEGRATION),$(TEST_SKIP_INTEGRATION_CLI)),)
+test-integration:
+	@echo Both integrations suites skipped per environment variables
+else
+test-integration: build ## run the integration tests
+	$(DOCKER_RUN_DOCKER) hack/make.sh dynbinary test-integration
+endif
+
+.PHONY: test-integration-flaky
+test-integration-flaky: build ## run the stress test for all new integration tests
+	$(DOCKER_RUN_DOCKER) hack/make.sh dynbinary test-integration-flaky
+
+.PHONY: test-unit
+test-unit: build ## run the unit tests
+	$(DOCKER_RUN_DOCKER) hack/test/unit
+
+.PHONY: validate
+validate: build ## validate DCO, Seccomp profile generation, gofmt,\n./pkg/ isolation, golint, tests, tomls, go vet and vendor
+	$(DOCKER_RUN_DOCKER) hack/validate/all
+
+.PHONY: validate-generate-files
+validate-generate-files:
+	$(BUILD_CMD) --target "validate" \
+		--output "type=cacheonly" \
+		--file "./hack/dockerfiles/generate-files.Dockerfile" .
+
+.PHONY: validate-%
+validate-%: build ## validate specific check
+	$(DOCKER_RUN_DOCKER) hack/validate/$*
+
+.PHONY: win
+win: bundles ## cross build the binary for windows
+	$(BAKE_CMD) --set *.platform=windows/amd64 binary
+
+.PHONY: swagger-gen
+swagger-gen:  ## generate swagger API types
+	$(MAKE) -C api swagger-gen
+
+.PHONY: swagger-docs
+swagger-docs: ## preview the API documentation
+	$(MAKE) -C api swagger-docs
+
+.PHONY: generate-files
+generate-files:
+	$(eval $@_TMP_OUT := $(shell mktemp -d -t moby-output.XXXXXXXXXX))
+	@if [ -z "$($@_TMP_OUT)" ]; then \
+		echo "Temp dir is not set"; \
+		exit 1; \
+	fi
+	$(BUILD_CMD) --target "update" \
+		--output "type=local,dest=$($@_TMP_OUT)" \
+		--file "./hack/dockerfiles/generate-files.Dockerfile" .
+	cp -R "$($@_TMP_OUT)"/. .
+	rm -rf "$($@_TMP_OUT)"/*
+
+.PHONY: validate-bind-dir
+validate-bind-dir:
+	@case "$(BIND_DIR)" in \
+		".."*|"/"*) echo "Make needs to be run from the project-root directory, with BIND_DIR set to \".\" or a subdir"; \
+		exit 1 ;; \
+	esac
+
+
+# FILE: LICENSE
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   Copyright 2013-2018 Docker, Inc.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: Dockerfile
+# syntax=docker/dockerfile:1
+
+ARG GO_VERSION=1.26.1
+ARG BASE_DEBIAN_DISTRO="bookworm"
+ARG GOLANG_IMAGE="golang:${GO_VERSION}-${BASE_DEBIAN_DISTRO}"
+
+# XX_VERSION specifies the version of the xx utility to use.
+# It must be a valid tag in the docker.io/tonistiigi/xx image repository.
+ARG XX_VERSION=1.9.0
+
+# VPNKIT_VERSION is the version of the vpnkit binary which is used as a fallback
+# network driver for rootless.
+ARG VPNKIT_VERSION=0.6.0
+
+# DOCKERCLI_VERSION is the version of the CLI to install in the dev-container.
+ARG DOCKERCLI_VERSION=v29.2.1
+ARG DOCKERCLI_REPOSITORY="https://github.com/docker/cli.git"
+
+# cli version used for integration-cli tests
+ARG DOCKERCLI_INTEGRATION_REPOSITORY="https://github.com/docker/cli.git"
+ARG DOCKERCLI_INTEGRATION_VERSION=v25.0.5
+
+# BUILDX_VERSION is the version of buildx to install in the dev container.
+ARG BUILDX_VERSION=0.32.1
+
+# COMPOSE_VERSION is the version of compose to install in the dev container.
+ARG COMPOSE_VERSION=v5.1.1
+
+ARG SYSTEMD="false"
+ARG FIREWALLD="false"
+ARG DOCKER_STATIC=1
+
+# REGISTRY_VERSION specifies the version of the registry to download from
+# https://hub.docker.com/r/distribution/distribution. This version of
+# the registry is used to test schema 2 manifests. Generally,  the version
+# specified here should match a current release.
+ARG REGISTRY_VERSION=3.0.0
+
+# delve is currently only supported on linux/amd64, linux/arm64, and linux/ppc64le;
+# https://github.com/go-delve/delve/blob/v1.26.0/pkg/proc/native/support_sentinel.go#L1
+# https://github.com/go-delve/delve/blob/v1.26.0/pkg/proc/native/support_sentinel_linux.go#L1
+#
+# Remove supported, non-experimental platforms; if anything remains, it's unsupported.
+ARG DELVE_SUPPORTED=${TARGETPLATFORM#linux/amd64}
+ARG DELVE_SUPPORTED=${DELVE_SUPPORTED#linux/arm64}
+ARG DELVE_SUPPORTED=${DELVE_SUPPORTED#linux/ppc64le}
+ARG DELVE_SUPPORTED=${DELVE_SUPPORTED#linux/riscv64}
+ARG DELVE_SUPPORTED=${DELVE_SUPPORTED:+"unsupported"}
+ARG DELVE_SUPPORTED=${DELVE_SUPPORTED:-"supported"}
+
+# cross compilation helper
+FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
+
+# dummy stage to make sure the image is built for deps that don't support some
+# architectures
+FROM --platform=$BUILDPLATFORM busybox AS build-dummy
+RUN mkdir -p /build
+FROM scratch AS binary-dummy
+COPY --from=build-dummy /build /build
+
+# base
+FROM --platform=$BUILDPLATFORM ${GOLANG_IMAGE} AS base
+COPY --from=xx / /
+# Disable collecting local telemetry, as collected by Go and Delve;
+#
+# - https://github.com/go-delve/delve/blob/v1.24.1/CHANGELOG.md#1231-2024-09-23
+# - https://go.dev/doc/telemetry#background
+RUN go telemetry off && [ "$(go telemetry)" = "off" ] || { echo "Failed to disable Go telemetry"; exit 1; }
+RUN echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+RUN apt-get update && apt-get install --no-install-recommends -y file
+ENV GOTOOLCHAIN=local
+
+FROM base AS criu
+ADD --chmod=0644 https://download.opensuse.org/repositories/devel:/tools:/criu/Debian_11/Release.key /etc/apt/trusted.gpg.d/criu.gpg.asc
+RUN --mount=type=cache,sharing=locked,id=moby-criu-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-criu-aptcache,target=/var/cache/apt \
+        echo 'deb https://download.opensuse.org/repositories/devel:/tools:/criu/Debian_12/ /' > /etc/apt/sources.list.d/criu.list \
+        && apt-get update \
+        && apt-get install -y --no-install-recommends criu \
+        && install -D /usr/sbin/criu /build/criu \
+        && /build/criu --version
+
+# registry
+FROM distribution/distribution:$REGISTRY_VERSION AS registry
+RUN mkdir /build && mv /bin/registry /build/registry
+
+# frozen-images
+# See also frozenImages in "testutil/environment/protect.go" (which needs to
+# be updated when adding images to this list)
+FROM debian:${BASE_DEBIAN_DISTRO} AS frozen-images
+RUN --mount=type=cache,sharing=locked,id=moby-frozen-images-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-frozen-images-aptcache,target=/var/cache/apt \
+       apt-get update && apt-get install -y --no-install-recommends \
+           ca-certificates \
+           curl \
+           jq
+# Get useful and necessary Hub images so we can "docker load" locally instead of pulling
+COPY contrib/download-frozen-image-v2.sh /
+ARG TARGETARCH
+ARG TARGETVARIANT
+RUN /download-frozen-image-v2.sh /build \
+        busybox:latest@sha256:95cf004f559831017cdf4628aaf1bb30133677be8702a8c5f2994629f637a209 \
+        busybox:glibc@sha256:1f81263701cddf6402afe9f33fca0266d9fff379e59b1748f33d3072da71ee85 \
+        debian:trixie-slim@sha256:c85a2732e97694ea77237c61304b3bb410e0e961dd6ee945997a06c788c545bb \
+        hello-world:latest@sha256:d58e752213a51785838f9eed2b7a498ffa1cb3aa7f946dda11af39286c3db9a9 \
+        arm32v7/hello-world:latest@sha256:50b8560ad574c779908da71f7ce370c0a2471c098d44d1c8f6b513c5a55eeeb1 \
+        hello-world:amd64@sha256:90659bf80b44ce6be8234e6ff90a1ac34acbeb826903b02cfa0da11c82cbc042 \
+        hello-world:arm64@sha256:963612c5503f3f1674f315c67089dee577d8cc6afc18565e0b4183ae355fb343
+
+# delve
+FROM base AS delve-src
+WORKDIR /usr/src/delve
+RUN git init . && git remote add origin "https://github.com/go-delve/delve.git"
+# DELVE_VERSION specifies the version of the Delve debugger binary
+# from the https://github.com/go-delve/delve repository.
+# It can be used to run Docker with a possibility of
+# attaching debugger to it.
+ARG DELVE_VERSION=v1.26.0
+RUN git fetch -q --depth 1 origin "${DELVE_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS delve-supported
+WORKDIR /usr/src/delve
+ARG TARGETPLATFORM
+RUN --mount=from=delve-src,src=/usr/src/delve,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=delve-build-$TARGETPLATFORM \
+    --mount=type=cache,target=/go/pkg/mod <<EOT
+  set -ex
+  xx-go build -o /build/dlv ./cmd/dlv
+  xx-verify /build/dlv
+EOT
+
+FROM binary-dummy AS delve-unsupported
+FROM delve-${DELVE_SUPPORTED} AS delve
+
+FROM base AS gowinres
+# GOWINRES_VERSION defines go-winres tool version
+ARG GOWINRES_VERSION=v0.3.1
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        GOBIN=/build CGO_ENABLED=0 go install "github.com/tc-hib/go-winres@${GOWINRES_VERSION}" \
+     && /build/go-winres --help
+
+# containerd
+FROM base AS containerd-src
+WORKDIR /usr/src/containerd
+RUN git init . && git remote add origin "https://github.com/containerd/containerd.git"
+# CONTAINERD_VERSION is used to build containerd binaries, and used for the
+# integration tests. The distributed docker .deb and .rpm packages depend on a
+# separate (containerd.io) package, which may be a different version as is
+# specified here.
+ARG CONTAINERD_VERSION=v2.2.2
+RUN git fetch -q --depth 1 origin "${CONTAINERD_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS containerd-build
+WORKDIR /go/src/github.com/containerd/containerd
+ARG TARGETPLATFORM
+RUN --mount=type=cache,sharing=locked,id=moby-containerd-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-containerd-aptcache,target=/var/cache/apt \
+        apt-get update && xx-apt-get install -y --no-install-recommends \
+            gcc \
+            pkg-config
+ARG DOCKER_STATIC
+RUN --mount=from=containerd-src,src=/usr/src/containerd,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=containerd-build-$TARGETPLATFORM <<EOT
+  set -e
+
+  make_flags=
+  verify_flags=
+  cgo_enabled=1
+  if [ "$DOCKER_STATIC" = "1" ]; then
+      make_flags=STATIC=1
+      verify_flags=--static
+      cgo_enabled=0
+  fi
+
+  set -x
+  xx-go --wrap
+  CC="$(xx-info)-gcc" CGO_ENABLED=$cgo_enabled make $make_flags binaries
+  xx-verify $verify_flags bin/containerd
+  xx-verify $verify_flags bin/containerd-shim-runc-v2
+  xx-verify $verify_flags bin/ctr
+  mkdir /build
+  mv bin/containerd bin/containerd-shim-runc-v2 bin/ctr /build
+EOT
+
+FROM containerd-build AS containerd-linux
+FROM binary-dummy AS containerd-windows
+FROM containerd-${TARGETOS} AS containerd
+
+FROM base AS golangci_lint
+ARG GOLANGCI_LINT_VERSION=v2.8.0
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        GOBIN=/build CGO_ENABLED=0 go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}" \
+     && /build/golangci-lint --version
+
+FROM base AS gotestsum
+# GOTESTSUM_VERSION is the version of gotest.tools/gotestsum to install.
+ARG GOTESTSUM_VERSION=v1.13.0
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        GOBIN=/build CGO_ENABLED=0 go install "gotest.tools/gotestsum@${GOTESTSUM_VERSION}" \
+     && /build/gotestsum --version
+
+FROM base AS shfmt
+ARG SHFMT_VERSION=v3.8.0
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        GOBIN=/build CGO_ENABLED=0 go install "mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}" \
+     && /build/shfmt --version
+
+FROM base AS gopls
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+        GOBIN=/build CGO_ENABLED=0 go install "golang.org/x/tools/gopls@latest" \
+     && /build/gopls version
+
+FROM base AS dockercli
+WORKDIR /go/src/github.com/docker/cli
+ARG DOCKERCLI_REPOSITORY
+ARG DOCKERCLI_VERSION
+ARG TARGETPLATFORM
+RUN --mount=source=hack/dockerfile/cli.sh,target=/download-or-build-cli.sh \
+    --mount=type=cache,id=dockercli-git-$TARGETPLATFORM,sharing=locked,target=./.git \
+    --mount=type=cache,target=/root/.cache/go-build,id=dockercli-build-$TARGETPLATFORM \
+        rm -f ./.git/*.lock \
+     && /download-or-build-cli.sh ${DOCKERCLI_VERSION} ${DOCKERCLI_REPOSITORY} /build \
+     && /build/docker --version \
+     && /build/docker completion bash >/completion.bash
+
+FROM base AS dockercli-integration
+WORKDIR /go/src/github.com/docker/cli
+ARG DOCKERCLI_INTEGRATION_REPOSITORY
+ARG DOCKERCLI_INTEGRATION_VERSION
+ARG TARGETPLATFORM
+RUN --mount=source=hack/dockerfile/cli.sh,target=/download-or-build-cli.sh \
+    --mount=type=cache,id=dockercli-git-$TARGETPLATFORM,sharing=locked,target=./.git \
+    --mount=type=cache,target=/root/.cache/go-build,id=dockercli-build-$TARGETPLATFORM \
+        rm -f ./.git/*.lock \
+     && /download-or-build-cli.sh ${DOCKERCLI_INTEGRATION_VERSION} ${DOCKERCLI_INTEGRATION_REPOSITORY} /build \
+     && /build/docker --version
+
+# runc
+FROM base AS runc-src
+WORKDIR /usr/src/runc
+RUN git init . && git remote add origin "https://github.com/opencontainers/runc.git"
+# RUNC_VERSION sets the version of runc to install in the dev-container.
+# This version should usually match the version that is used by the containerd version
+# that is used. If you need to update runc, open a pull request in the containerd
+# project first, and update both after that is merged.
+ARG RUNC_VERSION=v1.3.5
+RUN git fetch -q --depth 1 origin "${RUNC_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS runc-build
+WORKDIR /go/src/github.com/opencontainers/runc
+ARG TARGETPLATFORM
+RUN --mount=type=cache,sharing=locked,id=moby-runc-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-runc-aptcache,target=/var/cache/apt \
+        apt-get update && xx-apt-get install -y --no-install-recommends \
+            gcc \
+            libc6-dev \
+            libseccomp-dev \
+            pkg-config
+ARG DOCKER_STATIC
+RUN --mount=from=runc-src,src=/usr/src/runc,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=runc-build-$TARGETPLATFORM <<EOT
+  set -e
+  xx-go --wrap
+
+  target=runc
+  verify_flags=
+  if [ "$DOCKER_STATIC" = "1" ]; then
+    target=static
+    verify_flags=--static
+  fi
+
+  set -x
+  CGO_ENABLED=1 make "$target"
+  xx-verify $verify_flags runc
+  mkdir /build
+  mv runc /build/
+EOT
+
+FROM runc-build AS runc-linux
+FROM binary-dummy AS runc-windows
+FROM runc-${TARGETOS} AS runc
+
+# tini
+FROM base AS tini-src
+WORKDIR /usr/src/tini
+RUN git init . && git remote add origin "https://github.com/krallin/tini.git"
+# TINI_VERSION specifies the version of tini (docker-init) to build. This
+# binary is used when starting containers with the `--init` option.
+ARG TINI_VERSION=v0.19.0
+RUN git fetch -q --depth 1 origin "${TINI_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS tini-build
+WORKDIR /go/src/github.com/krallin/tini
+RUN --mount=type=cache,sharing=locked,id=moby-tini-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-tini-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install -y --no-install-recommends cmake
+ARG TARGETPLATFORM
+RUN --mount=type=cache,sharing=locked,id=moby-tini-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-tini-aptcache,target=/var/cache/apt \
+        xx-apt-get install -y --no-install-recommends \
+            gcc \
+            libc6-dev \
+            pkg-config
+RUN --mount=from=tini-src,src=/usr/src/tini,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=tini-build-$TARGETPLATFORM <<EOT
+  set -ex
+  CC=$(xx-info)-gcc cmake .
+  make tini-static
+  xx-verify --static tini-static
+  mkdir /build
+  mv tini-static /build/docker-init
+EOT
+
+FROM tini-build AS tini-linux
+FROM binary-dummy AS tini-windows
+FROM tini-${TARGETOS} AS tini
+
+# rootlesskit
+FROM base AS rootlesskit-src
+WORKDIR /usr/src/rootlesskit
+RUN git init . && git remote add origin "https://github.com/rootless-containers/rootlesskit.git"
+ARG ROOTLESSKIT_VERSION=v2.3.6
+RUN git fetch -q --depth 1 origin "${ROOTLESSKIT_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS rootlesskit-build
+WORKDIR /go/src/github.com/rootless-containers/rootlesskit
+ARG TARGETPLATFORM
+RUN --mount=type=cache,sharing=locked,id=moby-rootlesskit-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-rootlesskit-aptcache,target=/var/cache/apt \
+        apt-get update && xx-apt-get install -y --no-install-recommends \
+            gcc \
+            libc6-dev \
+            pkg-config
+ARG DOCKER_STATIC
+RUN --mount=from=rootlesskit-src,src=/usr/src/rootlesskit,rw \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build,id=rootlesskit-build-$TARGETPLATFORM <<EOT
+  set -e
+
+  if [ "$DOCKER_STATIC" = "1" ]; then
+      set -x
+      export CGO_ENABLED=0
+      xx-go build -o /build/rootlesskit ./cmd/rootlesskit
+      xx-verify --static /build/rootlesskit
+  else
+      set -x
+      export CGO_ENABLED=1
+      xx-go build -o /build/rootlesskit -ldflags='-linkmode=external' ./cmd/rootlesskit
+      xx-verify /build/rootlesskit
+  fi
+EOT
+COPY --link ./contrib/dockerd-rootless.sh /build/
+COPY --link ./contrib/dockerd-rootless-setuptool.sh /build/
+
+FROM rootlesskit-build AS rootlesskit-linux
+FROM binary-dummy AS rootlesskit-windows
+FROM rootlesskit-${TARGETOS} AS rootlesskit
+
+FROM base AS crun
+# CRUN_VERSION is the version of crun to install in the dev-container.
+ARG CRUN_VERSION=1.21
+RUN --mount=type=cache,sharing=locked,id=moby-crun-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-crun-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install -y --no-install-recommends \
+            autoconf \
+            automake \
+            build-essential \
+            libcap-dev \
+            libprotobuf-c-dev \
+            libseccomp-dev \
+            libsystemd-dev \
+            libtool \
+            libyajl-dev \
+            python3 \
+            ;
+RUN --mount=type=tmpfs,target=/tmp/crun-build \
+    git clone https://github.com/containers/crun.git /tmp/crun-build && \
+    cd /tmp/crun-build && \
+    git checkout -q "${CRUN_VERSION}" && \
+    ./autogen.sh && \
+    ./configure --bindir=/build && \
+    make -j install
+
+# vpnkit
+# use dummy scratch stage to avoid build to fail for unsupported platforms
+FROM scratch AS vpnkit-windows
+FROM scratch AS vpnkit-linux-386
+FROM scratch AS vpnkit-linux-arm
+FROM scratch AS vpnkit-linux-ppc64le
+FROM scratch AS vpnkit-linux-riscv64
+FROM scratch AS vpnkit-linux-s390x
+FROM moby/vpnkit-bin:${VPNKIT_VERSION} AS vpnkit-linux-amd64
+FROM moby/vpnkit-bin:${VPNKIT_VERSION} AS vpnkit-linux-arm64
+FROM vpnkit-linux-${TARGETARCH} AS vpnkit-linux
+FROM vpnkit-${TARGETOS} AS vpnkit
+
+# containerutility
+FROM base AS containerutil-src
+WORKDIR /usr/src/containerutil
+RUN git init . && git remote add origin "https://github.com/docker-archive/windows-container-utility.git"
+ARG CONTAINERUTILITY_VERSION=aa1ba87e99b68e0113bd27ec26c60b88f9d4ccd9
+RUN git fetch -q --depth 1 origin "${CONTAINERUTILITY_VERSION}" +refs/tags/*:refs/tags/* && git checkout -q FETCH_HEAD
+
+FROM base AS containerutil-build
+WORKDIR /usr/src/containerutil
+ARG TARGETPLATFORM
+RUN xx-apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        libc6-dev \
+        pkg-config
+RUN --mount=from=containerutil-src,src=/usr/src/containerutil,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=containerutil-build-$TARGETPLATFORM <<EOT
+  set -ex
+  CC="$(xx-info)-gcc" CXX="$(xx-info)-g++" make
+  xx-verify --static containerutility.exe
+  mkdir /build
+  mv containerutility.exe /build/
+EOT
+
+FROM binary-dummy AS containerutil-linux
+FROM containerutil-build AS containerutil-windows-amd64
+FROM containerutil-windows-${TARGETARCH} AS containerutil-windows
+FROM containerutil-${TARGETOS} AS containerutil
+FROM docker/buildx-bin:${BUILDX_VERSION} AS buildx
+FROM docker/compose-bin:${COMPOSE_VERSION} AS compose
+
+FROM base AS dev-systemd-false
+COPY --link --from=frozen-images /build/ /docker-frozen-images
+COPY --link --from=delve         /build/ /usr/local/bin/
+COPY --link --from=gowinres      /build/ /usr/local/bin/
+COPY --link --from=tini          /build/ /usr/local/bin/
+COPY --link --from=registry      /build/ /usr/local/bin/
+
+# Skip the CRIU stage for now, as the opensuse package repository is sometimes
+# unstable, and we're currently not using it in CI.
+#
+# FIXME(thaJeztah): re-enable this stage when https://github.com/moby/moby/issues/38963 is resolved (see https://github.com/moby/moby/pull/38984)
+# COPY --link --from=criu          /build/ /usr/local/bin/
+COPY --link --from=gotestsum     /build/ /usr/local/bin/
+COPY --link --from=golangci_lint /build/ /usr/local/bin/
+COPY --link --from=shfmt         /build/ /usr/local/bin/
+COPY --link --from=runc          /build/ /usr/local/bin/
+COPY --link --from=containerd    /build/ /usr/local/bin/
+COPY --link --from=rootlesskit   /build/ /usr/local/bin/
+COPY --link --from=vpnkit        /       /usr/local/bin/
+COPY --link --from=containerutil /build/ /usr/local/bin/
+COPY --link --from=crun          /build/ /usr/local/bin/
+COPY --link hack/dockerfile/etc/docker/  /etc/docker/
+COPY --link --from=buildx        /buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+COPY --link --from=compose       /docker-compose /usr/libexec/docker/cli-plugins/docker-compose
+
+ENV PATH=/usr/local/cli:$PATH
+ENV TEST_CLIENT_BINARY=/usr/local/cli-integration/docker
+ENV CONTAINERD_ADDRESS=/run/docker/containerd/containerd.sock
+ENV CONTAINERD_NAMESPACE=moby
+WORKDIR /go/src/github.com/docker/docker
+VOLUME /var/lib/docker
+VOLUME /home/unprivilegeduser/.local/share/docker
+# Wrap all commands in the "docker-in-docker" script to allow nested containers
+ENTRYPOINT ["hack/dind"]
+
+FROM dev-systemd-false AS dev-systemd-true
+RUN --mount=type=cache,sharing=locked,id=moby-dev-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-dev-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install -y --no-install-recommends \
+            dbus \
+            dbus-user-session \
+            systemd \
+            systemd-sysv
+ENTRYPOINT ["hack/dind-systemd"]
+
+FROM dev-systemd-${SYSTEMD} AS dev-firewalld-false
+
+FROM dev-systemd-true AS dev-firewalld-true
+RUN --mount=type=cache,sharing=locked,id=moby-dev-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-dev-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install -y --no-install-recommends \
+            firewalld
+
+FROM dev-firewalld-${FIREWALLD} AS dev-base
+RUN groupadd -r docker
+RUN useradd --create-home --gid docker unprivilegeduser \
+ && mkdir -p /home/unprivilegeduser/.local/share/docker \
+ && chown -R unprivilegeduser /home/unprivilegeduser
+# Let us use a .bashrc file
+RUN ln -sfv /go/src/github.com/docker/docker/.bashrc ~/.bashrc
+# Activate bash completion
+RUN echo "source /usr/share/bash-completion/bash_completion" >> /etc/bash.bashrc
+RUN ldconfig
+# Set dev environment as safe git directory to prevent "dubious ownership" errors
+# when bind-mounting the source into the dev-container. See https://github.com/moby/moby/pull/44930
+RUN git config --global --add safe.directory $GOPATH/src/github.com/docker/docker
+# This should only install packages that are specifically needed for the dev environment and nothing else
+# Do you really need to add another package here? Can it be done in a different build stage?
+RUN --mount=type=cache,sharing=locked,id=moby-dev-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-dev-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install -y --no-install-recommends \
+            apparmor \
+            bash-completion \
+            bzip2 \
+            fuse-overlayfs \
+            inetutils-ping \
+            iproute2 \
+            iptables \
+            nftables \
+            jq \
+            libcap2-bin \
+            libnet1 \
+            libnftables-dev \
+            libnl-3-200 \
+            libprotobuf-c1 \
+            libyajl2 \
+            nano \
+            net-tools \
+            netcat-openbsd \
+            patch \
+            pigz \
+            sudo \
+            systemd-journal-remote \
+            thin-provisioning-tools \
+            uidmap \
+            vim \
+            vim-common \
+            xfsprogs \
+            xz-utils \
+            zip \
+            zstd
+RUN --mount=type=cache,sharing=locked,id=moby-dev-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-dev-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install --no-install-recommends -y \
+            gcc \
+            pkg-config \
+            libseccomp-dev \
+            libsystemd-dev \
+            yamllint
+COPY --link --from=dockercli             /build/ /usr/local/cli
+COPY --link --from=dockercli             /completion.bash /etc/bash_completion.d/docker
+COPY --link --from=dockercli-integration /build/ /usr/local/cli-integration
+
+FROM base AS build
+COPY --from=gowinres /build/ /usr/local/bin/
+WORKDIR /go/src/github.com/docker/docker
+ENV CGO_ENABLED=1
+RUN --mount=type=cache,sharing=locked,id=moby-build-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-build-aptcache,target=/var/cache/apt \
+        apt-get update && apt-get install --no-install-recommends -y \
+            clang \
+            lld \
+            llvm \
+            icoutils
+ARG TARGETPLATFORM
+RUN --mount=type=cache,sharing=locked,id=moby-build-aptlib,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,id=moby-build-aptcache,target=/var/cache/apt \
+        xx-apt-get install --no-install-recommends -y \
+            gcc \
+            libc6-dev \
+            libnftables-dev \
+            libseccomp-dev \
+            libsystemd-dev \
+            pkg-config
+ARG DOCKER_BUILDTAGS
+ARG DOCKER_DEBUG
+ARG DOCKER_GITCOMMIT=HEAD
+ARG DOCKER_LDFLAGS
+ARG DOCKER_STATIC
+ARG VERSION
+ARG PLATFORM
+ARG PRODUCT
+ARG DEFAULT_PRODUCT_LICENSE
+ARG PACKAGER_NAME
+# PREFIX overrides DEST dir in make.sh script otherwise it fails because of
+# read only mount in current work dir
+ENV PREFIX=/tmp
+RUN <<EOT
+  set -ex
+  # in bullseye arm64 target does not link with lld so configure it to use ld instead
+  if [ "$(xx-info arch)" = "arm64" ]; then
+    XX_CC_PREFER_LINKER=ld xx-clang --setup-target-triple
+  fi
+EOT
+RUN --mount=type=bind,target=.,rw \
+    --mount=type=cache,target=/root/.cache/go-build,id=moby-build-$TARGETPLATFORM <<EOT
+  set -e
+
+  target=dynbinary
+  verify_flags=
+  exe_suffix=
+  if [ "$DOCKER_STATIC" = "1" ]; then
+      target=binary
+      verify_flags=--static
+  fi
+  if [ "$(xx-info os)" = "windows" ]; then
+      exe_suffix=.exe
+  fi
+
+  set -x
+  xx-go --wrap
+  PKG_CONFIG=$(xx-go env PKG_CONFIG) ./hack/make.sh "$target"
+  xx-verify $verify_flags "/tmp/bundles/${target}-daemon/dockerd${exe_suffix}"
+  if [ "$(xx-info os)" = "linux" ]; then
+      xx-verify $verify_flags "/tmp/bundles/${target}-daemon/docker-proxy"
+  fi
+  mkdir /build
+  mv /tmp/bundles/${target}-daemon/* /build/
+EOT
+
+# usage:
+# > docker buildx bake binary
+# > DOCKER_STATIC=0 docker buildx bake binary
+# or
+# > make binary
+# > make dynbinary
+FROM scratch AS binary
+COPY --from=build /build/ /
+
+# usage:
+# > docker buildx bake all
+FROM scratch AS all
+COPY --link --from=tini          /build/ /
+COPY --link --from=runc          /build/ /
+COPY --link --from=containerd    /build/ /
+COPY --link --from=rootlesskit   /build/ /
+COPY --link --from=containerutil /build/ /
+COPY --link --from=vpnkit        /       /
+COPY --link --from=build         /build  /
+
+# smoke tests
+# usage:
+# > docker buildx bake binary-smoketest
+FROM base AS smoketest
+WORKDIR /usr/local/bin
+COPY --from=build /build .
+RUN <<EOT
+  set -ex
+  file dockerd
+  dockerd --version
+  file docker-proxy
+  docker-proxy --version
+EOT
+
+# devcontainer is a stage used by .devcontainer/devcontainer.json
+FROM dev-base AS devcontainer
+COPY --link . .
+COPY --link --from=gopls         /build/ /usr/local/bin/
+
+# usage:
+# > docker buildx bake dind
+# > docker run -d --restart always --privileged --name devdind -p 12375:2375 docker-dind --debug --host=tcp://0.0.0.0:2375 --tlsverify=false
+FROM docker:dind AS dind
+COPY --link --from=dockercli /build/docker /usr/local/bin/
+COPY --link --from=buildx    /buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+COPY --link --from=compose   /docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --link --from=all       / /usr/local/bin/
+
+# usage:
+# > make shell
+# > SYSTEMD=true make shell
+FROM dev-base AS dev
+COPY --link . .
+
+
+# FILE: CONTRIBUTING.md
+# Contribute to the Moby Project
+
+Want to hack on the Moby Project? Awesome! We have a contributor's guide that explains
+[setting up a development environment and the contribution
+process](docs/contributing/). 
+
+[![Contributors guide](docs/static_files/contributors.png)](docs/contributing/who-written-for.md)
+
+This page contains information about reporting issues as well as some tips and
+guidelines useful to experienced open source contributors. Finally, make sure
+you read our [community guidelines](#moby-community-guidelines) before you
+start participating.
+
+## Topics
+
+* [Reporting Security Issues](#reporting-security-issues)
+* [Design and Cleanup Proposals](#design-and-cleanup-proposals)
+* [Reporting Issues](#reporting-other-issues)
+* [Quick Contribution Tips and Guidelines](#quick-contribution-tips-and-guidelines)
+* [Community Guidelines](#moby-community-guidelines)
+
+## Reporting security issues
+
+The Moby maintainers take security seriously. If you discover a security
+issue, please bring it to their attention right away!
+
+Please **DO NOT** file a public issue, instead send your report privately to
+[security@docker.com](mailto:security@docker.com).
+
+Security reports are greatly appreciated and we will publicly thank you for it,
+although we keep your name confidential if you request it. We also like to send
+gifts&mdash;if you're into schwag, make sure to let us know. We currently do not
+offer a paid security bounty program, but are not ruling it out in the future.
+
+
+## Reporting other issues
+
+A great way to contribute to the project is to send a detailed report when you
+encounter an issue. We always appreciate a well-written, thorough bug report,
+and will thank you for it!
+
+Check that [our issue database](https://github.com/moby/moby/issues)
+doesn't already include that problem or suggestion before submitting an issue.
+If you find a match, you can use the "subscribe" button to get notified on
+updates. Do *not* leave random "+1" or "I have this too" comments, as they
+only clutter the discussion, and don't help resolving it. However, if you
+have ways to reproduce the issue or have additional information that may help
+resolving the issue, please leave a comment.
+
+When reporting issues, always include:
+
+* The output of `docker version`.
+* The output of `docker info`.
+
+Also include the steps required to reproduce the problem if possible and
+applicable. This information will help us review and fix your issue faster.
+When sending lengthy log-files, consider posting them as a gist (https://gist.github.com).
+Don't forget to remove sensitive data from your logfiles before posting (you can
+replace those parts with "REDACTED").
+
+## Quick contribution tips and guidelines
+
+This section gives the experienced contributor some tips and guidelines.
+
+### Pull requests are always welcome
+
+Not sure if that typo is worth a pull request? Found a bug and know how to fix
+it? Do it! We will appreciate it. Any significant improvement should be
+documented as [a GitHub issue](https://github.com/moby/moby/issues) before
+anybody starts working on it.
+
+We are always thrilled to receive pull requests. We do our best to process them
+quickly. If your pull request is not accepted on the first try,
+don't get discouraged! Our [contributor's guide](docs/contributing/README.md) explains [the review process we
+use for simple changes](project/REVIEWING.md).
+
+### Design and cleanup proposals
+
+You can propose new designs for existing Docker features. You can also design
+entirely new features. We really appreciate contributors who want to refactor or
+otherwise cleanup our project. For information on making these types of
+contributions, see [the advanced contribution
+section](#design-and-cleanup-proposals) in
+the contributors guide.
+
+### Where to put your changes
+
+You can make changes to any Go package within Moby outside of the vendor directory. There are no
+restrictions on packages but a few guidelines to follow for deciding on making these changes.
+When adding new packages, first consider putting them in an internal directory to prevent
+unintended importing from other modules. Code changes should either go under `api`, `client`,
+or `daemon` modules, or one of the integration test directories.
+
+Try to put a new package under the appropriate directories. The root directory is reserved for
+configuration and build files, no source files will be accepted in the root.
+
+- `api` - All types shared by client and daemon along with swagger definitions.
+- `client` - All Go files for the docker client
+- `contrib` - Files, configurations, and packages related to external tools or libraries
+- `daemon` - All Go files and packages for building the daemon
+- `docs` - All Moby technical documentation using markdown
+- `hack` - All scripts used for testing, development, and CI
+- `integration` - Testing the integration of the API, client, and daemon
+- `integration-cli` - Deprecated integration tests of the docker cli with the daemon, no new tests allowed
+- `pkg` - Legacy Go packages used externally, no new packages should be added here
+- `project` - All files related to Moby project governance
+- `vendor` - Autogenerated vendor files from `make vendor` command, do not manually edit files here
+
+The daemon module has many subpackages. Consider putting new packages under one of these
+directories.
+
+- `daemon/cmd` - All Go main packages and the packages used only for that main package
+- `daemon/internal` - All utility packages used by daemon and not intended for external use
+- `daemon/man`- All Moby reference manuals used for the `man` command
+- `daemon/plugins` - All included daemon plugins which are intended to be registered via init
+- `daemon/pkg` - All libraries used by daemon and for integration testing
+- `daemon/version` - Version package with the current daemon version
+
+### Connect with other Moby Project contributors
+
+<table class="tg">
+  <col width="45%">
+  <col width="65%">
+  <tr>
+    <td>Forums</td>
+    <td>
+      A public forum for users to discuss questions and explore current design patterns and
+      best practices about all the Moby projects. To participate, log in with your Github
+      account or create an account at <a href="https://forums.mobyproject.org" target="_blank">https://forums.mobyproject.org</a>.
+    </td>
+  </tr>
+  <tr>
+    <td>Slack</td>
+    <td>
+      <p>
+        Register for the Docker Community Slack at
+	<a href="https://dockr.ly/comm-slack" target="_blank">https://dockr.ly/comm-slack</a>.
+        We use the #moby-project channel for general discussion, and there are separate channels for other Moby projects such as #containerd.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>Twitter</td>
+    <td>
+      You can follow <a href="https://twitter.com/moby/" target="_blank">Moby Project Twitter feed</a>
+      to get updates on our products. You can also tweet us questions or just
+      share blogs or stories.
+    </td>
+  </tr>
+</table>
+
+
+### Conventions
+
+Fork the repository and make changes on your fork in a feature branch:
+
+- If it's a bug fix branch, name it XXXX-something where XXXX is the number of
+	the issue. 
+- If it's a feature branch, create an enhancement issue to announce
+	your intentions, and name it XXXX-something where XXXX is the number of the
+	issue.
+
+Submit tests for your changes. See [TESTING.md](./TESTING.md) for details.
+
+If your changes need integration tests, write them against the API. The `cli`
+integration tests are slowly either migrated to API tests or moved away as unit
+tests in `docker/cli` and end-to-end tests for Docker.
+
+Update the documentation when creating or modifying features. Test your
+documentation changes for clarity, concision, and correctness, as well as a
+clean documentation build. See our contributors guide for [our style
+guide](https://github.com/docker/docs/blob/main/STYLE.md) and instructions on [building
+the documentation](https://docs.docker.com/).
+
+Write clean code. Universally formatted code promotes ease of writing, reading,
+and maintenance. Always run `gofmt -s -w file.go` on each changed file before
+committing your changes. Most editors have plug-ins that do this automatically.
+
+Pull request descriptions should be as clear as possible and include a reference
+to all the issues that they address.
+
+### Successful Changes
+
+Before contributing large or high impact changes, make the effort to coordinate
+with the maintainers of the project before submitting a pull request. This
+prevents you from doing extra work that may or may not be merged.
+
+Large PRs that are just submitted without any prior communication are unlikely
+to be successful.
+
+While pull requests are the methodology for submitting changes to code, changes
+are much more likely to be accepted if they are accompanied by additional
+engineering work. While we don't define this explicitly, most of these goals
+are accomplished through communication of the design goals and subsequent
+solutions. Often times, it helps to first state the problem before presenting
+solutions.
+
+Typically, the best methods of accomplishing this are to submit an issue,
+stating the problem. This issue can include a problem statement and a
+checklist with requirements. If solutions are proposed, alternatives should be
+listed and eliminated. Even if the criteria for elimination of a solution is
+frivolous, say so.
+
+Larger changes typically work best with design documents. These are focused on
+providing context to the design at the time the feature was conceived and can
+inform future documentation contributions.
+
+### Commit Messages
+
+Commit messages must start with a capitalized and short summary (max. 50 chars)
+written in the imperative, followed by an optional, more detailed explanatory
+text which is separated from the summary by an empty line.
+
+Commit messages should follow best practices, including explaining the context
+of the problem and how it was solved, including in caveats or follow up changes
+required. They should tell the story of the change and provide readers
+understanding of what led to it.
+
+If you're lost about what this even means, please see [How to Write a Git
+Commit Message](http://chris.beams.io/posts/git-commit/) for a start.
+
+In practice, the best approach to maintaining a nice commit message is to
+leverage a `git add -p` and `git commit --amend` to formulate a solid
+changeset. This allows one to piece together a change, as information becomes
+available.
+
+If you squash a series of commits, don't just submit that. Re-write the commit
+message, as if the series of commits was a single stroke of brilliance.
+
+That said, there is no requirement to have a single commit for a PR, as long as
+each commit tells the story. For example, if there is a feature that requires a
+package, it might make sense to have the package in a separate commit then have
+a subsequent commit that uses it.
+
+Remember, you're telling part of the story with the commit message. Don't make
+your chapter weird.
+
+### Review
+
+Code review comments may be added to your pull request. Discuss, then make the
+suggested modifications and push additional commits to your feature branch. Post
+a comment after pushing. New commits show up in the pull request automatically,
+but the reviewers are notified only when you comment.
+
+Pull requests must be cleanly rebased on top of master without multiple branches
+mixed into the PR.
+
+**Git tip**: If your PR no longer merges cleanly, use `rebase master` in your
+feature branch to update your pull request rather than `merge master`.
+
+Before you make a pull request, squash your commits into logical units of work
+using `git rebase -i` and `git push -f`. A logical unit of work is a consistent
+set of patches that should be reviewed together: for example, upgrading the
+version of a vendored dependency and taking advantage of its now available new
+feature constitute two separate units of work. Implementing a new function and
+calling it in another file constitute a single logical unit of work. The very
+high majority of submissions should have a single commit, so if in doubt: squash
+down to one.
+
+After every commit, [make sure the test suite passes](./TESTING.md). Include
+documentation changes in the same pull request so that a revert would remove
+all traces of the feature or fix.
+
+Include an issue reference like `Closes #XXXX` or `Fixes #XXXX` in commits that
+close an issue. Including references automatically closes the issue on a merge.
+
+Please do not add yourself to the `AUTHORS` file, as it is regenerated regularly
+from the Git history.
+
+Please see the [Coding Style](#coding-style) for further guidelines.
+
+### Merge approval
+
+Moby maintainers use LGTM (Looks Good To Me) in comments on the code review to
+indicate acceptance, or use the Github review approval feature.
+
+For an explanation of the review and approval process see the
+[REVIEWING](project/REVIEWING.md) page.
+
+### Sign your work
+
+The sign-off is a simple line at the end of the explanation for the patch. Your
+signature certifies that you wrote the patch or otherwise have the right to pass
+it on as an open-source patch. The rules are pretty simple: if you can certify
+the below (from [developercertificate.org](http://developercertificate.org/)):
+
+```
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+1 Letterman Drive
+Suite D4700
+San Francisco, CA, 94129
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+Then you just add a line to every git commit message:
+
+    Signed-off-by: Joe Smith <joe.smith@email.com>
+
+Use your real name (sorry, no pseudonyms or anonymous contributions.)
+
+If you set your `user.name` and `user.email` git configs, you can sign your
+commit automatically with `git commit -s`.
+
+### How can I become a maintainer?
+
+The procedures for adding new maintainers are explained in the 
+[/project/GOVERNANCE.md](/project/GOVERNANCE.md)
+file in this repository.
+
+Don't forget: being a maintainer is a time investment. Make sure you
+will have time to make yourself available. You don't have to be a
+maintainer to make a difference on the project!
+
+## Moby community guidelines
+
+We want to keep the Moby community awesome, growing and collaborative. We need
+your help to keep it that way. To help with this we've come up with some general
+guidelines for the community as a whole:
+
+* Be nice: Be courteous, respectful and polite to fellow community members:
+  no regional, racial, gender, or other abuse will be tolerated. We like
+  nice people way better than mean ones!
+
+* Encourage diversity and participation: Make everyone in our community feel
+  welcome, regardless of their background and the extent of their
+  contributions, and do everything possible to encourage participation in
+  our community.
+
+* Keep it legal: Basically, don't get us in trouble. Share only content that
+  you own, do not share private or sensitive information, and don't break
+  the law.
+
+* Stay on topic: Make sure that you are posting to the correct channel and
+  avoid off-topic discussions. Remember when you update an issue or respond
+  to an email you are potentially sending to a large number of people. Please
+  consider this before you update. Also remember that nobody likes spam.
+
+* Don't send email to the maintainers: There's no need to send email to the
+  maintainers to ask them to investigate an issue or to take a look at a
+  pull request. Instead of sending an email, GitHub mentions should be
+  used to ping maintainers to review a pull request, a proposal or an
+  issue.
+
+The open source governance for this repository is handled via the [Moby Technical Steering Committee (TSC)](https://github.com/moby/tsc)
+charter. For any concerns with the community process regarding technical contributions,
+please contact the TSC. More information on project governance is available in
+our [project/GOVERNANCE.md](/project/GOVERNANCE.md) document.
+
+### Guideline violations — 3 strikes method
+
+The point of this section is not to find opportunities to punish people, but we
+do need a fair way to deal with people who are making our community suck.
+
+1. First occurrence: We'll give you a friendly, but public reminder that the
+   behavior is inappropriate according to our guidelines.
+
+2. Second occurrence: We will send you a private message with a warning that
+   any additional violations will result in removal from the community.
+
+3. Third occurrence: Depending on the violation, we may need to delete or ban
+   your account.
+
+**Notes:**
+
+* Obvious spammers are banned on first occurrence. If we don't do this, we'll
+  have spam all over the place.
+
+* Violations are forgiven after 6 months of good behavior, and we won't hold a
+  grudge.
+
+* People who commit minor infractions will get some education, rather than
+  hammering them in the 3 strikes process.
+
+* The rules apply equally to everyone in the community, no matter how much
+	you've contributed.
+
+* Extreme violations of a threatening, abusive, destructive or illegal nature
+	will be addressed immediately and are not subject to 3 strikes or forgiveness.
+
+* Contact abuse@docker.com to report abuse or appeal violations. In the case of
+	appeals, we know that mistakes happen, and we'll work with you to come up with a
+	fair solution if there has been a misunderstanding.
+
+## Coding Style
+
+Unless explicitly stated, we follow all coding guidelines from the Go
+community. While some of these standards may seem arbitrary, they somehow seem
+to result in a solid, consistent codebase.
+
+It is possible that the code base does not currently comply with these
+guidelines. We are not looking for a massive PR that fixes this, since that
+goes against the spirit of the guidelines. All new contributions should make a
+best effort to clean up and make the code base better than they left it.
+Obviously, apply your best judgement. Remember, the goal here is to make the
+code base easier for humans to navigate and understand. Always keep that in
+mind when nudging others to comply.
+
+The rules:
+
+1. All code should be formatted with `gofmt -s`.
+2. All code should pass the default levels of
+   [`golint`](https://github.com/golang/lint).
+3. All code should follow the guidelines covered in [Effective
+   Go](http://golang.org/doc/effective_go.html) and [Go Code Review
+   Comments](https://github.com/golang/go/wiki/CodeReviewComments).
+4. Comment the code. Tell us the why, the history and the context.
+5. Document _all_ declarations and methods, even private ones. Declare
+   expectations, caveats and anything else that may be important. If a type
+   gets exported, having the comments already there will ensure it's ready.
+6. Variable name length should be proportional to its context and no longer.
+   `noCommaALongVariableNameLikeThisIsNotMoreClearWhenASimpleCommentWouldDo`.
+   In practice, short methods will have short variable names and globals will
+   have longer names.
+7. No underscores in package names. If you need a compound name, step back,
+   and re-examine why you need a compound name. If you still think you need a
+   compound name, lose the underscore.
+8. No utils or helpers packages. If a function is not general enough to
+   warrant its own package, it has not been written generally enough to be a
+   part of a util package. Just leave it unexported and well-documented.
+9. All tests should run with `go test` and outside tooling should not be
+   required. No, we don't need another unit testing framework. Assertion
+   packages are acceptable if they provide _real_ incremental value.
+10. Even though we call these "rules" above, they are actually just
+    guidelines. Since you've read all the rules, you now know that.
+
+If you are having trouble getting into the mood of idiomatic Go, we recommend
+reading through [Effective Go](https://go.dev/doc/effective_go). The
+[Go Blog](https://go.dev/blog/) is also a great resource. Drinking the
+kool-aid is a lot easier than going thirsty.
+
+
+# FILE: dockerversion/version_lib.go
+package dockerversion
+
+// Default build-time variable for library-import.
+// These variables are overridden on build with build-time information.
+var (
+	GitCommit             = "library-import"
+	Version               = "library-import"
+	BuildTime             = "library-import"
+	PlatformName          = ""
+	ProductName           = ""
+	DefaultProductLicense = ""
+)
+
+
+# FILE: dockerversion/useragent_test.go
+package dockerversion
+
+import (
+	"context"
+	"testing"
+
+	"github.com/moby/moby/v2/pkg/useragent"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
+)
+
+func TestDockerUserAgent(t *testing.T) {
+	t.Run("daemon user-agent", func(t *testing.T) {
+		ua := DockerUserAgent(t.Context())
+		expected := getDaemonUserAgent()
+		assert.Check(t, is.Equal(ua, expected))
+	})
+
+	t.Run("daemon user-agent custom metadata", func(t *testing.T) {
+		ua := DockerUserAgent(t.Context(), useragent.VersionInfo{Name: "hello", Version: "world"}, useragent.VersionInfo{Name: "foo", Version: "bar"})
+		expected := getDaemonUserAgent() + ` hello/world foo/bar`
+		assert.Check(t, is.Equal(ua, expected))
+	})
+
+	t.Run("daemon user-agent with upstream", func(t *testing.T) {
+		ctx := context.WithValue(t.Context(), UAStringKey{}, "Magic-Client/1.2.3 (linux)")
+		ua := DockerUserAgent(ctx)
+		expected := getDaemonUserAgent() + ` UpstreamClient(Magic-Client/1.2.3 \(linux\))`
+		assert.Check(t, is.Equal(ua, expected))
+	})
+
+	t.Run("daemon user-agent with upstream and custom metadata", func(t *testing.T) {
+		ctx := context.WithValue(t.Context(), UAStringKey{}, "Magic-Client/1.2.3 (linux)")
+		ua := DockerUserAgent(ctx, useragent.VersionInfo{Name: "hello", Version: "world"}, useragent.VersionInfo{Name: "foo", Version: "bar"})
+		expected := getDaemonUserAgent() + ` hello/world foo/bar UpstreamClient(Magic-Client/1.2.3 \(linux\))`
+		assert.Check(t, is.Equal(ua, expected))
+	})
+}
+
+
+# FILE: dockerversion/useragent.go
+package dockerversion
+
+import (
+	"context"
+	"fmt"
+	"runtime"
+	"strings"
+	"sync"
+
+	"github.com/moby/moby/v2/pkg/parsers/kernel"
+	"github.com/moby/moby/v2/pkg/useragent"
+)
+
+// UAStringKey is used as key type for user-agent string in net/context struct
+type UAStringKey struct{}
+
+// DockerUserAgent is the User-Agent the Docker client uses to identify itself.
+// In accordance with RFC 7231 (5.5.3) is of the form:
+//
+//	[docker client's UA] UpstreamClient([upstream client's UA])
+func DockerUserAgent(ctx context.Context, extraVersions ...useragent.VersionInfo) string {
+	ua := useragent.AppendVersions(getDaemonUserAgent(), extraVersions...)
+	if upstreamUA := getUpstreamUserAgent(ctx); upstreamUA != "" {
+		ua += " " + upstreamUA
+	}
+	return ua
+}
+
+var (
+	daemonUAOnce sync.Once
+	daemonUA     string
+)
+
+// getDaemonUserAgent returns the user-agent to use for requests made by
+// the daemon.
+//
+// It includes;
+//
+// - the docker version
+// - go version
+// - git-commit
+// - kernel version
+// - os
+// - architecture
+func getDaemonUserAgent() string {
+	daemonUAOnce.Do(func() {
+		httpVersion := make([]useragent.VersionInfo, 0, 6)
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "docker", Version: Version})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "go", Version: runtime.Version()})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "git-commit", Version: GitCommit})
+		if kernelVersion, err := kernel.GetKernelVersion(); err == nil {
+			httpVersion = append(httpVersion, useragent.VersionInfo{Name: "kernel", Version: kernelVersion.String()})
+		}
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "os", Version: runtime.GOOS})
+		httpVersion = append(httpVersion, useragent.VersionInfo{Name: "arch", Version: runtime.GOARCH})
+		daemonUA = useragent.AppendVersions("", httpVersion...)
+	})
+	return daemonUA
+}
+
+// getUpstreamUserAgent returns the previously saved user-agent context stored
+// in ctx, if one exists, and formats it as:
+//
+//	UpstreamClient(<upstream user agent string>)
+//
+// It returns an empty string if no user-agent is present in the context.
+func getUpstreamUserAgent(ctx context.Context) string {
+	var upstreamUA string
+	if ctx != nil {
+		if ki := ctx.Value(UAStringKey{}); ki != nil {
+			upstreamUA = ctx.Value(UAStringKey{}).(string)
+		}
+	}
+	if upstreamUA == "" {
+		return ""
+	}
+	return fmt.Sprintf("UpstreamClient(%s)", escapeStr(upstreamUA))
+}
+
+const charsToEscape = `();\`
+
+// escapeStr returns s with every rune in charsToEscape escaped by a backslash
+func escapeStr(s string) string {
+	var ret strings.Builder
+	for _, currRune := range s {
+		appended := false
+		for _, escapableRune := range charsToEscape {
+			if currRune == escapableRune {
+				ret.WriteString(`\` + string(currRune))
+				appended = true
+				break
+			}
+		}
+		if !appended {
+			ret.WriteRune(currRune)
+		}
+	}
+	return ret.String()
+}
+
+
+# FILE: vendor/modules.txt
+# cloud.google.com/go v0.123.0
+## explicit; go 1.24.0
+cloud.google.com/go
+# cloud.google.com/go/auth v0.18.0
+## explicit; go 1.24.0
+cloud.google.com/go/auth
+cloud.google.com/go/auth/credentials
+cloud.google.com/go/auth/credentials/internal/externalaccount
+cloud.google.com/go/auth/credentials/internal/externalaccountuser
+cloud.google.com/go/auth/credentials/internal/gdch
+cloud.google.com/go/auth/credentials/internal/impersonate
+cloud.google.com/go/auth/credentials/internal/stsexchange
+cloud.google.com/go/auth/grpctransport
+cloud.google.com/go/auth/httptransport
+cloud.google.com/go/auth/internal
+cloud.google.com/go/auth/internal/compute
+cloud.google.com/go/auth/internal/credsfile
+cloud.google.com/go/auth/internal/jwt
+cloud.google.com/go/auth/internal/retry
+cloud.google.com/go/auth/internal/transport
+cloud.google.com/go/auth/internal/transport/cert
+cloud.google.com/go/auth/internal/transport/headers
+cloud.google.com/go/auth/internal/trustboundary
+# cloud.google.com/go/auth/oauth2adapt v0.2.8
+## explicit; go 1.23.0
+cloud.google.com/go/auth/oauth2adapt
+# cloud.google.com/go/compute/metadata v0.9.0
+## explicit; go 1.24.0
+cloud.google.com/go/compute/metadata
+# cloud.google.com/go/logging v1.13.2
+## explicit; go 1.24.0
+cloud.google.com/go/logging
+cloud.google.com/go/logging/apiv2
+cloud.google.com/go/logging/apiv2/loggingpb
+cloud.google.com/go/logging/internal
+# cloud.google.com/go/longrunning v0.8.0
+## explicit; go 1.24.0
+cloud.google.com/go/longrunning
+cloud.google.com/go/longrunning/autogen
+cloud.google.com/go/longrunning/autogen/longrunningpb
+# code.cloudfoundry.org/clock v1.60.0
+## explicit; go 1.24.9
+code.cloudfoundry.org/clock
+code.cloudfoundry.org/clock/fakeclock
+# cyphar.com/go-pathrs v0.2.1
+## explicit; go 1.18
+cyphar.com/go-pathrs
+cyphar.com/go-pathrs/internal/fdutils
+cyphar.com/go-pathrs/internal/libpathrs
+cyphar.com/go-pathrs/procfs
+# dario.cat/mergo v1.0.2
+## explicit; go 1.13
+dario.cat/mergo
+# github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
+## explicit; go 1.20
+github.com/AdaLogics/go-fuzz-headers
+# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
+## explicit; go 1.23.0
+github.com/Azure/azure-sdk-for-go/sdk/azcore
+github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/exported
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/log
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/async
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/body
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/fake
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/loc
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/op
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/shared
+github.com/Azure/azure-sdk-for-go/sdk/azcore/log
+github.com/Azure/azure-sdk-for-go/sdk/azcore/policy
+github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime
+github.com/Azure/azure-sdk-for-go/sdk/azcore/streaming
+github.com/Azure/azure-sdk-for-go/sdk/azcore/to
+github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing
+# github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2
+## explicit; go 1.23.0
+github.com/Azure/azure-sdk-for-go/sdk/internal/diag
+github.com/Azure/azure-sdk-for-go/sdk/internal/errorinfo
+github.com/Azure/azure-sdk-for-go/sdk/internal/exported
+github.com/Azure/azure-sdk-for-go/sdk/internal/log
+github.com/Azure/azure-sdk-for-go/sdk/internal/poller
+github.com/Azure/azure-sdk-for-go/sdk/internal/temporal
+github.com/Azure/azure-sdk-for-go/sdk/internal/uuid
+# github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.5.0
+## explicit; go 1.18
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/internal/base
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/internal/exported
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/internal/generated
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/internal/shared
+github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas
+# github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c
+## explicit; go 1.16
+github.com/Azure/go-ansiterm
+github.com/Azure/go-ansiterm/winterm
+# github.com/Graylog2/go-gelf v0.0.0-20191017102106-1550ee647df0
+## explicit
+github.com/Graylog2/go-gelf/gelf
+# github.com/Microsoft/go-winio v0.6.2
+## explicit; go 1.21
+github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/backuptar
+github.com/Microsoft/go-winio/internal/fs
+github.com/Microsoft/go-winio/internal/socket
+github.com/Microsoft/go-winio/internal/stringbuffer
+github.com/Microsoft/go-winio/pkg/bindfilter
+github.com/Microsoft/go-winio/pkg/etw
+github.com/Microsoft/go-winio/pkg/etwlogrus
+github.com/Microsoft/go-winio/pkg/fs
+github.com/Microsoft/go-winio/pkg/guid
+github.com/Microsoft/go-winio/vhd
+# github.com/Microsoft/hcsshim v0.14.0
+## explicit; go 1.23.0
+github.com/Microsoft/hcsshim
+github.com/Microsoft/hcsshim/cmd/containerd-shim-runhcs-v1/options
+github.com/Microsoft/hcsshim/computestorage
+github.com/Microsoft/hcsshim/hcn
+github.com/Microsoft/hcsshim/internal/cni
+github.com/Microsoft/hcsshim/internal/cow
+github.com/Microsoft/hcsshim/internal/hcs
+github.com/Microsoft/hcsshim/internal/hcs/schema1
+github.com/Microsoft/hcsshim/internal/hcs/schema2
+github.com/Microsoft/hcsshim/internal/hcserror
+github.com/Microsoft/hcsshim/internal/hns
+github.com/Microsoft/hcsshim/internal/interop
+github.com/Microsoft/hcsshim/internal/jobobject
+github.com/Microsoft/hcsshim/internal/log
+github.com/Microsoft/hcsshim/internal/logfields
+github.com/Microsoft/hcsshim/internal/longpath
+github.com/Microsoft/hcsshim/internal/memory
+github.com/Microsoft/hcsshim/internal/mergemaps
+github.com/Microsoft/hcsshim/internal/oc
+github.com/Microsoft/hcsshim/internal/protocol/guestrequest
+github.com/Microsoft/hcsshim/internal/queue
+github.com/Microsoft/hcsshim/internal/regstate
+github.com/Microsoft/hcsshim/internal/runhcs
+github.com/Microsoft/hcsshim/internal/safefile
+github.com/Microsoft/hcsshim/internal/security
+github.com/Microsoft/hcsshim/internal/timeout
+github.com/Microsoft/hcsshim/internal/vmcompute
+github.com/Microsoft/hcsshim/internal/wclayer
+github.com/Microsoft/hcsshim/internal/winapi
+github.com/Microsoft/hcsshim/osversion
+github.com/Microsoft/hcsshim/pkg/ociwclayer
+# github.com/ProtonMail/go-crypto v1.3.0
+## explicit; go 1.22.0
+github.com/ProtonMail/go-crypto/bitcurves
+github.com/ProtonMail/go-crypto/brainpool
+github.com/ProtonMail/go-crypto/eax
+github.com/ProtonMail/go-crypto/internal/byteutil
+github.com/ProtonMail/go-crypto/ocb
+github.com/ProtonMail/go-crypto/openpgp
+github.com/ProtonMail/go-crypto/openpgp/aes/keywrap
+github.com/ProtonMail/go-crypto/openpgp/armor
+github.com/ProtonMail/go-crypto/openpgp/ecdh
+github.com/ProtonMail/go-crypto/openpgp/ecdsa
+github.com/ProtonMail/go-crypto/openpgp/ed25519
+github.com/ProtonMail/go-crypto/openpgp/ed448
+github.com/ProtonMail/go-crypto/openpgp/eddsa
+github.com/ProtonMail/go-crypto/openpgp/elgamal
+github.com/ProtonMail/go-crypto/openpgp/errors
+github.com/ProtonMail/go-crypto/openpgp/internal/algorithm
+github.com/ProtonMail/go-crypto/openpgp/internal/ecc
+github.com/ProtonMail/go-crypto/openpgp/internal/encoding
+github.com/ProtonMail/go-crypto/openpgp/packet
+github.com/ProtonMail/go-crypto/openpgp/s2k
+github.com/ProtonMail/go-crypto/openpgp/x25519
+github.com/ProtonMail/go-crypto/openpgp/x448
+# github.com/RackSec/srslog v0.0.0-20180709174129-a4725f04ec91
+## explicit
+github.com/RackSec/srslog
+# github.com/agext/levenshtein v1.2.3
+## explicit
+github.com/agext/levenshtein
+# github.com/anchore/go-struct-converter v0.1.0
+## explicit; go 1.18
+github.com/anchore/go-struct-converter
+# github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
+## explicit
+github.com/armon/circbuf
+# github.com/armon/go-metrics v0.4.1
+## explicit; go 1.12
+github.com/armon/go-metrics
+# github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+## explicit; go 1.13
+github.com/asaskevich/govalidator
+# github.com/aws/aws-sdk-go-v2 v1.41.5
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/aws
+github.com/aws/aws-sdk-go-v2/aws/defaults
+github.com/aws/aws-sdk-go-v2/aws/middleware
+github.com/aws/aws-sdk-go-v2/aws/protocol/query
+github.com/aws/aws-sdk-go-v2/aws/protocol/restjson
+github.com/aws/aws-sdk-go-v2/aws/protocol/xml
+github.com/aws/aws-sdk-go-v2/aws/ratelimit
+github.com/aws/aws-sdk-go-v2/aws/retry
+github.com/aws/aws-sdk-go-v2/aws/signer/internal/v4
+github.com/aws/aws-sdk-go-v2/aws/signer/v4
+github.com/aws/aws-sdk-go-v2/aws/transport/http
+github.com/aws/aws-sdk-go-v2/internal/auth
+github.com/aws/aws-sdk-go-v2/internal/auth/smithy
+github.com/aws/aws-sdk-go-v2/internal/context
+github.com/aws/aws-sdk-go-v2/internal/endpoints
+github.com/aws/aws-sdk-go-v2/internal/endpoints/awsrulesfn
+github.com/aws/aws-sdk-go-v2/internal/rand
+github.com/aws/aws-sdk-go-v2/internal/sdk
+github.com/aws/aws-sdk-go-v2/internal/sdkio
+github.com/aws/aws-sdk-go-v2/internal/shareddefaults
+github.com/aws/aws-sdk-go-v2/internal/strings
+github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
+github.com/aws/aws-sdk-go-v2/internal/timeconv
+# github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream
+github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream/eventstreamapi
+# github.com/aws/aws-sdk-go-v2/config v1.32.13
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/config
+# github.com/aws/aws-sdk-go-v2/credentials v1.19.13
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/credentials
+github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
+github.com/aws/aws-sdk-go-v2/credentials/endpointcreds
+github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
+github.com/aws/aws-sdk-go-v2/credentials/logincreds
+github.com/aws/aws-sdk-go-v2/credentials/processcreds
+github.com/aws/aws-sdk-go-v2/credentials/ssocreds
+github.com/aws/aws-sdk-go-v2/credentials/stscreds
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/feature/ec2/imds
+github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/configsources
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.8.6
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/ini
+# github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.66.0
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs
+github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types
+# github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.7
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
+# github.com/aws/aws-sdk-go-v2/service/signin v1.0.9
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/signin
+github.com/aws/aws-sdk-go-v2/service/signin/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/signin/types
+# github.com/aws/aws-sdk-go-v2/service/sso v1.30.14
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/sso
+github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/sso/types
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.18
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/ssooidc
+github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/ssooidc/types
+# github.com/aws/aws-sdk-go-v2/service/sts v1.41.10
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/sts
+github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/sts/types
+# github.com/aws/smithy-go v1.24.2
+## explicit; go 1.24
+github.com/aws/smithy-go
+github.com/aws/smithy-go/auth
+github.com/aws/smithy-go/auth/bearer
+github.com/aws/smithy-go/context
+github.com/aws/smithy-go/document
+github.com/aws/smithy-go/encoding
+github.com/aws/smithy-go/encoding/httpbinding
+github.com/aws/smithy-go/encoding/json
+github.com/aws/smithy-go/encoding/xml
+github.com/aws/smithy-go/endpoints
+github.com/aws/smithy-go/endpoints/private/rulesfn
+github.com/aws/smithy-go/internal/sync/singleflight
+github.com/aws/smithy-go/io
+github.com/aws/smithy-go/logging
+github.com/aws/smithy-go/metrics
+github.com/aws/smithy-go/middleware
+github.com/aws/smithy-go/private/requestcompression
+github.com/aws/smithy-go/ptr
+github.com/aws/smithy-go/rand
+github.com/aws/smithy-go/sync
+github.com/aws/smithy-go/time
+github.com/aws/smithy-go/tracing
+github.com/aws/smithy-go/transport/http
+github.com/aws/smithy-go/transport/http/internal/io
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
+# github.com/bits-and-blooms/bitset v1.13.0
+## explicit; go 1.16
+github.com/bits-and-blooms/bitset
+# github.com/blang/semver v3.5.1+incompatible
+## explicit
+github.com/blang/semver
+# github.com/cenkalti/backoff/v5 v5.0.3
+## explicit; go 1.23
+github.com/cenkalti/backoff/v5
+# github.com/cespare/xxhash/v2 v2.3.0
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
+# github.com/cilium/ebpf v0.17.3
+## explicit; go 1.22
+github.com/cilium/ebpf
+github.com/cilium/ebpf/asm
+github.com/cilium/ebpf/btf
+github.com/cilium/ebpf/internal
+github.com/cilium/ebpf/internal/kallsyms
+github.com/cilium/ebpf/internal/kconfig
+github.com/cilium/ebpf/internal/linux
+github.com/cilium/ebpf/internal/sys
+github.com/cilium/ebpf/internal/sysenc
+github.com/cilium/ebpf/internal/testutils/fdtrace
+github.com/cilium/ebpf/internal/tracefs
+github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
+# github.com/cloudflare/cfssl v1.6.5
+## explicit; go 1.18
+github.com/cloudflare/cfssl/api
+github.com/cloudflare/cfssl/auth
+github.com/cloudflare/cfssl/certdb
+github.com/cloudflare/cfssl/config
+github.com/cloudflare/cfssl/crypto/pkcs7
+github.com/cloudflare/cfssl/csr
+github.com/cloudflare/cfssl/errors
+github.com/cloudflare/cfssl/helpers
+github.com/cloudflare/cfssl/helpers/derhelpers
+github.com/cloudflare/cfssl/info
+github.com/cloudflare/cfssl/initca
+github.com/cloudflare/cfssl/log
+github.com/cloudflare/cfssl/ocsp/config
+github.com/cloudflare/cfssl/signer
+github.com/cloudflare/cfssl/signer/local
+# github.com/cloudflare/circl v1.6.3
+## explicit; go 1.22.0
+github.com/cloudflare/circl/dh/x25519
+github.com/cloudflare/circl/dh/x448
+github.com/cloudflare/circl/ecc/goldilocks
+github.com/cloudflare/circl/internal/conv
+github.com/cloudflare/circl/internal/sha3
+github.com/cloudflare/circl/math
+github.com/cloudflare/circl/math/fp25519
+github.com/cloudflare/circl/math/fp448
+github.com/cloudflare/circl/math/mlsbset
+github.com/cloudflare/circl/sign
+github.com/cloudflare/circl/sign/ed25519
+github.com/cloudflare/circl/sign/ed448
+# github.com/container-storage-interface/spec v1.5.0
+## explicit; go 1.16
+github.com/container-storage-interface/spec/lib/go/csi
+# github.com/containerd/accelerated-container-image v1.3.0
+## explicit; go 1.22.0
+github.com/containerd/accelerated-container-image/pkg/label
+github.com/containerd/accelerated-container-image/pkg/types
+github.com/containerd/accelerated-container-image/pkg/utils
+# github.com/containerd/cgroups/v3 v3.1.3
+## explicit; go 1.22.0
+github.com/containerd/cgroups/v3
+github.com/containerd/cgroups/v3/cgroup1
+github.com/containerd/cgroups/v3/cgroup1/stats
+github.com/containerd/cgroups/v3/cgroup2
+github.com/containerd/cgroups/v3/cgroup2/stats
+# github.com/containerd/console v1.0.5
+## explicit; go 1.13
+github.com/containerd/console
+# github.com/containerd/containerd/api v1.10.0
+## explicit; go 1.23.0
+github.com/containerd/containerd/api/events
+github.com/containerd/containerd/api/runtime/sandbox/v1
+github.com/containerd/containerd/api/services/containers/v1
+github.com/containerd/containerd/api/services/content/v1
+github.com/containerd/containerd/api/services/diff/v1
+github.com/containerd/containerd/api/services/events/v1
+github.com/containerd/containerd/api/services/images/v1
+github.com/containerd/containerd/api/services/introspection/v1
+github.com/containerd/containerd/api/services/leases/v1
+github.com/containerd/containerd/api/services/mounts/v1
+github.com/containerd/containerd/api/services/namespaces/v1
+github.com/containerd/containerd/api/services/sandbox/v1
+github.com/containerd/containerd/api/services/snapshots/v1
+github.com/containerd/containerd/api/services/streaming/v1
+github.com/containerd/containerd/api/services/tasks/v1
+github.com/containerd/containerd/api/services/transfer/v1
+github.com/containerd/containerd/api/services/version/v1
+github.com/containerd/containerd/api/types
+github.com/containerd/containerd/api/types/runc/options
+github.com/containerd/containerd/api/types/runtimeoptions/v1
+github.com/containerd/containerd/api/types/task
+github.com/containerd/containerd/api/types/transfer
+# github.com/containerd/containerd/v2 v2.2.2
+## explicit; go 1.24.3
+github.com/containerd/containerd/v2/client
+github.com/containerd/containerd/v2/cmd/containerd/server/config
+github.com/containerd/containerd/v2/core/containers
+github.com/containerd/containerd/v2/core/content
+github.com/containerd/containerd/v2/core/content/proxy
+github.com/containerd/containerd/v2/core/diff
+github.com/containerd/containerd/v2/core/diff/proxy
+github.com/containerd/containerd/v2/core/events
+github.com/containerd/containerd/v2/core/events/proxy
+github.com/containerd/containerd/v2/core/images
+github.com/containerd/containerd/v2/core/images/archive
+github.com/containerd/containerd/v2/core/images/converter
+github.com/containerd/containerd/v2/core/images/usage
+github.com/containerd/containerd/v2/core/introspection
+github.com/containerd/containerd/v2/core/introspection/proxy
+github.com/containerd/containerd/v2/core/leases
+github.com/containerd/containerd/v2/core/leases/proxy
+github.com/containerd/containerd/v2/core/metadata
+github.com/containerd/containerd/v2/core/metadata/boltutil
+github.com/containerd/containerd/v2/core/mount
+github.com/containerd/containerd/v2/core/mount/proxy
+github.com/containerd/containerd/v2/core/remotes
+github.com/containerd/containerd/v2/core/remotes/docker
+github.com/containerd/containerd/v2/core/remotes/docker/auth
+github.com/containerd/containerd/v2/core/remotes/docker/config
+github.com/containerd/containerd/v2/core/remotes/errors
+github.com/containerd/containerd/v2/core/sandbox
+github.com/containerd/containerd/v2/core/sandbox/proxy
+github.com/containerd/containerd/v2/core/snapshots
+github.com/containerd/containerd/v2/core/snapshots/proxy
+github.com/containerd/containerd/v2/core/streaming
+github.com/containerd/containerd/v2/core/streaming/proxy
+github.com/containerd/containerd/v2/core/transfer
+github.com/containerd/containerd/v2/core/transfer/proxy
+github.com/containerd/containerd/v2/core/transfer/streaming
+github.com/containerd/containerd/v2/core/unpack
+github.com/containerd/containerd/v2/defaults
+github.com/containerd/containerd/v2/internal/cleanup
+github.com/containerd/containerd/v2/internal/fsverity
+github.com/containerd/containerd/v2/internal/kmutex
+github.com/containerd/containerd/v2/internal/lazyregexp
+github.com/containerd/containerd/v2/internal/randutil
+github.com/containerd/containerd/v2/internal/userns
+github.com/containerd/containerd/v2/pkg/apparmor
+github.com/containerd/containerd/v2/pkg/archive
+github.com/containerd/containerd/v2/pkg/archive/compression
+github.com/containerd/containerd/v2/pkg/archive/tarheader
+github.com/containerd/containerd/v2/pkg/cap
+github.com/containerd/containerd/v2/pkg/cio
+github.com/containerd/containerd/v2/pkg/dialer
+github.com/containerd/containerd/v2/pkg/epoch
+github.com/containerd/containerd/v2/pkg/filters
+github.com/containerd/containerd/v2/pkg/gc
+github.com/containerd/containerd/v2/pkg/identifiers
+github.com/containerd/containerd/v2/pkg/kernelversion
+github.com/containerd/containerd/v2/pkg/labels
+github.com/containerd/containerd/v2/pkg/namespaces
+github.com/containerd/containerd/v2/pkg/oci
+github.com/containerd/containerd/v2/pkg/protobuf
+github.com/containerd/containerd/v2/pkg/protobuf/proto
+github.com/containerd/containerd/v2/pkg/protobuf/types
+github.com/containerd/containerd/v2/pkg/reference
+github.com/containerd/containerd/v2/pkg/rootfs
+github.com/containerd/containerd/v2/pkg/seccomp
+github.com/containerd/containerd/v2/pkg/snapshotters
+github.com/containerd/containerd/v2/pkg/sys
+github.com/containerd/containerd/v2/pkg/tracing
+github.com/containerd/containerd/v2/plugins
+github.com/containerd/containerd/v2/plugins/content/local
+github.com/containerd/containerd/v2/plugins/diff/walking
+github.com/containerd/containerd/v2/plugins/services
+github.com/containerd/containerd/v2/plugins/services/content/contentserver
+github.com/containerd/containerd/v2/plugins/snapshots/overlay/overlayutils
+github.com/containerd/containerd/v2/version
+# github.com/containerd/continuity v0.4.5
+## explicit; go 1.21
+github.com/containerd/continuity/devices
+github.com/containerd/continuity/driver
+github.com/containerd/continuity/fs
+github.com/containerd/continuity/sysx
+# github.com/containerd/errdefs v1.0.0
+## explicit; go 1.20
+github.com/containerd/errdefs
+# github.com/containerd/errdefs/pkg v0.3.0
+## explicit; go 1.22
+github.com/containerd/errdefs/pkg/errgrpc
+github.com/containerd/errdefs/pkg/errhttp
+github.com/containerd/errdefs/pkg/internal/cause
+github.com/containerd/errdefs/pkg/internal/types
+# github.com/containerd/fifo v1.1.0
+## explicit; go 1.18
+github.com/containerd/fifo
+# github.com/containerd/go-cni v1.1.13
+## explicit; go 1.21
+github.com/containerd/go-cni
+# github.com/containerd/go-runc v1.1.0
+## explicit; go 1.18
+github.com/containerd/go-runc
+# github.com/containerd/log v0.1.0
+## explicit; go 1.20
+github.com/containerd/log
+github.com/containerd/log/logtest
+# github.com/containerd/nri v0.11.0
+## explicit; go 1.24.0
+github.com/containerd/nri/pkg/adaptation
+github.com/containerd/nri/pkg/adaptation/builtin
+github.com/containerd/nri/pkg/api
+github.com/containerd/nri/pkg/log
+github.com/containerd/nri/pkg/net
+github.com/containerd/nri/pkg/net/multiplex
+github.com/containerd/nri/pkg/plugin
+github.com/containerd/nri/pkg/stub
+github.com/containerd/nri/plugins/default-validator
+github.com/containerd/nri/plugins/default-validator/builtin
+# github.com/containerd/nydus-snapshotter v0.15.13
+## explicit; go 1.24.0
+github.com/containerd/nydus-snapshotter/pkg/converter
+github.com/containerd/nydus-snapshotter/pkg/converter/tool
+github.com/containerd/nydus-snapshotter/pkg/label
+# github.com/containerd/platforms v1.0.0-rc.2
+## explicit; go 1.20
+github.com/containerd/platforms
+# github.com/containerd/plugin v1.0.0
+## explicit; go 1.20
+github.com/containerd/plugin
+# github.com/containerd/stargz-snapshotter/estargz v0.18.2
+## explicit; go 1.24.0
+github.com/containerd/stargz-snapshotter/estargz
+github.com/containerd/stargz-snapshotter/estargz/errorutil
+# github.com/containerd/ttrpc v1.2.8
+## explicit; go 1.22
+github.com/containerd/ttrpc
+# github.com/containerd/typeurl/v2 v2.2.3
+## explicit; go 1.21
+github.com/containerd/typeurl/v2
+# github.com/containernetworking/cni v1.3.0
+## explicit; go 1.21
+github.com/containernetworking/cni/libcni
+github.com/containernetworking/cni/pkg/invoke
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/040
+github.com/containernetworking/cni/pkg/types/100
+github.com/containernetworking/cni/pkg/types/create
+github.com/containernetworking/cni/pkg/types/internal
+github.com/containernetworking/cni/pkg/utils
+github.com/containernetworking/cni/pkg/version
+# github.com/containernetworking/plugins v1.9.1
+## explicit; go 1.24.2
+github.com/containernetworking/plugins/pkg/ns
+# github.com/coreos/go-semver v0.3.1
+## explicit; go 1.8
+github.com/coreos/go-semver/semver
+# github.com/coreos/go-systemd/v22 v22.7.0
+## explicit; go 1.23
+github.com/coreos/go-systemd/v22/activation
+github.com/coreos/go-systemd/v22/daemon
+github.com/coreos/go-systemd/v22/dbus
+github.com/coreos/go-systemd/v22/journal
+# github.com/cpuguy83/tar2go v0.3.1
+## explicit; go 1.19
+github.com/cpuguy83/tar2go
+# github.com/creack/pty v1.1.24
+## explicit; go 1.18
+github.com/creack/pty
+# github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
+## explicit
+github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
+# github.com/cyphar/filepath-securejoin v0.6.0
+## explicit; go 1.18
+github.com/cyphar/filepath-securejoin
+github.com/cyphar/filepath-securejoin/internal/consts
+github.com/cyphar/filepath-securejoin/pathrs-lite
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/assert
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/fd
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gocompat
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gopathrs
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/kernelversion
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/linux
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/procfs
+github.com/cyphar/filepath-securejoin/pathrs-lite/procfs
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/deckarep/golang-set/v2 v2.8.0
+## explicit; go 1.18
+github.com/deckarep/golang-set/v2
+# github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352
+## explicit; go 1.13
+github.com/digitorus/pkcs7
+# github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7
+## explicit; go 1.16
+github.com/digitorus/timestamp
+# github.com/dimchansky/utfbom v1.1.1
+## explicit
+github.com/dimchansky/utfbom
+# github.com/distribution/reference v0.6.0
+## explicit; go 1.20
+github.com/distribution/reference
+# github.com/docker/distribution v2.8.3+incompatible
+## explicit
+github.com/docker/distribution
+github.com/docker/distribution/manifest
+github.com/docker/distribution/manifest/manifestlist
+github.com/docker/distribution/manifest/ocischema
+github.com/docker/distribution/manifest/schema2
+github.com/docker/distribution/metrics
+github.com/docker/distribution/registry/api/errcode
+github.com/docker/distribution/registry/api/v2
+github.com/docker/distribution/registry/client
+github.com/docker/distribution/registry/client/auth
+github.com/docker/distribution/registry/client/auth/challenge
+github.com/docker/distribution/registry/client/transport
+github.com/docker/distribution/registry/storage/cache
+github.com/docker/distribution/registry/storage/cache/memory
+# github.com/docker/go-connections v0.6.0
+## explicit; go 1.18
+github.com/docker/go-connections/sockets
+github.com/docker/go-connections/tlsconfig
+# github.com/docker/go-events v0.0.0-20250808211157-605354379745
+## explicit
+github.com/docker/go-events
+# github.com/docker/go-metrics v0.0.1
+## explicit; go 1.11
+github.com/docker/go-metrics
+# github.com/docker/go-units v0.5.0
+## explicit
+github.com/docker/go-units
+# github.com/docker/libtrust v0.0.0-20150526203908-9cbd2a1374f4
+## explicit
+# github.com/dustin/go-humanize v1.0.1
+## explicit; go 1.16
+github.com/dustin/go-humanize
+# github.com/felixge/httpsnoop v1.0.4
+## explicit; go 1.13
+github.com/felixge/httpsnoop
+# github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
+## explicit; go 1.18
+github.com/fernet/fernet-go
+# github.com/fluent/fluent-logger-golang v1.10.1
+## explicit; go 1.23.0
+github.com/fluent/fluent-logger-golang/fluent
+# github.com/fsnotify/fsnotify v1.9.0
+## explicit; go 1.17
+github.com/fsnotify/fsnotify
+github.com/fsnotify/fsnotify/internal
+# github.com/go-logr/logr v1.4.3
+## explicit; go 1.18
+github.com/go-logr/logr
+github.com/go-logr/logr/funcr
+# github.com/go-logr/stdr v1.2.2
+## explicit; go 1.16
+github.com/go-logr/stdr
+# github.com/go-openapi/analysis v0.24.3
+## explicit; go 1.24.0
+github.com/go-openapi/analysis
+github.com/go-openapi/analysis/internal/debug
+github.com/go-openapi/analysis/internal/flatten/normalize
+github.com/go-openapi/analysis/internal/flatten/operations
+github.com/go-openapi/analysis/internal/flatten/replace
+github.com/go-openapi/analysis/internal/flatten/schutils
+github.com/go-openapi/analysis/internal/flatten/sortref
+# github.com/go-openapi/errors v0.22.7
+## explicit; go 1.24.0
+github.com/go-openapi/errors
+# github.com/go-openapi/jsonpointer v0.22.5
+## explicit; go 1.24.0
+github.com/go-openapi/jsonpointer
+# github.com/go-openapi/jsonreference v0.21.5
+## explicit; go 1.24.0
+github.com/go-openapi/jsonreference
+github.com/go-openapi/jsonreference/internal
+# github.com/go-openapi/loads v0.23.3
+## explicit; go 1.24.0
+github.com/go-openapi/loads
+# github.com/go-openapi/runtime v0.29.2
+## explicit; go 1.24.0
+github.com/go-openapi/runtime
+github.com/go-openapi/runtime/client
+github.com/go-openapi/runtime/logger
+github.com/go-openapi/runtime/middleware
+github.com/go-openapi/runtime/middleware/denco
+github.com/go-openapi/runtime/middleware/header
+github.com/go-openapi/runtime/middleware/untyped
+github.com/go-openapi/runtime/security
+github.com/go-openapi/runtime/yamlpc
+# github.com/go-openapi/spec v0.22.4
+## explicit; go 1.24.0
+github.com/go-openapi/spec
+# github.com/go-openapi/strfmt v0.26.1
+## explicit; go 1.24.0
+github.com/go-openapi/strfmt
+github.com/go-openapi/strfmt/internal/bsonlite
+# github.com/go-openapi/swag v0.25.4
+## explicit; go 1.24.0
+github.com/go-openapi/swag
+# github.com/go-openapi/swag/cmdutils v0.25.4
+## explicit; go 1.24.0
+github.com/go-openapi/swag/cmdutils
+# github.com/go-openapi/swag/conv v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/conv
+# github.com/go-openapi/swag/fileutils v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/fileutils
+# github.com/go-openapi/swag/jsonname v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/jsonname
+# github.com/go-openapi/swag/jsonutils v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/jsonutils
+github.com/go-openapi/swag/jsonutils/adapters
+github.com/go-openapi/swag/jsonutils/adapters/ifaces
+github.com/go-openapi/swag/jsonutils/adapters/stdlib/json
+# github.com/go-openapi/swag/loading v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/loading
+# github.com/go-openapi/swag/mangling v0.25.5
+## explicit; go 1.24.0
+github.com/go-openapi/swag/mangling
+# github.com/go-openapi/swag/netutils v0.25.4
+## explicit; go 1.24.0
+github.com/go-openapi/swag/netutils
+# github.com/go-openapi/swag/stringutils v0.25.5

@@ -1,0 +1,2718 @@
+
+
+# FILE: stable.txt
+v1.19.2
+
+
+# FILE: netlify.toml
+[build]
+  base = "Documentation/"
+  publish = "_build/html"
+  command = "make html-netlify"
+
+
+# FILE: USERS.md
+Who is using Cilium?
+====================
+
+Sharing experiences and learning from other users is essential. We are
+frequently asked who is using a particular feature of Cilium so people can get in
+contact with other users to share experiences and best practices. People
+also often want to know if product/platform X has integrated Cilium.
+While the [Cilium Slack community](https://slack.cilium.io) allows
+users to get in touch, it can be challenging to find this information quickly.
+
+The following is a directory of adopters to help identify users of individual
+features. The users themselves directly maintain the list.
+
+Why Add Your Organization?
+--------------------------
+
+Cilium is the standard for cloud native networking and security, and your company's support
+helps drive its adoption and success. By joining the adopters, you:  
+
+✅ **Showcase Your Leadership** – Highlight your commitment to modern, eBPF-based
+cloud native networking, observability, and security.
+
+✅ **Support the Open Source Community** – Demonstrate real-world adoption,
+which strengthens the project's credibility and growth.  
+
+Adding yourself as a user
+-------------------------
+
+If you are using Cilium or it is integrated into your product, service, or
+platform, please consider adding yourself as a user with a quick
+description of your use case by opening a pull request to this file and adding
+a section describing your usage of Cilium. If you are open to others contacting
+you about your use of Cilium on Slack, add your Slack nickname as well.
+
+    N: Name of user (company)
+    D: Description
+    U: Usage of features
+    L: Link with further information (optional)
+    Q: Contacts available for questions (optional)
+
+Example entry:
+
+    * N: Cilium Example User Inc.
+      D: Cilium Example User Inc. is using Cilium for scientific purposes
+      U: ENI networking, DNS policies, ClusterMesh
+      Q: @slacknick1, @slacknick2
+
+Requirements to be listed
+-------------------------
+
+ * You must represent the user listed. Do *NOT* add entries on behalf of
+   other users.
+ * There is no minimum deployment size but we request to list permanent
+   production deployments only, i.e., no demo or trial deployments.
+
+Users (Alphabetically)
+----------------------
+
+    * N: Ænix
+      D: Ænix uses Cilium in free PaaS platform [Cozystack](https://cozystack.io) for running containers, virtual machines and Kubernetes-as-a-Service.
+      U: Networking, NetworkPolicy, kube-proxy replacement, CNI-Chaining (with kube-ovn)
+      L: https://cozystack.io/
+      Q: @kvaps
+
+    * N: AccuKnox
+      D: AccuKnox uses Cilium for network visibility and network policy enforcement.
+      U: L3/L4/L7 policy enforcement using Identity, External/VM Workloads, Network Visibility using Hubble
+      L: https://www.accuknox.com/spifee-identity-for-cilium-presentation-at-kubecon-2021, https://www.accuknox.com/cilium
+      Q: @nyrahul
+
+    * N: Acoss
+      D: Acoss is using cilium as their main CNI plugin (self hosted k8s, On-premises)
+      U: CiliumNetworkPolicy, Hubble, BPF NodePort, Direct routing
+      L: @JrCs
+
+    * N: Adobe, Inc.
+      D: Adobe's Project Ethos uses Cilium for multi-tenant, multi-cloud clusters
+      U: L3/L4/L7 policies
+      L: https://youtu.be/39FLsSc2P-Y
+
+    * N: AirQo
+      D: AirQo uses Cilium as the CNI plugin
+      U: CNI, Networking, NetworkPolicy, Cluster Mesh, Hubble, Kubernetes services
+      L: @airqo-platform
+      
+    * N: Alauda
+      D: Alauda uses Cilium in the Alauda Container Platform product to provide high performance network,observability and security.
+      U: Networking, NetworkPolicy, Services, Observability
+      Q：@oilbeater
+      
+    * N: Alibaba Cloud
+      D: Alibaba Cloud is using Cilium together with Terway CNI as the high-performance ENI dataplane
+      U: Networking, NetworkPolicy, Services, IPVLAN
+      L: https://www.alibabacloud.com/blog/how-does-alibaba-cloud-build-high-performance-cloud-native-pod-networks-in-production-environments_596590
+
+    * N: Amazon Web Services (AWS)
+      D: AWS uses Cilium as the default CNI for EKS Anywhere
+      U: Networking, NetworkPolicy, Services
+      L: https://isovalent.com/blog/post/2021-09-aws-eks-anywhere-chooses-cilium
+
+    * N: APPUiO by VSHN
+      D: VSHN uses Cilium for multi-tenant networking on APPUiO Cloud and as an add-on to APPUiO Managed, both on Red Hat OpenShift and Cloud Kubernetes.
+      U: CNI, Networking, NetworkPolicy, Hubble, IPAM, Kubernetes services
+      L: https://products.docs.vshn.ch/products/appuio/managed/addon_cilium.html and https://www.appuio.cloud
+
+    * N: ArangoDB Oasis
+      D: ArangoDB Oasis is using Cilium in to separate database deployments in our multi-tenant cloud environment
+      U: Networking, CiliumNetworkPolicy(cluster & local), Hubble, IPAM
+      L: https://cloud.arangodb.com
+      Q: @ewoutp @Robert-Stam
+
+    * N: Archer Aviation
+      D: Archer Aviation uses Cilium as part of the foundation of the Kubernetes cluster.
+      U: Networking, Observability, Security
+      L: https://www.archer.com
+      Q: @Hongbo Miao
+
+    * N: Ascend.io
+      D: Ascend.io is using Cilium as a consistent CNI for our Data Automation Platform on GKE, EKS, and AKS.
+      U: Transparent Encryption, Overlay Networking, Cluster Mesh, Egress Gateway, Network Policy, Hubble
+      L: https://www.ascend.io/
+      Q: @Joe Stevens
+
+    * N: Ayedo
+      D: Ayedo builds and operates cloud-native container platforms based on Kubernetes
+      U: Hubble for Visibility, Cilium as Mesh between Services
+      L: https://www.ayedo.de/
+
+    * N: Batumbu
+      D: Batumbu uses Cilium as the CNI in all GKE clusters, using its cluster mesh feature to connect clusters within the same environment.
+      U: CNI, Cluster Mesh, Hubble, NetworkPolicy
+      Q: @gustysap
+      L: https://batumbu.id/
+
+    * N: Back Market
+      D: Back Market is using Cilium as CNI in all their clusters and environments (kOps + EKS in AWS)
+      U: CNI, Network Policies, Transparent Encryption (WG), Hubble
+      Q: @nitrikx
+      L: https://www.backmarket.com/
+
+    * N: Berops
+      D: Cilium is used as a CNI plug-in in our open-source multi-cloud and hybrid-cloud Kubernetes platform - Claudie
+      U: CNI, Network Policies, Hubble
+      Q: @Bernard Halas
+      L: https://github.com/berops/claudie
+
+    * N: Bitnami
+      D: Cilium is part of the largest open-source application catalog.
+      U: CNI, Hubble, BGP, eBPF, CiliumNetworkPolicy, CiliumClusterwideNetworkPolicy
+      L: https://bitnami.com/stack/cilium
+      Q: @carrodher
+
+    * N: BMC Software
+      D: Cilium can be optionally used in BMC Helix Innovaton Suite and BMC IT Operations Management On Premise
+      U: CNI, Hubble
+      L: https://www.bmc.com
+      Q: @ryebridge
+      
+    * N: ByteDance
+      D: ByteDance is using Cilium as CNI plug-in for self-hosted Kubernetes.
+      U: CNI, Networking
+      L: @Jiang Wang
+
+    * N: Canonical
+      D: Canonical's Kubernetes distribution microk8s uses Cilium as CNI plugin
+      U: Networking, NetworkPolicy, and Kubernetes services
+      L: https://microk8s.io/
+
+    * N: Capital One
+      D: Capital One uses Cilium as its standard CNI for all Kubernetes environments
+      U: CNI, CiliumClusterWideNetworkpolicy, CiliumNetworkPolicy, Hubble, network visibility
+      L: https://www.youtube.com/watch?v=hwOpCKBaJ-w
+
+    * N: Celonis
+      D: Celonis has standardized on Cilium as the primary CNI across its entire global cluster fleet.
+      U: CNI, Hubble, CiliumNetworkPolicies, Network Visibility, Transparent Encryption
+      L: https://www.celonis.com
+
+    * N: CENGN - Centre of Excellence in Next Generation Networks
+      D: CENGN is using Cilium in multiple clusters including production and development clusters (self-hosted k8s, On-premises)
+      U: L3/L4/L7 network policies, Monitoring via Prometheus metrics & Hubble
+      L: https://www.youtube.com/watch?v=yXm7yZE2rk4
+      Q: @rmaika @mohahmed13
+
+    * N: Cistec
+      D: Cistec is a clinical information system provider and uses Cilium as the CNI plugin.
+      U: Networking and network policy
+      L: https://www.cistec.com/
+
+    * N: Civo
+      D: Civo is offering Cilium as the CNI option for Civo users to choose it for their Civo Kubernetes clusters.
+      U: Networking and network policy
+      L: https://www.civo.com/kubernetes
+
+    * N: ClickHouse
+      D: ClickHouse uses Cilium as CNI for AWS Kubernetes environments
+      U: CiliumNetworkPolicy, Hubble, ClusterMesh
+      L: https://clickhouse.com
+
+    * N: Cloutomate
+      D: Cloutomate uses Cilium as CNI for itself and customer installations
+      U: Networking Observability and Security, Service Mesh, Cluster Mesh
+      L: https://cloutomate.de
+
+    * N: Cognite
+      D: Cognite is an industrial DataOps provider and uses Cilium as the CNI plugin
+      Q: @Robert Collins
+
+    * N: Confluent
+      D: Confluent is a data streaming platform to stream, connect, process, and govern data in real-time.
+      U: Networking, NetworkPolicy
+      L: https://www.confluent.io
+
+    * N: CONNY
+      D: CONNY is legaltech platform to improve access to justice for individuals
+      U: Networking, NetworkPolicy, Services
+      Q: @ant31
+      L: https://conny.de
+
+    * N: CoreWeave
+      D: CoreWeave, The AI Hyperscaler™, uses Cilium as the default CNI for CoreWeave Kubernetes Service.
+      U: Networking
+      L: https://www.coreweave.com/
+      Q: @dswaffordcw
+
+    * N: Cosmonic
+      D: Cilium is the CNI for Cosmonic's Nomad based PaaS
+      U: Networking, NetworkPolicy, Transparent Encryption
+      L: https://cilium.io/blog/2023/01/18/cosmonic-user-story/
+
+    * N: Crane
+      D: Crane uses Cilium as the default CNI
+      U: Networking, NetworkPolicy, Services
+      L: https://github.com/slzcc/crane
+      Q: @slzcc
+
+    * N: Cybozu
+      D: Cybozu deploys Cilium to on-prem Kubernetes Cluster and uses it with Coil by CNI chaining.
+      U: CNI Chaining, L4 LoadBalancer, NetworkPolicy, Hubble
+      L: https://cybozu-global.com/
+
+    * N: Daimler Truck AG
+      D: The CSG RuntimeDepartment of DaimlerTruck is maintaining an AKS k8s cluster as a shared resource for DevOps crews and is using Cilium as the default CNI (BYOCNI).
+      U: Networking, NetworkPolicy and Monitoring
+      L: https://daimlertruck.com
+      Q: @brandshaide
+
+    * N: DaoCloud - spiderpool & merbridge
+      D: spiderpool is using Cilium as their main CNI plugin for overlay and merbridge is using  Cilium eBPF library to speed up your Service Mesh
+      U: CNI, Service load-balancing, cluster mesh
+      L: https://github.com/spidernet-io/spiderpool, https://github.com/merbridge/merbridge
+      Q: @weizhoublue, @kebe7jun
+
+    * N: Datadog
+      D: Datadog is using Cilium in AWS (self-hosted k8s)
+      U: ENI Networking, Service load-balancing, Encryption, Network Policies, Hubble
+      Q: @lbernail, @roboll, @mvisonneau
+
+    * N: Dcode.tech
+      D: We specialize in AWS and Kubernetes, and actively implement Cilium at our clients. 
+      U: CNI, CiliumNetworkPolicy, Hubble UI
+      L: https://dcode.tech/
+      Q: @eliranw, @maordavidov
+  
+    * N: Deckhouse
+      D: Deckhouse Kubernetes Platform is using Cilium as a one of the supported CNIs.
+      U: Networking, Security, Hubble UI for network visibility
+      L: https://github.com/deckhouse/deckhouse
+
+    * N: Deezer
+      D: Deezer is using Cilium as CNI for all our on-prem clusters for its performance and security. We plan to leverage BGP features as well soon
+      U: CNI, Hubble, kube-proxy replacement, eBPF
+      L: https://github.com/deezer
+
+    * N: DigitalOcean
+      D: DigitalOcean is using Cilium as the CNI for Digital Ocean's managed Kubernetes Services (DOKS)
+      U: Networking and network policy
+      L: https://github.com/digitalocean/DOKS
+
+    * N: Docaposte
+      D: Docaposte is the digital trust leader in France. We have selected Cilium as our CNI for Kubernetes deployments in production environments, due to its performance and advanced features.
+      U: eBPF, CiliumclusterWideNetworkPolicy, CiliumNetworkPolicy, kube-proxy replacement, Hubble
+      L: https://docaposte.fr
+      Q: @albundy83
+
+    * N: ECCO Data and AI
+      D: ECCO Data and AI is using Cilium as CNI in all their clusters and environments (EKS in AWS).
+      U: CNI, IPv6 networking, Service Load Balancing and Cluster Mesh
+      L: https://github.com/SneaksAndData
+
+    * N: Edgeless Systems
+      D: Edgeless Systems is using Cilium as the CNI for Edgeless System's Confidential Kubernetes Distribution (Constellation)
+      U: Networking (CNI), Transparent Encryption (WG),
+      L: https://docs.edgeless.systems/constellation/architecture/networking
+      Q: @m1ghtym0
+
+    * N: Eficode
+      D: As a cloud-native and devops consulting firm, we have implemented Cilium on customer engagements
+      U: CNI, CiliumNetworkPolicy at L7, Hubble
+      L: https://eficode.com/
+      Q: @Andy Allred
+
+    * N: Elastic Path
+      D: Elastic Path is using Cilium in their CloudOps for Kubernetes production clusters
+      U: CNI
+      L: https://documentation.elasticpath.com/cloudops-kubernetes/docs/index.html
+      Q: @Neil Seward
+
+    * N: Entrywan
+      D: Entrywan provides Cilium as a CNI option in its managed kubernetes service
+      U: CNI
+      L: https://www.entrywan.com/docs#kubernetes
+      Q: @aarongroom
+
+    * N: Equinix
+      D: Equinix Metal is using Cilium for production and non-production environments on bare metal
+      U: CNI, CiliumClusterWideNetworkpolicy, CiliumNetworkPolicy, BGP advertisements, Hubble, network visibility
+      L: https://metal.equinix.com/
+      Q: @tylerauerbeck, @fishnix, @tenyo, @hegartyk
+
+    * N: Equinix
+      D: Equinix NL Managed Services is using Cilium with their Managed Kubernetes offering
+      U: CNI, network policies, visibility
+      L: https://www.equinix.nl/products/support-services/managed-services/netherlands
+      Q: @jonkerj
+
+    * N: Eastern Switzerland University of Applied Sciences (OST)
+      D: OST is using Cilium in their production clusters (self-hosted, bare-metal, private cloud) and in their Cloud Native training courses.
+      U: CNI with Gateway API, Network Policies, L2 Announcements, Hubble Observability, Kube-proxy replacement
+      L: https://www.ost.ch
+      Q: @Jan Untersander
+
+    * N: EvoCloud
+      D: EvoCloud uses Cilium as a Kubernetes proxy replacement, CNI with Gateway API integration, Cluster mesh with BGP enabled, Network policy and Hubble Observability.
+      U: L4/L7 Networking, L2 Announcement, Network Policies, Kube-proxy replacement, CNI with Gateway API, Hubble for tracing and observability, ClusterMesh and ServiceMesh
+      L: https://github.com/evocloud-dev/evocloud-paas
+      Q: @geanttechnology, @escapevelocity17321
+
+    * N: Exoscale
+      D: Exoscale is offering Cilium as a CNI option on its managed Kubernetes service named SKS (Scalable Kubernetes Service)
+      U: CNI, Networking
+      L: https://www.exoscale.com/sks/
+      Q: @Antoine
+
+    * N: finleap connect
+      D: finleap connect is using Cilium in their production clusters (self-hosted, bare-metal, private cloud)
+      U: CNI, NetworkPolicies
+      Q: @chue
+
+    * N: Form3
+      D: Form3 is using Cilium in their production clusters (self-hosted, bare-metal, private cloud)
+      U: Service load-balancing, Encryption, CNI, NetworkPolicies
+      Q: @kevholditch-f3, samo-f3, ewilde-form3
+
+    * N: FPT Telecom
+      D: FTEL uses Cilium as their CNI plugin to handle the massive CPE Management traffic to the backends
+      U: CNI, CiliumclusterWideNetworkPolicy, CiliumNetworkPolicy, Kube-Proxy Replacement, Hubble, Direct Routing, Egress Gateway, Service Load Balancing, L2 Announcement, BGP Advertisement
+      Q: @minhng99
+
+    * N: F5 Inc
+      D: F5 helps customers with Cilium VXLAN tunnel integration with BIG-IP
+      U: Networking
+      L: https://github.com/f5devcentral/f5-ci-docs/blob/master/docs/cilium/cilium-bigip-info.rst
+      Q: @vincentmli
+    
+    * N: Gcore
+      D: Gcore supports Cilium as CNI provider for Gcore Managed Kubernetes Service
+      U: CNI, Networking, NetworkPolicy, Kubernetes Services
+      L: https://gcore.com/news/cilium-cni-support
+      Q: @rzdebskiy
+
+    * N: Giant Swarm
+      D: Giant Swarm is using Cilium in their Cluster API based managed Kubernetes service (AWS, Azure, GCP, OpenStack, VMware Cloud Director and VMware vSphere) as CNI
+      U: Networking
+      L: https://www.giantswarm.io/
+
+    * N: GitLab
+      D: GitLab is using Cilium to implement network policies inside Auto DevOps deployed clusters for customers using k8s
+      U: Network policies
+      L: https://docs.gitlab.com/ee/user/clusters/applications.html#install-cilium-using-gitlab-ci
+      Q: @ap4y @whaber
+
+    * N: Google
+      D: Google is using Cilium in Anthos and Google Kubernetes Engine (GKE) as Dataplane V2
+      U: Networking, network policy, and network visibility
+      L: https://cloud.google.com/blog/products/containers-kubernetes/bringing-ebpf-and-cilium-to-google-kubernetes-engine
+
+    * N: G DATA CyberDefense AG
+      D: G DATA CyberDefense AG is using Cilium on our managed on premise clusters.
+      U: Networking, network policy, security, and network visibility
+      L: https://gdatasoftware.com
+      Q: @farodin91
+
+    * N: Guida
+      D: Guida is using Cilium with their Managed Kubernetes offering both in public and private cloud.
+      U: CNI, Network Policies, Observability
+      L: https://www.guida.nl
+
+    * N: Guidewire Software, Inc.
+      D: Guidewire Software, Inc. is using Cilium for the Guidewire Cloud Platform.
+      U: CNI, network policy, and network visibility
+      L: https://www.guidewire.com
+
+    * N: IDNIC | Kadabra
+      D: IDNIC is the National Internet Registry administering IP addresses for INDONESIA, uses Cilium to powered Kadabra project runing services across multi data centers.
+      U: Networking, Network Policies, kube-proxy Replacement, Service Load Balancing and Cluster Mesh
+      L: https://ris.idnic.net/
+      Q: @ardikabs
+
+    * N: IKEA IT AB
+      D: IKEA IT AB is using Cilium for production and non-production environments (self-hosted, bare-metal, private cloud)
+      U: Networking, CiliumclusterWideNetworkPolicy, CiliumNetworkPolicy, kube-proxy replacement, Hubble, Direct routing, egress gateway, hubble-otel, Multi Nic XDP, BGP advertisements, Bandwidth Manager, Service Load Balancing, Cluster Mesh
+      L: https://www.ingka.com/
+
+    * N: Immerok
+      D: Immerok uses Cilium for cross-cluster communication and network isolation; Immerok Cloud is a serverless platform for the full power of [Apache Flink](https://flink.apache.org) at any scale.
+      U: Networking, network policy, observability, cluster mesh, kube-proxy replacement, security, CNI
+      L: https://immerok.io
+      Q: @austince, @dmvk
+
+    * N: Incentive.me
+      D: Incentive.me use Cilium, Tetragon, and Hubble for enterprise networking, observability, and security of all environments.
+      U: Networking, network policy, observability, cluster mesh, kube-proxy replacement, security, egress gateway, service load balancing, CNI
+      L: https://incentive.me
+      Q: @lucasfcnunes
+
+    * N: Infomaniak
+      D: Infomaniak is using Cilium in their production clusters (self-hosted, bare-metal and openstack)
+      U: Networking, CiliumNetworkPolicy, BPF NodePort, Direct routing, kube-proxy replacement
+      L: https://www.infomaniak.com/en
+      Q: @reneluria
+
+    * N: innoQ Schweiz GmbH
+      D: As a consulting company we added Cilium to a couple of our customers infrastructure
+      U: Networking, CiliumNetworkPolicy at L7, kube-proxy replacement, encryption
+      L: https://www.cloud-migration.ch/
+      Q: @fakod
+
+    * N: IONX Networks Limited
+      D: IONX's Infrastructure uses Cilium as CNI plugin
+      U: CNI, IPv4 and IPv6 Networking, SCTP, Service load balancing and Kubernetes services
+      L: https://ionxnetworks.com/
+      Q: @murali509
+
+    * N: Intility AS
+      D: Intility is a managed service provider for enterprises and we use Cilium, Tetragon, and Hubble to deliver world class managed Kubernetes clusters to customers from our own private cloud
+      U: Networking, CiliumNetworkPolicy, CiliumCIDRGroup, security, CNI
+      L: https://intility.com/container-platform/
+      Q: @jonasks, @daniwk, @stianfro
+
+     * N: Isovalent
+       D: Cilium is the platform that powers Isovalent’s enterprise networking, observability, and security solutions
+       U: Networking, network policy, observability, cluster mesh, kube-proxy replacement, security, egress gateway, service load balancing, CNI
+       L: https://isovalent.com/product/
+       Q: @BillMulligan
+
+    * N: Jar
+       D: Cilium is used as Jar's CNI on all prod and pre production environments.
+       U: Networking, network policy, observability, cluster mesh, kube-proxy replacement, security, egress gateway, service load balancing, CNI
+       L: https://myjar.app/blog/engineering/
+       Q: @rohan-changejar @rohangrge
+
+    * N: JUMO
+      D: JUMO is using Cilium as their CNI plugin for all of their AWS-hosted EKS clusters
+      U: Networking, network policy, network visibility, cluster mesh
+      Q: @Matthieu ANTOINE, @Carlos Castro, @Joao Coutinho (Slack)
+
+    * N: Kakao
+      D: Kakao is using Cilium as the CNI for their private cloud's managed Kubernetes service
+      U: Custom eBPF programs, networking, network policy, kube-proxy replacement
+      L: https://youtu.be/WRACr5nXl9U
+      Q: @gyutaeb
+
+    * N: KA-NABELL
+      D: KA-NABELL harnesses Cilium to deliver Kubernetes networking with robust security and clear observability.
+      U: CNI/ENI Networking, kube-proxy replacement, Monitoring via Prometheus metrics & Hubble, eBPF, CiliumNetworkPolicy
+      L: https://speakerdeck.com/andoshin11/envoy-external-authztogrpc-extensionwoli-yong-sita-wan-zhang-ranai-microservicesren-zheng-ren-ke-ji-pan?slide=8
+      Q: @kahirokunn
+
+    * N: Keploy
+      D: Keploy is using the Cilium to capture the network traffic to perform E2E Testing.
+      U: Networking, network policy, Monitoring, E2E Testing
+      L: https://keploy.io/
+
+    * N: Kilo
+      D: Cilium is a supported CNI for Kilo. When used together, Cilium + Kilo create a full mesh via WireGuard for Kubernetes in edge environments.
+      U: CNI, Networking, Hubble, kube-proxy replacement, network policy
+      L: https://kilo.squat.ai/
+      Q: @squat, @arpagon
+
+    * N: Koyeb
+      D: Koyeb hosts microVMs on its own servers and uses Cilium to power a mesh in between those
+      U: Networking, policies inside a non-Kubernetes environment
+      L: https://www.koyeb.com/blog/70-faster-deployments-and-high-performance-private-network
+      Q: @koyeb on Twitter / https://community.koyeb.com/
+
+    * N: kOps
+      D: kOps is using Cilium as one of the supported CNIs
+      U: Networking, Hubble, Encryption, kube-proxy replacement
+      L: kops.sigs.k8s.io/
+      Q: @olemarkus
+
+    * N: Kryptos Logic
+      D: Kryptos is a cyber security company that is using Kubernetes on-prem in which Cilium is our CNI of choice.
+      U: Networking, Observability, kube-proxy replacement
+
+    * N: kubeasz
+      D: kubeasz, a certified kubernetes installer, is using Cilium as a one of the supported CNIs.
+      U: Networking, network policy, Hubble for network visibility
+      L: https://github.com/easzlab/kubeasz
+
+    * N: Kube-OVN
+      D: Kube-OVN uses Cilium to enhance service performance, security and monitoring.
+      U: CNI-Chaining, Hubble, kube-proxy replacement
+      L: https://github.com/kubeovn/kube-ovn/blob/master/docs/IntegrateCiliumIntoKubeOVN.md
+      Q: @oilbeater
+
+    * N: Kube-Hetzner
+      D: Kube-Hetzner is a open-source Terraform project that uses Cilium as an possible CNI in its cluster deployment on Hetzner Cloud.
+      U: Networking, Hubble, kube-proxy replacement
+      L: https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner#cni
+      Q: @MysticalTech
+
+    * N: Kubermatic
+      D: Kubermatic Kubernetes Platform is using Cilium as a one of the supported CNIs.
+      U: Networking, network policy, Hubble for network visibility
+      L: https://github.com/kubermatic/kubermatic
+
+    * N: KubeSphere - KubeKey
+      D: KubeKey is an open-source lightweight tool for deploying Kubernetes clusters and addons efficiently. It uses Cilium as one of the supported CNIs.
+      U: Networking, Security, Hubble UI for network visibility
+      L: https://github.com/kubesphere/kubekey
+      Q: @FeynmanZhou
+
+    * N: K8e - Simple Kubernetes Distribution
+      D: Kubernetes Easy (k8e) is a lightweight, Extensible, Enterprise Kubernetes distribution. It uses Cilium as default CNI network.
+      U: Networking, network policy, Hubble for network visibility
+      L: https://github.com/xiaods/k8e
+      Q: @xds2000
+
+    * N: Labyrinth Labs
+      D: One stop shop for Cloud, AWS, Kubernetes
+      U: Networking, network policies, Hubble for network visibility
+      L: https://lablabs.io
+      Q: @mliner
+
+    * N: LinkPool
+      D: LinkPool is a professional Web3 infrastructure provider.
+      U: LinkPool is using Cilium as the CNI for its on-premise production clusters
+      L: https://linkpool.com
+      Q: @jleeh
+
+    * N: Liquid Reply
+      D: Liquid Reply is a professional service provider and utilizes Cilium on suitable projects and implementations.
+      U: Networking, network policy, Hubble for network visibility, Security
+      L: http://liquidreply.com
+      Q: @mkorbi
+
+    * N: Magic Leap
+      D: Magic Leap is using Hubble plugged to GKE Dataplane v2 clusters
+      U: Hubble
+      Q: @romachalm
+
+    * N: Melenion Inc
+      D: Melenion is using Cilium as the CNI for its on-premise production clusters
+      U: Service Load Balancing, Hubble
+      Q: @edude03
+
+    * N: Meltwater
+      D: Meltwater is using Cilium in AWS on self-hosted multi-tenant k8s clusters as the CNI plugin
+      U: ENI Networking, Encryption, Monitoring via Prometheus metrics & Hubble
+      Q: @recollir, @dezmodue
+
+    * N: Microsoft
+      D: Microsoft is using Cilium in "Azure CNI powered by Cilium" AKS (Azure Kubernetes Services) clusters
+      L: https://techcommunity.microsoft.com/t5/azure-networking-blog/azure-cni-powered-by-cilium-for-azure-kubernetes-service-aks/ba-p/3662341
+      Q: @tamilmani1989 @chandanAggarwal
+
+    * N: Mobilab
+      D: Mobilab uses Cilium as the CNI for its internal cloud
+      U: CNI
+      L: https://mobilabsolutions.com/2019/01/why-we-switched-to-cilium/
+
+    * N: MyFitnessPal
+      D: MyFitnessPal trusts Cilium with high volume user traffic in AWS on self-hosted k8s clusters as the CNI plugin and in GKE with Dataplane V2
+      U: Networking (CNI, Maglev, kube-proxy replacement, local redirect policy),  Observability (Network metrics with Hubble, DNS proxy, service maps, policy troubleshooting) and Security (Network Policy)
+      L: https://www.myfitnesspal.com
+
+    * N: Mux, Inc.
+      D: Mux deploys Cilium on self-hosted k8s clusters (Cluster API) in GCP and AWS to run its video streaming/analytics platforms.
+      U: Pod networking (CNI, IPAM, Host-reachable Services), Hubble, Cluster-mesh. TBD: Network Policy, Transparent Encryption (WG), Host Firewall.
+      L: https://mux.com
+      Q: @dilyevsky
+      
+    * N: NetBird
+      D: NetBird uses Cilium to compile BPF to Go for cross-platform DNS management and NAT traversal
+      U: bpf2go to compile a C source file into eBPF bytecode and then to Go
+      L: https://netbird.io/knowledge-hub/using-xdp-ebpf-to-share-default-dns-port-between-resolvers
+      Q: @braginini
+
+    * N: Netcloud AG
+      D: As a Swiss ICT company we are using Cilium as their CNI for mission critical, on premise k8s clusters.
+      U: Overlay Networking, CNI, Network Policy, Kube-Proxy Replacement, Service load-balancing
+      L: https://www.netcloud.ch
+      
+    * N: NETWAYS Web Services
+      D: NETWAYS Web Services offers Cilium to their clients as CNI option for their Managed Kubernetes clusters.
+      U: Networking (CNI), Observability (Hubble)
+      L: https://nws.netways.de/managed-kubernetes/
+
+    * N: New York Times (the)
+      D: The New York Times is using Cilium on EKS to build multi-region multi-tenant shared clusters
+      U: Networking (CNI, EKS IPAM, Maglev, kube-proxy replacement, Direct Routing),  Observability (Network metrics with Hubble, policy troubleshooting) and Security (Network Policy)
+      L: https://www.nytimes.com/, https://youtu.be/9FDpMNvPrCw
+      Q: @abebars
+
+    * N: Nexxiot
+      D: Nexxiot is an IoT SaaS provider using Cilium as the main CNI plugin on AWS EKS clusters
+      U: Networking (IPAM, CNI), Security (Network Policies), Visibility (hubble)
+      L: https://nexxiot.com
+
+    * N: Nine Internet Solutions AG
+      D: Nine uses Cilium on all Nine Kubernetes Engine clusters
+      U: CNI, network policy, kube-proxy replacement, host firewall
+      L: https://www.nine.ch/en/kubernetes
+
+    * N: Northflank
+      D: Northflank is a PaaS and uses Cilium as the main CNI plugin across GCP, Azure, AWS and bare-metal
+      U: Networking, network policy, hubble, packet monitoring and network visibility
+      L: https://northflank.com
+      Q: @NorthflankWill, @Champgoblem
+
+    * N: Nutanix
+      D: Nutanix uses Cilium as the default CNI plugin for NKP (Nutanix Kubernetes Platform) when deployed on AHV
+      U: Networking, NetworkPolicy, Services
+      L: https://www.nutanix.com/products/kubernetes-management-platform
+      Q: @tuxtof
+
+    * N: Outscale Kubernetes as a Service (OKS)
+      D: Cilium is the default Container Network Interface (CNI) used by OUTSCALE on all clusters provisioned through its Kubernetes offering, OKS.
+      U: CNI, Hubble, CiliumNetworkPolicy, kube-proxy replacement, eBPF 
+      L: https://fr.outscale.com/cloud-experience/outscale-kubernetes-as-a-service/
+
+    * N: Overstock Inc.
+      D: Overstock is using Cilium as the main CNI plugin on bare-metal clusters (self hosted k8s).
+      U: Networking, network policy, hubble, observability
+
+    * N: OVHcloud
+      D: OVHcloud is using Cilium as the default CNI on their Managed Kubernetes Service (MKS) clusters offering with Premium plan.
+      U: CNI, network policies, visibility
+      L: https://www.ovhcloud.com/
+      Q: @scraly
+
+    * N: Palantir Technologies Inc.
+      D: Palantir is using Cilium as their main CNI plugin in all major cloud providers [AWS/Azure/GCP] (self hosted k8s).
+      U: ENI networking, L3/L4 policies, FQDN based policy, FQDN filtering, IPSec
+      Q: ungureanuvladvictor
+
+    * N: Palark GmbH
+      D: Palark uses Cilium for networking in its Kubernetes platform provided to numerous customers as a part of its DevOps as a Service offering.
+      U: CNI, Networking, Network policy, Security, Hubble UI
+      L: https://blog.palark.com/why-cilium-for-kubernetes-networking/
+      Q: @shurup
+
+    * N: Pionative
+      D: Pionative supplies all its clients across cloud providers with
+      Kubernetes running Cilium to deliver the best performance out there.
+      U: CNI, Networking, Security, eBPF
+      L: https://www.pionative.com
+      Q: @Pionerd
+
+    * N: Plaid Inc
+      D: Plaid is using Cilium as their CNI plugin in self-hosted Kubernetes on AWS.
+      U: CNI, network policies
+      L: [https://plaid.com](https://plaid.com/contact/)
+      Q: @diversario @jandersen-plaid
+
+    * N: PlanetScale
+      D: PlanetScale is using Cilium as the CNI for its serverless database platform.
+      U: Networking (CNI, IPAM, kube-proxy replacement, native routing), Network Security, Cluster Mesh, Load Balancing
+      L: https://planetscale.com/
+      Q: @dctrwatson
+
+    * N: plusserver Kubernetes Engine (PSKE)
+      D: PSKE uses Cilium for multiple scenarios, for examples for managed Kubernetes clusters provided with Gardener Project across AWS and OpenStack.
+      U: CNI , Overlay Network, Network Policies
+      L: https://www.plusserver.com/en/product/managed-kubernetes/, https://github.com/gardener/gardener-extension-networking-cilium
+
+    * N: Polar Signals
+      D: Polar Signals uses Cilium as the CNI on its GKE dataplane v2 based clusters.
+      U: Networking
+      L: https://polarsignals.com
+      Q: @polarsignals @brancz
+
+    * N: Polverio
+      D: Polverio KubeLift is a single-node Kubernetes distribution optimized for Azure, using Cilium as the CNI.
+      U: CNI, IPAM
+      L: https://polverio.com
+      Q: @polverio @stuartpreston
+
+    * N: Poseidon Laboratories
+      D: Poseidon's Typhoon Kubernetes distro uses Cilium as the default CNI and its used internally
+      U: Networking, policies, service load balancing
+      L: https://github.com/poseidon/typhoon/
+      Q: @dghubble @typhoon8s
+
+    * N: PostFinance AG
+      D: PostFinance is using Cilium as their CNI for all mission critical, on premise k8s clusters
+      U: Networking, network policies, kube-proxy replacement
+      L: https://github.com/postfinance
+
+    * N: Proton AG
+      D: Proton is using Cilium as their CNI for all their Kubernetes clusters
+      U: Networking, network policies, host firewall, kube-proxy replacement, Hubble
+      L: https://proton.me/
+      Q: @protonjhow
+
+    * N: Radio France
+      D: Radio France is using Cilium in their production clusters (self-hosted k8s with kops on AWS)
+      U: Mainly Service load-balancing
+      Q: @francoisj
+
+    * N: Qpoint
+      D: An eBPF-based egress observability platform for your cloud and production applications
+      U: CNI, bpf2go to compile a C source file into eBPF bytecode and then to Go
+      L: https://www.qpoint.io/ and https://github.com/qpoint-io
+      Q: @Marc Barry
+
+    * N: Rancher Labs, now part of SUSE
+      D: Rancher Labs certified Kubernetes distribution RKE2 can be deployed with Cilium.
+      U: Networking and network policy
+      L: https://github.com/rancher/rke and https://github.com/rancher/rke2
+
+    * N: Rapyuta Robotics.
+      D: Rapyuta is using cilium as their main CNI plugin. (self hosted k8s)
+      U: CiliumNetworkPolicy, Hubble, Service Load Balancing.
+      Q: @Gowtham
+
+    * N: Rafay Systems
+      D: Rafay's Kubernetes Operations Platform uses Cilium for centralized network visibility and network policy enforcement
+      U: NetworkPolicy, Visibility via Prometheus metrics & Hubble
+      L: https://rafay.co/platform/network-policy-manager/
+      Q: @cloudnativeboy @mohanatreya
+
+    * N: Robinhood Markets
+      D: Robinhood uses Cilium for Kubernetes overlay networking in an environment where we run tests for backend services
+      U: CNI, Overlay networking
+      Q: @Madhu CS
+
+    * N: Santa Claus & the Elves
+      D: All our infrastructure to process children's letters and wishes, toy making, and delivery, distributed over multiple clusters around the world, is now powered by Cilium.
+      U: ClusterMesh, L4LB, XDP acceleration, Bandwidth manager, Encryption, Hubble
+      L: https://qmonnet.github.io/whirl-offload/2024/01/02/santa-switches-to-cilium/
+
+    * N: SAP
+      D: SAP uses Cilium for multiple internal scenarios. For examples for self-hosted Kubernetes scenarios on AWS with SAP Concur and for managed Kubernetes clusters provided with Gardener Project across AWS, Azure, GCP, and OpenStack.
+      U: CNI , Overlay Network, Network Policies
+      L: https://www.concur.com, https://gardener.cloud/, https://github.com/gardener/gardener-extension-networking-cilium
+      Q: @dragan (SAP Concur), @docktofuture & @ScheererJ (Gardener)
+
+    * N: Sapian
+      D: Sapian uses Cilium as the default CNI in our product DialBox Cloud; DialBox cloud is an Edge Kubernetes cluster using [kilo](https://github.com/squat/kilo) for WireGuard mesh connectivity inter-nodes. Therefore, Cilium is crucial for low latency in real-time communications environments.
+      U: CNI, Network Policies, Hubble, kube-proxy replacement
+      L: https://sapian.com.co, https://arpagon.co/blog/k8s-edge
+      Q: @arpagon
+
+    * N: Schenker AG
+      D: Land transportation unit of Schenker uses Cilium as default CNI in self-managed kubernetes clusters running in AWS
+      U: CNI, Monitoring, kube-proxy replacement
+      L: https://www.dbschenker.com/global
+      Q: @amirkkn
+
+    * N: Scigility AG
+      D: We use Cilium as the default CNI across client implementations and also for our internal platform.
+      U: CNI, Monitoring, kube-proxy replacement, Hubble
+      L: https://scigility.com/
+      Q: @ciil
+
+    * N: Sealos
+      D: Sealos is using Cilium as a consistent CNI for our Sealos Cloud.
+      U: Networking, Service, kube-proxy replacement, Network Policy, Hubble
+      L: https://sealos.io
+      Q: @fanux, @yangchuansheng
+
+    * N: SeatGeek
+      D: SeatGeek uses Cilium as the default CNI/service mesh for AWS hosted clusters
+      U: CNI, ClusterMesh, Network Policy, Hubble, L7 Mesh
+      L: https://seatgeek.com
+      Q: @byxorna, @aetimmes
+
+    * N: Seznam.cz
+      D: Seznam.cz uses Cilium in multiple scenarios in on-prem DCs. At first as L4LB which loadbalances external traffic into k8s+openstack clusters then as CNI in multiple k8s and openstack clusters which are all connected in a clustermesh to enforce NetworkPolicies across pods/VMs.
+      U: L4LB, L3/4 CNPs+CCNPs, KPR, Hubble, HostPolicy, Direct-routing, IPv4+IPv6, ClusterMesh
+      Q: @oblazek
+
+    * N: Simple
+      D: Simple uses cilium as default CNI in Kubernetes clusters (AWS EKS) for both development and production environments.
+      U: CNI, Network Policies, Hubble
+      L: https://simple.life
+      Q: @sergeyshevch
+
+    * N: Scaleway
+      D: Scaleway uses Cilium as the default CNI for Kubernetes Kapsule
+      U: Networking, NetworkPolicy, Services
+      L: @jtherin @remyleone
+
+    * N: Schuberg Philis
+      D: Schuberg Philis uses Cilium as CNI for mission critical kubernetes clusters we run for our customers.
+      U: CNI (instead of amazon-vpc-cni-k8s), DefaultDeny(Zero Trust), Hubble, CiliumNetworkPolicy, CiliumClusterwideNetworkPolicy, EKS
+      L: https://schubergphilis.com/en
+      Q: @stimmerman @shoekstra @mbaumann
+
+    * N: SDV Services
+      D: SDV Services uses Cilium to host Wordpress multi-tenant the cloud-native way and also as the CNI for customer Kubernetes clusters.
+      U: CNI, Networking, NetworkPolicy, Hubble, IPAM, Kubernetes services
+      L: https://sdvservices.nl
+      Q: @Sjouke de Vries
+      
+    * N: SI Analytics
+      D: SI Analytics uses Cilium as CNI in self-managed Kubernetes clusters in on-prem DCs. And also use Cilium as CNI in its GKE dataplane v2 based clusters.
+      U: CNI, Network Policies, Hubble
+      L: https://si-analytics.ai, https://ovision.ai
+      Q: @jholee
+
+    * N: SIGHUP
+      D: SIGHUP integrated Cilium as a supported CNI for KFD (Kubernetes Fury Distribution), our enterprise-grade OSS reference architecture
+      U: Available supported CNI
+      L: https://sighup.io, https://github.com/sighupio/fury-kubernetes-networking
+      Q: @jnardiello @nutellino
+
+    * N: SINAD
+      D: SINAD uses Cilium and integrates Tetragon (Which is amazing) to their application EzyKube 
+      U: CNI, Networking, Node2Node & Pod2Pod Encryption, Kube-Proxy Replacement, eBPF, security
+      L: https://sinad.io 
+
+    * N: SmileDirectClub
+      D: SmileDirectClub is using Cilium in manufacturing clusters (self-hosted on vSphere and AWS EC2)
+      U: CNI
+      Q: @joey, @onur.gokkocabas
+
+    * N: Snapp
+      D: Snapp is using Cilium in production for its on premise openshift clusters
+      U: CNI, Network Policies, Hubble
+      Q: @m-yosefpor
+
+    * N: Solo.io
+      D: Cilium is part of Gloo Application Networking platform, with a “batteries included but swappable” manner
+      U: CNI, Network Policies
+      Q: @linsun
+
+    * N: S&P Global
+      D: S&P Global uses Cilium as their multi-cloud CNI
+      U: CNI
+      L: https://www.youtube.com/watch?v=6CZ_SSTqb4g
+
+    * N: Spectro Cloud
+      D: Spectro Cloud uses & promotes Cilium for clusters its K8S management platform (Palette) deploys
+      U: CNI, Overlay network, kube-proxy replacement
+      Q: @Kevin Reeuwijk
+
+    * N: Spherity
+      D: Spherity  is using Cilium on AWS EKS
+      U: CNI/ENI Networking, Network policies, Hubble
+      Q: @solidnerd
+
+    * N: Sportradar
+      D: Sportradar is using Cilium as their main CNI plugin in AWS (using kops)
+      U: L3/L4 policies, Hubble, BPF NodePort, CiliumClusterwideNetworkPolicy
+      Q: @Eric Bailey, @Ole Markus
+
+    * N: Sproutfi
+      D: Sproutfi uses Cilium as the CNI on its GKE based clusters
+      U: Service Load Balancing, Hubble, Datadog Integration for Prometheus metrics
+      Q: @edude03
+
+    * N: SuperOrbital
+      D: As a Kubernetes-focused consulting firm, we have implemented Cilium on customer engagements
+      U: CNI, CiliumNetworkPolicy at L7, Hubble
+      L: https://superorbital.io/
+      Q: @jmcshane
+
+    * N: Syself
+      D: Syself uses Cilium as the CNI for Syself Autopilot, a managed Kubernetes platform
+      U: CNI, HostFirewall, Monitoring, CiliumClusterwideNetworkPolicy, Hubble
+      L: https://syself.com
+      Q: @sbaete
+
+    * N: Talos
+      D: Cilium is one of the supported CNI's in Talos
+      U: Networking, NetworkPolicy, Hubble, BPF NodePort
+      L: https://github.com/talos-systems/talos
+      Q: @frezbo, @smira, @Ulexus
+
+    * N: Tencent Cloud
+      D: Tencent Cloud container team designed the TKE hybrid cloud container network solution with Cilium as the cluster network base
+      U: Networking, CNI
+      L: https://segmentfault.com/a/1190000040298428/en
+
+    * N: teuto.net Netzdienste GmbH
+      D: teuto.net is using cilium for their managed k8s service, t8s
+      U: CNI, CiliumNetworkPolicy, Hubble, Encryption, ...
+      L: https://teuto.net/managed-kubernetes
+      Q: @cwrau
+
+    * N: Trendyol
+      D: Trendyol.com has recently implemented Cilium as the default CNI for its production Kubernetes clusters starting from version 1.26.
+      U: Networking, kube-proxy replacement, eBPF, Network Visibility with Hubble and Grafana, Local Redirect Policy
+      L: https://t.ly/FDCZK
+
+    * N: T-Systems International
+      D: TSI uses Cilium for it's Open Sovereign Cloud product, including as a CNI for Gardener-based Kubernetes clusters and bare-metal infrastructure managed by OnMetal.
+      U: CNI, overlay network, NetworkPolicies
+      Q: @ManuStoessel
+
+    * N: uSwitch
+      D: uSwitch is using Cilium in AWS for all their production clusters (self hosted k8s)
+      U: ClusterMesh, CNI-Chaining (with amazon-vpc-cni-k8s)
+      Q: @jirving
+
+    * N: United Cloud
+      D: United Cloud is using Cilium for all non-production and production clusters (on-premises)
+      U: CNI, Hubble, CiliumNetworkPolicy, CiliumClusterwideNetworkPolicy, ClusterMesh, Encryption
+      L: https://united.cloud
+      Q: @boris
+
+    * N: Utmost Software, Inc
+      D: Utmost is using Cilium in all tiers of its Kubernetes ecosystem to implement zero trust
+      U: CNI, DefaultDeny(Zero Trust), Hubble, CiliumNetworkPolicy, CiliumClusterwideNetworkPolicy
+      L: https://blog.utmost.co/zero-trust-security-at-utmost
+      Q: @andrewholt
+
+    * N: Trip.com
+      D: Trip.com is using Cilium in their production clusters (self-hosted k8s, On-premises and AWS)
+      U: ENI Networking, Service load-balancing, Direct routing (via Bird)
+      L: https://ctripcloud.github.io/cilium/network/2020/01/19/trip-first-step-towards-cloud-native-networking.html
+      Q: @ArthurChiao
+
+    * N: Tailor Brands
+      D: Tailor Brands is using Cilium in their production, staging, and development clusters (AWS EKS)
+      U: CNI (instead of amazon-vpc-cni-k8s), Hubble, Datadog Integration for Prometheus metrics
+      Q: @liorrozen
+
+    * N: Twilio
+      D: Twilio Segment is using Cilium across their k8s-based compute platform
+      U: CNI, EKS direct routing, kube-proxy replacement, Hubble, CiliumNetworkPolicies
+      Q: @msaah
+
+    * N: ungleich
+      D: ungleich is using Cilium as part of IPv6-only Kubernetes deployments.
+      U: CNI, IPv6 only networking, BGP, eBPF
+      Q: @Nico Schottelius, @nico:ungleich.ch (Matrix)
+
+    * N: Veepee
+      D: Veepee is using Cilium on their on-premise Kubernetes clusters, hosting majority of their applications.
+      U. CNI, BGP, eBPF, Hubble, DirectRouting (via kube-router)
+      Q: @nerzhul
+
+    * N: Vietnam Post Cloud
+      D: Vietnnam Post Cloud is using Cilium in their production, staging, and development clusters
+      U: Networking, NetworkPolicy, Services, IPVLAN
+      L: https://www.vietnampost.vn
+      Q: @chint-vnpost-vn
+
+    * N: Virtuozzo
+      D: Cilium CNI is the default network plugin for Kubernetes clusters within Virtuozzo Hybrid Infrastructure.
+      U: Networking, NetworkPolicy, Services
+      L: https://docs.virtuozzo.com/virtuozzo_hybrid_infrastructure_6_3_admins_guide/index.html#provisioning-kubernetes.html
+      Q: egor.ustinov@virtuozzo.com
+
+    * N: VMware by Broadcom
+      D: VMware offers multi-arch (ARM, AMD) and multi-distro (Ubuntu, RedHat UBI, Debian, PhotonOS) Cilium as part of the Tanzu Application Catalog, enabling customers to deploy it in their Kubernetes infrastructure.
+      U: CNI, Hubble, BGP, eBPF, CiliumNetworkPolicy, CiliumClusterwideNetworkPolicy
+      L: https://app-catalog.vmware.com/catalog?gfilter=cilium
+      Q: @carrodher
+
+    * N: Wildlife Studios
+      D: Wildlife Studios is using Cilium in AWS for all their game production clusters (self hosted k8s)
+      U: ClusterMesh, Global Service Load Balancing.
+      Q: @Oki @luanguimaraesla @rsafonseca
+      
+    * N: University of Wisconsin - Madison
+      D: Leveraged in production clusters
+      U: ClusterMesh, Global Service Load Balancing
+      
+    * N: WSO2
+      D: WSO2 is using Cilium to implemented Zero Trust Network Security for their Kubernetes clusters
+      U: CNI, WireGuard Transparent Encryption, CiliumClusterWideNetworkpolicy, CiliumNetworkPolicy, Hubble, Layer 7 visibility and Service Mesh via Cilium Envoy
+      L: https://www.cncf.io/case-studies/wso2/
+      Q: @lakwarus @isala404 @tharinduwijewardane
+
+    * N: Yahoo!
+      D: Yahoo is using Cilium for L4 North-South Load Balancing for Kubernetes Services
+      L: https://www.youtube.com/watch?v=-C86fBMcp5Q
+
+    * N: ZeroHash
+      D: Zero Hash is using Cilium as CNI for networking, security and monitoring features for Kubernetes clusters
+      U: CNI/ENI Networking, Network policies, Hubble
+      Q: @eugenestarchenko
+
+
+# FILE: SECURITY.md
+# Security Policy
+
+## Supported Versions
+
+| Version  | Supported          |
+|----------| ------------------ |
+| main     | :white_check_mark: |
+| 1.19.x   | :white_check_mark: |
+| 1.18.x   | :white_check_mark: |
+| 1.17.x   | :white_check_mark: |
+| < 1.17.0 | :x:                |
+
+## Reporting a Vulnerability
+
+We strongly encourage you to report security vulnerabilities to
+our private security mailing list: security@cilium.io - first, before
+disclosing them in any public forums.
+
+A threat model for Cilium and recommendations for running Cilium in production
+environments can be found [here][threat-model]. Please ensure that you have
+taken this threat model into consideration before making a report, including
+considering the feasibility of an attack against a correctly secured
+environment.
+
+This is a private mailing list where members of Cilium's
+[Security Team](https://github.com/cilium/community/blob/main/roles/Security-Team.md)
+are subscribed to, and is treated as top priority.
+
+[threat-model]: https://docs.cilium.io/en/latest/security/threat-model/
+
+
+# FILE: SECURITY-INSIGHTS.yml
+header:
+  schema-version: '1.0.0'
+  expiration-date: '2025-01-26T01:00:00.000Z'
+  last-updated: '2024-01-26'
+  last-reviewed: '2024-01-26'
+  project-url: https://github.com/cilium/cilium
+  license: https://github.com/cilium/cilium/blob/main/LICENSE
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:
+    - https://github.com/cilium/cilium/blob/main/MAINTAINERS.md
+  roadmap: https://docs.cilium.io/en/stable/community/roadmap
+contribution-policy:
+  accepts-pull-requests: true
+  accepts-automated-pull-requests: true
+dependencies:
+  third-party-packages: true
+  dependencies-lists:
+    - https://github.com/cilium/cilium/blob/main/go.mod
+  sbom:
+    - sbom-format: SPDX
+      sbom-url: https://docs.cilium.io/en/stable/configuration/sbom
+distribution-points:
+  - https://github.com/cilium/cilium
+  - https://hub.docker.com/u/cilium
+  - https://quay.io/organization/cilium
+documentation:
+  - https://docs.cilium.io/en/stable/
+security-assessments:
+  - auditor-name: ADA Logics
+    auditor-url: https://adalogics.com
+    auditor-report: https://github.com/cilium/cilium.io/blob/main/Security-Reports/CiliumSecurityAudit2022.pdf
+    report-year: 2022
+  - auditor-name: ADA Logics
+    auditor-url: https://adalogics.com
+    auditor-report: https://github.com/cilium/cilium.io/blob/main/Security-Reports/CiliumFuzzingAudit2022.pdf
+    report-year: 2022
+security-contacts:
+  - type: email
+    value: security@cilium.io
+security-testing:
+- tool-type: sca
+  tool-name: Mend Renovate
+  tool-url: https://www.mend.io/renovate
+  tool-version: latest
+  integration:
+    ad-hoc: false
+    ci: true
+    before-release: true
+- tool-type: fuzzer
+  tool-name: OSS-Fuzz
+  tool-url: https://github.com/google/oss-fuzz
+  tool-version: latest
+  integration:
+    ad-hoc: false
+    ci: true
+    before-release: true
+- tool-type: sast
+  tool-name: Grype
+  tool-url: https://github.com/anchore/grype
+  tool-version: latest
+  integration:
+    ad-hoc: false
+    ci: true
+    before-release: true
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  security-policy: https://github.com/cilium/cilium/security
+
+
+# FILE: Makefile
+# Copyright Authors of Cilium
+# SPDX-License-Identifier: Apache-2.0
+
+##@ Default
+all: precheck build postcheck ## Default make target that perform precheck -> build -> postcheck
+	@echo "Build finished."
+
+##@ Build, Install and Test
+debug: export NOOPT=1 ## Builds Cilium by disabling inlining, compiler optimizations and without stripping debug symbols, useful for debugging.
+debug: export NOSTRIP=1
+debug: all
+
+# using $(MAKE) in mac-os for commands wrapped in a
+# linux container propagate a non existing path.
+# if mac-os, fall back to simply using `make`
+MAKE_CONTAINER=$(MAKE)
+ifeq ($(shell uname -s),Darwin)
+	MAKE_CONTAINER="make"
+endif
+
+include Makefile.defs
+
+SUBDIRS_CILIUM_CONTAINER := cilium-dbg daemon cilium-health bugtool hubble tools/mount tools/sysctlfix plugins/cilium-cni
+SUBDIR_OPERATOR_CONTAINER := operator
+SUBDIR_RELAY_CONTAINER := hubble-relay
+SUBDIR_CLUSTERMESH_APISERVER_CONTAINER := clustermesh-apiserver
+SUBDIR_STANDALONE_DNS_PROXY_CONTAINER := standalone-dns-proxy
+
+ifdef LIBNETWORK_PLUGIN
+SUBDIRS_CILIUM_CONTAINER += plugins/cilium-docker
+endif
+
+# Add the ability to override variables
+-include Makefile.override
+
+# List of subdirectories used for global "make build", "make clean", etc
+SUBDIRS := $(SUBDIRS_CILIUM_CONTAINER) $(SUBDIR_OPERATOR_CONTAINER) plugins tools $(SUBDIR_RELAY_CONTAINER) bpf $(SUBDIR_CLUSTERMESH_APISERVER_CONTAINER) cilium-cli
+
+# Filter out any directories where the parent directory is also present, to avoid
+# building or cleaning a subdirectory twice.
+# For example: The directory "tools" is transformed into a match pattern "tools/%",
+# which is then used to filter out items such as "tools/mount" and "tools/sysctlfx"
+SUBDIRS := $(filter-out $(foreach dir,$(SUBDIRS),$(dir)/%),$(SUBDIRS))
+
+# Space-separated list of Go packages to test, equivalent to 'go test' package patterns.
+# Because is treated as a Go package pattern, the special '...' sequence is supported,
+# meaning 'all subpackages of the given package'.
+TESTPKGS ?= ./...
+
+GOTEST_BASE := -timeout 720s
+GOTEST_COVER_OPTS += -coverprofile=coverage.out
+BENCH_EVAL := "."
+BENCH ?= $(BENCH_EVAL)
+BENCHFLAGS_EVAL := -bench=$(BENCH) -run=^$$ -benchtime=10s
+BENCHFLAGS ?= $(BENCHFLAGS_EVAL)
+SKIP_KVSTORES ?= "false"
+SKIP_K8S_CODE_GEN_CHECK ?= "true"
+SKIP_CUSTOMVET_CHECK ?= "false"
+
+JOB_BASE_NAME ?= cilium_test
+
+TEST_LDFLAGS=-ldflags "-X github.com/cilium/cilium/pkg/kvstore.etcdDummyAddress=http://etcd:4002"
+
+TEST_UNITTEST_LDFLAGS=
+
+build: $(SUBDIRS) ## Builds all the components for Cilium by executing make in the respective sub directories.
+
+build-container: ## Builds components required for cilium-agent container.
+	for i in $(SUBDIRS_CILIUM_CONTAINER); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done
+
+build-container-operator: ## Builds components required for cilium-operator container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) all
+
+build-container-operator-generic: ## Builds components required for a cilium-operator generic variant container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) cilium-operator-generic
+
+build-container-operator-aws: ## Builds components required for a cilium-operator aws variant container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) cilium-operator-aws
+
+build-container-operator-azure: ## Builds components required for a cilium-operator azure variant container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) cilium-operator-azure
+
+build-container-operator-alibabacloud: ## Builds components required for a cilium-operator alibabacloud variant container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) cilium-operator-alibabacloud
+
+build-container-hubble-relay:
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_RELAY_CONTAINER) all
+
+build-container-clustermesh-apiserver: ## Builds components required for the clustermesh-apiserver container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_CLUSTERMESH_APISERVER_CONTAINER) all
+
+build-container-standalone-dns-proxy: ## Builds components required for standalone dns proxy container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_STANDALONE_DNS_PROXY_CONTAINER) all
+
+$(SUBDIRS): force ## Execute default make target(make all) for the provided subdirectory.
+	@ $(MAKE) $(SUBMAKEOPTS) -C $@ all
+
+tests-privileged-only: ## Run Go only the unit tests that require elevated privileges.
+	@$(ECHO_CHECK) running only privileged tests...
+	PRIVILEGED_TESTS=true PATH=$(PATH):$(ROOT_DIR)/bpf $(GO_TEST) $(TEST_LDFLAGS) \
+		$(TESTPKGS) $(GOTEST_BASE) -run "TestPrivileged.*" $(GOTEST_COVER_OPTS) | $(GOTEST_FORMATTER)
+	$(MAKE) generate-cov
+
+tests-privileged: ## Run Go tests including ones that require elevated privileges.
+	@$(ECHO_CHECK) running privileged tests...
+	PRIVILEGED_TESTS=true PATH=$(PATH):$(ROOT_DIR)/bpf $(GO_TEST) $(TEST_LDFLAGS) \
+		$(TESTPKGS) $(GOTEST_BASE) $(GOTEST_COVER_OPTS) | $(GOTEST_FORMATTER)
+	$(MAKE) generate-cov
+
+start-kvstores: ## Start running kvstores (etcd container) for integration tests.
+ifeq ($(SKIP_KVSTORES),"false")
+	@echo Starting key-value store container...
+	-$(QUIET)$(CONTAINER_ENGINE) rm -f "cilium-etcd-test-container" 2> /dev/null
+	$(QUIET)$(CONTAINER_ENGINE) run -d \
+		-e ETCD_UNSUPPORTED_ARCH=$(GOARCH) \
+		--name "cilium-etcd-test-container" \
+		-p 4002:4001 \
+		$(ETCD_IMAGE) \
+		etcd -name etcd0 \
+		-advertise-client-urls http://0.0.0.0:4001 \
+		-listen-client-urls http://0.0.0.0:4001 \
+		-listen-peer-urls http://0.0.0.0:2380 \
+		-initial-cluster-token etcd-cluster-1 \
+		-initial-cluster-state new
+endif
+
+stop-kvstores: ## Forcefully removes running kvstore components (etcd container) for integration tests.
+ifeq ($(SKIP_KVSTORES),"false")
+	$(QUIET)$(CONTAINER_ENGINE) rm -f "cilium-etcd-test-container"
+endif
+
+generate-cov: ## Generate HTML coverage report at coverage-all.html.
+	-@# Remove generated code from coverage
+ifneq ($(SKIP_COVERAGE),)
+	@echo "Skipping generate-cov because SKIP_COVERAGE is set."
+else
+	$(QUIET) grep -Ev '(^github.com/cilium/cilium/api/v1)|(generated.deepcopy.go)|(^github.com/cilium/cilium/pkg/k8s/client/)' \
+		coverage.out > coverage.out.tmp
+	$(QUIET)$(GO) tool cover -html=coverage.out.tmp -o=coverage-all.html
+	$(QUIET) rm coverage.out.tmp
+endif
+	@rmdir ./daemon/1 ./daemon/1_backup 2> /dev/null || true
+
+integration-tests: start-kvstores ## Run non-privileged Go tests and including ones that are marked as integration tests.
+	@$(ECHO_CHECK) running integration tests...
+	INTEGRATION_TESTS=true $(GO_TEST) $(TEST_UNITTEST_LDFLAGS) $(TESTPKGS) $(GOTEST_BASE) $(GOTEST_COVER_OPTS) | $(GOTEST_FORMATTER)
+	$(MAKE) generate-cov
+	$(MAKE) stop-kvstores
+
+bench: start-kvstores ## Run benchmarks for Cilium integration-tests in the repository.
+	$(GO_TEST) $(TEST_UNITTEST_LDFLAGS) $(GOTEST_BASE) $(BENCHFLAGS) $(TESTPKGS)
+	$(MAKE) stop-kvstores
+
+bench-privileged: ## Run benchmarks for privileged tests.
+	PRIVILEGED_TESTS=true $(GO_TEST) $(TEST_UNITTEST_LDFLAGS) $(GOTEST_BASE) $(BENCHFLAGS) $(TESTPKGS)
+
+clean-tags: ## Remove all the tags files from the repository.
+	@$(ECHO_CLEAN) tags
+	@-rm -f cscope.out cscope.in.out cscope.po.out cscope.files tags
+
+.PHONY: cscope.files
+cscope.files: ## Generate cscope.files with the list of all files to generate ctags for.
+	@# Argument to -f must be double-quoted since shell removes backslashes that appear
+	@# before newlines. Otherwise, backslashes will appear in the output file.
+	@go list -f "{{ \$$p := .ImportPath }} \
+		{{- range .GoFiles }}{{ printf \"%s/%s\n\" \$$p . }}{{ end }} \
+		{{- range .TestGoFiles }}{{ printf \"%s/%s\n\" \$$p . }}{{ end }}" ./... \
+		| sed 's#github.com/cilium/cilium/##g' | sort | uniq > cscope.files
+
+	@echo "$(BPF_SRCFILES)" | sed 's/ /\n/g' | sort >> cscope.files
+
+tags: cscope.files ## Generate tags for Go and BPF source files.
+	@ctags -L cscope.files
+	cscope -R -b -q
+
+clean-container: ## Perform `make clean` for each component required in cilium-agent container.
+	-$(QUIET) for i in $(SUBDIRS_CILIUM_CONTAINER); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
+
+clean: ## Perform overall cleanup for Cilium.
+	-$(QUIET) for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i clean; done
+
+veryclean: ## Perform complete cleanup for container engine images(including build cache).
+	-$(QUIET) $(CONTAINER_ENGINE) image prune -af
+	-$(QUIET) $(CONTAINER_ENGINE) builder prune -af
+
+install-bpf: ## Copies over the BPF source files from bpf/ to /var/lib/cilium/bpf/
+	$(QUIET)$(INSTALL) -m 0750 -d $(DESTDIR)$(LOCALSTATEDIR)/lib/cilium
+	-rm -rf $(DESTDIR)$(LOCALSTATEDIR)/lib/cilium/bpf/*
+	$(foreach bpfsrc,$(BPF_SRCFILES), $(INSTALL) -D -m 0644 $(bpfsrc) $(DESTDIR)$(LOCALSTATEDIR)/lib/cilium/$(bpfsrc);)
+
+install: install-bpf ## Performs install for all the Cilium sub components (daemon, operator, relay etc.)
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i install; done
+
+install-container: install-bpf ## Performs install for all components required for cilium-agent container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	for i in $(SUBDIRS_CILIUM_CONTAINER); do $(MAKE) $(SUBMAKEOPTS) -C $$i install; done
+
+install-container-binary: install-bpf ## Install binaries for all components required for cilium-agent container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	for i in $(SUBDIRS_CILIUM_CONTAINER); do $(MAKE) $(SUBMAKEOPTS) -C $$i install-binary; done
+
+install-bash-completion: ## Install bash completion for all components required for cilium-agent container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	for i in $(SUBDIRS_CILIUM_CONTAINER); do $(MAKE) $(SUBMAKEOPTS) -C $$i install-bash-completion; done
+
+install-container-binary-operator: ## Install binaries for all components required for cilium-operator container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) install
+
+install-container-binary-operator-generic: ## Install binaries for all components required for cilium-operator generic variant container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) install-generic
+
+install-container-binary-operator-aws: ## Install binaries for all components required for cilium-operator aws variant container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) install-aws
+
+install-container-binary-operator-azure: ## Install binaries for all components required for cilium-operator azure variant container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) install-azure
+
+install-container-binary-operator-alibabacloud: ## Install binaries for all components required for cilium-operator alibabacloud variant container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_OPERATOR_CONTAINER) install-alibabacloud
+
+install-container-binary-hubble-relay:
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_RELAY_CONTAINER) install-binary
+
+install-container-binary-clustermesh-apiserver: ## Install binaries for all components required for the clustermesh-apiserver container.
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_CLUSTERMESH_APISERVER_CONTAINER) install-binary
+
+install-container-binary-standalone-dns-proxy: ## Install binaries for all components required for standalone-dns-proxy container.
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(MAKE) $(SUBMAKEOPTS) -C $(SUBDIR_STANDALONE_DNS_PROXY_CONTAINER) install-binary
+
+# Workaround for not having git in the build environment
+# Touch the file only if needed
+GIT_VERSION: force
+	@if [ "$(GIT_VERSION)" != "`cat 2>/dev/null GIT_VERSION`" ] ; then echo "$(GIT_VERSION)" >GIT_VERSION; fi
+
+check_deps:
+	@$(CILIUM_CLI) --help > /dev/null 2>&1 || ( echo "ERROR: '$(CILIUM_CLI)' not found. Please install it." && exit 1)
+
+include Makefile.kind
+
+-include Makefile.docker
+
+manifests: ## Generate K8s manifests e.g. CRD, RBAC etc.
+	contrib/scripts/k8s-manifests-gen.sh
+
+.PHONY: generate-apis
+generate-apis: generate-api generate-health-api generate-hubble-api generate-operator-api generate-kvstoremesh-api generate-sdp-api
+
+generate-api: api/v1/openapi.yaml ## Generate cilium-agent client, model and server code from openapi spec.
+	@$(ECHO_GEN)api/v1/openapi.yaml
+	$(QUIET)$(SWAGGER) generate server -s server -a restapi \
+		-t api/v1 \
+		-f api/v1/openapi.yaml \
+		--default-scheme=unix \
+		-C api/v1/cilium-server.yml \
+		-r hack/spdx-copyright-header.txt
+	$(QUIET)$(SWAGGER) generate client -a restapi \
+		-t api/v1 \
+		-f api/v1/openapi.yaml \
+		-C api/v1/cilium-client.yml \
+		-r hack/spdx-copyright-header.txt
+	@# sort goimports automatically
+	$(QUIET)$(GO) tool golang.org/x/tools/cmd/goimports -w ./api/v1/client ./api/v1/models ./api/v1/server
+
+generate-health-api: api/v1/health/openapi.yaml ## Generate cilium-health client, model and server code from openapi spec.
+	@$(ECHO_GEN)api/v1/health/openapi.yaml
+	$(QUIET)$(SWAGGER) generate server -s server -a restapi \
+		-t api/v1 \
+		-t api/v1/health/ \
+		-f api/v1/health/openapi.yaml \
+		--default-scheme=unix \
+		-C api/v1/cilium-server.yml \
+		-r hack/spdx-copyright-header.txt
+	$(QUIET)$(SWAGGER) generate client -a restapi \
+		-t api/v1 \
+		-t api/v1/health/ \
+		-f api/v1/health/openapi.yaml \
+		-C api/v1/cilium-client.yml \
+		-r hack/spdx-copyright-header.txt
+	@# sort goimports automatically
+	$(QUIET)$(GO) tool golang.org/x/tools/cmd/goimports -w ./api/v1/health
+
+generate-operator-api: api/v1/operator/openapi.yaml ## Generate cilium-operator client, model and server code from openapi spec.
+	@$(ECHO_GEN)api/v1/operator/openapi.yaml
+	$(QUIET)$(SWAGGER) generate server -s server -a restapi \
+		-t api/v1 \
+		-t api/v1/operator/ \
+		-f api/v1/operator/openapi.yaml \
+		--default-scheme=http \
+		-C api/v1/cilium-server.yml \
+		-r hack/spdx-copyright-header.txt
+	$(QUIET)$(SWAGGER) generate client -a restapi \
+		-t api/v1 \
+		-t api/v1/operator/ \
+		-f api/v1/operator/openapi.yaml \
+		-C api/v1/cilium-client.yml \
+		-r hack/spdx-copyright-header.txt
+	@# sort goimports automatically
+	$(QUIET)$(GO) tool golang.org/x/tools/cmd/goimports -w ./api/v1/operator
+
+generate-kvstoremesh-api: api/v1/kvstoremesh/openapi.yaml ## Generate kvstoremesh client, model and server code from openapi spec.
+	@$(ECHO_GEN)api/v1/kvstoremesh/openapi.yaml
+	$(QUIET)$(SWAGGER) generate server -s server -a restapi \
+		-t api/v1 \
+		-t api/v1/kvstoremesh/ \
+		-f api/v1/kvstoremesh/openapi.yaml \
+		--default-scheme=http \
+		-C api/v1/cilium-server.yml \
+		-r hack/spdx-copyright-header.txt
+	$(QUIET)$(SWAGGER) generate client -a restapi \
+		-t api/v1 \
+		-t api/v1/kvstoremesh/ \
+		-f api/v1/kvstoremesh/openapi.yaml \
+		-C api/v1/cilium-client.yml \
+		-r hack/spdx-copyright-header.txt
+	@# sort goimports automatically
+	$(QUIET)$(GO) tool golang.org/x/tools/cmd/goimports -w ./api/v1/kvstoremesh
+
+generate-hubble-api: api/v1/flow/flow.proto api/v1/peer/peer.proto api/v1/observer/observer.proto api/v1/relay/relay.proto ## Generate hubble proto Go sources.
+	$(QUIET) $(MAKE) $(SUBMAKEOPTS) -C api/v1
+
+generate-ztunnel-api: pkg/ztunnel/pb/ca_ztunnel.proto pkg/ztunnel/pb/workload_ztunnel.proto pkg/ztunnel/pb/zds_ztunnel.proto
+	$(QUIET) $(MAKE) $(SUBMAKEOPTS) -C pkg/ztunnel/pb
+
+generate-sdp-api: api/v1/standalone-dns-proxy/standalone-dns-proxy.proto
+	$(QUIET) $(MAKE) $(SUBMAKEOPTS) -C api/v1
+
+define generate_k8s_protobuf
+	$(GO) install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo && \
+	$(GO) install golang.org/x/tools/cmd/goimports && \
+	$(GO) tool k8s.io/code-generator/cmd/go-to-protobuf \
+		--apimachinery-packages='-k8s.io/apimachinery/pkg/util/intstr,$\
+                                -k8s.io/apimachinery/pkg/api/resource,$\
+                                -k8s.io/apimachinery/pkg/runtime/schema,$\
+                                -k8s.io/apimachinery/pkg/runtime,$\
+                                -k8s.io/apimachinery/pkg/apis/meta/v1,$\
+                                -k8s.io/apimachinery/pkg/apis/meta/v1beta1'\
+		--drop-embedded-fields="github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1.TypeMeta" \
+		--proto-import="$$PWD" \
+		--proto-import="$$PWD/vendor" \
+		--proto-import="$$PWD/tools/protobuf" \
+		--packages=$(subst $(newline),$(comma),$(1)) \
+		--go-header-file "$$PWD/hack/custom-boilerplate.go.txt" \
+		--output-dir=$$GOPATH/src
+endef
+
+define K8S_PROTO_PACKAGES
+github.com/cilium/cilium/pkg/k8s/slim/k8s/api/core/v1
+github.com/cilium/cilium/pkg/k8s/slim/k8s/api/discovery/v1
+github.com/cilium/cilium/pkg/k8s/slim/k8s/api/networking/v1
+github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1
+github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1beta1
+github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/util/intstr
+endef
+
+.PHONY: generate-k8s-api-local
+generate-k8s-api-local:
+	$(ASSERT_CILIUM_MODULE)
+
+	$(eval TMPDIR := $(shell mktemp -d -t cilium.tmpXXXXXXXX))
+
+	$(QUIET) $(call generate_k8s_protobuf,${K8S_PROTO_PACKAGES},"$(TMPDIR)")
+	$(QUIET) contrib/scripts/k8s-code-gen.sh "$(TMPDIR)"
+
+	$(QUIET) rm -rf "$(TMPDIR)"
+
+.PHONY: generate-k8s-api
+generate-k8s-api: ## Generate Cilium k8s API client, deepcopy and deepequal Go sources.
+	contrib/scripts/builder.sh \
+		$(MAKE_CONTAINER) -C /go/src/github.com/cilium/cilium/ generate-k8s-api-local
+
+.PHONY: generate-bpf
+generate-bpf: ## Generate config structs from BPF objects using dpgen and Go skeletons with bpf2go
+	contrib/scripts/builder.sh \
+		$(MAKE_CONTAINER) -C /go/src/github.com/cilium/cilium/bpf generate
+
+check-k8s-clusterrole: ## Ensures there is no diff between preflight's clusterrole and runtime's clusterrole.
+	./contrib/scripts/check-preflight-clusterrole.sh
+
+##@ Development
+reload: ## Reload cilium-agent and cilium-docker systemd service after installing built binaries.
+	sudo systemctl stop cilium cilium-docker
+	sudo $(MAKE) install
+	sudo systemctl start cilium cilium-docker
+	sleep 6
+	cilium status
+
+release: ## Perform a Git release for Cilium.
+	@echo "Visit https://github.com/cilium/release/issues/new/choose to initiate the release process."
+
+gofmt: ## Run gofmt on Go source files in the repository.
+	$(QUIET)$(GO) fmt ./...
+
+govet: ## Run govet on Go source files in the repository.
+	@$(ECHO_CHECK) vetting all packages...
+	$(QUIET) $(GO_VET) ./...
+
+.PHONY: custom-lint
+custom-lint: ## Run extra local linters
+	$(ECHO_CHECK) metricslint
+	$(QUIET)$(MAKE) -C tools/metricslint
+	$(QUIET)tools/metricslint/metricslint ./...
+
+golangci-lint: ## Run golangci-lint
+ifneq (,$(findstring $(GOLANGCILINT_WANT_VERSION:v%=%),$(GOLANGCILINT_VERSION)))
+	@$(ECHO_CHECK) golangci-lint $(GOLANGCI_LINT_ARGS)
+	$(QUIET) ./contrib/scripts/golangci-lint.sh $(GOLANGCI_LINT_ARGS)
+else
+	$(QUIET) $(CONTAINER_ENGINE) run --rm -ti -v `pwd`:/app -w /app \
+	docker.io/golangci/golangci-lint:$(GOLANGCILINT_WANT_VERSION)@$(GOLANGCILINT_IMAGE_SHA) \
+	./contrib/scripts/golangci-lint.sh $(GOLANGCI_LINT_ARGS)
+endif
+
+golangci-lint-fix: ## Run golangci-lint to automatically fix warnings
+	$(QUIET)$(MAKE) golangci-lint GOLANGCI_LINT_ARGS="--fix"
+
+.PHONY: lint
+lint: golangci-lint custom-lint
+
+lint-fix: golangci-lint-fix
+
+check-permissions: ## Check if files are not executable expect for allowlisted files. \
+	# This can happen especially when someone is developing on a Windows machine
+	find ./ -executable -type f | grep -Ev "\.git|\.sh|\.py" > ./executables.txt
+	diff <(sort ./executables.txt) <(sort ./contrib/executable_list.txt)
+
+check-microk8s: ## Validate if microk8s is ready to install cilium.
+	@$(ECHO_CHECK) microk8s is ready...
+	$(QUIET)microk8s.status >/dev/null \
+		|| (echo "Error: Microk8s is not running" && exit 1)
+
+LOCAL_IMAGE_TAG=local
+microk8s: export DOCKER_REGISTRY=localhost:32000
+microk8s: export LOCAL_AGENT_IMAGE=$(DOCKER_REGISTRY)/$(DOCKER_DEV_ACCOUNT)/cilium-dev:$(LOCAL_IMAGE_TAG)
+microk8s: export LOCAL_OPERATOR_IMAGE=$(DOCKER_REGISTRY)/$(DOCKER_DEV_ACCOUNT)/operator:$(LOCAL_IMAGE_TAG)
+microk8s: check-microk8s ## Build cilium-dev docker image and import to microk8s
+	$(QUIET)$(MAKE) dev-docker-image DOCKER_IMAGE_TAG=$(LOCAL_IMAGE_TAG)
+	@echo "  DEPLOY image to microk8s ($(LOCAL_AGENT_IMAGE))"
+	$(QUIET)./contrib/scripts/microk8s-import.sh $(LOCAL_AGENT_IMAGE)
+	$(QUIET)$(MAKE) dev-docker-operator-image DOCKER_IMAGE_TAG=$(LOCAL_IMAGE_TAG)
+	@echo "  DEPLOY image to microk8s ($(LOCAL_OPERATOR_IMAGE))"
+	$(QUIET)./contrib/scripts/microk8s-import.sh $(LOCAL_OPERATOR_IMAGE)
+
+.PHONY: check-fuzz
+check-fuzz: # Check that fuzzers are added to the tree correctly.
+	@$(ECHO_CHECK) contrib/scripts/check-fuzz.sh
+	$(QUIET) contrib/scripts/check-fuzz.sh
+
+.PHONY: fuzz
+ifneq ($(V),0)
+fuzz: export DEBUG=1
+endif
+ifneq ($(GOTEST_FORMATTER),cat)
+fuzz: export FUZZ_ARGS=-json
+endif
+fuzz: check-fuzz # Run fuzzer tests briefly for FUZZ_TIME seconds
+	@$(ECHO_CHECK) go-fuzz
+	./test/fuzzing/go-fuzz.sh | $(GOTEST_FORMATTER)
+
+precheck: ## Peform build precheck for the source code.
+ifeq ($(SKIP_K8S_CODE_GEN_CHECK),"false")
+	@$(ECHO_CHECK) contrib/scripts/check-k8s-code-gen.sh
+	$(QUIET) contrib/scripts/check-k8s-code-gen.sh
+endif
+	@$(ECHO_CHECK) contrib/scripts/check-fmt.sh
+	$(QUIET) contrib/scripts/check-fmt.sh
+	@$(ECHO_CHECK) contrib/scripts/check-log-newlines.sh
+	$(QUIET) contrib/scripts/check-log-newlines.sh
+	@$(ECHO_CHECK) contrib/scripts/lock-check.sh
+	$(QUIET) contrib/scripts/lock-check.sh
+	@$(ECHO_CHECK) contrib/scripts/check-viper.sh
+	$(QUIET) contrib/scripts/check-viper.sh
+ifeq ($(SKIP_CUSTOMVET_CHECK),"false")
+	@$(ECHO_CHECK) contrib/scripts/custom-vet-check.sh
+	$(QUIET) contrib/scripts/custom-vet-check.sh
+endif
+	@$(ECHO_CHECK) contrib/scripts/check-time.sh
+	$(QUIET) contrib/scripts/check-time.sh
+	@$(ECHO_CHECK) contrib/scripts/check-go-testdata.sh
+	$(QUIET) contrib/scripts/check-go-testdata.sh
+	@$(ECHO_CHECK) contrib/scripts/check-go-test-tags.sh
+	$(QUIET) contrib/scripts/check-go-test-tags.sh
+	@$(ECHO_CHECK) contrib/scripts/check-source-info.sh
+	$(QUIET) contrib/scripts/check-source-info.sh
+	@$(ECHO_CHECK) contrib/scripts/check-xfrmstate.sh
+	$(QUIET) contrib/scripts/check-xfrmstate.sh
+	@$(ECHO_CHECK) contrib/scripts/check-legacy-header-guard.sh
+	$(QUIET) contrib/scripts/check-legacy-header-guard.sh
+	@$(ECHO_CHECK) contrib/scripts/check-datapathconfig.sh
+	$(QUIET) contrib/scripts/check-datapathconfig.sh
+	@$(ECHO_CHECK) $(GO) run ./tools/slogloggercheck .
+	$(QUIET)$(GO) run ./tools/slogloggercheck .
+	@$(ECHO_CHECK) contrib/scripts/check-fipsonly.sh
+	$(QUIET) contrib/scripts/check-fipsonly.sh
+	$(MAKE) check-fuzz
+
+pprof-heap: ## Get Go pprof heap profile.
+	$(QUIET)$(GO) tool pprof http://localhost:6060/debug/pprof/heap
+
+pprof-profile: ## Get Go pprof profile.
+	$(QUIET)$(GO) tool pprof http://localhost:6060/debug/pprof/profile
+
+pprof-block: ## Get Go pprof block profile.
+	$(QUIET)$(GO) tool pprof http://localhost:6060/debug/pprof/block
+
+pprof-trace-5s: ## Get Go pprof trace for a duration of 5 seconds.
+	curl http://localhost:6060/debug/pprof/trace?seconds=5
+
+pprof-mutex: ## Get Go pprof mutex profile.
+	$(QUIET)$(GO) tool pprof http://localhost:6060/debug/pprof/mutex
+
+update-authors: ## Update AUTHORS file for Cilium repository.
+	@echo "Updating AUTHORS file..."
+	@echo "The following people, in alphabetical order, have either authored or signed" > AUTHORS
+	@echo "off on commits in the Cilium repository:" >> AUTHORS
+	@echo "" >> AUTHORS
+	@contrib/scripts/extract_authors.sh >> AUTHORS
+	@cat .authors.aux >> AUTHORS
+
+generate-crd-docs: ## Generate CRD List for documentation
+	$(QUIET)$(GO) run ./tools/crdlistgen
+
+test-docs: ## Build HTML documentation.
+	$(MAKE) -C Documentation html
+
+render-docs: ## Run server with live preview to render documentation.
+	$(MAKE) -C Documentation live-preview
+
+manpages: ## Generate manpage for Cilium CLI.
+	-rm -r man
+	mkdir -p man
+	cilium cmdman -d man
+
+install-manpages: ## Install manpages the Cilium CLI.
+	cp man/* /usr/local/share/man/man1/
+	mandb
+
+postcheck: build ## Run Cilium build postcheck (update-cmdref, build documentation etc.).
+	$(QUIET) SKIP_BUILD=true $(MAKE) $(SUBMAKEOPTS) -C Documentation check
+
+licenses-all: ## Generate file with all the License from dependencies.
+	@$(GO) run ./tools/licensegen > LICENSE.all || ( rm -f LICENSE.all ; false )
+
+dev-doctor: ## Run Cilium dev-doctor to validate local development environment.
+	$(QUIET)$(GO) version 2>/dev/null || ( echo "go not found, see https://golang.org/doc/install" ; false )
+	$(QUIET)$(GO) run ./tools/dev-doctor
+
+help: ## Display help for the Makefile, from https://www.thapaliya.com/en/writings/well-documented-makefiles/.
+	$(call print_help_from_makefile)
+	@# There is also a list of target we have to manually put the information about.
+	@# These are templated targets.
+	$(call print_help_line,"docker-cilium-image","Build cilium-agent docker image")
+	$(call print_help_line,"dev-docker-image","Build cilium-agent development docker image")
+	$(call print_help_line,"dev-docker-image-debug","Build cilium-agent development docker debug image")
+	$(call print_help_line,"docker-plugin-image","Build cilium-docker plugin image")
+	$(call print_help_line,"docker-hubble-relay-image","Build hubble-relay docker image")
+	$(call print_help_line,"docker-clustermesh-apiserver-image","Build docker image for Cilium clustermesh APIServer")
+	$(call print_help_line,"docker-operator-image","Build cilium-operator docker image")
+	$(call print_help_line,"docker-operator-*-image","Build platform specific cilium-operator images(alibabacloud, aws, azure, generic)")
+	$(call print_help_line,"dev-docker-operator-*-image-debug","Build platform specific cilium-operator debug images(alibabacloud, aws, azure, generic)")
+	$(call print_help_line,"docker-*-image-unstripped","Build unstripped version of above docker images(cilium, hubble-relay, operator etc.)")
+	$(call print_help_line,"docker-standalone-dns-proxy-image","Build standalone DNS proxy docker image")
+
+.PHONY: help clean clean-container dev-doctor force generate-api generate-health-api generate-operator-api generate-kvstoremesh-api generate-hubble-api generate-sdp-api install licenses-all veryclean run_bpf_tests run-builder gateway-api-conformance mcs-api-conformance
+force :;
+
+KIND_NET_CIDR ?= $(shell docker network inspect kind-cilium -f '{{json .IPAM.Config}}' | jq -r '.[] | select(.Subnet | test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+")) | .Subnet')
+GATEWAY_API_CONFORMANCE_USABLE_NETWORK_ADDRESSES?=$(shell echo ${KIND_NET_CIDR} | sed "s@0.0/16@255.206@")
+GATEWAY_API_CONFORMANCE_UNUSABLE_NETWORK_ADDRESSES?=$(shell echo ${KIND_NET_CIDR} | sed "s@0.0/16@255.216@")
+GATEWAY_API_CONFORMANCE_TEST_NAME ?= TestConformance
+gateway-api-conformance: ## Run Gateway API conformance tests.
+	@$(ECHO_CHECK) running Gateway API conformance tests...
+	GATEWAY_API_CONFORMANCE_TESTS=1 \
+	$(GO_TEST) $(GO_TEST_FLAGS) -p 4 -v ./operator/pkg/gateway-api \
+		$(GATEWAY_TEST_FLAGS) \
+		-test.run $(GATEWAY_API_CONFORMANCE_TEST_NAME) \
+		-test.timeout=29m \
+		--gateway-class cilium \
+		--all-features \
+		--allow-crds-mismatch\
+		--cleanup-base-resources=false \
+	| $(GOTEST_FORMATTER)
+
+MCS_API_CONFORMANCE_TEST_NAME ?= TestConformance
+mcs-api-conformance: ## Run MCS-API conformance tests.
+	@$(ECHO_CHECK) running MCS-API conformance tests...
+	MCS_API_CONFORMANCE_TESTS=1 \
+	$(GO_TEST) $(GO_TEST_FLAGS) -p 4 -v ./pkg/clustermesh/mcsapi/conformance \
+		$(MCS_API_TEST_FLAGS) \
+		-test.run $(MCS_API_CONFORMANCE_TEST_NAME) \
+	| $(GOTEST_FORMATTER)
+
+BPF_TEST ?= ""
+BPF_TEST_DUMP_CTX ?= ""
+BPF_TEST_VERBOSE ?= 0
+
+run_bpf_tests: ## Build and run the BPF unit tests using the cilium-builder container image.
+	DOCKER_ARGS="--privileged -v /sys:/sys" RUN_AS_ROOT=1 contrib/scripts/builder.sh \
+		env MAKEFLAGS="$(filter-out --jobserver-auth=% --jobserver-fds=%,$(MAKEFLAGS))" \
+		make $(SUBMAKEOPTS) -C bpf/tests/ run \
+			"BPF_TEST=$(BPF_TEST)" \
+			"BPF_TEST_DUMP_CTX=$(BPF_TEST_DUMP_CTX)" \
+			"LOG_CODEOWNERS=$(LOG_CODEOWNERS)" \
+			"JUNIT_PATH=$(JUNIT_PATH)" \
+			"V=$(BPF_TEST_VERBOSE)"
+
+run-builder: ## Drop into a shell inside a container running the cilium-builder image.
+	DOCKER_ARGS="-it" contrib/scripts/builder.sh bash
+
+.PHONY: renovate-local
+renovate-local: ## Run a local linter for the renovate configuration
+	@echo "Running renovate --platform=local"
+	@$(CONTAINER_ENGINE) run --rm -ti \
+		-e LOG_LEVEL=debug \
+		-e GITHUB_COM_TOKEN="$(RENOVATE_GITHUB_COM_TOKEN)" \
+		-v /tmp:/tmp \
+		-v $(ROOT_DIR):/usr/src/app \
+		docker.io/renovate/renovate:latest \
+			renovate --platform=local
+
+
+# FILE: MAINTAINERS.md
+# Maintainers
+
+See [Governance](https://github.com/cilium/community/blob/main/GOVERNANCE.md) for
+governance, commit, and vote guidelines as well as committer responsibilities.
+Everybody listed is a committer as per governance definition. See the 
+[Contributor Ladder](https://github.com/cilium/community/blob/main/CONTRIBUTOR-LADDER.md)
+to learn how to level up through the project.
+
+## Cilium Committers
+
+ * [Aditi Ghag] (Isovalent)
+ * [Alexandre Perrin] (Isovalent)
+ * [André Martins] (Isovalent)
+ * [Arthur Outhenin-Chalandre] (Ledger)
+ * [Bill Mulligan] (Isovalent)
+ * [Casey Callendrello] (Isovalent)
+ * [Chance Zibolski] (Isovalent)
+ * [Chris Tarazi] (Isovalent)
+ * [Daniel Borkmann] (Isovalent)
+ * [David Bimmler] (Isovalent)
+ * [Deepesh Pathak] (Isovalent)
+ * [Dorde Lapcevic] (Google)
+ * [Dylan Reimerink] (Isovalent)
+ * [Fabio Falzoi] (Isovalent)
+ * [Glib Smaga] (Isovalent)
+ * [Hadrien Patte] (Datadog)
+ * [Hemanth Malla] (Microsoft)
+ * [Jarno Rajahalme] (Isovalent)
+ * [Joe Stringer] (Isovalent)
+ * [John Fastabend] (Isovalent)
+ * [Julian Wiedmann] (Isovalent)
+ * [Jussi Mäki] (Isovalent)
+ * [Kornilios Kourtis] (Isovalent)
+ * [Laurent Bernaille] (Datadog)
+ * [Liz Rice] (Isovalent)
+ * [Louis DeLosSantos] (Isovalent)
+ * [Maciej Kwiek] (Isovalent)
+ * [Mahé Tardy] (Isovalent)
+ * [Marcel Zięba] (Isovalent)
+ * [Marco Hofstetter] (Isovalent)
+ * [Marco Iorio] (Isovalent)
+ * [Martynas Pumputis] (Isovalent)
+ * [Michi Mutsuzaki] (Isovalent)
+ * [Nathan Sweet] (Isovalent)
+ * [Nick Young] (Isovalent)
+ * [Nicolas Busseneau] (Isovalent)
+ * [Nirmoy Das] (AMD)
+ * [Paul Chaignon] (Isovalent)
+ * [Quentin Monnet] (Hedgehog)
+ * [Robin Hahling] (Isovalent)
+ * [Sebastian Wicki] (Isovalent)
+ * [Tam Mach] (Isovalent)
+ * [Timo Beckers] (Isovalent)
+ * [Tobias Klauser] (Isovalent)
+ * [Tom Hadlaw] (Isovalent)
+ * [Vlad Ungureanu] (Palantir)
+ * [Yutaro Hayakawa] (Isovalent)
+
+## Cilium & Hubble Emeritus Committers
+
+We would like to acknowledge previous committers and their huge contributions to our collective success:
+
+ * [Beatriz Martínez]
+ * [Bruno M. Custódio]
+ * [Dan Wendlandt]
+ * [Eloy Coto]
+ * [Gilberto Bertin]
+ * [Ian Vernon]
+ * [Ilya Dmitrichenko]
+ * [Lorenz Bauer]
+ * [Michal Rostecki]
+ * [Natália Réka Ivánkó]
+ * [Ray Bejjani]
+ * [Thomas Graf]
+ * [Tom Payne]
+ * [Weilong Cui]
+ * [Yongkun Gui]
+ * [Zang Li]
+
+Please see the AUTHORS file for the full list of contributors to the Cilium
+project.
+
+[Aditi Ghag]: https://github.com/aditighag
+[Alexandre Perrin]: https://github.com/kaworu
+[André Martins]: https://github.com/aanm
+[Arthur Outhenin-Chalandre]: https://github.com/MrFreezeex
+[Beatriz Martínez]: https://github.com/b3a-dev
+[Bill Mulligan]: https://github.com/xmulligan
+[Bruno M. Custódio]: https://github.com/bmcustodio
+[Casey Callendrello]: https://github.com/squeed
+[Chance Zibolski]: https://github.com/chancez
+[Chris Tarazi]: https://github.com/christarazi
+[Daniel Borkmann]: https://github.com/borkmann
+[Dan Wendlandt]: https://github.com/danwent
+[David Bimmler]: https://github.com/bimmlerd
+[Deepesh Pathak]: https://github.com/fristonio
+[Dorde Lapcevic]: https://github.com/dlapcevic
+[Dylan Reimerink]: https://github.com/dylandreimerink
+[Eloy Coto]: https://github.com/eloycoto
+[Fabio Falzoi]: https://github.com/pippolo84
+[Gilberto Bertin]: https://github.com/jibi
+[Glib Smaga]: https://github.com/glibsm
+[Hadrien Patte]: https://github.com/HadrienPatte
+[Hemanth Malla]: https://github.com/hemanthmalla
+[Ian Vernon]: https://github.com/ianvernon
+[Ilya Dmitrichenko]: https://github.com/errordeveloper
+[Jarno Rajahalme]: https://github.com/jrajahalme
+[Joe Stringer]: https://github.com/joestringer
+[John Fastabend]: https://github.com/jrfastab
+[Julian Wiedmann]: https://github.com/julianwiedmann
+[Jussi Mäki]: https://github.com/joamaki
+[Kornilios Kourtis]: https://github.com/kkourt
+[Laurent Bernaille]: https://github.com/lbernail
+[Liz Rice]: https://github.com/lizrice
+[Lorenz Bauer]: https://github.com/lmb
+[Louis DeLosSantos]: https://github.com/ldelossa
+[Maciej Kwiek]: https://github.com/nebril
+[Mahé Tardy]: https://github.com/mtardy
+[Marcel Zięba]: https://github.com/marseel
+[Marco Hofstetter]: https://github.com/mhofstetter
+[Marco Iorio]: https://github.com/giorio94
+[Martynas Pumputis]: https://github.com/brb
+[Michal Rostecki]: https://github.com/vadorovsky
+[Michi Mutsuzaki]: https://github.com/michi-covalent
+[Natália Réka Ivánkó]: https://github.com/sharlns
+[Nathan Sweet]: https://github.com/nathanjsweet
+[Nick Young]: https://github.com/youngnick
+[Nicolas Busseneau]: https://github.com/nbusseneau
+[Nirmoy Das]: https://github.com/nirmoy
+[Paul Chaignon]: https://github.com/pchaigno
+[Quentin Monnet]: https://github.com/qmonnet
+[Ray Bejjani]: https://github.com/raybejjani
+[Robin Hahling]: https://github.com/rolinh
+[Sebastian Wicki]: https://github.com/gandro
+[Tam Mach]: https://github.com/sayboras
+[Thomas Graf]: https://github.com/tgraf
+[Timo Beckers]: https://github.com/ti-mo
+[Tobias Klauser]: https://github.com/tklauser
+[Tom Hadlaw]: https://github.com/tommyp1ckles
+[Tom Payne]: https://github.com/twpayne
+[Vlad Ungureanu]: https://github.com/ungureanuvladvictor
+[Weilong Cui]: https://github.com/Weil0ng
+[Yongkun Gui]: https://github.com/anfernee
+[Yutaro Hayakawa]: https://github.com/YutaroHayakawa
+[Zang Li]: https://github.com/lzang
+
+
+# FILE: LICENSE
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} Authors of Cilium
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+
+# FILE: CONTRIBUTING.md
+# How to Contribute
+
+## To Cilium/Hubble
+
+See the [Developer / Contributor
+Guide](https://docs.cilium.io/en/stable/contributing/development/contributing_guide/) for detailed information on
+how to contribute, get started and find good first issues.
+
+## To the cilium.io website
+
+Please see the [cilium.io website contributing guide](https://github.com/cilium/cilium.io/blob/main/CONTRIBUTING.md) for detailed
+information on how to add blogs, trainings, and other resources.
+
+## To the Cilium documentation
+
+Please see the [Cilium documentation contributing guide](https://docs.cilium.io/en/stable/contributing/docs/) for detailed
+information on how to contribute to the Cilium documentation.
+
+## Support Expectations & Enterprise Options
+
+Cilium is an open source project maintained by the community, and we greatly appreciate all contributions that help improve it. If you find an issue or need a new feature, we encourage you to open an issue, submit a pull request, start a discussion, or join the weekly developer meeting.
+
+However, if your organization requires stronger guarantees, priority support, or dedicated assistance, enterprise support is available from vendors in the ecosystem. You can find more details on the [website](https://cilium.io/enterprise/).
+
+
+# FILE: CODE_OF_CONDUCT.md
+## Community Code of Conduct v1.0
+
+This is Code of Conduct is based on the [CNCF Code of
+Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).
+See the referred document for translated versions into different languages. The
+text below is modified with Cilium community specific contact details.
+
+### Contributor Code of Conduct
+
+As contributors and maintainers of this project, and in the interest of fostering
+an open and welcoming community, we pledge to respect all people who contribute
+through reporting issues, posting feature requests, updating documentation,
+submitting pull requests or patches, and other activities.
+
+We are committed to making participation in this project a harassment-free experience for
+everyone, regardless of level of experience, gender, gender identity and expression,
+sexual orientation, disability, personal appearance, body size, race, ethnicity, age,
+religion, or nationality.
+
+Examples of unacceptable behavior by participants include:
+
+* The use of sexualized language or imagery
+* Personal attacks
+* Trolling or insulting/derogatory comments
+* Public or private harassment
+* Publishing others' private information, such as physical or electronic addresses,
+ without explicit permission
+* Other unethical or unprofessional conduct.
+
+Project maintainers have the right and responsibility to remove, edit, or reject
+comments, commits, code, wiki edits, issues, and other contributions that are not
+aligned to this Code of Conduct. By adopting this Code of Conduct, project maintainers
+commit themselves to fairly and consistently applying these principles to every aspect
+of managing this project. Project maintainers who do not follow or enforce the Code of
+Conduct may be permanently removed from the project team.
+
+This code of conduct applies both within project spaces and in public spaces
+when an individual is representing the project or its community.
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be
+reported by contacting the code of conduct team via 
+[conduct@cilium.io](mailto:conduct@cilium.io).
+
+This Code of Conduct is adapted from the Contributor Covenant
+(http://contributor-covenant.org), version 1.2.0, available at
+http://contributor-covenant.org/version/1/2/0/
+
+
+# FILE: standalone-dns-proxy/main.go
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
+package main
+
+import (
+	"github.com/cilium/cilium/pkg/hive"
+	"github.com/cilium/cilium/standalone-dns-proxy/cmd"
+)
+
+func main() {
+	standaloneDNSProxyHive := hive.New(cmd.StandaloneDNSProxyCell)
+
+	cmd.Execute(cmd.NewDNSProxyCmd(standaloneDNSProxyHive))
+}
+
+
+# FILE: standalone-dns-proxy/fipsonly.go
+// SPDX-License-Identifier: Apache-2.0
+// Copyright Authors of Cilium
+
+//go:build boringcrypto
+
+package main
+
+// Package fipsonly restricts all TLS configuration to FIPS-approved settings.
+// See https://github.com/golang/go/blob/master/src/crypto/tls/fipsonly/fipsonly.go
+import _ "crypto/tls/fipsonly"
+
+
+# FILE: standalone-dns-proxy/Makefile
+# Copyright Authors of Cilium
+# SPDX-License-Identifier: Apache-2.0
+
+.DEFAULT_GOAL := all
+
+ROOT_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
+
+include ${ROOT_DIR}/../Makefile.defs
+
+
+TARGET := standalone-dns-proxy
+
+.PHONY: all $(TARGET) clean install-binary
+
+all: $(TARGET)
+
+$(TARGET):
+	@$(ECHO_GO)
+	$(QUIET)$(GO_BUILD) -o $@
+
+clean:
+	@$(ECHO_CLEAN)
+	$(QUIET)rm -f $(TARGET)
+	$(QUIET)$(GO_CLEAN)
+
+install-binary:
+	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR)$(BINDIR)
+	$(QUIET)$(INSTALL) -m 0755 $(TARGET) $(DESTDIR)$(BINDIR)
+
+
+# FILE: vendor/modules.txt
+# cel.dev/expr v0.25.1
+## explicit; go 1.23.0
+cel.dev/expr
+# dario.cat/mergo v1.0.1
+## explicit; go 1.13
+dario.cat/mergo
+# github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
+## explicit; go 1.20
+github.com/AdaLogics/go-fuzz-headers
+# github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.0
+## explicit; go 1.24.0
+github.com/Azure/azure-sdk-for-go/sdk/azcore
+github.com/Azure/azure-sdk-for-go/sdk/azcore/arm
+github.com/Azure/azure-sdk-for-go/sdk/azcore/arm/internal/resource
+github.com/Azure/azure-sdk-for-go/sdk/azcore/arm/policy
+github.com/Azure/azure-sdk-for-go/sdk/azcore/arm/runtime
+github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/exported
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/log
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/async
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/body
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/fake
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/loc
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/pollers/op
+github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/shared
+github.com/Azure/azure-sdk-for-go/sdk/azcore/log
+github.com/Azure/azure-sdk-for-go/sdk/azcore/policy
+github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime
+github.com/Azure/azure-sdk-for-go/sdk/azcore/streaming
+github.com/Azure/azure-sdk-for-go/sdk/azcore/to
+github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing
+# github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
+## explicit; go 1.23.0
+github.com/Azure/azure-sdk-for-go/sdk/azidentity
+github.com/Azure/azure-sdk-for-go/sdk/azidentity/internal
+# github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2
+## explicit; go 1.23.0
+github.com/Azure/azure-sdk-for-go/sdk/internal/diag
+github.com/Azure/azure-sdk-for-go/sdk/internal/errorinfo
+github.com/Azure/azure-sdk-for-go/sdk/internal/exported
+github.com/Azure/azure-sdk-for-go/sdk/internal/log
+github.com/Azure/azure-sdk-for-go/sdk/internal/poller
+github.com/Azure/azure-sdk-for-go/sdk/internal/temporal
+github.com/Azure/azure-sdk-for-go/sdk/internal/uuid
+# github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v7 v7.3.0
+## explicit; go 1.24.0
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v7
+# github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v9 v9.0.0
+## explicit; go 1.24.0
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v9
+# github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c
+## explicit; go 1.16
+github.com/Azure/go-ansiterm
+github.com/Azure/go-ansiterm/winterm
+# github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0
+## explicit; go 1.18
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/errors
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/base
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/base/storage
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/exported
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/json
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/json/types/time
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/local
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/accesstokens
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/authority
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/internal/comm
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/internal/grant
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/wstrust
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/wstrust/defs
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/options
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/shared
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/version
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/managedidentity
+github.com/AzureAD/microsoft-authentication-library-for-go/apps/public
+# github.com/BurntSushi/toml v1.6.0
+## explicit; go 1.18
+github.com/BurntSushi/toml
+github.com/BurntSushi/toml/internal
+# github.com/MakeNowJust/heredoc v1.0.0
+## explicit; go 1.12
+github.com/MakeNowJust/heredoc
+# github.com/Masterminds/goutils v1.1.1
+## explicit
+github.com/Masterminds/goutils
+# github.com/Masterminds/semver/v3 v3.4.0
+## explicit; go 1.21
+github.com/Masterminds/semver/v3
+# github.com/Masterminds/sprig/v3 v3.3.0
+## explicit; go 1.21
+github.com/Masterminds/sprig/v3
+# github.com/Masterminds/squirrel v1.5.4
+## explicit; go 1.14
+github.com/Masterminds/squirrel
+# github.com/Microsoft/go-winio v0.6.2
+## explicit; go 1.21
+github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/internal/fs
+github.com/Microsoft/go-winio/internal/socket
+github.com/Microsoft/go-winio/internal/stringbuffer
+github.com/Microsoft/go-winio/pkg/guid
+# github.com/ProtonMail/go-crypto v1.3.0
+## explicit; go 1.22.0
+github.com/ProtonMail/go-crypto/bitcurves
+github.com/ProtonMail/go-crypto/brainpool
+github.com/ProtonMail/go-crypto/eax
+github.com/ProtonMail/go-crypto/internal/byteutil
+github.com/ProtonMail/go-crypto/ocb
+github.com/ProtonMail/go-crypto/openpgp
+github.com/ProtonMail/go-crypto/openpgp/aes/keywrap
+github.com/ProtonMail/go-crypto/openpgp/armor
+github.com/ProtonMail/go-crypto/openpgp/clearsign
+github.com/ProtonMail/go-crypto/openpgp/ecdh
+github.com/ProtonMail/go-crypto/openpgp/ecdsa
+github.com/ProtonMail/go-crypto/openpgp/ed25519
+github.com/ProtonMail/go-crypto/openpgp/ed448
+github.com/ProtonMail/go-crypto/openpgp/eddsa
+github.com/ProtonMail/go-crypto/openpgp/elgamal
+github.com/ProtonMail/go-crypto/openpgp/errors
+github.com/ProtonMail/go-crypto/openpgp/internal/algorithm
+github.com/ProtonMail/go-crypto/openpgp/internal/ecc
+github.com/ProtonMail/go-crypto/openpgp/internal/encoding
+github.com/ProtonMail/go-crypto/openpgp/packet
+github.com/ProtonMail/go-crypto/openpgp/s2k
+github.com/ProtonMail/go-crypto/openpgp/x25519
+github.com/ProtonMail/go-crypto/openpgp/x448
+# github.com/alecthomas/participle/v2 v2.1.0
+## explicit; go 1.18
+github.com/alecthomas/participle/v2/lexer
+# github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
+## explicit; go 1.13
+github.com/aliyun/alibaba-cloud-sdk-go/sdk
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/provider
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/signers
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/internal
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses
+github.com/aliyun/alibaba-cloud-sdk-go/sdk/utils
+github.com/aliyun/alibaba-cloud-sdk-go/services/ecs
+github.com/aliyun/alibaba-cloud-sdk-go/services/vpc
+# github.com/antlr4-go/antlr/v4 v4.13.1
+## explicit; go 1.22
+github.com/antlr4-go/antlr/v4
+# github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+## explicit; go 1.13
+github.com/asaskevich/govalidator
+# github.com/aws/aws-sdk-go-v2 v1.41.5
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/aws
+github.com/aws/aws-sdk-go-v2/aws/defaults
+github.com/aws/aws-sdk-go-v2/aws/middleware
+github.com/aws/aws-sdk-go-v2/aws/protocol/ec2query
+github.com/aws/aws-sdk-go-v2/aws/protocol/query
+github.com/aws/aws-sdk-go-v2/aws/protocol/restjson
+github.com/aws/aws-sdk-go-v2/aws/protocol/xml
+github.com/aws/aws-sdk-go-v2/aws/ratelimit
+github.com/aws/aws-sdk-go-v2/aws/retry
+github.com/aws/aws-sdk-go-v2/aws/signer/internal/v4
+github.com/aws/aws-sdk-go-v2/aws/signer/v4
+github.com/aws/aws-sdk-go-v2/aws/transport/http
+github.com/aws/aws-sdk-go-v2/internal/auth
+github.com/aws/aws-sdk-go-v2/internal/auth/smithy
+github.com/aws/aws-sdk-go-v2/internal/context
+github.com/aws/aws-sdk-go-v2/internal/endpoints
+github.com/aws/aws-sdk-go-v2/internal/endpoints/awsrulesfn
+github.com/aws/aws-sdk-go-v2/internal/rand
+github.com/aws/aws-sdk-go-v2/internal/sdk
+github.com/aws/aws-sdk-go-v2/internal/sdkio
+github.com/aws/aws-sdk-go-v2/internal/shareddefaults
+github.com/aws/aws-sdk-go-v2/internal/strings
+github.com/aws/aws-sdk-go-v2/internal/sync/singleflight
+github.com/aws/aws-sdk-go-v2/internal/timeconv
+# github.com/aws/aws-sdk-go-v2/config v1.32.14
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/config
+# github.com/aws/aws-sdk-go-v2/credentials v1.19.14
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/credentials
+github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds
+github.com/aws/aws-sdk-go-v2/credentials/endpointcreds
+github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client
+github.com/aws/aws-sdk-go-v2/credentials/logincreds
+github.com/aws/aws-sdk-go-v2/credentials/processcreds
+github.com/aws/aws-sdk-go-v2/credentials/ssocreds
+github.com/aws/aws-sdk-go-v2/credentials/stscreds
+# github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/feature/ec2/imds
+github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config
+# github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/configsources
+# github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/endpoints/v2
+# github.com/aws/aws-sdk-go-v2/internal/ini v1.8.6
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/internal/ini
+# github.com/aws/aws-sdk-go-v2/service/ec2 v1.296.2
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/ec2
+github.com/aws/aws-sdk-go-v2/service/ec2/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/ec2/types
+# github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.7
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding
+# github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.21
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/internal/presigned-url
+# github.com/aws/aws-sdk-go-v2/service/signin v1.0.9
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/signin
+github.com/aws/aws-sdk-go-v2/service/signin/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/signin/types
+# github.com/aws/aws-sdk-go-v2/service/sso v1.30.15
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/sso
+github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/sso/types
+# github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.19
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/ssooidc
+github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/ssooidc/types
+# github.com/aws/aws-sdk-go-v2/service/sts v1.41.10
+## explicit; go 1.24
+github.com/aws/aws-sdk-go-v2/service/sts
+github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints
+github.com/aws/aws-sdk-go-v2/service/sts/types
+# github.com/aws/smithy-go v1.24.3
+## explicit; go 1.24
+github.com/aws/smithy-go
+github.com/aws/smithy-go/auth
+github.com/aws/smithy-go/auth/bearer
+github.com/aws/smithy-go/context
+github.com/aws/smithy-go/document
+github.com/aws/smithy-go/encoding
+github.com/aws/smithy-go/encoding/httpbinding
+github.com/aws/smithy-go/encoding/json
+github.com/aws/smithy-go/encoding/xml
+github.com/aws/smithy-go/endpoints
+github.com/aws/smithy-go/endpoints/private/rulesfn
+github.com/aws/smithy-go/internal/sync/singleflight
+github.com/aws/smithy-go/io
+github.com/aws/smithy-go/logging
+github.com/aws/smithy-go/metrics
+github.com/aws/smithy-go/middleware
+github.com/aws/smithy-go/private/requestcompression
+github.com/aws/smithy-go/ptr
+github.com/aws/smithy-go/rand
+github.com/aws/smithy-go/time
+github.com/aws/smithy-go/tracing
+github.com/aws/smithy-go/transport/http
+github.com/aws/smithy-go/transport/http/internal/io
+github.com/aws/smithy-go/waiter
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
+# github.com/blang/semver/v4 v4.0.0
+## explicit; go 1.14
+github.com/blang/semver/v4
+# github.com/cespare/xxhash/v2 v2.3.0
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
+# github.com/chai2010/gettext-go v1.0.2
+## explicit; go 1.14
+github.com/chai2010/gettext-go
+github.com/chai2010/gettext-go/mo
+github.com/chai2010/gettext-go/plural
+github.com/chai2010/gettext-go/po
+# github.com/cilium/charts v0.0.0-20260401193212-853ba84e802b
+## explicit; go 1.17
+github.com/cilium/charts
+# github.com/cilium/coverbee v0.3.3-0.20240723084546-664438750fce
+## explicit; go 1.21
+github.com/cilium/coverbee
+github.com/cilium/coverbee/pkg/cparser
+github.com/cilium/coverbee/pkg/verifierlog
+# github.com/cilium/deepequal-gen v0.0.0-20241016021505-f57df2fe2e62
+## explicit; go 1.20
+github.com/cilium/deepequal-gen
+github.com/cilium/deepequal-gen/args
+github.com/cilium/deepequal-gen/generators
+# github.com/cilium/dns v1.1.51-0.20240603182237-af788769786a
+## explicit; go 1.18
+github.com/cilium/dns
+# github.com/cilium/ebpf v0.21.0
+## explicit; go 1.24.0
+github.com/cilium/ebpf
+github.com/cilium/ebpf/asm
+github.com/cilium/ebpf/btf
+github.com/cilium/ebpf/cmd/bpf2go
+github.com/cilium/ebpf/cmd/bpf2go/gen
+github.com/cilium/ebpf/cmd/bpf2go/internal
+github.com/cilium/ebpf/features
+github.com/cilium/ebpf/internal
+github.com/cilium/ebpf/internal/efw
+github.com/cilium/ebpf/internal/epoll
+github.com/cilium/ebpf/internal/kallsyms
+github.com/cilium/ebpf/internal/kconfig
+github.com/cilium/ebpf/internal/linux
+github.com/cilium/ebpf/internal/platform
+github.com/cilium/ebpf/internal/sys
+github.com/cilium/ebpf/internal/sysenc
+github.com/cilium/ebpf/internal/testutils/testmain
+github.com/cilium/ebpf/internal/tracefs
+github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
+github.com/cilium/ebpf/perf
+github.com/cilium/ebpf/rlimit
+# github.com/cilium/endpointslice v0.29.4-0.20240409195643-982ad68ab7ba
+## explicit; go 1.21
+github.com/cilium/endpointslice
+github.com/cilium/endpointslice/metrics
+github.com/cilium/endpointslice/topologycache
+github.com/cilium/endpointslice/util
+# github.com/cilium/endpointslice-controller v0.0.0-20250410163339-ffb33e27879c
+## explicit; go 1.22
+github.com/cilium/endpointslice-controller/endpointslice
+github.com/cilium/endpointslice-controller/util/endpointslice
+# github.com/cilium/fake v0.7.0
+## explicit; go 1.22
+github.com/cilium/fake
+# github.com/cilium/hive v1.0.1
+## explicit; go 1.23.0
+github.com/cilium/hive
+github.com/cilium/hive/cell
+github.com/cilium/hive/hivetest
+github.com/cilium/hive/internal
+github.com/cilium/hive/job
+github.com/cilium/hive/script
+github.com/cilium/hive/script/internal/diff
+github.com/cilium/hive/script/scripttest
+github.com/cilium/hive/shell
+# github.com/cilium/linters v0.4.0
+## explicit; go 1.25.0
+github.com/cilium/linters
+github.com/cilium/linters/analysisutil
+github.com/cilium/linters/ioreadall
+github.com/cilium/linters/slowg
+# github.com/cilium/lumberjack/v2 v2.4.2
+## explicit; go 1.13
+github.com/cilium/lumberjack/v2
+# github.com/cilium/proxy v0.0.0-20260307131108-8e1339459051
+## explicit; go 1.25.0
+github.com/cilium/proxy/go/cilium/api
+# github.com/cilium/statedb v0.7.0
+## explicit; go 1.25
+github.com/cilium/statedb
+github.com/cilium/statedb/index
+github.com/cilium/statedb/internal
+github.com/cilium/statedb/lpm
+github.com/cilium/statedb/part
+github.com/cilium/statedb/reconciler
+# github.com/cilium/stream v0.0.1
+## explicit; go 1.21.0
+github.com/cilium/stream
+# github.com/cilium/workerpool v1.3.0
+## explicit; go 1.22
+github.com/cilium/workerpool
+# github.com/cloudflare/cfssl v1.6.5
+## explicit; go 1.18
+github.com/cloudflare/cfssl/api
+github.com/cloudflare/cfssl/api/client
+github.com/cloudflare/cfssl/auth
+github.com/cloudflare/cfssl/certdb
+github.com/cloudflare/cfssl/cli
+github.com/cloudflare/cfssl/cli/genkey
+github.com/cloudflare/cfssl/config
+github.com/cloudflare/cfssl/crypto/pkcs7
+github.com/cloudflare/cfssl/csr
+github.com/cloudflare/cfssl/errors
+github.com/cloudflare/cfssl/helpers
+github.com/cloudflare/cfssl/helpers/derhelpers
+github.com/cloudflare/cfssl/info
+github.com/cloudflare/cfssl/initca
+github.com/cloudflare/cfssl/log
+github.com/cloudflare/cfssl/ocsp/config
+github.com/cloudflare/cfssl/signer
+github.com/cloudflare/cfssl/signer/local
+github.com/cloudflare/cfssl/signer/remote
+github.com/cloudflare/cfssl/signer/universal
+# github.com/cloudflare/circl v1.6.3
+## explicit; go 1.22.0
+github.com/cloudflare/circl/dh/x25519
+github.com/cloudflare/circl/dh/x448
+github.com/cloudflare/circl/ecc/goldilocks
+github.com/cloudflare/circl/internal/conv
+github.com/cloudflare/circl/internal/sha3
+github.com/cloudflare/circl/math
+github.com/cloudflare/circl/math/fp25519
+github.com/cloudflare/circl/math/fp448
+github.com/cloudflare/circl/math/mlsbset
+github.com/cloudflare/circl/sign
+github.com/cloudflare/circl/sign/ed25519
+github.com/cloudflare/circl/sign/ed448
+# github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5
+## explicit; go 1.24
+github.com/cncf/xds/go/udpa/annotations
+github.com/cncf/xds/go/xds/annotations/v3
+github.com/cncf/xds/go/xds/core/v3
+github.com/cncf/xds/go/xds/type/matcher/v3
+github.com/cncf/xds/go/xds/type/v3
+# github.com/containerd/errdefs v0.3.0
+## explicit; go 1.20
+github.com/containerd/errdefs
+# github.com/containerd/errdefs/pkg v0.3.0
+## explicit; go 1.22
+github.com/containerd/errdefs/pkg/errhttp
+github.com/containerd/errdefs/pkg/internal/cause
+# github.com/containerd/log v0.1.0
+## explicit; go 1.20
+github.com/containerd/log
+# github.com/containernetworking/cni v1.3.0
+## explicit; go 1.21
+github.com/containernetworking/cni/libcni
+github.com/containernetworking/cni/pkg/invoke
+github.com/containernetworking/cni/pkg/ns
+github.com/containernetworking/cni/pkg/skel
+github.com/containernetworking/cni/pkg/types
+github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/types/040
+github.com/containernetworking/cni/pkg/types/100
+github.com/containernetworking/cni/pkg/types/create
+github.com/containernetworking/cni/pkg/types/internal
+github.com/containernetworking/cni/pkg/utils
+github.com/containernetworking/cni/pkg/version
+# github.com/coreos/go-iptables v0.8.0
+## explicit; go 1.16
+github.com/coreos/go-iptables/iptables
+# github.com/coreos/go-semver v0.3.1
+## explicit; go 1.8
+github.com/coreos/go-semver/semver
+# github.com/coreos/go-systemd/v22 v22.7.0
+## explicit; go 1.23
+github.com/coreos/go-systemd/v22/dbus
+github.com/coreos/go-systemd/v22/journal
+# github.com/cpuguy83/go-md2man/v2 v2.0.6
+## explicit; go 1.12
+github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/cyphar/filepath-securejoin v0.6.1
+## explicit; go 1.18
+github.com/cyphar/filepath-securejoin
+github.com/cyphar/filepath-securejoin/internal/consts
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13
+## explicit
+github.com/dgryski/go-farm
+# github.com/distribution/reference v0.6.0
+## explicit; go 1.20
+github.com/distribution/reference
+# github.com/docker/docker v28.5.2+incompatible
+## explicit
+github.com/docker/docker/api
+github.com/docker/docker/api/types
+github.com/docker/docker/api/types/blkiodev
+github.com/docker/docker/api/types/build
+github.com/docker/docker/api/types/checkpoint
+github.com/docker/docker/api/types/common
+github.com/docker/docker/api/types/container
+github.com/docker/docker/api/types/events
+github.com/docker/docker/api/types/filters
+github.com/docker/docker/api/types/image
+github.com/docker/docker/api/types/mount
+github.com/docker/docker/api/types/network
+github.com/docker/docker/api/types/registry
+github.com/docker/docker/api/types/storage
+github.com/docker/docker/api/types/strslice
+github.com/docker/docker/api/types/swarm
+github.com/docker/doc

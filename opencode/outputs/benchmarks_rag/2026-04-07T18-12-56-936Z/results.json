@@ -1,0 +1,502 @@
+[
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kubernetes",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-13-15-897Z_rag_kubernetes",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/moby",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-13-38-250Z_rag_moby",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/istio",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-16-44-858Z_rag_istio",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/prometheus",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-17-53-948Z_rag_prometheus",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/grafana",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-19-52-975Z_rag_grafana",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/terraform",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-20-02-281Z_rag_terraform",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/vault",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-20-09-126Z_rag_vault",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/helm",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-20-46-555Z_rag_helm",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/trivy",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-21-30-074Z_rag_trivy",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/coreruleset",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-22-27-906Z_rag_coreruleset",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/openssl",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-23-14-879Z_rag_openssl",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/curl",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-23-51-045Z_rag_curl",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nginx",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-25-00-831Z_rag_nginx",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/httpd",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-25-38-240Z_rag_httpd",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/redis",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-26-19-584Z_rag_redis",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/postgres",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-26-53-436Z_rag_postgres",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/mysql-server",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-27-50-130Z_rag_mysql-server",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/elasticsearch",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-28-02-674Z_rag_elasticsearch",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kafka",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-29-40-756Z_rag_kafka",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rabbitmq-server",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-30-16-677Z_rag_rabbitmq-server",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/apisix",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-30-22-281Z_rag_apisix",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/envoy",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-31-04-884Z_rag_envoy",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/traefik",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-31-13-917Z_rag_traefik",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cilium",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-32-05-899Z_rag_cilium",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/calico",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-32-19-783Z_rag_calico",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/opa",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-32-55-505Z_rag_opa",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cosign",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-34-22-322Z_rag_cosign",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cli",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-35-12-552Z_rag_cli",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/ansible",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-35-32-116Z_rag_ansible",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/chef",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-36-12-998Z_rag_chef",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/puppet",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-37-19-478Z_rag_puppet",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/salt",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-38-04-054Z_rag_salt",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/certbot",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-38-48-290Z_rag_certbot",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cryptography",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-40-00-559Z_rag_cryptography",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-41-05-726Z_rag_django",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/flask",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-41-45-822Z_rag_flask",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django-rest-framework",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-42-15-916Z_rag_django-rest-framework",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/fastapi",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-42-38-189Z_rag_fastapi",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/express",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-43-05-003Z_rag_express",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nest",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-43-15-310Z_rag_nest",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/spring-boot",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-44-12-114Z_rag_spring-boot",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/laravel",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-45-31-289Z_rag_laravel",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rails",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-46-01-609Z_rag_rails",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-46-08-988Z_rag_oauth2-proxy",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/gitea",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-46-38-715Z_rag_gitea",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/minio",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-47-30-826Z_rag_minio",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/next.js",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-48-18-063Z_rag_next.js",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/node",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-48-57-799Z_rag_node",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/electron",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-49-33-641Z_rag_electron",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/core",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks_rag/2026-04-07T18-12-56-936Z/2026-04-07T18-50-21-279Z_rag_core",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

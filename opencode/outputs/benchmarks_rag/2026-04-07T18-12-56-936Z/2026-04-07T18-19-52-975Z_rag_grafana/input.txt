@@ -1,0 +1,3948 @@
+
+
+# FILE: tsconfig.json
+{
+  "extends": "./scripts/tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": "public/",
+    "outDir": "public/dist",
+    "rootDirs": ["public/"],
+    "allowJs": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "useUnknownInCatchVariables": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "moduleResolution": "bundler",
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "paths": {
+      "@grafana/schema/dist/esm/*": ["../packages/grafana-schema/src/*"]
+    }
+  },
+  "ts-node": {
+    "swc": true,
+    "compilerOptions": {
+      "module": "ESNext",
+      "moduleResolution": "Bundler"
+    }
+  },
+  "include": [
+    "eslint.config.js",
+    "public/app/**/*.ts*",
+    "public/swagger/**/*.ts*",
+    "public/e2e-test/**/*.ts",
+    "public/test/**/*.ts*",
+    "public/vendor/**/*.ts",
+    "packages/grafana-data/typings",
+    "packages/grafana-ui/src/types"
+  ],
+  "exclude": ["public/app/**/webpack.config.ts"]
+}
+
+
+# FILE: stylelint.config.js
+module.exports = {
+  extends: ['stylelint-config-sass-guidelines'],
+  ignoreFiles: ['**/node_modules/**/*.scss'],
+  rules: {
+    'at-rule-no-vendor-prefix': null,
+    'color-hex-length': null,
+    'color-named': null,
+    'declaration-block-no-duplicate-properties': [
+      true,
+      {
+        ignore: 'consecutive-duplicates-with-different-values',
+        ignoreProperties: ['font-size', 'word-break'],
+      },
+    ],
+    // Disable equivalent "borderZero" sass-lint rule
+    'declaration-property-value-disallowed-list': {
+      border: [],
+      'border-bottom': [],
+      'border-left': [],
+      'border-right': [],
+      'border-top': [],
+    },
+    'function-url-quotes': null,
+    'length-zero-no-unit': null,
+    'max-nesting-depth': null,
+    'property-no-vendor-prefix': null,
+    'rule-empty-line-before': null,
+    'scss/at-function-pattern': null,
+    'scss/at-mixin-pattern': null,
+    'scss/dollar-variable-pattern': null,
+    'scss/at-extend-no-missing-placeholder': null,
+    'selector-class-pattern': null,
+    'selector-max-compound-selectors': null,
+    'selector-max-id': null,
+    'selector-no-qualifying-type': null,
+    'selector-pseudo-element-colon-notation': null,
+    'shorthand-property-no-redundant-values': null,
+    'value-no-vendor-prefix': null,
+  },
+};
+
+
+# FILE: relyance.yaml
+# Relyance Compliance Inspector Configuration
+
+repository: grafana/grafana
+
+# Services and Code Relationship
+# Purpose: Configuration used to visualize the code base and relationships between microservices and code.
+# Note: Directory paths are relative to the repository's root directory. 
+# Note: Need a separate entry for each microservice. See example below.
+services:
+
+
+
+# Example: Services and Code Relationship 
+# Note: Do not use below. It is an example.
+# Note: Directory paths are relative to the repository's root directory
+#- service: paymentservice
+#  source:
+#     - src/payments 
+#     - src/checkout_service
+#- service: catalogservice
+#  source:
+#     - src/catalog 
+
+
+# Source Directories to Exclude
+# Purpose: Configuration is used to exclude directories from analysis such as test directories etc.
+# Note: Directory paths are relative to the repository's root directory
+exclude:
+  # Test and development environments
+  - e2e
+  - devenv
+  - hack
+  - scripts
+  - tools
+  - pkg/tests
+
+  # Documentation and examples
+  - docs
+  - contribute
+  - grafana-mixin
+
+  # Build artifacts and dependencies
+  - packaging
+  - data
+  - bin
+  - plugins-bundled
+  - vendor
+  - node_modules
+
+  # Static UI assets
+  - public/fonts
+  - public/img
+  - public/locales
+  - public/vendor
+  - public/lib
+
+  # Configuration templates
+  - conf
+  - emails
+  - cue.mod
+  - kinds
+  - kindsv2
+
+  # Temporary and cache directories
+  - tmp
+  - cache
+  - .cache
+  - venv
+
+
+# Excluding files and directories using patterns (enable lines as needed)
+exclude_patterns:
+  # Test and mock files
+  - "**/*_test.go"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/testdata/**"
+  - "**/*_mock.go"
+  - "**/mocks/**"
+
+  # Generated code
+  - "**/*_gen.go"
+  - "**/wire_gen.go"
+
+  # Documentation and examples
+  - "**/*.md"
+  - "**/README.*"
+  - "**/LICENSE*"
+  - "**/*.example.*"
+
+  # System files and dependencies
+  - "**/.DS_Store"
+  - "**/*.log"
+  - "**/go.sum"
+  - "**/yarn.lock"
+
+  # Generated specs
+  - "**/swagger.json"
+  - "**/openapi*.json"
+
+
+# FILE: project.json
+{
+  "name": "grafana",
+  "$schema": "node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "dependsOn": [
+        "check-frontend-dev",
+        "themes-generate",
+        {
+          "projects": ["tag:scope:plugin"],
+          "target": "build"
+        }
+      ]
+    },
+    "build": {
+      "dependsOn": [
+        "themes-generate",
+        {
+          "projects": ["tag:scope:plugin"],
+          "target": "build"
+        }
+      ],
+      "outputs": ["{workspaceRoot}/public/build"],
+      "cache": true
+    },
+    "dev": {
+      "dependsOn": [
+        "themes-generate",
+        {
+          "projects": ["tag:scope:plugin"],
+          "target": "build"
+        }
+      ],
+      "outputs": ["{workspaceRoot}/public/build"],
+      "cache": true
+    },
+    "themes-generate": {
+      "inputs": [
+        "{workspaceRoot}/scripts/cli/generateSassVariableFiles.ts",
+        "{workspaceRoot}/packages/grafana-data/src/themes/**",
+        "{workspaceRoot}/packages/grafana-ui/src/themes/**",
+        "{workspaceRoot}/package.json"
+      ],
+      "outputs": [
+        "{workspaceRoot}/public/sass/_variables.generated.scss",
+        "{workspaceRoot}/public/sass/_variables.dark.generated.scss",
+        "{workspaceRoot}/public/sass/_variables.light.generated.scss",
+        "{workspaceRoot}/public/app/features/theme-playground/schema.json"
+      ],
+      "cache": true
+    }
+  }
+}
+
+
+# FILE: playwright.storybook.config.ts
+import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+
+import { type PluginOptions } from '@grafana/plugin-e2e';
+
+const testDirRoot = 'e2e-playwright';
+
+export default defineConfig<PluginOptions>({
+  fullyParallel: true,
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
+  /* Opt out of parallel tests on CI. */
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:9001',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+  webServer: {
+    command: 'yarn storybook',
+    url: 'http://localhost:9001',
+    stdout: 'ignore',
+    stderr: 'pipe',
+  },
+  projects: [
+    {
+      name: 'storybook',
+      testDir: path.join(testDirRoot, '/storybook'),
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+  ],
+});
+
+
+# FILE: playwright.config.ts
+import { defineConfig, devices, type PlaywrightTestConfig, type Project } from '@playwright/test';
+import path, { dirname } from 'path';
+
+import { type PluginOptions } from '@grafana/plugin-e2e';
+
+export const testDirRoot = 'e2e-playwright';
+const pluginDirRoot = path.join(testDirRoot, 'plugin-e2e');
+export const DEFAULT_URL = 'http://localhost:3001';
+
+export function withAuth(project: Project): Project {
+  project.dependencies ??= [];
+  project.use ??= {};
+
+  project.dependencies = project.dependencies.concat('authenticate');
+  project.use = {
+    ...project.use,
+    storageState: `playwright/.auth/${process.env.GRAFANA_ADMIN_USER || 'admin'}.json`,
+  };
+
+  return project;
+}
+
+export const baseConfig: PlaywrightTestConfig<PluginOptions, {}> = {
+  fullyParallel: true,
+  /* Retry on CI only */
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 4 : undefined,
+  reporter: [
+    ['html'], // pretty
+    ['./e2e-playwright/utils/axe-a11y/reporter.ts'], // accessibility reporter
+  ],
+  expect: {
+    timeout: 10_000,
+  },
+  use: {
+    ...devices['Desktop Chrome'],
+    baseURL: process.env.GRAFANA_URL ?? DEFAULT_URL,
+    trace: 'retain-on-failure',
+    httpCredentials: {
+      username: 'admin',
+      password: 'admin',
+    },
+    screenshot: 'only-on-failure',
+    permissions: ['clipboard-read', 'clipboard-write'],
+    provisioningRootDir: path.join(process.cwd(), process.env.PROV_DIR ?? 'conf/provisioning'),
+    // Preserve legacy dashboard layout behavior in E2E unless a test overrides this (shallow merge on
+    // `featureToggles` would otherwise drop toggles when a spec sets only a subset).
+    featureToggles: {
+      dashboardNewLayouts: false,
+    },
+  },
+};
+
+export default defineConfig<PluginOptions>({
+  ...baseConfig,
+  ...(!process.env.GRAFANA_URL && {
+    webServer: {
+      command: 'yarn e2e:plugin:build && ./e2e-playwright/start-server',
+      url: DEFAULT_URL,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+  }),
+  projects: [
+    // Login to Grafana with admin user and store the cookie on disk for use in other tests
+    {
+      name: 'authenticate',
+      testDir: `${dirname(require.resolve('@grafana/plugin-e2e'))}/auth`,
+      testMatch: [/.*\.js/],
+    },
+    // Login to Grafana with new user with viewer role and store the cookie on disk for use in other tests
+    {
+      name: 'createUserAndAuthenticate',
+      testDir: `${dirname(require.resolve('@grafana/plugin-e2e'))}/auth`,
+      testMatch: [/.*\.js/],
+      use: {
+        user: {
+          user: 'viewer',
+          password: 'password',
+          role: 'Viewer',
+        },
+      },
+    },
+    // Run all tests in parallel using user with admin role
+    withAuth({
+      name: 'admin',
+      testDir: path.join(pluginDirRoot, '/plugin-e2e-api-tests/as-admin-user'),
+    }),
+    // Run all tests in parallel using user with viewer role
+    {
+      name: 'viewer',
+      testDir: path.join(pluginDirRoot, '/plugin-e2e-api-tests/as-viewer-user'),
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/viewer.json',
+      },
+      dependencies: ['createUserAndAuthenticate'],
+    },
+    withAuth({
+      name: 'mysql',
+      testDir: path.join(pluginDirRoot, '/mysql'),
+    }),
+    withAuth({
+      name: 'mssql',
+      testDir: path.join(pluginDirRoot, '/mssql'),
+    }),
+    withAuth({
+      name: 'extensions-test-app',
+      testDir: path.join(testDirRoot, '/test-plugins/grafana-extensionstest-app'),
+    }),
+    withAuth({
+      name: 'grafana-e2etest-datasource',
+      testDir: path.join(testDirRoot, '/test-plugins/grafana-test-datasource'),
+    }),
+    withAuth({
+      name: 'cloudwatch',
+      testDir: path.join(pluginDirRoot, '/cloudwatch'),
+    }),
+    withAuth({
+      name: 'azuremonitor',
+      testDir: path.join(pluginDirRoot, '/azuremonitor'),
+    }),
+    withAuth({
+      name: 'cloudmonitoring',
+      testDir: path.join(pluginDirRoot, '/cloudmonitoring'),
+    }),
+    withAuth({
+      name: 'graphite',
+      testDir: path.join(pluginDirRoot, '/graphite'),
+    }),
+    withAuth({
+      name: 'influxdb',
+      testDir: path.join(pluginDirRoot, '/influxdb'),
+    }),
+    withAuth({
+      name: 'opentsdb',
+      testDir: path.join(pluginDirRoot, '/opentsdb'),
+    }),
+    withAuth({
+      name: 'jaeger',
+      testDir: path.join(pluginDirRoot, '/jaeger'),
+    }),
+    withAuth({
+      name: 'grafana-postgresql-datasource',
+      testDir: path.join(pluginDirRoot, '/grafana-postgresql-datasource'),
+    }),
+    withAuth({
+      name: 'canvas',
+      testDir: path.join(testDirRoot, '/canvas'),
+    }),
+    withAuth({
+      name: 'zipkin',
+      testDir: path.join(pluginDirRoot, '/zipkin'),
+    }),
+    {
+      name: 'unauthenticated',
+      testDir: path.join(testDirRoot, '/unauthenticated'),
+    },
+    withAuth({
+      name: 'various',
+      testDir: path.join(testDirRoot, '/various-suite'),
+    }),
+    withAuth({
+      name: 'panels',
+      testDir: path.join(testDirRoot, '/panels-suite'),
+    }),
+    withAuth({
+      name: 'smoke',
+      testDir: path.join(testDirRoot, '/smoke-tests-suite'),
+    }),
+    withAuth({
+      name: 'dashboards',
+      testDir: path.join(testDirRoot, '/dashboards-suite'),
+    }),
+    withAuth({
+      name: 'loki',
+      testDir: path.join(testDirRoot, '/loki'),
+    }),
+    withAuth({
+      name: 'cloud-plugins',
+      testDir: path.join(testDirRoot, '/cloud-plugins-suite'),
+    }),
+    withAuth({
+      name: 'alerting',
+      testDir: path.join(testDirRoot, '/alerting-suite'),
+    }),
+    withAuth({
+      name: 'dashboard-new-layouts',
+      testDir: path.join(testDirRoot, '/dashboard-new-layouts'),
+    }),
+    // Setup project for dashboard CUJS tests
+    withAuth({
+      name: 'dashboard-cujs-setup',
+      testDir: path.join(testDirRoot, '/dashboard-cujs'),
+      testMatch: ['global-setup.spec.ts'],
+    }),
+    // Main dashboard CUJS tests
+    withAuth({
+      name: 'dashboard-cujs',
+      testDir: path.join(testDirRoot, '/dashboard-cujs'),
+      testIgnore: ['global-setup.spec.ts', 'global-teardown.spec.ts'],
+      dependencies: ['dashboard-cujs-setup'],
+    }),
+    // Teardown project for dashboard CUJS tests
+    withAuth({
+      name: 'dashboard-cujs-teardown',
+      testDir: path.join(testDirRoot, '/dashboard-cujs'),
+      testMatch: ['global-teardown.spec.ts'],
+      dependencies: ['dashboard-cujs'],
+    }),
+    withAuth({
+      name: 'grafana-e2etest-panel',
+      testDir: path.join(testDirRoot, '/test-plugins/grafana-test-panel'),
+    }),
+  ],
+});
+
+
+# FILE: package.json
+{
+  "author": "Grafana Labs",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "name": "grafana",
+  "version": "13.0.0-pre",
+  "repository": "github:grafana/grafana",
+  "scripts": {
+    "check-frontend-dev": "./scripts/check-frontend-dev.sh",
+    "build": "NODE_ENV=production nx exec --verbose -- webpack --config scripts/webpack/webpack.prod.js && yarn build:react19",
+    "build:react19": "NODE_ENV=production nx exec --verbose -- webpack --config scripts/webpack/webpack.prod.js --env react19=1",
+    "build:nominify": "yarn run build -- --env noMinify=1",
+    "build:stats": "NODE_ENV=production webpack --progress --config scripts/webpack/webpack.stats.js",
+    "build:smolstats": "NODE_ENV=production webpack --progress --config scripts/webpack/webpack.stats.js --env filtered=1 && http-server public/build -o bundle-stats-filtered.html",
+    "codeowners-manifest": "node ./scripts/codeowners-manifest/index.js",
+    "codeowners-manifest:clean": "rm -rf codeowners-manifest && mkdir -p codeowners-manifest",
+    "codeowners-manifest:generate": "node ./scripts/codeowners-manifest/generate.js",
+    "codeowners-manifest:metadata": "node ./scripts/codeowners-manifest/metadata.js",
+    "codeowners-manifest:raw": "node ./scripts/codeowners-manifest/raw.js",
+    "dev": "NODE_ENV=dev nx exec -- webpack --config scripts/webpack/webpack.dev.js",
+    "e2e": "./e2e/start-and-run-suite",
+    "e2e:schema-v2": "KUBERNETES_DASHBOARDS=true yarn playwright test --project dashboards",
+    "e2e:dashboards-search": "./e2e/start-and-run-suite dashboards-search",
+    "e2e:debug": "./e2e/start-and-run-suite debug",
+    "e2e:dev": "./e2e/start-and-run-suite dev",
+    "e2e:benchmark:live": "./e2e/start-and-run-suite benchmark live",
+    "e2e:enterprise": "./e2e/start-and-run-suite enterprise",
+    "e2e:enterprise:dev": "./e2e/start-and-run-suite enterprise dev",
+    "e2e:enterprise:debug": "./e2e/start-and-run-suite enterprise debug",
+    "e2e:playwright": "NODE_OPTIONS='-C @grafana-app/source' yarn playwright test --grep-invert @cloud-plugins",
+    "e2e:pw": "NODE_OPTIONS='-C @grafana-app/source' yarn playwright test",
+    "e2e:playwright:debug": "yarn e2e:pw --debug -x --trace on",
+    "e2e:playwright:10x": "yarn e2e:pw --repeat-each=10",
+    "e2e:playwright:cloud-plugins": "NODE_OPTIONS='-C @grafana-app/source' yarn playwright test --grep @cloud-plugins",
+    "e2e:playwright:storybook": "NODE_OPTIONS='-C @grafana-app/source' yarn playwright test -c playwright.storybook.config.ts",
+    "e2e:playwright:a11y": "AXE_A11Y_REPORT_PATH=./axe-ci-report.json NODE_OPTIONS='-C @grafana-app/source' yarn playwright test --grep \"@a11y\"",
+    "e2e:acceptance": "NODE_OPTIONS='-C @grafana-app/source' yarn playwright test --grep @acceptance",
+    "e2e:storybook": "PORT=9001 ./e2e/run-suite storybook true",
+    "e2e:plugin:build": "nx run-many -t build --projects='@test-plugins/*'",
+    "e2e:plugin:build:dev": "nx run-many -t dev --projects='@test-plugins/*' --maxParallel=100",
+    "test": "jest --notify --watch",
+    "test:coverage": "jest --coverage",
+    "test:coverage:by-codeowner": "yarn codeowners-manifest && node scripts/test-coverage-by-codeowner.js",
+    "test:coverage:changes": "jest --coverage --changedSince=origin/main",
+    "test:storybook": "yarn workspace @grafana/ui storybook:test",
+    "test:accessibility-report": "./scripts/generate-a11y-report.sh",
+    "test:ci": "mkdir -p reports/junit && JEST_JUNIT_OUTPUT_DIR=reports/junit jest --ci --reporters=default --reporters=jest-junit -w ${TEST_MAX_WORKERS:-100%} --shard=${TEST_SHARD:-1}/${TEST_SHARD_TOTAL:-1}",
+    "lint": "yarn run lint:ts && yarn run lint:sass",
+    "lint:ts": "eslint ./ ./public/app/extensions/ --cache --no-error-on-unmatched-pattern",
+    "lint:sass": "yarn stylelint '{public/sass,packages}/**/*.scss' --cache",
+    "lint:fix": "yarn lint:ts --fix",
+    "lint:prune": "yarn lint:ts --prune-suppressions",
+    "lint:circular": "madge --circular --extensions ts,tsx --no-count --no-spinner .",
+    "packages:build": "nx run-many -t build --projects='tag:scope:package'",
+    "packages:clean": "rimraf ./npm-artifacts && nx run-many -t clean --projects='tag:scope:package' --maxParallel=100",
+    "packages:i18n-extract": "nx run-many -t i18n-extract --projects='tag:scope:package'",
+    "packages:prepare": "lerna version --no-push --no-git-tag-version --force-publish --exact",
+    "packages:pack": "mkdir -p ./npm-artifacts && lerna exec --no-private -- yarn pack --out \"../../npm-artifacts/%s-%v.tgz\"",
+    "packages:typecheck": "nx run-many -t typecheck --projects='tag:scope:package'",
+    "packages:test:ci": "nx run-many -t test:ci --projects='tag:scope:package'",
+    "prettier:check": "prettier --check --ignore-path .prettierignore --list-different=false --log-level=warn \"**/*.{ts,tsx,scss,md,mdx,json,js,cjs}\"",
+    "prettier:checkDocs": "prettier --check --list-different=false --log-level=warn \"docs/**/*.md\" \"*.md\" \"packages/**/*.{ts,tsx,scss,md,mdx,json,js,cjs}\"",
+    "prettier:write": "prettier --ignore-path .prettierignore --list-different \"**/*.{js,ts,tsx,scss,md,mdx,json,cjs}\" --write",
+    "start": "NODE_ENV=dev nx exec -- webpack --config scripts/webpack/webpack.dev.js --watch",
+    "start:liveReload": "yarn start -- --env liveReload=1",
+    "start:noTsCheck": "yarn start -- --env noTsCheck=1",
+    "start:noLint": "yarn start -- --env noTsCheck=1 --env noLint=1",
+    "stats": "webpack --mode production --config scripts/webpack/webpack.prod.js --profile --json > compilation-stats.json",
+    "storybook": "yarn workspace @grafana/ui storybook --ci",
+    "storybook:build": "yarn workspace @grafana/ui storybook:build",
+    "themes-generate": "yarn workspace @grafana/data themes-schema && esbuild --target=es6 ./scripts/cli/generateSassVariableFiles.ts --bundle --conditions=@grafana-app/source --platform=node --tsconfig=./scripts/cli/tsconfig.json | node",
+    "themes:usage": "eslint . --ignore-pattern '*.test.ts*' --ignore-pattern '*.spec.ts*' --cache --plugin '@grafana' --rule '{ @grafana/theme-token-usage: \"error\" }'",
+    "typecheck": "tsc --noEmit && yarn run packages:typecheck",
+    "plugins:build-bundled": "echo 'bundled plugins are no longer supported'",
+    "watch": "yarn start -d watch,start core:start --watchTheme",
+    "i18n:stats": "node ./scripts/cli/reportI18nStats.mjs",
+    "i18n-extract": "LANG=en_US.UTF-8 make i18n-extract",
+    "plugin:build": "nx run-many -t build --projects='tag:scope:plugin'",
+    "plugin:build:commit": "nx run-many -t build:commit --projects='tag:scope:plugin'",
+    "plugin:build:dev": "nx run-many -t dev --projects='tag:scope:plugin' --maxParallel=100",
+    "plugin:test:ci": "nx run-many -t test:ci --projects='tag:scope:plugin' --maxParallel=2",
+    "plugin:i18n-extract": "nx run-many -t i18n-extract --projects='tag:scope:plugin'",
+    "generate-apis": "yarn workspace @grafana/api-clients generate-apis",
+    "generate:api-client": "yarn workspace @grafana/api-clients generate:api-client",
+    "generate:openapi": "yarn workspace @grafana/openapi generate:openapi"
+  },
+  "grafana": {
+    "whatsNewUrl": "https://grafana.com/docs/grafana/next/whatsnew/whats-new-in-v%[1]s-%[2]s/",
+    "releaseNotesUrl": "https://grafana.com/docs/grafana/next/release-notes/"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@axe-core/playwright": "^4.11.1",
+    "@babel/core": "7.28.0",
+    "@babel/preset-env": "7.28.0",
+    "@babel/runtime": "7.28.2",
+    "@crowdin/crowdin-api-client": "^1.42.0",
+    "@cypress/webpack-preprocessor": "6.0.4",
+    "@emotion/eslint-plugin": "11.12.0",
+    "@grafana/eslint-config": "8.2.0",
+    "@grafana/eslint-plugin": "link:./packages/grafana-eslint-rules",
+    "@grafana/plugin-e2e": "^3.4.10",
+    "@grafana/test-utils": "workspace:*",
+    "@manypkg/get-packages": "^3.0.0",
+    "@npmcli/package-json": "^6.0.0",
+    "@playwright/test": "1.56.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.6.1",
+    "@react-types/button": "3.13.0",
+    "@react-types/menu": "3.10.3",
+    "@react-types/overlays": "3.9.0",
+    "@react-types/shared": "3.31.0",
+    "@rsdoctor/webpack-plugin": "^1.0.0",
+    "@rtk-query/codegen-openapi": "^2.0.0",
+    "@rtsao/plugin-proposal-class-properties": "7.0.1-patch.1",
+    "@stylistic/eslint-plugin-ts": "^4.0.0",
+    "@swc/core": "1.13.3",
+    "@swc/helpers": "0.5.17",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.6.4",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/babel__core": "^7",
+    "@types/babel__preset-env": "^7",
+    "@types/chance": "^1.1.7",
+    "@types/common-tags": "^1.8.0",
+    "@types/confusing-browser-globals": "^1",
+    "@types/d3": "7.4.3",
+    "@types/d3-force": "^3.0.0",
+    "@types/d3-scale-chromatic": "3.1.0",
+    "@types/debounce-promise": "3.1.9",
+    "@types/eslint": "9.6.1",
+    "@types/eslint-scope": "^8.0.0",
+    "@types/file-saver": "2.0.7",
+    "@types/google.analytics": "^0.0.46",
+    "@types/gtag.js": "^0.0.20",
+    "@types/history": "4.7.11",
+    "@types/ini": "^4",
+    "@types/jest": "29.5.14",
+    "@types/jquery": "3.5.33",
+    "@types/js-yaml": "^4.0.5",
+    "@types/jsurl": "^1.2.28",
+    "@types/lodash": "4.17.20",
+    "@types/logfmt": "^1.2.3",
+    "@types/lucene": "^2",
+    "@types/node": "24.10.1",
+    "@types/node-forge": "^1",
+    "@types/ol-ext": "npm:@siedlerchr/types-ol-ext@3.3.0",
+    "@types/pluralize": "^0.0.33",
+    "@types/prismjs": "1.26.5",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@types/react-grid-layout": "1.3.5",
+    "@types/react-highlight-words": "0.20.0",
+    "@types/react-resizable": "3.0.8",
+    "@types/react-router": "5.1.20",
+    "@types/react-router-dom": "5.3.3",
+    "@types/react-table": "7.7.20",
+    "@types/react-transition-group": "4.4.12",
+    "@types/react-virtualized-auto-sizer": "1.0.8",
+    "@types/react-window": "1.8.8",
+    "@types/react-window-infinite-loader": "^1",
+    "@types/redux-mock-store": "1.5.0",
+    "@types/semver": "7.7.1",
+    "@types/slate": "0.47.11",
+    "@types/slate-plain-serializer": "0.7.5",
+    "@types/slate-react": "0.22.9",
+    "@types/swagger-ui-react": "5.18.0",
+    "@types/systemjs": "6.15.3",
+    "@types/uuid": "10.0.0",
+    "@types/webpack-assets-manifest": "^5",
+    "@types/webpack-env": "^1.18.4",
+    "@types/yargs": "17.0.33",
+    "@typescript-eslint/eslint-plugin": "8.56.0",
+    "@typescript-eslint/parser": "8.56.0",
+    "autoprefixer": "10.4.21",
+    "axe-core": "^4.11.1",
+    "babel-loader": "10.0.0",
+    "blob-polyfill": "9.0.20240710",
+    "browserslist": "^4.21.4",
+    "chance": "^1.1.13",
+    "chrome-remote-interface": "0.33.3",
+    "codeowners": "^5.1.1",
+    "confusing-browser-globals": "^1.0.11",
+    "copy-webpack-plugin": "13.0.0",
+    "core-js": "3.44.0",
+    "crashme": "0.0.15",
+    "css-loader": "7.1.2",
+    "css-minimizer-webpack-plugin": "7.0.2",
+    "cypress": "14.3.2",
+    "cypress-file-upload": "5.0.8",
+    "cypress-recurse": "^1.35.3",
+    "enquirer": "^2.4.1",
+    "esbuild": "0.25.8",
+    "esbuild-loader": "4.3.0",
+    "esbuild-plugin-browserslist": "^1.0.0",
+    "eslint": "9.32.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "29.0.1",
+    "eslint-plugin-jest-dom": "^5.4.0",
+    "eslint-plugin-jsdoc": "52.0.2",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-lodash": "8.0.0",
+    "eslint-plugin-no-barrel-files": "^1.1.1",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "eslint-plugin-react-prefer-function-component": "4.0.1",
+    "eslint-plugin-testing-library": "^7.0.0",
+    "eslint-plugin-unicorn": "^56.0.0",
+    "eslint-scope": "^8.1.0",
+    "eslint-webpack-plugin": "5.0.2",
+    "expose-loader": "5.0.1",
+    "fishery": "^2.2.2",
+    "fork-ts-checker-webpack-plugin": "9.1.0",
+    "github-codeowners": "^0.2.1",
+    "glob": "11.1.0",
+    "html-loader": "5.1.0",
+    "html-tags": "^5.1.0",
+    "html-webpack-plugin": "5.6.3",
+    "http-server": "14.1.1",
+    "i18next-cli": "^1.48.0",
+    "ini": "^5.0.0",
+    "jest": "29.7.0",
+    "jest-canvas-mock": "2.5.2",
+    "jest-date-mock": "1.0.10",
+    "jest-environment-jsdom": "29.7.0",
+    "jest-fail-on-console": "3.3.1",
+    "jest-junit": "16.0.0",
+    "jest-matcher-utils": "29.7.0",
+    "jest-monocart-coverage": "^1.1.1",
+    "jest-watch-typeahead": "^2.2.2",
+    "jimp": "^1.6.0",
+    "jsdom-testing-mocks": "^1.13.1",
+    "known-css-properties": "^0.37.0",
+    "lerna": "9.0.5",
+    "madge": "^8.0.0",
+    "mini-css-extract-plugin": "2.9.2",
+    "msw": "2.10.4",
+    "mutationobserver-shim": "0.3.7",
+    "node-notifier": "10.0.1",
+    "nx": "22.5.4",
+    "open": "^10.2.0",
+    "ora": "^9.0.0",
+    "pdf-parse": "^1.1.1",
+    "postcss": "8.5.6",
+    "postcss-loader": "8.1.1",
+    "postcss-reporter": "7.1.0",
+    "postcss-scss": "4.0.9",
+    "prettier": "3.6.2",
+    "prom-client": "^15.1.3",
+    "publint": "^0.3.12",
+    "react-refresh": "0.14.0",
+    "react-select-event": "5.5.1",
+    "redux-mock-store": "1.5.5",
+    "rimraf": "6.0.1",
+    "sass": "1.89.2",
+    "sass-loader": "16.0.5",
+    "smtp-tester": "^2.1.0",
+    "style-loader": "4.0.0",
+    "stylelint": "16.23.0",
+    "stylelint-config-sass-guidelines": "12.1.0",
+    "testing-library-selector": "0.3.1",
+    "tracelib": "1.0.1",
+    "ts-jest": "29.4.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.2",
+    "webpack": "^5.105.0",
+    "webpack-assets-manifest": "^5.1.0",
+    "webpack-cli": "6.0.1",
+    "webpack-livereload-plugin": "3.0.2",
+    "webpack-manifest-plugin": "5.0.1",
+    "webpack-merge": "6.0.1",
+    "webpack-subresource-integrity": "^5.2.0-rc.1",
+    "webpackbar": "^7.0.0",
+    "yaml": "^2.0.0",
+    "yargs": "^18.0.0",
+    "zod": "^4.3.0"
+  },
+  "dependencies": {
+    "@bsull/augurs": "^0.10.0",
+    "@emotion/css": "11.13.5",
+    "@emotion/react": "11.14.0",
+    "@fingerprintjs/fingerprintjs": "^3.4.2",
+    "@floating-ui/react": "0.27.19",
+    "@formatjs/intl-durationformat": "^0.7.0",
+    "@grafana/alerting": "workspace:*",
+    "@grafana/api-clients": "workspace:*",
+    "@grafana/assistant": "0.1.24",
+    "@grafana/aws-sdk": "^0.10.1",
+    "@grafana/azure-sdk": "0.1.0",
+    "@grafana/data": "workspace:*",
+    "@grafana/e2e-selectors": "workspace:*",
+    "@grafana/faro-core": "^2.2.4",
+    "@grafana/faro-instrumentation-replay": "^2.2.4",
+    "@grafana/faro-web-sdk": "^2.2.4",
+    "@grafana/faro-web-tracing": "^2.2.4",
+    "@grafana/flamegraph": "workspace:*",
+    "@grafana/google-sdk": "0.3.5",
+    "@grafana/i18n": "workspace:*",
+    "@grafana/lezer-logql": "0.2.9",
+    "@grafana/llm": "1.0.3",
+    "@grafana/monaco-logql": "^0.0.8",
+    "@grafana/o11y-ds-frontend": "workspace:*",
+    "@grafana/plugin-ui": "^0.13.1",
+    "@grafana/prometheus": "workspace:*",
+    "@grafana/runtime": "workspace:*",
+    "@grafana/scenes": "7.3.8",
+    "@grafana/scenes-react": "7.3.8",
+    "@grafana/schema": "workspace:*",
+    "@grafana/sql": "workspace:*",
+    "@grafana/ui": "workspace:*",
+    "@hello-pangea/dnd": "18.0.1",
+    "@kusto/monaco-kusto": "^10.0.0",
+    "@leeoniya/ufuzzy": "1.0.19",
+    "@lezer/common": "1.3.0",
+    "@lezer/highlight": "1.2.3",
+    "@lezer/lr": "1.4.3",
+    "@locker/near-membrane-dom": "0.14.0",
+    "@locker/near-membrane-shared": "0.14.0",
+    "@locker/near-membrane-shared-dom": "0.14.0",
+    "@msagl/core": "^1.1.19",
+    "@msagl/parser": "^1.1.19",
+    "@openfeature/ofrep-web-provider": "^0.3.3",
+    "@openfeature/react-sdk": "^1.2.0",
+    "@openfeature/web-sdk": "^1.6.1",
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/exporter-collector": "0.25.0",
+    "@opentelemetry/semantic-conventions": "1.38.0",
+    "@popperjs/core": "2.11.8",
+    "@rc-component/slider": "1.0.1",
+    "@rc-component/tree": "1.1.0",
+    "@react-aria/dialog": "3.5.31",
+    "@react-aria/focus": "3.21.2",
+    "@react-aria/overlays": "3.30.0",
+    "@react-aria/utils": "3.31.0",
+    "@react-awesome-query-builder/ui": "6.6.15",
+    "@reduxjs/toolkit": "2.10.1",
+    "@visx/event": "3.12.0",
+    "@visx/gradient": "3.12.0",
+    "@visx/group": "3.12.0",
+    "@visx/shape": "3.12.0",
+    "@visx/tooltip": "3.12.0",
+    "@welldone-software/why-did-you-render": "8.0.3",
+    "ansicolor": "2.0.3",
+    "baron": "3.0.3",
+    "brace": "0.11.1",
+    "centrifuge": "5.5.3",
+    "classnames": "2.5.1",
+    "combokeys": "^3.0.0",
+    "comlink": "4.4.2",
+    "common-tags": "1.8.2",
+    "croner": "^9.0.0",
+    "d3": "7.9.0",
+    "d3-force": "3.0.0",
+    "d3-scale-chromatic": "3.1.0",
+    "dangerously-set-html-content": "1.1.0",
+    "date-fns": "4.1.0",
+    "debounce-promise": "3.1.2",
+    "diff": "^8.0.0",
+    "downsample": "1.4.0",
+    "fast-deep-equal": "^3.1.3",
+    "fast-json-patch": "3.1.1",
+    "file-saver": "2.0.5",
+    "history": "4.10.1",
+    "i18next": "^25.0.0",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "i18next-pseudo": "^2.2.1",
+    "immer": "10.2.0",
+    "immutable": "5.1.5",
+    "infinite-viewer": "^0.29.1",
+    "ix": "^7.0.0",
+    "jquery": "3.7.1",
+    "js-yaml": "^4.1.0",
+    "json-markup": "^1.1.0",
+    "json-source-map": "0.6.1",
+    "jsurl": "^0.1.5",
+    "kbar": "0.1.0-beta.48",
+    "leven": "^4.0.0",
+    "lodash": "^4.17.23",
+    "logfmt": "^1.3.2",
+    "lossless-json": "^4.1.1",
+    "lru-cache": "11.2.2",
+    "lru-memoize": "^1.1.0",
+    "lucene": "^2.1.1",
+    "marked": "16.3.0",
+    "memoize-one": "6.0.0",
+    "micro-memoize": "^4.1.2",
+    "ml-regression-polynomial": "^3.0.0",
+    "ml-regression-simple-linear": "^3.0.0",
+    "moment": "2.30.1",
+    "moment-timezone": "0.5.47",
+    "monaco-editor": "0.34.1",
+    "moveable": "0.53.0",
+    "nanoid": "^5.0.9",
+    "node-forge": "^1.3.1",
+    "ol": "10.7.0",
+    "ol-ext": "4.0.36",
+    "ol-mapbox-style": "^13.0.1",
+    "pluralize": "^8.0.0",
+    "prismjs": "1.30.0",
+    "re-resizable": "6.11.2",
+    "react": "18.3.1",
+    "react-19": "npm:react@^19.2.4",
+    "react-diff-viewer-continued": "^3.4.0",
+    "react-dom": "18.3.1",
+    "react-dom-19": "npm:react-dom@^19.2.4",
+    "react-draggable": "4.5.0",
+    "react-dropzone": "^14.2.3",
+    "react-grid-layout": "patch:react-grid-layout@npm%3A1.4.4#~/.yarn/patches/react-grid-layout-npm-1.4.4-4024c5395b.patch",
+    "react-highlight-words": "0.21.0",
+    "react-hook-form": "^7.49.2",
+    "react-i18next": "^15.0.0",
+    "react-inlinesvg": "4.2.0",
+    "react-loading-skeleton": "3.5.0",
+    "react-moveable": "0.56.0",
+    "react-redux": "9.2.0",
+    "react-resizable": "3.0.5",
+    "react-responsive-carousel": "^3.2.23",
+    "react-router": "5.3.4",
+    "react-router-dom": "5.3.4",
+    "react-router-dom-v5-compat": "^6.26.1",
+    "react-select": "5.10.2",
+    "react-split-pane": "0.1.92",
+    "react-table": "7.8.0",
+    "react-transition-group": "4.4.5",
+    "react-use": "17.6.0",
+    "react-virtual": "2.10.4",
+    "react-virtualized-auto-sizer": "1.0.26",
+    "react-window": "1.8.11",
+    "react-window-infinite-loader": "1.0.10",
+    "reduce-reducers": "^1.0.4",
+    "redux": "5.0.1",
+    "redux-thunk": "3.1.0",
+    "regenerator-runtime": "0.14.1",
+    "reselect": "5.1.1",
+    "rxjs": "7.8.2",
+    "selecto": "1.26.3",
+    "semver": "7.7.3",
+    "slate": "0.47.9",
+    "slate-plain-serializer": "0.7.13",
+    "slate-react": "0.22.10",
+    "swagger-ui-react": "5.31.1",
+    "symbol-observable": "4.0.0",
+    "systemjs": "6.15.1",
+    "tslib": "2.8.1",
+    "tween-functions": "^1.2.0",
+    "type-fest": "^4.18.2",
+    "uplot": "1.6.32",
+    "uuid": "11.1.0",
+    "vis-data": "^8.0.0",
+    "vis-network": "10.0.2",
+    "whatwg-fetch": "3.6.20"
+  },
+  "resolutions": {
+    "underscore": "1.13.7",
+    "@types/slate": "0.47.11",
+    "semver@npm:~7.3.5": "^7.3.5",
+    "debug@npm:^0.7.2": "2.6.9",
+    "debug@npm:^0.7.4": "2.6.9",
+    "slate-dev-environment@^0.2.2": "patch:slate-dev-environment@npm:0.2.5#.yarn/patches/slate-dev-environment-npm-0.2.5-9aeb7da7b5.patch",
+    "react-split-pane@0.1.92": "patch:react-split-pane@npm:0.1.92#.yarn/patches/react-split-pane-npm-0.1.92-93dbf51dff.patch",
+    "history@4.10.1": "patch:history@npm%3A4.10.1#./.yarn/patches/history-npm-4.10.1-ee217563ae.patch",
+    "redux": "^5.0.0",
+    "react-grid-layout": "patch:react-grid-layout@npm%3A1.4.4#~/.yarn/patches/react-grid-layout-npm-1.4.4-4024c5395b.patch",
+    "@grafana/plugin-e2e/@grafana/e2e-selectors": "workspace:*",
+    "@grafana/scenes/@grafana/e2e-selectors": "workspace:*",
+    "@grafana/scenes-react/@grafana/e2e-selectors": "workspace:*",
+    "swagger-ui-react/dompurify": "3.3.1",
+    "refractor/prismjs": "^1.27.0",
+    "@mapbox/jsonlint-lines-primitives": "github:mapbox/jsonlint#commit=e31b7289baedf3e1000d7ae7edd42268212c9954",
+    "get-document": "github:webmodules/get-document#commit=a04ccb499d6e0433a368c3bb150b4899b698461f",
+    "gitconfiglocal": "2.1.0",
+    "tmp@npm:^0.0.33": "~0.2.1",
+    "js-yaml@npm:4.1.0": "^4.1.0",
+    "js-yaml@npm:=4.1.0": "^4.1.0",
+    "nodemailer": "7.0.12",
+    "@storybook/core@npm:8.6.18": "patch:@storybook/core@npm%3A8.6.18#~/.yarn/patches/@storybook-core-npm-8.6.18-cff02a3017.patch"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "public/app/plugins/*/*",
+      "e2e-playwright/test-plugins/*"
+    ]
+  },
+  "engines": {
+    "node": ">= 22 <25"
+  },
+  "packageManager": "yarn@4.11.0",
+  "dependenciesMeta": {
+    "cypress": {
+      "built": true
+    },
+    "msw": {
+      "built": true
+    },
+    "prettier@3.6.2": {
+      "unplugged": true
+    }
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
+
+
+# FILE: nx.json
+{
+  "targetDefaults": {
+    "build": {
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
+    },
+    "generate": {
+      "cache": true
+    }
+  },
+  "tui": {
+    "autoExit": true,
+    "enabled": false
+  },
+  "defaultBase": "main"
+}
+
+
+# FILE: lerna.json
+{
+  "$schema": "node_modules/lerna/schemas/lerna-schema.json",
+  "npmClient": "yarn",
+  "version": "13.0.0-pre"
+}
+
+
+# FILE: lefthook.yml
+skip_output:
+  - meta
+  - execution_out
+  - skips
+
+min_version: 1.4.3
+
+rc: ./lefthook.rc
+
+pre-commit:
+  parallel: true
+  commands:
+    frontend-lint:
+      glob: '*.{js,ts,tsx}'
+      run: |
+        yarn eslint --ext .js,.tsx,.ts --cache --prune-suppressions --fix {staged_files} &&
+        git add eslint-suppressions.json &&
+        yarn prettier --write {staged_files}
+      stage_fixed: true
+
+    other-format:
+      glob: '*.{json,scss,md,mdx}'
+      run: yarn prettier --write {staged_files}
+      stage_fixed: true
+
+    backend-format:
+      glob: '*pkg/**/*.go'
+      run: gofmt -w -s {staged_files}
+      stage_fixed: true
+
+    cue-fix-kinds:
+      glob: '*kinds/**/*.cue'
+      run: make fix-cue
+      stage_fixed: true
+
+    cue-fix-public:
+      glob: '*public/app/plugins/**/**/*.cue'
+      run: make fix-cue
+      stage_fixed: true
+
+
+# FILE: latest.json
+{
+  "__message": "This file is now deprecated, and will be removed in a future release. No further updates should be made to this file",
+  "stable": "10.2.3",
+  "testing": "10.2.3"
+}
+
+
+# FILE: jest.config.js
+// We set this specifically for 2 reasons.
+// 1. It makes sense for both CI tests and local tests to behave the same so issues are found earlier
+// 2. Any wrong timezone handling could be hidden if we use UTC/GMT local time (which would happen in CI).
+process.env.TZ = 'Pacific/Easter'; // UTC-06:00 or UTC-05:00 depending on daylight savings
+
+const esModules = [
+  '@wojtekmaj/date-utils',
+  'ol',
+  'd3',
+  'd3-color',
+  'd3-interpolate',
+  'delaunator',
+  'get-user-locale',
+  'internmap',
+  'robust-predicates',
+  'leven',
+  'nanoid',
+  'marked',
+  'memoize',
+  'mimic-function',
+  'monaco-promql',
+  'react-calendar',
+  '@kusto/monaco-kusto',
+  'monaco-editor',
+  '@msagl',
+  'lodash-es',
+  'vscode-languageserver-types',
+  '@bsull/augurs',
+  'react-data-grid',
+  '@grafana/llm',
+  'pkce-challenge',
+  'quickselect',
+  'rbush',
+  'earcut',
+  'pbf',
+  'geotiff',
+].join('|');
+
+module.exports = {
+  verbose: false,
+  testEnvironment: 'jsdom',
+  testEnvironmentOptions: {
+    customExportConditions: ['@grafana-app/source', 'browser'],
+  },
+  transform: {
+    '^.+\\.(ts|tsx|js|jsx)$': [require.resolve('ts-jest')],
+  },
+  transformIgnorePatterns: [
+    `/node_modules/(?!${esModules})`, // exclude es modules to prevent TS complaining
+  ],
+  moduleDirectories: ['public', 'node_modules'],
+  roots: ['<rootDir>/public/app', '<rootDir>/public/test', '<rootDir>/packages', '<rootDir>/scripts/tests'],
+  testRegex: '(\\.|/)(test)\\.(jsx?|tsx?)$',
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'cjs'],
+  setupFiles: ['jest-canvas-mock', './public/test/jest-setup.ts'],
+  testTimeout: 30000,
+  resolver: `<rootDir>/public/test/jest-resolver.js`,
+  setupFilesAfterEnv: ['./public/test/setupTests.ts'],
+  globals: {
+    __webpack_public_path__: '', // empty string
+  },
+  moduleNameMapper: {
+    '\\.(svg|png|jpg)': '<rootDir>/public/test/mocks/images.ts',
+    '\\.css': '<rootDir>/public/test/mocks/style.ts',
+    'react-inlinesvg': '<rootDir>/public/test/mocks/react-inlinesvg.tsx',
+    // resolve directly as monaco and kusto don't have main property in package.json which jest needs
+    '^monaco-editor$': 'monaco-editor/esm/vs/editor/editor.api.js',
+    '@kusto/monaco-kusto': '@kusto/monaco-kusto/release/esm/monaco.contribution.js',
+    // near-membrane-dom won't work in a nodejs environment.
+    '@locker/near-membrane-dom': '<rootDir>/public/test/mocks/nearMembraneDom.ts',
+    // prevent systemjs amd extra from breaking tests.
+    'systemjs/dist/extras/amd': '<rootDir>/public/test/mocks/systemjsAMDExtra.ts',
+    '@bsull/augurs': '<rootDir>/public/test/mocks/augurs.ts',
+    // Mock @grafana/assistant to prevent initialization errors in tests
+    '^@grafana/assistant$': '<rootDir>/public/test/mocks/assistant.ts',
+  },
+  // Log the test results with dynamic Loki tags. Drone CI only
+  reporters: ['default', ['<rootDir>/public/test/log-reporter.js', { enable: process.env.DRONE === 'true' }]],
+  watchPlugins: ['jest-watch-typeahead/filename', 'jest-watch-typeahead/testname'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    // Decoupled plugins run their own tests so ignoring them here.
+    '<rootDir>/public/app/plugins/datasource/azuremonitor',
+    '<rootDir>/public/app/plugins/datasource/cloud-monitoring',
+    '<rootDir>/public/app/plugins/datasource/grafana-postgresql-datasource',
+    '<rootDir>/public/app/plugins/datasource/grafana-pyroscope-datasource',
+    '<rootDir>/public/app/plugins/datasource/grafana-testdata-datasource',
+    '<rootDir>/public/app/plugins/datasource/jaeger',
+    '<rootDir>/public/app/plugins/datasource/loki',
+    '<rootDir>/public/app/plugins/datasource/mysql',
+    '<rootDir>/public/app/plugins/datasource/parca',
+    '<rootDir>/public/app/plugins/datasource/tempo',
+    '<rootDir>/public/app/plugins/datasource/zipkin',
+  ],
+  projects: ['<rootDir>'],
+};
+
+
+# FILE: jest.config.codeowner.js
+const fs = require('fs');
+const open = require('open').default;
+const path = require('path');
+
+const baseConfig = require('./jest.config.js');
+const { CODEOWNER_KIND, getCodeownerKind, createCodeownerSlug } = require('./scripts/codeowners-manifest/utils.js');
+
+const CODEOWNERS_MANIFEST_FILENAMES_BY_TEAM_PATH = 'codeowners-manifest/filenames-by-team.json';
+
+const codeownerName = process.env.CODEOWNER_NAME;
+if (!codeownerName) {
+  console.error('ERROR: CODEOWNER_NAME environment variable is required');
+  process.exit(1);
+}
+
+const outputDir = `./coverage/by-team/${createCodeownerDirectory(codeownerName)}`;
+const COVERAGE_SUMMARY_OUTPUT_PATH = './coverage-summary.json';
+
+const codeownersFilePath = path.join(__dirname, CODEOWNERS_MANIFEST_FILENAMES_BY_TEAM_PATH);
+
+if (!fs.existsSync(codeownersFilePath)) {
+  console.error(`Codeowners file not found at ${codeownersFilePath} ...`);
+  console.error('Please run: yarn codeowners-manifest first to generate the mapping file');
+  process.exit(1);
+}
+
+const codeownersData = JSON.parse(fs.readFileSync(codeownersFilePath, 'utf8'));
+const teamFiles = codeownersData[codeownerName] || [];
+
+if (teamFiles.length === 0) {
+  console.error(`ERROR: No files found for team "${codeownerName}"`);
+  console.error('Available teams:', Object.keys(codeownersData).join(', '));
+  process.exit(1);
+}
+
+const sourceFiles = teamFiles.filter((file) => {
+  const ext = path.extname(file);
+  return (
+    ['.ts', '.tsx', '.js', '.jsx'].includes(ext) &&
+    // exclude all tests and mocks
+    !path.matchesGlob(file, '**/test/**/*') &&
+    !file.includes('.test.') &&
+    !file.includes('.spec.') &&
+    !path.matchesGlob(file, '**/__mocks__/**/*') &&
+    // and storybook stories
+    !file.includes('.story.') &&
+    // and generated files
+    !file.includes('.gen.ts') &&
+    // and type definitions
+    !file.includes('.d.ts') &&
+    !file.endsWith('/types.ts') &&
+    // and anything in graveyard
+    !path.matchesGlob(file, '**/graveyard/**/*') &&
+    // and scripts directory
+    !file.startsWith('scripts/') &&
+    // and jest config files
+    !path.matchesGlob(file, '**/jest.config*.js')
+  );
+});
+
+const testFiles = teamFiles.filter((file) => {
+  const ext = path.extname(file);
+  return ['.ts', '.tsx', '.js', '.jsx'].includes(ext) && (file.includes('.test.') || file.includes('.spec.'));
+});
+
+if (testFiles.length === 0) {
+  console.log(`No test files found for team ${codeownerName}`);
+  process.exit(0);
+}
+
+console.log(
+  `🧪 Collecting coverage for ${sourceFiles.length} testable files and running ${testFiles.length} test files of ${teamFiles.length} files owned by ${codeownerName}.`
+);
+
+module.exports = {
+  ...baseConfig,
+
+  collectCoverage: true,
+  collectCoverageFrom: sourceFiles.map((file) => `<rootDir>/${file}`),
+  coverageReporters: ['none'],
+  coverageDirectory: '/tmp/jest-coverage-ignore',
+
+  coverageProvider: 'babel',
+  reporters: [
+    'default',
+    [
+      'jest-monocart-coverage',
+      {
+        name: `Coverage Report - ${codeownerName} owned files`,
+        outputDir: outputDir,
+        reports: ['console-summary', 'json', 'lcov', ['html-spa', { subdir: 'html' }]],
+        sourceFilter: (coveredFile) => sourceFiles.includes(coveredFile),
+        all: {
+          dir: ['./packages', './public'],
+          filter: (filePath) => {
+            const relativePath = filePath.replace(process.cwd() + '/', '');
+            return sourceFiles.includes(relativePath);
+          },
+        },
+        cleanCache: true,
+        onEnd: (coverageResults) => {
+          const reportURL = `file://${path.resolve(outputDir)}/index.html`;
+          console.log(`📄 Coverage report saved to ${reportURL}`);
+
+          if (process.env.SHOULD_OPEN_COVERAGE_REPORT === 'true') {
+            openCoverageReport(reportURL);
+          }
+
+          writeCoverageSummaryArtifact(coverageResults);
+
+          // TODO: Emit coverage metrics https://github.com/grafana/grafana/issues/111208
+        },
+      },
+    ],
+  ],
+
+  testRegex: undefined,
+
+  testMatch: testFiles.map((file) => `<rootDir>/${file}`),
+};
+
+/**
+ * @typedef {Object} CoverageMetric
+ * @property {number} pct - Percentage value
+ */
+
+/**
+ * @typedef {Object} CoverageSummary
+ * @property {CoverageMetric} lines
+ * @property {CoverageMetric} statements
+ * @property {CoverageMetric} functions
+ * @property {CoverageMetric} branches
+ */
+
+/**
+ * @typedef {Object} CoverageResults
+ * @property {CoverageSummary} summary
+ */
+
+/**
+ * Writes coverage summary artifact for CI/CD consumption
+ * @param {CoverageResults} coverageResults - Coverage results from jest-monocart-coverage
+ */
+function writeCoverageSummaryArtifact(coverageResults) {
+  if (!coverageResults || !coverageResults.summary) {
+    return;
+  }
+
+  const summary = {
+    team: codeownerName,
+    commit: process.env.GITHUB_SHA || 'unknown',
+    timestamp: new Date().toISOString(),
+    summary: {
+      lines: { pct: coverageResults.summary.lines.pct },
+      statements: { pct: coverageResults.summary.statements.pct },
+      functions: { pct: coverageResults.summary.functions.pct },
+      branches: { pct: coverageResults.summary.branches.pct },
+    },
+  };
+
+  try {
+    fs.writeFileSync(COVERAGE_SUMMARY_OUTPUT_PATH, JSON.stringify(summary, null, 2));
+    console.log(`📊 Coverage summary written to ${COVERAGE_SUMMARY_OUTPUT_PATH}`);
+  } catch (err) {
+    console.error(`Failed to write coverage summary: ${err}`);
+  }
+}
+
+/**
+ * Creates a directory path for coverage reports grouped by codeowner kind
+ * @param {string} codeowner - CODEOWNERS codeowner
+ * @returns {string} Directory path relative to coverage/by-team/
+ */
+function createCodeownerDirectory(codeowner) {
+  const kind = getCodeownerKind(codeowner);
+
+  if (kind === CODEOWNER_KIND.UNKNOWN) {
+    throw new Error(
+      `Invalid codeowner format: "${codeowner}". Must be a GitHub team (@org/team), user (@username), or email (email@domain.tld)`
+    );
+  }
+
+  const slug = createCodeownerSlug(codeowner);
+  return `${kind}s/${slug}`;
+}
+
+/**
+ * Opens the coverage report in the default browser
+ * @param {string} reportURL - File URL to the coverage report HTML
+ */
+async function openCoverageReport(reportURL) {
+  try {
+    await open(reportURL);
+  } catch (err) {
+    console.error(`Failed to open coverage report: ${err}`);
+  }
+}
+
+
+# FILE: i18next.config.ts
+import { defineConfig } from 'i18next-cli';
+
+export default defineConfig({
+  locales: ['en-US'], // Only en-US is updated - Crowdin will PR with other languages
+  extract: {
+    ignore: [
+      'public/lib/monaco/**/*',
+      'public/app/extensions/**/*',
+      'public/app/plugins/datasource/**/*',
+      'packages/*/dist/**/*',
+      '**/node_modules/**/*',
+    ],
+    input: ['public/**/*.{tsx,ts}', 'packages/grafana-ui/**/*.{tsx,ts}', 'packages/grafana-data/**/*.{tsx,ts}'],
+    output: 'public/locales/{{language}}/{{namespace}}.json',
+    defaultNS: 'grafana',
+    functions: ['t', '*.t'],
+    transComponents: ['Trans'],
+    warnOnConflicts: 'error',
+  },
+});
+
+
+# FILE: eslint.config.js
+// @ts-check
+const emotionPlugin = require('@emotion/eslint-plugin');
+const restrictedGlobals = require('confusing-browser-globals');
+const importPlugin = require('eslint-plugin-import');
+const jestPlugin = require('eslint-plugin-jest');
+const jestDomPlugin = require('eslint-plugin-jest-dom');
+const jsxA11yPlugin = require('eslint-plugin-jsx-a11y');
+const lodashPlugin = require('eslint-plugin-lodash');
+const barrelPlugin = require('eslint-plugin-no-barrel-files');
+const reactPlugin = require('eslint-plugin-react');
+const reactPreferFunctionComponentPlugin = require('eslint-plugin-react-prefer-function-component');
+const testingLibraryPlugin = require('eslint-plugin-testing-library');
+const unicornPlugin = require('eslint-plugin-unicorn');
+
+const grafanaConfig = require('@grafana/eslint-config/flat');
+const grafanaPlugin = require('@grafana/eslint-plugin');
+const grafanaI18nPlugin = require('@grafana/i18n/eslint-plugin');
+
+const pluginsToTranslate = [
+  'public/app/plugins/panel',
+  'public/app/plugins/datasource/azuremonitor',
+  'public/app/plugins/datasource/mssql',
+];
+
+const commonTestIgnores = [
+  '**/*.{test,spec}.{ts,tsx}',
+  '**/__mocks__/**',
+  '**/mocks/**/*.{ts,tsx}',
+  '**/public/test/**',
+  '**/{mocks,test-utils}.{ts,tsx}',
+  '**/*.mock.{ts,tsx}',
+  '**/{test-helpers,testHelpers}.{ts,tsx}',
+  '**/{spec,test-helpers}/**/*.{ts,tsx}',
+  'packages/grafana-test-utils/src/**/*.{ts,tsx}',
+];
+
+const generatedFiles = ['**/*.gen.ts', '**/*_gen.ts'];
+
+const enterpriseIgnores = ['public/app/extensions/**/*', 'e2e/extensions/**/*'];
+
+// [FIXME] add comment about this applying everywhere
+const baseImportConfig = {
+  patterns: [
+    {
+      group: ['react-i18next', 'i18next'],
+      importNames: ['t'],
+      message: 'Please import from @grafana/i18n instead',
+    },
+    {
+      group: ['react-i18next'],
+      importNames: ['Trans'],
+      message: 'Please import from @grafana/i18n instead',
+    },
+    {
+      group: ['@grafana/ui*', '*/Layout/*'],
+      importNames: ['Layout', 'HorizontalGroup', 'VerticalGroup'],
+      message: 'Use Stack component instead.',
+    },
+    {
+      regex: '\\.test$',
+      message:
+        'Do not import test files. If you require reuse of constants/mocks across files, create a separate file with no tests',
+    },
+    {
+      group: ['@grafana/ui/src/*', '@grafana/runtime/src/*', '@grafana/data/src/*'],
+      message: 'Import from the public export instead.',
+    },
+  ],
+  paths: [
+    {
+      name: 'react-redux',
+      importNames: ['useDispatch', 'useSelector'],
+      message: 'Please import from app/types/store instead.',
+    },
+  ],
+};
+
+/**
+ *
+ * @param {{ patterns?: Array<object>, paths?: Array<object> }} config
+ * @returns
+ */
+function withBaseRestrictedImportsConfig(config = {}) {
+  const finalConfig = {
+    patterns: [...baseImportConfig.patterns, ...(config?.patterns ?? [])],
+    paths: [...baseImportConfig.paths, ...(config?.paths ?? [])],
+  };
+  return finalConfig;
+}
+
+const datavizDefaultImportsRestrictions = [
+  {
+    group: ['@emotion/css'],
+    importNames: ['cx'],
+    message: 'Do not use "cx" from @emotion/css. Instead, use `clsx` and compose together only strings.',
+  },
+];
+
+/**
+ * @type {Array<import('eslint').Linter.Config>}
+ */
+module.exports = [
+  {
+    name: 'grafana/ignores',
+    ignores: [
+      '.github',
+      '.yarn',
+      '**/.*', // dotfiles aren't ignored by default in FlatConfig
+      ...generatedFiles,
+      '**/build/',
+      '**/compiled/',
+      '**/dist/',
+      'coverage/',
+      'data/',
+      'deployment_tools_config.json',
+      'devenv',
+      'e2e-playwright/test-plugins',
+      'e2e/tmp',
+      'packages/grafana-ui/src/components/Icon/iconBundle.ts',
+      'pkg',
+      'playwright-report',
+      'public/lib/monaco/', // this path is no longer required but local dev environments may still have it
+      'public/locales/_build',
+      'public/locales/**/*.js',
+      'public/vendor/',
+      'scripts/grafana-server/tmp',
+      'packages/grafana-ui/src/graveyard', // deprecated UI components slated for removal
+      'public/build-swagger', // swagger build output
+      'apps/plugins/plugin/src/generated/meta/v0alpha1',
+      'apps/plugins/plugin/src/generated/plugin/v0alpha1',
+    ],
+  },
+  ...grafanaConfig,
+  {
+    name: 'react/jsx-runtime-rules',
+    rules: reactPlugin.configs.flat['jsx-runtime'].rules,
+  },
+  {
+    name: 'grafana/defaults',
+    linterOptions: {
+      // This reports unused disable directives that we can clean up but
+      // it also conflicts with the betterer eslint rules so disabled
+      reportUnusedDisableDirectives: false,
+    },
+    files: ['**/*.{ts,tsx,js}'],
+    ignores: ['packages/grafana-ui/src/components/Forms/Legacy/**'],
+    plugins: {
+      '@emotion': emotionPlugin,
+      lodash: lodashPlugin,
+      jest: jestPlugin,
+      import: importPlugin,
+      'jsx-a11y': jsxA11yPlugin,
+      'no-barrel-files': barrelPlugin,
+      '@grafana': grafanaPlugin,
+      unicorn: unicornPlugin,
+      'react-prefer-function-component': reactPreferFunctionComponentPlugin,
+    },
+
+    settings: {
+      'import/internal-regex': '^(app/)|(@grafana)',
+      'import/external-module-folders': ['node_modules', '.yarn'],
+      // Silences a warning when linting enterprise code
+      react: {
+        version: 'detect',
+      },
+    },
+
+    rules: {
+      'no-duplicate-case': 'error',
+      '@grafana/no-border-radius-literal': 'error',
+      '@grafana/no-unreduced-motion': 'error',
+      '@grafana/no-restricted-img-srcs': 'error',
+      'react-prefer-function-component/react-prefer-function-component': ['error', { allowJsxUtilityClass: true }],
+      'react/prop-types': 'off',
+      // need to ignore emotion's `css` prop, see https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md#rule-options
+      'react/no-unknown-property': ['error', { ignore: ['css'] }],
+      '@emotion/jsx-import': 'error',
+      '@emotion/syntax-preference': [2, 'object'],
+      'lodash/import-scope': [2, 'member'],
+      'jest/no-focused-tests': 'error',
+      'import/order': [
+        'error',
+        {
+          pathGroups: [
+            {
+              pattern: 'img/**',
+              group: 'internal',
+            },
+          ],
+          groups: [['builtin', 'external'], 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+          alphabetize: { order: 'asc' },
+          pathGroupsExcludedImportTypes: ['builtin'],
+        },
+      ],
+      'no-restricted-imports': ['error', baseImportConfig],
+      'no-restricted-globals': ['error'].concat(restrictedGlobals),
+
+      // Use typescript's no-redeclare for compatibility with overrides
+      'no-redeclare': 'off',
+      '@typescript-eslint/no-redeclare': ['error'],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          fixStyle: 'inline-type-imports',
+        },
+      ],
+      'unicorn/no-empty-file': 'error',
+      'no-constant-condition': 'error',
+      '@grafana/define-feature-events': 'error',
+      '@grafana/no-plain-links': 'error',
+    },
+  },
+
+  {
+    name: 'grafana/no-extensions-imports',
+    files: ['public/**/*.{ts,tsx,js}'],
+    ignores: ['public/app/extensions/**/*'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            {
+              group: ['app/extensions', 'app/extensions/*'],
+              message: 'Importing from app/extensions is not allowed',
+            },
+          ],
+        }),
+      ],
+    },
+  },
+  {
+    name: 'grafana/uplot-overrides',
+    files: ['packages/grafana-ui/src/components/uPlot/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+  {
+    name: 'grafana/theme-demo-overrides',
+    files: ['packages/grafana-ui/src/components/ThemeDemos/**/*.{ts,tsx}'],
+    rules: {
+      '@emotion/jsx-import': 'off',
+      'react/jsx-uses-react': 'off',
+      'react/react-in-jsx-scope': 'off',
+    },
+  },
+  {
+    name: 'grafana/story-rules',
+    files: ['packages/grafana-ui/src/**/*.story.tsx'],
+    rules: {
+      '@grafana/consistent-story-titles': 'error',
+    },
+  },
+  {
+    name: 'grafana/public-dashboards-overrides',
+    files: ['public/dashboards/scripted*.js'],
+    rules: {
+      'no-redeclare': 'error',
+      '@typescript-eslint/no-redeclare': 'off',
+    },
+  },
+  {
+    name: 'grafana/jsx-a11y-overrides',
+    files: ['**/*.tsx'],
+    ignores: ['**/*.{spec,test}.tsx'],
+    plugins: {
+      'jsx-a11y': jsxA11yPlugin,
+    },
+    rules: {
+      ...jsxA11yPlugin.configs.recommended.rules,
+      'jsx-a11y/no-autofocus': [
+        'error',
+        {
+          ignoreNonDOM: true,
+        },
+      ],
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        {
+          controlComponents: ['NumberInput'],
+          depth: 2,
+        },
+      ],
+    },
+  },
+
+  {
+    // No NPM package should import from @grafana/*/internal because it does not exist
+    // outside of this repo - they're not published to NPM.
+    name: 'grafana/packages',
+    files: ['packages/**/*.{ts,tsx}'],
+    ignores: [],
+    plugins: {
+      import: importPlugin,
+    },
+    rules: {
+      'import/no-extraneous-dependencies': ['error', { includeInternal: true }],
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            {
+              group: ['@grafana/*/internal'],
+              message: "'internal' exports are not available in NPM packages because they are not published to NPM",
+            },
+          ],
+        }),
+      ],
+    },
+  },
+
+  {
+    // @grafana/runtime shouldn't be imported from our 'library' NPM packages
+    name: 'grafana/packages-that-cant-import-runtime',
+    files: [
+      'packages/grafana-ui/**/*.{ts,tsx}',
+      'packages/grafana-data/**/*.{ts,tsx}',
+      'packages/grafana-schema/**/*.{ts,tsx}',
+      'packages/grafana-e2e-selectors/**/*.{ts,tsx}',
+    ],
+    ignores: [],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            {
+              // Duplicated because these rules override the previous grafana/packages-overrides
+              group: ['@grafana/*/internal'],
+              message: "'internal' exports are not available in NPM packages because they are not published to NPM",
+            },
+            {
+              group: ['@grafana/runtime'],
+              message: "'@grafana/runtime' should not be imported from library packages",
+            },
+          ],
+        }),
+      ],
+    },
+  },
+
+  {
+    name: 'grafana/alerting-overrides',
+    plugins: {
+      unicorn: unicornPlugin,
+      react: reactPlugin,
+      '@grafana': grafanaPlugin,
+    },
+    files: ['public/app/features/alerting/**/*.{ts,tsx,js,jsx}', 'packages/grafana-alerting/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'sort-imports': ['error', { ignoreDeclarationSort: true }],
+      'dot-notation': 'error',
+      'prefer-const': 'error',
+      'react/no-unused-prop-types': 'error',
+      'react/self-closing-comp': 'error',
+      'react/jsx-no-useless-fragment': ['error', { allowExpressions: true }],
+      'unicorn/no-unused-properties': 'error',
+      'no-nested-ternary': 'error',
+    },
+  },
+  {
+    name: 'grafana/css-in-js-validation-unified',
+    plugins: {
+      '@grafana': grafanaPlugin,
+    },
+    files: ['public/app/features/alerting/unified/**/*.{ts,tsx}'],
+    rules: {
+      '@grafana/no-invalid-css-properties': 'error',
+    },
+  },
+  {
+    // Sections of codebase that have all translation markup issues fixed
+    name: 'grafana/i18n-overrides',
+    plugins: {
+      '@grafana': grafanaPlugin,
+      '@grafana/i18n': grafanaI18nPlugin,
+    },
+    files: [
+      'public/app/!(plugins)/**/*.{ts,tsx,js,jsx}',
+      'packages/grafana-ui/**/*.{ts,tsx,js,jsx}',
+      'packages/grafana-data/**/*.{ts,tsx,js,jsx}',
+      'packages/grafana-sql/**/*.{ts,tsx,js,jsx}',
+      'packages/grafana-prometheus/**/*.{ts,tsx,js,jsx}',
+      ...pluginsToTranslate.map((plugin) => `${plugin}/**/*.{ts,tsx,js,jsx}`),
+    ],
+    ignores: [
+      'public/test/**',
+      '**/*.{test,spec,story}.{ts,tsx}',
+      '**/{tests,__mocks__,__tests__,fixtures,spec,mocks}/**',
+      '**/{test-utils,testHelpers,mocks}.{ts,tsx}',
+      '**/mock*.{ts,tsx}',
+    ],
+    rules: {
+      '@grafana/i18n/no-untranslated-strings': [
+        'error',
+        { calleesToIgnore: ['^css$', 'use[A-Z].*'], basePaths: ['public/app/features'] },
+      ],
+      '@grafana/i18n/no-translation-top-level': 'error',
+    },
+  },
+  {
+    name: 'grafana/tests',
+    plugins: {
+      'testing-library': testingLibraryPlugin,
+      'jest-dom': jestDomPlugin,
+      jest: jestPlugin,
+    },
+    files: [
+      'public/app/features/alerting/**/__tests__/**/*.[jt]s?(x)',
+      'public/app/features/alerting/**/?(*.)+(spec|test).[jt]s?(x)',
+      'packages/{grafana-ui,grafana-alerting}/**/*.{spec,test}.{ts,tsx}',
+    ],
+    rules: {
+      ...testingLibraryPlugin.configs['flat/react'].rules,
+      ...jestDomPlugin.configs['flat/recommended'].rules,
+      'testing-library/prefer-user-event': 'error',
+      'jest/expect-expect': ['error', { assertFunctionNames: ['expect*', 'assert*', 'reducerTester'] }],
+    },
+  },
+  {
+    name: 'grafana/test-overrides-to-fix',
+    plugins: {
+      'testing-library': testingLibraryPlugin,
+    },
+    files: ['packages/grafana-ui/**/*.{spec,test}.{ts,tsx}'],
+    rules: {
+      // grafana-ui has lots of violations of direct node access and container methods, so disabling for now
+      'testing-library/no-node-access': 'off',
+      'testing-library/no-container': 'off',
+    },
+  },
+  {
+    name: 'grafana/test-disables',
+    files: ['**/*.{spec,test}.{ts,tsx}'],
+    rules: {
+      'react/display-name': 'off',
+      'react/no-children-prop': 'off',
+    },
+  },
+  {
+    name: 'grafana/explore-traceview-overrides',
+    files: ['public/app/features/explore/TraceView/components/demo/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'import/no-extraneous-dependencies': 'off',
+    },
+  },
+  {
+    name: 'grafana/decoupled-plugins-overrides',
+    files: [
+      'public/app/plugins/datasource/azuremonitor/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/cloud-monitoring/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/cloudwatch/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/grafana-postgresql-datasource/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/grafana-pyroscope-datasource/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/grafana-testdata-datasource/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/graphite/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/jaeger/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/loki/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/loki/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/mysql/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/opentsdb/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/parca/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/tempo/**/*.{ts,tsx}',
+      'public/app/plugins/datasource/zipkin/**/*.{ts,tsx}',
+    ],
+    plugins: {
+      import: importPlugin,
+    },
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.ts', '.tsx'],
+        },
+      },
+    },
+    rules: {
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: './public/app/plugins',
+              from: './public',
+              except: ['./app/plugins'],
+              message: 'Core plugins are not allowed to depend on Grafana core packages',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    // custom rule for Table to avoid performance regressions
+    files: ['packages/grafana-ui/src/components/Table/TableNG/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            ...datavizDefaultImportsRestrictions,
+            {
+              group: ['@grafana/data'],
+              importNames: ['getFieldDisplayName'],
+              message:
+                'Using the method inside Table can have performance implications which are unnecessary. Instead, use the local `getDisplayName` from the table utils.',
+            },
+          ],
+        }),
+      ],
+    },
+  },
+
+  {
+    // custom rule for Table to avoid performance regressions
+    files: ['packages/grafana-ui/src/components/Table/TableNG/Cells/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            ...datavizDefaultImportsRestrictions,
+            {
+              group: ['@grafana/data'],
+              importNames: ['getFieldDisplayName'],
+              message:
+                'Using the method inside Table can have performance implications which are unnecessary. Instead, use the local `getDisplayName` from the table utils.',
+            },
+            {
+              group: ['**/themes/ThemeContext'],
+              importNames: ['useStyles2', 'useTheme2'],
+              message:
+                'Do not use "useStyles2" or "useTheme2" in a cell directly. Instead, provide styles to cells via `getDefaultCellStyles` or `getCellSpecificStyles`.',
+            },
+          ],
+        }),
+      ],
+    },
+  },
+
+  // other dataviz panels which should just get our default set of restrictions
+  {
+    files: ['public/app/plugins/panel/state-timeline/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [...datavizDefaultImportsRestrictions],
+        }),
+      ],
+    },
+  },
+
+  // Old betterer rules config:
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    ignores: [
+      // FIXME: Remove once all enterprise issues are fixed -
+      // we don't have a suppressions file/approach for enterprise code yet
+      ...enterpriseIgnores,
+      'packages/grafana-ui/src/components/Forms/Legacy/**',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@grafana/no-aria-label-selectors': 'error',
+    },
+  },
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    ignores: [
+      ...commonTestIgnores,
+      // FIXME: Remove once all enterprise issues are fixed -
+      // we don't have a suppressions file/approach for enterprise code yet
+      ...enterpriseIgnores,
+    ],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+      '@grafana/no-direct-local-storage-access': 'error',
+      '@grafana/require-no-margin': 'error',
+      '@grafana/no-locale-compare': 'error',
+      // eslint-disable-next-line @grafana/no-gf-form
+      '@grafana/no-gf-form': 'error',
+      '@grafana/no-config-apps': 'error',
+      '@grafana/no-config-panels': 'error',
+    },
+  },
+  {
+    files: [...commonTestIgnores],
+    ignores: [
+      // FIXME: Remove once all enterprise issues are fixed -
+      // we don't have a suppressions file/approach for enterprise code yet
+      ...enterpriseIgnores,
+    ],
+    rules: {
+      '@grafana/no-config-apps': 'error',
+      '@grafana/no-config-panels': 'error',
+    },
+    plugins: {
+      '@grafana': grafanaPlugin,
+    },
+  },
+  {
+    files: [...enterpriseIgnores],
+    rules: {
+      '@grafana/no-config-apps': 'error',
+      '@grafana/no-config-panels': 'error',
+    },
+  },
+  {
+    files: ['public/app/**/*.{ts,tsx}'],
+    ignores: [
+      ...commonTestIgnores,
+      // FIXME: Remove once all enterprise issues are fixed -
+      // we don't have a suppressions file/approach for enterprise code yet
+      ...enterpriseIgnores,
+      // Ignore decoupled plugin webpack configs
+      'public/app/**/webpack.config.ts',
+    ],
+    rules: {
+      'no-barrel-files/no-barrel-files': 'error',
+    },
+  },
+
+  {
+    // @grafana/i18n shouldn't import from our 'library' NPM packages
+    name: 'grafana/packages-that-i18n-cant-import',
+    files: ['packages/grafana-i18n/**/*.{ts,tsx}'],
+    ignores: [],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        withBaseRestrictedImportsConfig({
+          patterns: [
+            {
+              group: ['@grafana/*'],
+              message: "'@grafana/* packages' should not be imported in @grafana/i18n",
+            },
+          ],
+        }),
+      ],
+    },
+  },
+
+  // {
+  //   name: 'grafana/plugin-external-import-paths',
+  //   files: [
+  //     'public/app/plugins/panel/histogram/**/*.{ts,tsx}',
+  //   ],
+  //   plugins: {
+  //     '@grafana': grafanaPlugin,
+  //   },
+  //   rules: {
+  //     '@grafana/no-plugin-external-import-paths': 'error',
+  //   },
+  // },
+];
+
+
+# FILE: eslint-suppressions.json
+{
+  "e2e/cypress/support/commands.js": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 1
+    }
+  },
+  "e2e/old-arch/utils/support/localStorage.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 2
+    }
+  },
+  "e2e/old-arch/utils/support/types.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "e2e/utils/support/localStorage.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 2
+    }
+  },
+  "e2e/utils/support/types.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/dataframe/CircularDataFrame.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/dataframe/DataFrameView.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/dataframe/MutableDataFrame.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "packages/grafana-data/src/dataframe/StreamingDataFrame.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/dataframe/processDataFrame.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 11
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-data/src/datetime/moment_wrapper.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 8
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/events/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/field/displayProcessor.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/field/overrides/processors.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "packages/grafana-data/src/field/standardFieldConfigEditorRegistry.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    }
+  },
+  "packages/grafana-data/src/geo/layer.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/panel/PanelPlugin.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-data/src/panel/registryFactories.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/table/amendTimeSeries.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 5
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/themes/colorManipulator.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/themes/createColors.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/themes/registry.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/transformations/matchers/valueMatchers/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/transformations/standardTransformersRegistry.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/transformations/transformDataFrame.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "packages/grafana-data/src/transformations/transformers/nulls/nullInsertThreshold.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/OptionsUIRegistryBuilder.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-data/src/types/ScopedVars.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/action.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/types/annotations.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "packages/grafana-data/src/types/app.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/types/dashboard.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/types/data.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-data/src/types/dataFrame.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-data/src/types/dataLink.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    }
+  },
+  "packages/grafana-data/src/types/datasource.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 24
+    }
+  },
+  "packages/grafana-data/src/types/explore.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/types/fieldOverrides.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 9
+    }
+  },
+  "packages/grafana-data/src/types/flot.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/types/graph.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/types/legacyEvents.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/live.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/options.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/panel.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 11
+    }
+  },
+  "packages/grafana-data/src/types/plugin.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/types/scopes.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/types/select.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/types/templateVars.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/types/trace.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/types/transformations.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "packages/grafana-data/src/types/variables.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/utils/OptionsUIBuilders.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 11
+    }
+  },
+  "packages/grafana-data/src/utils/Registry.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/utils/arrayUtils.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/utils/csv.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/utils/datasource.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "packages/grafana-data/src/utils/flotPairs.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/utils/location.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-data/src/utils/store.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 6
+    }
+  },
+  "packages/grafana-data/src/utils/url.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    }
+  },
+  "packages/grafana-data/src/utils/valueMappings.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-data/src/vector/FunctionalVector.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 9
+    }
+  },
+  "packages/grafana-e2e-selectors/src/resolver.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-o11y-ds-frontend/src/createNodeGraphFrames.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/components/PromExploreExtraField.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 4
+    }
+  },
+  "packages/grafana-prometheus/src/components/PromQueryField.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 2
+    }
+  },
+  "packages/grafana-prometheus/src/components/metrics-browser/useMetricsLabelsValues.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 6
+    }
+  },
+  "packages/grafana-prometheus/src/configuration/AlertingSettingsOverhaul.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 5
+    }
+  },
+  "packages/grafana-prometheus/src/configuration/ExemplarSetting.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/datasource.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-prometheus/src/language_provider.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 8
+    }
+  },
+  "packages/grafana-prometheus/src/language_provider.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-prometheus/src/language_utils.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/querybuilder/components/LabelFilterItem.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 4
+    }
+  },
+  "packages/grafana-prometheus/src/querybuilder/components/LabelParamEditor.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/querybuilder/shared/OperationEditor.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/querybuilder/shared/OperationParamEditorRegistry.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    }
+  },
+  "packages/grafana-prometheus/src/querybuilder/shared/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-prometheus/src/resource_clients.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 8
+    }
+  },
+  "packages/grafana-prometheus/src/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-runtime/src/analytics/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/components/DataSourcePicker.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/config.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 1
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 5
+    }
+  },
+  "packages/grafana-runtime/src/services/EchoSrv.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-runtime/src/services/LocationService.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "packages/grafana-runtime/src/services/backendSrv.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 12
+    }
+  },
+  "packages/grafana-runtime/src/services/pluginExtensions/usePluginComponent.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/services/pluginExtensions/usePluginComponents.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/services/pluginExtensions/usePluginFunctions.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/utils/DataSourceWithBackend.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-runtime/src/utils/queryResponse.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-schema/src/veneer/common.types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-schema/src/veneer/dashboard.types.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 5
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-sql/src/components/visual-query-builder/Preview.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Cascader/styles.ts": {
+    "@grafana/no-unreduced-motion": {
+      "count": 17
+    }
+  },
+  "packages/grafana-ui/src/components/ColorPicker/ColorPicker.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Combobox/Combobox.story.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 5
+    }
+  },
+  "packages/grafana-ui/src/components/Combobox/MultiCombobox.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Combobox/useOptions.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/ConfirmModal/ConfirmContent.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/DataLinks/DataLinkInput.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/DataSourceSettings/CustomHeadersSettings.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/DataSourceSettings/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/ElementSelectionContext/ElementSelectionContext.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/components/FormField/FormField.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/FormLabel/FormLabel.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Form.story.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 9
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/InlineField.story.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 9
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Legacy/Input/Input.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Legacy/Select/NoOptionsMessage.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Legacy/Select/Select.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 6
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Legacy/Select/SelectOption.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 4
+    }
+  },
+  "packages/grafana-ui/src/components/Forms/Legacy/Switch/Switch.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/components/Icon/Icon.story.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/InteractiveTable/InteractiveTable.story.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/JSONFormatter/json_explorer/json_explorer.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/MatchersUI/fieldMatchersUI.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Modal/ModalsContext.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Monaco/CodeEditor.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/PanelChrome/PanelChrome.test.tsx": {
+    "@grafana/no-plain-links": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/PanelChrome/PanelContext.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/PanelChrome/index.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/QueryField/QueryField.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/SecretFormField/SecretFormField.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Segment/Segment.story.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Segment/SegmentAsync.story.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Segment/SegmentInput.story.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Segment/SegmentInput.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Segment/SegmentSelect.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Select/SelectBase.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "packages/grafana-ui/src/components/Select/ValueContainer.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Select/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "packages/grafana-ui/src/components/SingleStatShared/SingleStatBaseOptions.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 13
+    }
+  },
+  "packages/grafana-ui/src/components/Table/Cells/TableCell.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableNG/TableNG.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableRT/Filter.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableRT/FilterPopup.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableRT/FooterRow.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableRT/HeaderRow.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/TableRT/Table.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/Table/reducer.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Table/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/components/Table/utils.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "packages/grafana-ui/src/components/TableInputCSV/TableInputCSV.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Tags/Tag.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/Typeahead/Typeahead.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/ValuePicker/ValuePicker.tsx": {
+    "@grafana/no-aria-label-selectors": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/VizLegend/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/VizRepeater/VizRepeater.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/VizTooltip/VizTooltip.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/VizTooltip/VizTooltipFooter.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/uPlot/Plot.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/uPlot/config/UPlotAxisBuilder.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/uPlot/config/UPlotConfigBuilder.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/components/uPlot/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/components/uPlot/utils.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/options/builder/hideSeries.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/slate-plugins/braces.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/slate-plugins/slate-prism/index.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/slate-plugins/slate-prism/options.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/slate-plugins/suggestions.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/themes/GlobalStyles/forms.ts": {
+    "@grafana/no-gf-form": {
+      "count": 25
+    }
+  },
+  "packages/grafana-ui/src/themes/GlobalStyles/legacySelect.ts": {
+    "@grafana/no-gf-form": {
+      "count": 28
+    }
+  },
+  "packages/grafana-ui/src/themes/ThemeContext.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/themes/stylesFactory.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/types/forms.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/types/jquery.d.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "packages/grafana-ui/src/types/react-table-config.d.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "packages/grafana-ui/src/utils/debug.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/utils/dom.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/utils/logger.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 1
+    }
+  },
+  "packages/grafana-ui/src/utils/useAsyncDependency.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/AppWrapper.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/core/TableModel.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/core/components/AccessControl/PermissionList.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/DynamicImports/SafeDynamicImport.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/ForgottenPassword/ChangePassword.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/core/components/ForgottenPassword/ForgottenPassword.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/GraphNG/GraphNG.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 4
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    },
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/Login/LoginForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/core/components/OptionsUI/NumberInput.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/OptionsUI/fieldColor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/OptionsUI/multiSelect.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/OptionsUI/select.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/Page/EditableTitle.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/PanelTypeFilter/PanelTypeFilter.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/RolePicker/RolePickerMenu.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 4
+    }
+  },
+  "public/app/core/components/RolePickerDrawer/RolePickerDrawer.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/SharedPreferences/SharedPreferencesOld.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 6
+    },
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    },
+    "react/no-unescaped-entities": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/Signup/SignupPage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 6
+    }
+  },
+  "public/app/core/components/Signup/VerifyEmail.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/TagFilter/TagFilter.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/ThemeSelector/ThemeSelectorDrawer.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 1
+    }
+  },
+  "public/app/core/components/TimeSeries/utils.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/core/config.ts": {
+    "@grafana/no-config-panels": {
+      "count": 1
+    }
+  },
+  "public/app/core/navigation/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/reducers/appNotification.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 3
+    }
+  },
+  "public/app/core/reducers/navBarTree.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 2
+    }
+  },
+  "public/app/core/services/ResponseQueue.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/services/backend_srv.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "public/app/core/services/context_srv.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/services/echo/backends/analytics/RudderstackBackend.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/core/specs/backend_srv.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/time_series2.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 19
+    }
+  },
+  "public/app/core/utils/connectWithReduxStore.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 8
+    }
+  },
+  "public/app/core/utils/deferred.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/utils/fetch.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 5
+    }
+  },
+  "public/app/core/utils/object.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 4
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "public/app/core/utils/richHistory.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/core/utils/ticks.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "public/app/features/actions/ActionEditor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 7
+    }
+  },
+  "public/app/features/actions/ActionVariablesEditor.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "public/app/features/actions/ParamsEditor.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/admin/AdminEditOrgPage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/admin/UserCreatePage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    }
+  },
+  "public/app/features/admin/UserLdapSyncInfo.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 3
+    }
+  },
+  "public/app/features/admin/UserOrgs.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/admin/ldap/LdapDrawer.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 23
+    }
+  },
+  "public/app/features/admin/ldap/LdapGroupMapping.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    }
+  },
+  "public/app/features/admin/ldap/LdapPage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/admin/ldap/LdapSettingsPage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/alerting/routes.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/state/ThresholdMapper.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/state/alertDef.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    }
+  },
+  "public/app/features/alerting/state/query_part.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 10
+    }
+  },
+  "public/app/features/alerting/state/reducers.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/AnnotationDetailsField.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/Authorize.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/alert-groups/AlertGroupFilter.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/alert-groups/AlertGroupHeader.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/alert-groups/GroupBy.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/alert-groups/MatcherFilter.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/contact-points/components/ContactPointsFilter.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/create-folder/CreateNewFolder.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/import-to-gma/ImportToGMA.tsx": {
+    "@grafana/no-plain-links": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/import-to-gma/NamespaceAndGroupFilter.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/mute-timings/MuteTimingTimeInterval.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/alerting/unified/components/mute-timings/MuteTimingTimeRange.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/notification-policies/EditNotificationPolicyForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 13
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/TemplatePreview.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/form/CloudCommonChannelSettings.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/form/GrafanaCommonChannelSettings.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/form/fields/OptionField.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/form/fields/SubformArrayField.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/receivers/form/fields/SubformField.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/AlertRuleNameInput.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/AnnotationKeyInput.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/CloudEvaluationBehavior.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/ExpressionEditor.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/FolderSelector.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/GroupAndNamespaceFields.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/PreviewRule.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/QueryRows.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/RuleInspector.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/alert-rule-form/AlertRuleForm.tsx": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 8
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/alert-rule-form/simplifiedRouting/route-settings/ActiveTimingFields.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/alert-rule-form/simplifiedRouting/route-settings/RouteTimings.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/alerting/unified/components/rule-editor/query-and-alert-condition/CloudDataSourceSelector.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rules/Filter/RulesFilter.v1.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    }
+  },
+  "public/app/features/alerting/unified/components/rules/RuleListGroupView.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/components/rules/RuleListStateView.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/rules/state-history/StateHistory.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/silences/MatchersField.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/alerting/unified/components/silences/SilencePeriod.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/components/silences/SilencesEditor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/group-details/GroupEditPage.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/alerting/unified/hooks/useAlertmanagerConfig.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/hooks/useCombinedRuleNamespaces.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/hooks/useControlledFieldArray.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/hooks/useFilteredRules.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/insights/InsightsMenuButton.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/mocks.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/rule-editor/formDefaults.ts": {
+    "@grafana/no-direct-local-storage-access": {
+      "count": 6
+    }
+  },
+  "public/app/features/alerting/unified/types/alerting.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 5
+    }
+  },
+  "public/app/features/alerting/unified/types/receiver-form.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/utils/datasource.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/utils/misc.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 3
+    }
+  },
+  "public/app/features/alerting/unified/utils/receiver-form.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/utils/redux.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 6
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/alerting/unified/utils/rule-id.ts": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    }
+  },
+  "public/app/features/alerting/unified/utils/rules.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/annotations/components/StandardAnnotationQueryEditor.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/features/annotations/events_processing.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/annotations/standardAnnotationSupport.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/auth-config/FieldRenderer.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/auth-config/ProviderConfigForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/auth-config/components/ServerDiscoveryModal.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/auth-config/utils/data.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/connections/tabs/ConnectData/ConnectData.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    },
+    "react/no-unescaped-entities": {
+      "count": 2
+    }
+  },
+  "public/app/features/correlations/Forms/ConfigureCorrelationBasicInfoForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/correlations/Forms/ConfigureCorrelationTargetForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    },
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    }
+  },
+  "public/app/features/correlations/Forms/QueryEditorField.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/correlations/Forms/TransformationEditorRow.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    }
+  },
+  "public/app/features/correlations/types.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/dashboard-scene/addToDashboard/AddToDashboardForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/dashboard-scene/edit-pane/shared.ts": {
+    "no-barrel-files/no-barrel-files": {
+      "count": 3
+    }
+  },
+  "public/app/features/dashboard-scene/inspect/HelpWizard/HelpWizard.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/dashboard-scene/inspect/HelpWizard/utils.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/pages/DashboardScenePage.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 2
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/saving/SaveDashboardForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/scene/PanelSearchLayout.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/scene/export/exporters.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "public/app/features/dashboard-scene/scene/export/exporters.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-auto-grid/AutoGridItemEditor.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-auto-grid/AutoGridLayoutManagerEditor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 4
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-default/DashboardGridItemEditor.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-default/row-actions/RowOptionsForm.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-rows/RowItemEditor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    },
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/scene/layout-tabs/TabItemEditor.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    },
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/serialization/buildNewDashboardSaveModel.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/serialization/transformSceneToSaveModel.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/serialization/transformSceneToSaveModel.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 7
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/serialization/transformToV1TypesUtils.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/settings/variables/VariableEditableElement.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 4
+    }
+  },
+  "public/app/features/dashboard-scene/settings/variables/components/VariableDisplaySelect.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/settings/variables/components/VariableHideSelect.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/settings/variables/components/VariableSelectField.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/settings/variables/components/VariableTextField.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/ShareButton/share-externally/EmailShare/ConfigEmailSharing/ConfigEmailSharing.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/ShareButton/share-externally/EmailShare/ConfigEmailSharing/EmailListConfiguration.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/ShareButton/share-snapshot/UpsertSnapshot.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 2
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/ShareLinkTab.tsx": {
+    "@grafana/no-gf-form": {
+      "count": 1
+    },
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/ShareSnapshotTab.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/dashboard-scene/sharing/panel-share/SharePanelPreview.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 3
+    }
+  },
+  "public/app/features/dashboard-scene/utils/DashboardModelCompatibilityWrapper.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard-scene/utils/PanelModelCompatibilityWrapper.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/api/ResponseTransformers.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/AnnotationSettings/AnnotationSettingsEdit.tsx": {
+    "@grafana/no-locale-compare": {
+      "count": 1
+    },
+    "@grafana/require-no-margin": {
+      "count": 6
+    }
+  },
+  "public/app/features/dashboard/components/DashExportModal/DashboardExporter.test.ts": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 6
+    }
+  },
+  "public/app/features/dashboard/components/DashExportModal/DashboardExporter.ts": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 3
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 7
+    }
+  },
+  "public/app/features/dashboard/components/DashboardPrompt/DashboardPrompt.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/DashboardPrompt/DashboardPrompt.tsx": {
+    "@typescript-eslint/consistent-type-assertions": {
+      "count": 7
+    },
+    "@typescript-eslint/no-explicit-any": {
+      "count": 2
+    }
+  },
+  "public/app/features/dashboard/components/DashboardRow/DashboardRow.test.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/DashboardRow/DashboardRow.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/DashboardSettings/AutoRefreshIntervals.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/DashboardSettings/GeneralSettings.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 6
+    }
+  },
+  "public/app/features/dashboard/components/DashboardSettings/TimePickerSettings.tsx": {
+    "@grafana/require-no-margin": {
+      "count": 5
+    }
+  },
+  "public/app/features/dashboard/components/DashboardSettings/VersionsSettings.tsx": {
+    "react-prefer-function-component/react-prefer-function-component": {
+      "count": 1
+    }
+  },
+  "public/app/features/dashboard/components/Hel

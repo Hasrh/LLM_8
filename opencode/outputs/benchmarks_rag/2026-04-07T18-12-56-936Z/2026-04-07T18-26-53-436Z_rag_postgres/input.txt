@@ -1,0 +1,4174 @@
+
+
+# FILE: meson_options.txt
+# Copyright (c) 2022-2026, PostgreSQL Global Development Group
+
+# Data layout influencing options
+
+option('blocksize', type: 'combo',
+  choices: ['1', '2', '4', '8', '16', '32'],
+  value: '8',
+  description: 'Relation block size, in kilobytes')
+
+option('wal_blocksize', type: 'combo',
+  choices: ['1', '2', '4', '8', '16', '32', '64'],
+  value: '8',
+  description: 'WAL block size, in kilobytes')
+
+option('segsize', type: 'integer', value: 1,
+  description: 'Segment size, in gigabytes')
+
+option('segsize_blocks', type: 'integer', value: 0,
+  description: 'Segment size, in blocks')
+
+
+# Miscellaneous options
+
+option('krb_srvnam', type: 'string', value: 'postgres',
+  description: 'Default Kerberos service principal for GSSAPI')
+
+option('system_tzdata', type: 'string', value: '',
+  description: 'Use system time zone data in specified directory')
+
+
+# Defaults
+
+option('pgport', type: 'integer', value: 5432,
+  min: 1, max: 65535,
+  description: 'Default port number for server and clients')
+
+
+# Developer options
+
+option('cassert', type: 'boolean', value: false,
+  description: 'Enable assertion checks (for debugging)')
+
+option('tap_tests', type: 'feature', value: 'auto',
+  description: 'Enable TAP tests')
+
+option('injection_points', type: 'boolean', value: false,
+  description: 'Enable injection points')
+
+option('PG_TEST_EXTRA', type: 'string', value: '',
+  description: 'Enable selected extra tests. Overridden by PG_TEST_EXTRA environment variable.')
+
+option('PG_GIT_REVISION', type: 'string', value: 'HEAD',
+  description: 'git revision to be packaged by pgdist target')
+
+
+# Compilation options
+
+option('extra_include_dirs', type: 'array', value: [],
+  description: 'Non-default directories to be searched for headers')
+
+option('extra_lib_dirs', type: 'array', value: [],
+  description: 'Non-default directories to be searched for libs')
+
+option('extra_version', type: 'string', value: '',
+  description: 'Append STRING to the PostgreSQL version number')
+
+option('darwin_sysroot', type: 'string', value: '',
+  description: 'Select a non-default sysroot path')
+
+option('rpath', type: 'boolean', value: true,
+  description: 'Embed shared library search path in executables')
+
+
+# External dependencies
+
+option('bonjour', type: 'feature', value: 'auto',
+  description: 'Bonjour support')
+
+option('bsd_auth', type: 'feature', value: 'auto',
+  description: 'BSD Authentication support')
+
+option('docs', type: 'feature', value: 'auto',
+  description: 'Documentation in HTML and man page format')
+
+option('docs_pdf', type: 'feature', value: 'auto',
+  description: 'Documentation in PDF format')
+
+option('docs_html_style', type: 'combo', choices: ['simple', 'website'],
+  description: 'CSS stylesheet for HTML documentation')
+
+option('dtrace', type: 'feature', value: 'disabled',
+  description: 'DTrace support')
+
+option('gssapi', type: 'feature', value: 'auto',
+  description: 'GSSAPI support')
+
+option('icu', type: 'feature', value: 'auto',
+  description: 'ICU support')
+
+option('ldap', type: 'feature', value: 'auto',
+  description: 'LDAP support')
+
+option('libcurl', type : 'feature', value: 'auto',
+  description: 'libcurl support')
+
+option('libedit_preferred', type: 'boolean', value: false,
+  description: 'Prefer BSD Libedit over GNU Readline')
+
+option('libnuma', type: 'feature', value: 'auto',
+  description: 'NUMA support')
+
+option('liburing', type : 'feature', value: 'auto',
+  description: 'io_uring support, for asynchronous I/O')
+
+option('libxml', type: 'feature', value: 'auto',
+  description: 'XML support')
+
+option('libxslt', type: 'feature', value: 'auto',
+  description: 'XSLT support in contrib/xml2')
+
+option('llvm', type: 'feature', value: 'disabled',
+  description: 'LLVM support')
+
+option('lz4', type: 'feature', value: 'auto',
+  description: 'LZ4 support')
+
+option('nls', type: 'feature', value: 'auto',
+  description: 'Native language support')
+
+option('pam', type: 'feature', value: 'auto',
+  description: 'PAM support')
+
+option('plperl', type: 'feature', value: 'auto',
+  description: 'Build Perl modules (PL/Perl)')
+
+option('plpython', type: 'feature', value: 'auto',
+  description: 'Build Python modules (PL/Python)')
+
+option('pltcl', type: 'feature', value: 'auto',
+  description: 'Build with Tcl support (PL/Tcl)')
+
+option('tcl_version', type: 'string', value: 'tcl',
+  description: 'Tcl version')
+
+option('readline', type: 'feature', value: 'auto',
+  description: 'Use GNU Readline or BSD Libedit for editing')
+
+option('selinux', type: 'feature', value: 'auto',
+  description: 'SELinux support')
+
+option('ssl', type: 'combo', choices: ['auto', 'none', 'openssl'],
+  value: 'auto',
+  description: 'Use LIB for SSL/TLS support (openssl)')
+
+option('systemd', type: 'feature', value: 'auto',
+  description: 'systemd support')
+
+option('uuid', type: 'combo', choices: ['none', 'bsd', 'e2fs', 'ossp'],
+  value: 'none',
+  description: 'Use LIB for contrib/uuid-ossp support')
+
+option('zlib', type: 'feature', value: 'auto',
+  description: 'Enable zlib')
+
+option('zstd', type: 'feature', value: 'auto',
+  description: 'Enable zstd')
+
+
+# Programs
+
+option('BISON', type: 'array', value: ['bison', 'win_bison'],
+  description: 'Path to bison binary')
+
+option('DTRACE', type: 'string', value: 'dtrace',
+  description: 'Path to dtrace binary')
+
+option('FLEX', type: 'array', value: ['flex', 'win_flex'],
+  description: 'Path to flex binary')
+
+option('FOP', type: 'string', value: 'fop',
+  description: 'Path to fop binary')
+
+option('GZIP', type: 'string', value: 'gzip',
+  description: 'Path to gzip binary')
+
+option('LZ4', type: 'string', value: 'lz4',
+  description: 'Path to lz4 binary')
+
+option('OPENSSL', type: 'string', value: 'openssl',
+  description: 'Path to openssl binary')
+
+option('PERL', type: 'string', value: 'perl',
+  description: 'Path to perl binary')
+
+option('PROVE', type: 'string', value: 'prove',
+  description: 'Path to prove binary')
+
+option('PYTHON', type: 'array', value: ['python3', 'python'],
+  description: 'Path to python binary')
+
+option('SED', type: 'string', value: 'gsed',
+  description: 'Path to sed binary')
+
+option('STRIP', type: 'string', value: 'strip',
+  description: 'Path to strip binary, used for PGXS emulation')
+
+option('TAR', type: 'string', value: 'tar',
+  description: 'Path to tar binary')
+
+option('XMLLINT', type: 'string', value: 'xmllint',
+  description: 'Path to xmllint binary')
+
+option('XSLTPROC', type: 'string', value: 'xsltproc',
+  description: 'Path to xsltproc binary')
+
+option('ZSTD', type: 'string', value: 'zstd',
+  description: 'Path to zstd binary')
+
+option('ZIC', type: 'string', value: 'zic',
+  description: 'Path to zic binary, when cross-compiling')
+
+
+# FILE: README.md
+PostgreSQL Database Management System
+=====================================
+
+This directory contains the source code distribution of the PostgreSQL
+database management system.
+
+PostgreSQL is an advanced object-relational database management system
+that supports an extended subset of the SQL standard, including
+transactions, foreign keys, subqueries, triggers, user-defined types
+and functions.  This distribution also contains C language bindings.
+
+Copyright and license information can be found in the file COPYRIGHT.
+
+General documentation about this version of PostgreSQL can be found at
+<https://www.postgresql.org/docs/devel/>.  In particular, information
+about building PostgreSQL from the source code can be found at
+<https://www.postgresql.org/docs/devel/installation.html>.
+
+The latest version of this software, and related software, may be
+obtained at <https://www.postgresql.org/download/>.  For more information
+look at our web site located at <https://www.postgresql.org/>.
+
+
+# FILE: Makefile
+# The PostgreSQL make files exploit features of GNU make that other
+# makes do not have. Because it is a common mistake for users to try
+# to build Postgres with a different make, we have this make file
+# that, as a service, will look for a GNU make and invoke it, or show
+# an error message if none could be found.
+
+# If the user were using GNU make now, this file would not get used
+# because GNU make uses a make file named "GNUmakefile" in preference
+# to "Makefile" if it exists. PostgreSQL is shipped with a
+# "GNUmakefile". If the user hasn't run the configure script yet, the
+# GNUmakefile won't exist yet, so we catch that case as well.
+
+
+# AIX make defaults to building *every* target of the first rule.  Start with
+# a single-target, empty rule to make the other targets non-default.
+all:
+
+all check install installdirs installcheck installcheck-parallel uninstall clean distclean maintainer-clean dist distcheck world check-world install-world installcheck-world:
+	@if [ ! -f GNUmakefile ] ; then \
+	   echo "You need to run the 'configure' program first. Please see"; \
+	   echo "<https://www.postgresql.org/docs/devel/installation.html>" ; \
+	   false ; \
+	 fi
+	@IFS=':' ; \
+	 for dir in $$PATH; do \
+	   for prog in gmake gnumake make; do \
+	     if [ -f $$dir/$$prog ] && ( $$dir/$$prog -f /dev/null --version 2>/dev/null | grep GNU >/dev/null 2>&1 ) ; then \
+	       GMAKE=$$dir/$$prog; \
+	       break 2; \
+	     fi; \
+	   done; \
+	 done; \
+	\
+	 if [ x"$${GMAKE+set}" = xset ]; then \
+	   echo "Using GNU make found at $${GMAKE}"; \
+	   unset MAKELEVEL; \
+	   $${GMAKE} $@ ; \
+	 else \
+	   echo "You must use GNU make to build PostgreSQL." ; \
+	   false; \
+	 fi
+
+
+# FILE: config/Makefile
+# config/Makefile
+
+subdir = config
+top_builddir = ..
+include $(top_builddir)/src/Makefile.global
+
+
+install: all installdirs
+	$(INSTALL_SCRIPT) $(srcdir)/install-sh '$(DESTDIR)$(pgxsdir)/config/install-sh'
+	$(INSTALL_SCRIPT) $(srcdir)/missing '$(DESTDIR)$(pgxsdir)/config/missing'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/config'
+
+uninstall:
+	rm -f '$(DESTDIR)$(pgxsdir)/config/install-sh'
+	rm -f '$(DESTDIR)$(pgxsdir)/config/missing'
+
+
+# FILE: src/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+# src/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src
+top_builddir = ..
+include Makefile.global
+
+SUBDIRS = \
+	common \
+	port \
+	timezone \
+	backend \
+	backend/utils/mb/conversion_procs \
+	backend/snowball \
+	include \
+	interfaces \
+	backend/replication/libpqwalreceiver \
+	backend/replication/pgoutput \
+	backend/replication/pgrepack \
+	fe_utils \
+	bin \
+	pl \
+	makefiles \
+	test/regress \
+	test/isolation \
+	test/perl
+
+ifeq ($(with_llvm), yes)
+SUBDIRS += backend/jit/llvm
+endif
+
+# There are too many interdependencies between the subdirectories, so
+# don't attempt parallel make here.
+.NOTPARALLEL:
+
+$(recurse)
+
+install: install-local
+
+install-local: installdirs-local
+	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
+	$(INSTALL_DATA) Makefile.port '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.port'
+	$(INSTALL_DATA) $(srcdir)/Makefile.shlib '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.shlib'
+	$(INSTALL_DATA) $(srcdir)/nls-global.mk '$(DESTDIR)$(pgxsdir)/$(subdir)/nls-global.mk'
+
+installdirs: installdirs-local
+
+installdirs-local:
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(subdir)'
+
+uninstall: uninstall-local
+
+uninstall-local:
+	rm -f $(addprefix '$(DESTDIR)$(pgxsdir)/$(subdir)'/, Makefile.global Makefile.port Makefile.shlib nls-global.mk)
+
+clean:
+	$(MAKE) -C test $@
+	$(MAKE) -C tutorial NO_PGXS=1 $@
+	$(MAKE) -C test/isolation $@
+	$(MAKE) -C tools/pg_bsd_indent $@
+
+distclean:
+	$(MAKE) -C test $@
+	$(MAKE) -C tutorial NO_PGXS=1 $@
+	$(MAKE) -C test/isolation $@
+	$(MAKE) -C tools/pg_bsd_indent $@
+	rm -f Makefile.port Makefile.global
+
+
+.PHONY: install-local installdirs-local uninstall-local
+
+
+# FILE: doc/Makefile
+#----------------------------------------------------------------------------
+#
+# PostgreSQL documentation top-level makefile
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+# doc/Makefile
+#
+#----------------------------------------------------------------------------
+
+subdir = doc
+top_builddir = ..
+include $(top_builddir)/src/Makefile.global
+
+all html man install installdirs uninstall clean distclean:
+	$(MAKE) -C src $@
+
+
+# FILE: contrib/README
+The PostgreSQL contrib tree
+---------------------------
+
+This subtree contains porting tools, analysis utilities, and plug-in
+features that are not part of the core PostgreSQL system, mainly
+because they address a limited audience or are too experimental to be
+part of the main source tree.  This does not preclude their
+usefulness.
+
+User documentation for each module appears in the main SGML
+documentation.
+
+When building from the source distribution, these modules are not
+built automatically, unless you build the "world" target.  You can
+also build and install them all by running "make all" and "make
+install" in this directory; or to build and install just one selected
+module, do the same in that module's subdirectory.
+
+Some directories supply new user-defined functions, operators, or
+types.  To make use of one of these modules, after you have installed
+the code you need to register the new SQL objects in the database
+system by executing a CREATE EXTENSION command.  In a fresh database,
+you can simply do
+
+    CREATE EXTENSION module_name;
+
+See the PostgreSQL documentation for more information about this
+procedure.
+
+
+# FILE: contrib/Makefile
+# contrib/Makefile
+
+subdir = contrib
+top_builddir = ..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = \
+		amcheck		\
+		auth_delay	\
+		auto_explain	\
+		basic_archive	\
+		basebackup_to_shell	\
+		bloom		\
+		btree_gin	\
+		btree_gist	\
+		citext		\
+		cube		\
+		dblink		\
+		dict_int	\
+		dict_xsyn	\
+		earthdistance	\
+		file_fdw	\
+		fuzzystrmatch	\
+		hstore		\
+		intagg		\
+		intarray	\
+		isn		\
+		lo		\
+		ltree		\
+		oid2name	\
+		pageinspect	\
+		passwordcheck	\
+		pg_buffercache	\
+		pg_freespacemap \
+		pg_logicalinspect \
+		pg_overexplain \
+		pg_plan_advice \
+		pg_prewarm	\
+		pg_stash_advice	\
+		pg_stat_statements \
+		pg_surgery	\
+		pg_trgm		\
+		pgrowlocks	\
+		pgstattuple	\
+		pg_visibility	\
+		pg_walinspect	\
+		postgres_fdw	\
+		seg		\
+		spi		\
+		tablefunc	\
+		tcn		\
+		test_decoding	\
+		tsm_system_rows \
+		tsm_system_time \
+		unaccent	\
+		vacuumlo
+
+ifeq ($(with_ssl),openssl)
+SUBDIRS += pgcrypto sslinfo
+else
+ALWAYS_SUBDIRS += pgcrypto sslinfo
+endif
+
+ifneq ($(with_uuid),no)
+SUBDIRS += uuid-ossp
+else
+ALWAYS_SUBDIRS += uuid-ossp
+endif
+
+ifeq ($(with_libxml),yes)
+SUBDIRS += xml2
+else
+ALWAYS_SUBDIRS += xml2
+endif
+
+ifeq ($(with_selinux),yes)
+SUBDIRS += sepgsql
+else
+ALWAYS_SUBDIRS += sepgsql
+endif
+
+ifeq ($(with_perl),yes)
+SUBDIRS += bool_plperl hstore_plperl jsonb_plperl
+else
+ALWAYS_SUBDIRS += bool_plperl hstore_plperl jsonb_plperl
+endif
+
+ifeq ($(with_python),yes)
+SUBDIRS += hstore_plpython jsonb_plpython ltree_plpython
+else
+ALWAYS_SUBDIRS += hstore_plpython jsonb_plpython ltree_plpython
+endif
+
+# Missing:
+#		start-scripts	\ (does not have a makefile)
+
+
+$(recurse)
+$(recurse_always)
+
+
+# FILE: src/tutorial/README
+src/tutorial/README
+
+tutorial
+========
+
+This directory contains SQL tutorial scripts.  To look at them, first do a
+	% make
+to compile all the scripts and C files for the user-defined functions
+and types.  (make needs to be GNU make --- it may be named something
+different on your system, often 'gmake')
+
+Then, run psql with the -s (single-step) flag:
+	% psql -s
+
+From within psql, you can try each individual script file by using
+psql's \i <filename> command.
+
+
+# FILE: src/tutorial/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile--
+#    Makefile for tutorial
+#
+# By default, this builds against an existing PostgreSQL installation
+# (the one identified by whichever pg_config is first in your path).
+# Within a configured source tree, you can say "make NO_PGXS=1 all"
+# to build using the surrounding source tree.
+#
+# IDENTIFICATION
+#    src/tutorial/Makefile
+#
+#-------------------------------------------------------------------------
+
+MODULES = complex funcs
+DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql
+
+ifdef NO_PGXS
+subdir = src/tutorial
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/src/makefiles/pgxs.mk
+else
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+endif
+
+%.sql: %.source
+	rm -f $@; \
+	C=`pwd`; \
+	sed -e "s:_OBJWD_:$$C:g" < $< > $@
+
+
+# FILE: src/tools/generate_editorconfig.py
+#!/usr/bin/env python3
+
+import os
+
+
+def cd_to_repo_root():
+    abspath = os.path.abspath(__file__)
+    dname = os.path.join(os.path.dirname(abspath), "..", "..")
+    os.chdir(dname)
+
+
+# Space based indentation levels are not tracked in .gitattributes, so
+# we hardcode them here for the relevant filetypes.
+space_based_indent_sizes = {
+    "*.py": 4,
+    "*.sgml": 1,
+    "*.xsl": 1,
+    "*.xml": 2,
+}
+
+
+def main():
+    cd_to_repo_root()
+
+    with open(".gitattributes", "r") as f:
+        lines = f.read().splitlines()
+
+    new_contents = """root = true
+
+[*]
+indent_size = tab
+"""
+
+    for line in lines:
+        if line.startswith("#") or len(line) == 0:
+            continue
+        name, git_rules = line.split()
+        if git_rules == "-whitespace":
+            rules = [
+                "indent_style = unset",
+                "indent_size = unset",
+                "trim_trailing_whitespace = unset",
+                "insert_final_newline = unset",
+            ]
+        elif git_rules.startswith("whitespace="):
+            git_whitespace_rules = git_rules.replace("whitespace=", "").split(",")
+            rules = []
+            if "-blank-at-eol" in git_whitespace_rules:
+                rules += ["trim_trailing_whitespace = unset"]
+            else:
+                rules += ["trim_trailing_whitespace = true"]
+
+            if "-blank-at-eof" in git_whitespace_rules:
+                rules += ["insert_final_newline = unset"]
+            else:
+                rules += ["insert_final_newline = true"]
+
+            if "tab-in-indent" in git_whitespace_rules:
+                rules += ["indent_style = space"]
+            elif "indent-with-non-tab" in git_whitespace_rules:
+                rules += ["indent_style = tab"]
+            elif name in ["*.pl", "*.pm"]:
+                # We want editors to use tabs for indenting Perl
+                # files, but we cannot add it such a rule to
+                # .gitattributes, because certain lines are still
+                # indented with spaces (e.g. SYNOPSIS blocks).  So we
+                # hardcode the rule here.
+
+                rules += ["indent_style = tab"]
+            else:
+                rules += ["indent_style = unset"]
+
+            tab_width = "unset"
+            for rule in git_whitespace_rules:
+                if rule.startswith("tabwidth="):
+                    tab_width = rule.replace("tabwidth=", "")
+            rules += [f"tab_width = {tab_width}"]
+
+            if name in space_based_indent_sizes:
+                indent_size = space_based_indent_sizes[name]
+                rules += [f"indent_size = {indent_size}"]
+
+        else:
+            continue
+
+        rules = "\n".join(rules)
+        new_contents += f"\n[{name}]\n{rules}\n"
+
+    with open(".editorconfig", "w") as f:
+        f.write(new_contents)
+
+
+if __name__ == "__main__":
+    main()
+
+
+# FILE: src/test/README
+PostgreSQL tests
+================
+
+This directory contains a variety of test infrastructure as well as some of the
+tests in PostgreSQL. Not all tests are here -- in particular, there are more in
+individual contrib/ modules and in src/bin.
+
+Not all these tests get run by "make check". Check src/test/Makefile to see
+which tests get run automatically.
+
+authentication/
+  Tests for authentication (but see also below)
+
+examples/
+  Demonstration programs for libpq that double as regression tests via
+  "make check"
+
+isolation/
+  Tests for concurrent behavior at the SQL level
+
+kerberos/
+  Tests for Kerberos/GSSAPI authentication and encryption
+
+ldap/
+  Tests for LDAP-based authentication
+
+locale/
+  Sanity checks for locale data, encodings, etc
+
+mb/
+  Tests for multibyte encoding (UTF-8) support
+
+modules/
+  Extensions used only or mainly for test purposes, generally not suitable
+  for installing in production databases
+
+perl/
+  Infrastructure for Perl-based TAP tests
+
+recovery/
+  Test suite for recovery and replication
+
+regress/
+  PostgreSQL's main regression test suite, pg_regress
+
+ssl/
+  Tests to exercise and verify SSL certificate handling
+
+subscription/
+  Tests for logical replication
+
+
+# FILE: src/test/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/test
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+# src/test/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/test
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = \
+	authentication \
+	isolation \
+	modules \
+	perl \
+	postmaster \
+	recovery \
+	regress \
+	subscription
+
+ifeq ($(with_icu),yes)
+SUBDIRS += icu
+endif
+ifeq ($(with_gssapi),yes)
+SUBDIRS += kerberos
+endif
+ifeq ($(with_ldap),yes)
+SUBDIRS += ldap
+endif
+ifeq ($(with_ssl),openssl)
+SUBDIRS += ssl
+endif
+
+# We don't build or execute these by default, but we do want "make
+# clean" etc to recurse into them.  (We must filter out those that we
+# have conditionally included into SUBDIRS above, else there will be
+# make confusion.)
+ALWAYS_SUBDIRS = $(filter-out $(SUBDIRS),examples kerberos icu ldap ssl)
+
+# We want to recurse to all subdirs for all standard targets, except that
+# installcheck and install should not recurse into the subdirectory "modules".
+
+recurse_alldirs_targets := $(filter-out installcheck install, $(standard_targets))
+installable_dirs := $(filter-out modules, $(SUBDIRS))
+
+$(call recurse,$(recurse_alldirs_targets))
+$(call recurse,installcheck, $(installable_dirs))
+$(call recurse,install, $(installable_dirs))
+
+$(recurse_always)
+
+
+# FILE: src/timezone/known_abbrevs.txt
++00	0
++00	0	D
++01	3600
++02	7200
++02	7200	D
++03	10800
++0330	12600
++04	14400
++0430	16200
++05	18000
++0530	19800
++0545	20700
++06	21600
++0630	23400
++07	25200
++08	28800
++0845	31500
++09	32400
++10	36000
++1030	37800
++11	39600
++11	39600	D
++12	43200
++12	43200	D
++1245	45900
++13	46800
++1345	49500	D
++14	50400
+-00	0
+-01	-3600
+-01	-3600	D
+-02	-7200
+-02	-7200	D
+-03	-10800
+-03	-10800	D
+-04	-14400
+-05	-18000
+-05	-18000	D
+-06	-21600
+-07	-25200
+-08	-28800
+-09	-32400
+-0930	-34200
+-10	-36000
+-11	-39600
+-12	-43200
+ACDT	37800	D
+ACST	34200
+ADT	-10800	D
+AEDT	39600	D
+AEST	36000
+AKDT	-28800	D
+AKST	-32400
+AST	-14400
+AWST	28800
+BST	3600	D
+CAT	7200
+CDT	-14400	D
+CDT	-18000	D
+CEST	7200	D
+CET	3600
+CST	-18000
+CST	-21600
+CST	28800
+ChST	36000
+EAT	10800
+EDT	-14400	D
+EEST	10800	D
+EET	7200
+EST	-18000
+GMT	0
+GMT	0	D
+HDT	-32400	D
+HKT	28800
+HST	-36000
+IDT	10800	D
+IST	19800
+IST	3600
+IST	7200
+JST	32400
+KST	32400
+MDT	-21600	D
+MSK	10800
+MST	-25200
+NDT	-9000	D
+NST	-12600
+NZDT	46800	D
+NZST	43200
+PDT	-25200	D
+PKT	18000
+PST	-28800
+PST	28800
+SAST	7200
+SST	-39600
+UTC	0
+WAT	3600
+WEST	3600	D
+WET	0
+WIB	25200
+WIT	32400
+WITA	28800
+
+
+# FILE: src/timezone/README
+src/timezone/README
+
+This is a PostgreSQL adapted version of the IANA timezone library from
+
+	https://www.iana.org/time-zones
+
+The latest version of the timezone data and library source code is
+available right from that page.  It's best to get the merged file
+tzdb-NNNNX.tar.lz, since the other archive formats omit tzdata.zi.
+Historical versions, as well as release announcements, can be found
+elsewhere on the site.
+
+Since time zone rules change frequently in some parts of the world,
+we should endeavor to update the data files before each PostgreSQL
+release.  The code need not be updated as often, but we must track
+changes that might affect interpretation of the data files.
+
+
+Time Zone data
+==============
+
+We distribute the time zone source data as-is under src/timezone/data/.
+Currently, we distribute just the abbreviated single-file format
+"tzdata.zi", to reduce the size of our tarballs as well as churn
+in our git repo.  Feeding that file to zic produces the same compiled
+output as feeding the bulkier individual data files would do.
+
+While data/tzdata.zi can just be duplicated when updating, manual effort
+is needed to update the time zone abbreviation lists under tznames/.
+These need to be changed whenever new abbreviations are invented or the
+UTC offset associated with an existing abbreviation changes.  To detect
+if this has happened, after installing new files under data/ do
+	make abbrevs.txt
+which will produce a file showing all abbreviations that are in current
+use according to the data/ files.  Compare this to known_abbrevs.txt,
+which is the list that existed last time the tznames/ files were updated.
+Update tznames/ as seems appropriate, then replace known_abbrevs.txt
+in the same commit.  Usually, if a known abbreviation has changed meaning,
+the appropriate fix is to make it refer to a long-form zone name instead
+of a fixed GMT offset.
+
+The core regression test suite does some simple validation of the zone
+data and abbreviations data (notably by checking that the pg_timezone_names
+and pg_timezone_abbrevs views don't throw errors).  It's worth running it
+as a cross-check on proposed updates.
+
+When there has been a new release of Windows (probably including Service
+Packs), findtimezone.c's mapping from Windows zones to IANA zones may
+need to be updated.  We have two approaches to doing this:
+1. Consult the CLDR project's windowsZones.xml file, and add any zones
+   listed there that we don't have.  Use their "territory=001" mapping
+   if there's more than one IANA zone listed.
+2. Run the script in src/tools/win32tzlist.pl on a Windows machine
+   running the new release, and add any new timezones that it detects.
+   (This is not a full substitute for #1, though, as win32tzlist.pl
+   can't tell you which IANA zone to map to.)
+In either case, never remove any zone names that have disappeared from
+Windows, since we still need to match properly on older versions.
+
+
+Time Zone code
+==============
+
+The code in this directory is currently synced with tzcode release 2020d.
+There are many cosmetic (and not so cosmetic) differences from the
+original tzcode library, but diffs in the upstream version should usually
+be propagated to our version.  Here are some notes about that.
+
+For the most part we want to use the upstream code as-is, but there are
+several considerations preventing an exact match:
+
+* For readability/maintainability we reformat the code to match our own
+conventions; this includes pgindent'ing it and getting rid of upstream's
+overuse of "register" declarations.  (It used to include conversion of
+old-style function declarations to C89 style, but thank goodness they
+fixed that.)
+
+* We need the code to follow Postgres' portability conventions; this
+includes relying on configure's results rather than hand-hacked
+#defines (see private.h in particular).
+
+* Since Postgres is typically built on a system that has its own copy
+of the <time.h> functions, we must avoid conflicting with those.  This
+mandates renaming typedef time_t to pg_time_t, and similarly for most
+other exposed names.
+
+* zic.c's typedef "lineno" is renamed to "lineno_t", because having
+"lineno" in our typedefs list would cause unfortunate pgindent behavior
+in some other files where we have variables named that.
+
+* We have exposed the tzload() and tzparse() internal functions, and
+slightly modified the API of the former, in part because it now relies
+on our own pg_open_tzfile() rather than opening files for itself.
+
+* tzparse() is adjusted to never try to load the TZDEFRULES zone.
+
+* There's a fair amount of code we don't need and have removed,
+including all the nonstandard optional APIs.  We have also added
+a few functions of our own at the bottom of localtime.c.
+
+* In zic.c, we have added support for a -P (print_abbrevs) switch, which
+is used to create the "abbrevs.txt" summary of currently-in-use zone
+abbreviations that was described above.
+
+
+The most convenient way to compare a new tzcode release to our code is
+to first run the tzcode source files through a sed filter like this:
+
+    sed -r \
+        -e 's/^([ \t]*)\*\*([ \t])/\1 *\2/' \
+        -e 's/^([ \t]*)\*\*$/\1 */' \
+        -e 's|^\*/| */|' \
+        -e 's/\bregister[ \t]//g' \
+        -e 's/\bATTRIBUTE_PURE[ \t]//g' \
+        -e 's/struct[ \t]+tm\b/struct pg_tm/g' \
+        -e 's/\btime_t\b/pg_time_t/g' \
+        -e 's/lineno/lineno_t/g' \
+
+and then run them through pgindent.  (The first three sed patterns deal
+with conversion of their block comment style to something pgindent
+won't make a hash of; the remainder address other points noted above.)
+After that, the files can be diff'd directly against our corresponding
+files.  Also, it's typically helpful to diff against the previous tzcode
+release (after processing that the same way), and then try to apply the
+diff to our files.  This will take care of most of the changes
+mechanically.
+
+
+# FILE: src/timezone/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile
+#    Makefile for the timezone library
+
+# IDENTIFICATION
+#    src/timezone/Makefile
+#
+#-------------------------------------------------------------------------
+
+PGFILEDESC = "zic - time zone compiler"
+PGAPPICON = win32
+
+subdir = src/timezone
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+# files to build into backend
+OBJS = \
+	localtime.o \
+	pgtz.o \
+	strftime.o
+
+# files needed to build zic utility program
+ZICOBJS = \
+	$(WIN32RES) \
+	zic.o
+
+# we now distribute the timezone data as a single file
+TZDATAFILES = $(srcdir)/data/tzdata.zi
+
+# any custom options you might want to pass to zic while installing data files
+ZIC_OPTIONS =
+
+# use system timezone data?
+ifneq (,$(with_system_tzdata))
+override CPPFLAGS += '-DSYSTEMTZDIR="$(with_system_tzdata)"'
+endif
+
+include $(top_srcdir)/src/backend/common.mk
+
+ifeq (,$(with_system_tzdata))
+all: zic
+endif
+
+# We could do this test in the action section:
+#	$(if $(ZIC),$(ZIC),./zic)
+# but GNU make versions <= 3.78.1 or perhaps later have a bug
+# that causes a segfault;  GNU make 3.81 or later fixes this.
+ifeq (,$(ZIC))
+ZIC= ./zic
+endif
+
+zic: $(ZICOBJS) | submake-libpgport
+	$(CC) $(CFLAGS) $(ZICOBJS) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@$(X)
+
+install: all installdirs
+ifeq (,$(with_system_tzdata))
+	$(ZIC) -d '$(DESTDIR)$(datadir)/timezone' $(ZIC_OPTIONS) $(TZDATAFILES)
+endif
+	$(MAKE) -C tznames $@
+
+# Note: -P code currently depends on '-b fat'.  Not worth fixing right now.
+abbrevs.txt: zic $(TZDATAFILES)
+	mkdir junkdir
+	$(ZIC) -P -b fat -d junkdir $(TZDATAFILES) | LANG=C sort | uniq >abbrevs.txt
+	rm -rf junkdir
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(datadir)'
+
+uninstall:
+ifeq (,$(with_system_tzdata))
+	rm -rf '$(DESTDIR)$(datadir)/timezone'
+endif
+	$(MAKE) -C tznames $@
+
+clean distclean:
+	rm -f zic$(X) $(ZICOBJS) abbrevs.txt
+
+
+# FILE: src/makefiles/Makefile
+# src/makefiles/Makefile
+
+subdir = src/makefiles
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+
+install: all installdirs
+	$(INSTALL_DATA) $(srcdir)/pgxs.mk '$(DESTDIR)$(pgxsdir)/$(subdir)/'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(subdir)'
+
+uninstall:
+	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/pgxs.mk'
+
+
+# FILE: src/interfaces/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/interfaces
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+# src/interfaces/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/interfaces
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = libpq ecpg
+
+ifeq ($(with_libcurl), yes)
+SUBDIRS += libpq-oauth
+else
+ALWAYS_SUBDIRS += libpq-oauth
+endif
+
+$(recurse)
+$(recurse_always)
+
+all-ecpg-recurse: all-libpq-recurse
+install-ecpg-recurse: install-libpq-recurse
+
+ifeq ($(with_libcurl), yes)
+all-libpq-oauth-recurse: all-libpq-recurse
+install-libpq-oauth-recurse: install-libpq-recurse
+endif
+
+
+# FILE: src/pl/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/pl (procedural languages)
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+# src/pl/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/pl
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = plpgsql
+
+ifeq ($(with_perl), yes)
+SUBDIRS += plperl
+else
+ALWAYS_SUBDIRS += plperl
+endif
+
+ifeq ($(with_python), yes)
+SUBDIRS += plpython
+else
+ALWAYS_SUBDIRS += plpython
+endif
+
+ifeq ($(with_tcl), yes)
+SUBDIRS += tcl
+else
+ALWAYS_SUBDIRS += tcl
+endif
+
+$(recurse)
+$(recurse_always)
+
+
+# FILE: src/fe_utils/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/fe_utils
+#
+# This makefile generates a static library, libpgfeutils.a,
+# for use by client applications
+#
+# Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group
+# Portions Copyright (c) 1994, Regents of the University of California
+#
+# IDENTIFICATION
+#    src/fe_utils/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/fe_utils
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+override CPPFLAGS := -DFRONTEND -I$(libpq_srcdir) $(CPPFLAGS)
+
+OBJS = \
+	archive.o \
+	astreamer_file.o \
+	astreamer_gzip.o \
+	astreamer_lz4.o \
+	astreamer_tar.o \
+	astreamer_zstd.o \
+	cancel.o \
+	conditional.o \
+	connect_utils.o \
+	mbprint.o \
+	option_utils.o \
+	parallel_slot.o \
+	print.o \
+	psqlscan.o \
+	query_utils.o \
+	recovery_gen.o \
+	simple_list.o \
+	string_utils.o \
+	version.o
+
+ifeq ($(PORTNAME), win32)
+override CPPFLAGS += -DFD_SETSIZE=1024
+endif
+
+all: libpgfeutils.a
+
+libpgfeutils.a: $(OBJS)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+psqlscan.c: FLEXFLAGS = -Cfe -p -p
+psqlscan.c: FLEX_NO_BACKUP=yes
+
+# libpgfeutils could be useful to contrib, so install it
+install: all installdirs
+	$(INSTALL_STLIB) libpgfeutils.a '$(DESTDIR)$(libdir)/libpgfeutils.a'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(libdir)'
+
+uninstall:
+	rm -f '$(DESTDIR)$(libdir)/libpgfeutils.a'
+
+clean distclean:
+	rm -f libpgfeutils.a $(OBJS) lex.backup
+	rm -f psqlscan.c
+
+
+# FILE: src/port/README
+src/port/README
+
+libpgport
+=========
+
+libpgport must have special behavior.  It supplies functions to both
+libraries and applications.  However, there are two complexities:
+
+1)  Libraries need to use object files that are compiled with exactly
+the same flags as the library.  libpgport might not use the same flags,
+so it is necessary to recompile the object files for individual
+libraries.  This is done by removing -lpgport from the link line:
+
+        # Need to recompile any libpgport object files
+        LIBS := $(filter-out -lpgport, $(LIBS))
+
+and adding infrastructure to recompile the object files:
+
+        OBJS= execute.o typename.o descriptor.o data.o error.o prepare.o memory.o \
+                connect.o misc.o path.o exec.o \
+                $(filter strlcat.o, $(LIBOBJS))
+
+The problem is that there is no testing of which object files need to be
+added, but missing functions usually show up when linking user
+applications.
+
+2) For applications, we use -lpgport before -lpq, so the static files
+from libpgport are linked first.  This avoids having applications
+dependent on symbols that are _used_ by libpq, but not intended to be
+exported by libpq.  libpq's libpgport usage changes over time, so such a
+dependency is a problem.  Windows, Linux, AIX, and macOS use an export
+list to control the symbols exported by libpq.
+
+
+# FILE: src/port/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile
+#    Makefile for src/port
+#
+# These files are used by the Postgres backend, and also by frontend
+# programs.  Primarily, they are meant to provide portability on systems
+# with broken/missing library files.
+#
+# This makefile generates three outputs:
+#
+#	libpgport.a - contains object files with FRONTEND defined,
+#		for use by client applications
+#
+#	libpgport_shlib.a - contains object files with FRONTEND defined,
+#		built suitably for use in shared libraries; for use
+#		by frontend libraries
+#
+#	libpgport_srv.a - contains object files without FRONTEND defined,
+#		for use only by the backend
+#
+# LIBOBJS is set by configure (via Makefile.global) to be the list of object
+# files that are conditionally needed as determined by configure's probing.
+# OBJS adds additional object files that are always compiled.
+#
+# IDENTIFICATION
+#    src/port/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/port
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+override CPPFLAGS := -I$(top_builddir)/src/port -DFRONTEND $(CPPFLAGS)
+LIBS += $(PTHREAD_LIBS)
+
+OBJS = \
+	$(LIBOBJS) \
+	$(PG_CRC32C_OBJS) \
+	bsearch_arg.o \
+	chklocale.o \
+	inet_net_ntop.o \
+	noblock.o \
+	path.o \
+	pg_bitutils.o \
+	pg_cpu_x86.o \
+	pg_getopt_ctx.o \
+	pg_localeconv_r.o \
+	pg_numa.o \
+	pg_popcount_aarch64.o \
+	pg_popcount_x86.o \
+	pg_strong_random.o \
+	pgcheckdir.o \
+	pgmkdirp.o \
+	pgsleep.o \
+	pgstrcasecmp.o \
+	pgstrsignal.o \
+	pqsignal.o \
+	qsort.o \
+	qsort_arg.o \
+	quotes.o \
+	snprintf.o \
+	strerror.o \
+	tar.o
+
+# libpgport.a, libpgport_shlib.a, and libpgport_srv.a contain the same files
+# foo.o, foo_shlib.o, and foo_srv.o are all built from foo.c
+OBJS_SHLIB = $(OBJS:%.o=%_shlib.o)
+OBJS_SRV = $(OBJS:%.o=%_srv.o)
+
+all: libpgport.a libpgport_shlib.a libpgport_srv.a
+
+# libpgport is needed by some contrib
+install: all installdirs
+	$(INSTALL_STLIB) libpgport.a '$(DESTDIR)$(libdir)/libpgport.a'
+	$(INSTALL_STLIB) libpgport_shlib.a '$(DESTDIR)$(libdir)/libpgport_shlib.a'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(libdir)'
+
+uninstall:
+	rm -f '$(DESTDIR)$(libdir)/libpgport.a'
+	rm -f '$(DESTDIR)$(libdir)/libpgport_shlib.a'
+
+libpgport.a: $(OBJS)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+# all versions of pg_crc32c_armv8.o need CFLAGS_CRC
+pg_crc32c_armv8.o: CFLAGS+=$(CFLAGS_CRC)
+pg_crc32c_armv8_shlib.o: CFLAGS+=$(CFLAGS_CRC)
+pg_crc32c_armv8_srv.o: CFLAGS+=$(CFLAGS_CRC)
+
+#
+# Shared library versions of object files
+#
+
+libpgport_shlib.a: $(OBJS_SHLIB)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+# Because this uses its own compilation rule, it doesn't use the
+# dependency tracking logic from Makefile.global.  To make sure that
+# dependency tracking works anyway for the *_shlib.o files, depend on
+# their *.o siblings as well, which do have proper dependencies.  It's
+# a hack that might fail someday if there is a *_shlib.o without a
+# corresponding *.o, but there seems little reason for that.
+%_shlib.o: %.c %.o
+	$(CC) $(CFLAGS) $(CFLAGS_SL) $(CPPFLAGS) -c $< -o $@
+
+#
+# Server versions of object files
+#
+
+libpgport_srv.a: $(OBJS_SRV)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+# Because this uses its own compilation rule, it doesn't use the
+# dependency tracking logic from Makefile.global.  To make sure that
+# dependency tracking works anyway for the *_srv.o files, depend on
+# their *.o siblings as well, which do have proper dependencies.  It's
+# a hack that might fail someday if there is a *_srv.o without a
+# corresponding *.o, but it works for now (and those would probably go
+# into src/backend/port/ anyway).
+%_srv.o: %.c %.o
+	$(CC) $(CFLAGS) $(subst -DFRONTEND,, $(CPPFLAGS)) -c $< -o $@
+
+# Dependency is to ensure that path changes propagate
+
+path.o: path.c pg_config_paths.h
+
+path_shlib.o: path.c pg_config_paths.h
+
+path_srv.o: path.c pg_config_paths.h
+
+# We create a separate file rather than put these in pg_config.h
+# because many of these values come from makefiles and are not
+# available to configure.
+pg_config_paths.h: $(top_builddir)/src/Makefile.global
+	echo "#define PGBINDIR \"$(bindir)\"" >$@
+	echo "#define PGSHAREDIR \"$(datadir)\"" >>$@
+	echo "#define SYSCONFDIR \"$(sysconfdir)\"" >>$@
+	echo "#define INCLUDEDIR \"$(includedir)\"" >>$@
+	echo "#define PKGINCLUDEDIR \"$(pkgincludedir)\"" >>$@
+	echo "#define INCLUDEDIRSERVER \"$(includedir_server)\"" >>$@
+	echo "#define LIBDIR \"$(libdir)\"" >>$@
+	echo "#define PKGLIBDIR \"$(pkglibdir)\"" >>$@
+	echo "#define LOCALEDIR \"$(localedir)\"" >>$@
+	echo "#define DOCDIR \"$(docdir)\"" >>$@
+	echo "#define HTMLDIR \"$(htmldir)\"" >>$@
+	echo "#define MANDIR \"$(mandir)\"" >>$@
+
+clean distclean:
+	rm -f libpgport.a libpgport_shlib.a libpgport_srv.a
+	rm -f $(OBJS) $(OBJS_SHLIB) $(OBJS_SRV) pg_config_paths.h
+
+
+# FILE: src/include/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/include
+#
+# 'make install' installs whole contents of src/include.
+#
+# src/include/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/include
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+
+all: pg_config.h pg_config_os.h
+
+
+# Subdirectories containing installable headers
+SUBDIRS = \
+	access \
+	archive \
+	bootstrap \
+	catalog \
+	commands \
+	common \
+	datatype \
+	executor \
+	fe_utils \
+	foreign \
+	jit \
+	lib \
+	libpq \
+	mb \
+	nodes \
+	optimizer \
+	parser \
+	partitioning \
+	postmaster \
+	regex \
+	replication \
+	rewrite \
+	statistics \
+	storage \
+	tcop \
+	snowball \
+	snowball/libstemmer \
+	tsearch \
+	tsearch/dicts \
+	utils \
+	port \
+	port/atomics \
+	port/win32 \
+	port/win32_msvc \
+	port/win32_msvc/sys \
+	port/win32/arpa \
+	port/win32/netinet \
+	port/win32/sys \
+	portability
+
+# Install all headers
+install: all installdirs
+# These headers are needed by the public headers of the interfaces.
+	$(INSTALL_DATA) $(srcdir)/postgres_ext.h   '$(DESTDIR)$(includedir)'
+	$(INSTALL_DATA) $(srcdir)/libpq/libpq-fs.h '$(DESTDIR)$(includedir)/libpq'
+	$(INSTALL_DATA) pg_config.h     '$(DESTDIR)$(includedir)'
+	$(INSTALL_DATA) pg_config_os.h  '$(DESTDIR)$(includedir)'
+	$(INSTALL_DATA) $(srcdir)/pg_config_manual.h '$(DESTDIR)$(includedir)'
+# These headers are needed by the not-so-public headers of the interfaces.
+	$(INSTALL_DATA) $(srcdir)/c.h            '$(DESTDIR)$(includedir_internal)'
+	$(INSTALL_DATA) $(srcdir)/port.h         '$(DESTDIR)$(includedir_internal)'
+	$(INSTALL_DATA) $(srcdir)/postgres_fe.h  '$(DESTDIR)$(includedir_internal)'
+	$(INSTALL_DATA) $(srcdir)/libpq/pqcomm.h '$(DESTDIR)$(includedir_internal)/libpq'
+	$(INSTALL_DATA) $(srcdir)/libpq/protocol.h '$(DESTDIR)$(includedir_internal)/libpq'
+# These headers are needed for server-side development
+	$(INSTALL_DATA) pg_config.h     '$(DESTDIR)$(includedir_server)'
+	$(INSTALL_DATA) pg_config_os.h  '$(DESTDIR)$(includedir_server)'
+	$(INSTALL_DATA) nodes/nodetags.h '$(DESTDIR)$(includedir_server)/nodes'
+	$(INSTALL_DATA) utils/errcodes.h '$(DESTDIR)$(includedir_server)/utils'
+	$(INSTALL_DATA) utils/fmgroids.h '$(DESTDIR)$(includedir_server)/utils'
+	$(INSTALL_DATA) utils/fmgrprotos.h '$(DESTDIR)$(includedir_server)/utils'
+	$(INSTALL_DATA) $(srcdir)/*.h '$(DESTDIR)$(includedir_server)'
+	for dir in $(SUBDIRS); do \
+	  $(INSTALL_DATA) $(srcdir)/$$dir/*.h '$(DESTDIR)$(includedir_server)'/$$dir || exit; \
+	done
+ifeq ($(vpath_build),yes)
+	for file in storage/lwlocknames.h utils/probes.h utils/wait_event_types.h; do \
+	  $(INSTALL_DATA) $$file '$(DESTDIR)$(includedir_server)'/$$file || exit; \
+	done
+endif
+	$(MAKE) -C catalog install
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(includedir)/libpq' '$(DESTDIR)$(includedir_internal)/libpq'
+	$(MKDIR_P) $(addprefix '$(DESTDIR)$(includedir_server)'/, $(SUBDIRS))
+
+
+uninstall:
+	rm -f $(addprefix '$(DESTDIR)$(includedir)'/, pg_config.h pg_config_os.h pg_config_manual.h postgres_ext.h libpq/libpq-fs.h)
+	rm -f $(addprefix '$(DESTDIR)$(includedir_internal)'/, c.h port.h postgres_fe.h libpq/pqcomm.h libpq/protocol.h)
+# heuristic...
+	rm -rf $(addprefix '$(DESTDIR)$(includedir_server)'/, $(SUBDIRS) *.h)
+	$(MAKE) -C catalog uninstall
+
+
+clean:
+	rm -f utils/fmgroids.h utils/fmgrprotos.h utils/guc_tables.inc.c utils/errcodes.h utils/header-stamp
+	rm -f utils/pgstat_wait_event.c utils/wait_event_funcs_data.c
+	rm -f storage/lwlocknames.h utils/probes.h utils/wait_event_types.h
+	rm -f nodes/nodetags.h nodes/header-stamp
+	$(MAKE) -C catalog clean
+
+distclean: clean
+	rm -f pg_config.h pg_config_os.h stamp-h
+
+
+# FILE: src/bin/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for src/bin (client programs)
+#
+# Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group
+# Portions Copyright (c) 1994, Regents of the University of California
+#
+# src/bin/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/bin
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = \
+	initdb \
+	pg_amcheck \
+	pg_archivecleanup \
+	pg_basebackup \
+	pg_checksums \
+	pg_combinebackup \
+	pg_config \
+	pg_controldata \
+	pg_ctl \
+	pg_dump \
+	pg_resetwal \
+	pg_rewind \
+	pg_test_fsync \
+	pg_test_timing \
+	pg_upgrade \
+	pg_verifybackup \
+	pg_waldump \
+	pg_walsummary \
+	pgbench \
+	psql \
+	scripts
+
+ifeq ($(PORTNAME), win32)
+SUBDIRS += pgevent
+else
+ALWAYS_SUBDIRS += pgevent
+endif
+
+$(recurse)
+$(recurse_always)
+
+
+# FILE: src/common/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile
+#    Makefile for src/common
+#
+# These files are used by the Postgres backend, and also by frontend
+# programs.  These files provide common functionality that isn't directly
+# concerned with portability and thus doesn't belong in src/port.
+#
+# This makefile generates three outputs:
+#
+#	libpgcommon.a - contains object files with FRONTEND defined,
+#		for use by client applications
+#
+#	libpgcommon_shlib.a - contains object files with FRONTEND defined,
+#		built suitably for use in shared libraries; for use
+#		by frontend libraries
+#
+#	libpgcommon_srv.a - contains object files without FRONTEND defined,
+#		for use only by the backend
+#
+# IDENTIFICATION
+#    src/common/Makefile
+#
+#-------------------------------------------------------------------------
+
+subdir = src/common
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+# don't include subdirectory-path-dependent -I and -L switches
+STD_CPPFLAGS := $(filter-out -I$(top_srcdir)/src/include -I$(top_builddir)/src/include,$(CPPFLAGS))
+STD_LDFLAGS := $(filter-out -L$(top_builddir)/src/common -L$(top_builddir)/src/port,$(LDFLAGS))
+override CPPFLAGS += -DVAL_CC="\"$(CC)\""
+override CPPFLAGS += -DVAL_CPPFLAGS="\"$(STD_CPPFLAGS)\""
+override CPPFLAGS += -DVAL_CFLAGS="\"$(CFLAGS)\""
+override CPPFLAGS += -DVAL_CFLAGS_SL="\"$(CFLAGS_SL)\""
+override CPPFLAGS += -DVAL_LDFLAGS="\"$(STD_LDFLAGS)\""
+override CPPFLAGS += -DVAL_LDFLAGS_EX="\"$(LDFLAGS_EX)\""
+override CPPFLAGS += -DVAL_LDFLAGS_SL="\"$(LDFLAGS_SL)\""
+override CPPFLAGS += -DVAL_LIBS="\"$(LIBS)\""
+
+override CPPFLAGS := -DFRONTEND -I. -I$(top_srcdir)/src/common $(CPPFLAGS)
+LIBS += $(PTHREAD_LIBS)
+
+OBJS_COMMON = \
+	archive.o \
+	base64.o \
+	binaryheap.o \
+	blkreftable.o \
+	checksum_helper.o \
+	compression.o \
+	config_info.o \
+	controldata_utils.o \
+	d2s.o \
+	encnames.o \
+	exec.o \
+	f2s.o \
+	file_perm.o \
+	file_utils.o \
+	hashfn.o \
+	ip.o \
+	jsonapi.o \
+	keywords.o \
+	kwlookup.o \
+	link-canary.o \
+	md5_common.o \
+	parse_manifest.o \
+	percentrepl.o \
+	pg_get_line.o \
+	pg_lzcompress.o \
+	pg_prng.o \
+	pgfnames.o \
+	psprintf.o \
+	relpath.o \
+	rmtree.o \
+	saslprep.o \
+	scram-common.o \
+	string.o \
+	stringinfo.o \
+	unicode_case.o \
+	unicode_category.o \
+	unicode_norm.o \
+	username.o \
+	wait_error.o \
+	wchar.o
+
+ifeq ($(with_ssl),openssl)
+OBJS_COMMON += \
+	cryptohash_openssl.o \
+	hmac_openssl.o
+else
+OBJS_COMMON += \
+	cryptohash.o \
+	hmac.o \
+	md5.o \
+	sha1.o \
+	sha2.o
+endif
+
+# A few files are currently only built for frontend, not server.
+# logging.c is excluded from OBJS_FRONTEND_SHLIB (shared library) as
+# a matter of policy, because it is not appropriate for general purpose
+# libraries such as libpq to report errors directly.  fe_memutils.c is
+# excluded because libpq must not exit() on allocation failure.
+#
+# The excluded files for _shlib builds are pulled into their own static
+# library, for the benefit of test programs that need not follow the
+# shlib rules.
+OBJS_FRONTEND_SHLIB = \
+	$(OBJS_COMMON) \
+	restricted_token.o \
+	sprompt.o
+OBJS_EXCLUDED_SHLIB = \
+	fe_memutils.o \
+	logging.o
+OBJS_FRONTEND = \
+	$(OBJS_FRONTEND_SHLIB) \
+	$(OBJS_EXCLUDED_SHLIB)
+
+# foo.o, foo_shlib.o, and foo_srv.o are all built from foo.c
+OBJS_SHLIB = $(OBJS_FRONTEND_SHLIB:%.o=%_shlib.o)
+OBJS_SRV = $(OBJS_COMMON:%.o=%_srv.o)
+
+# where to find gen_keywordlist.pl and subsidiary files
+TOOLSDIR = $(top_srcdir)/src/tools
+GEN_KEYWORDLIST = $(PERL) -I $(TOOLSDIR) $(TOOLSDIR)/gen_keywordlist.pl
+GEN_KEYWORDLIST_DEPS = $(TOOLSDIR)/gen_keywordlist.pl $(TOOLSDIR)/PerfectHash.pm
+
+all: libpgcommon.a libpgcommon_shlib.a libpgcommon_srv.a libpgcommon_excluded_shlib.a
+
+# libpgcommon is needed by some contrib
+install: all installdirs
+	$(INSTALL_STLIB) libpgcommon.a '$(DESTDIR)$(libdir)/libpgcommon.a'
+	$(INSTALL_STLIB) libpgcommon_shlib.a '$(DESTDIR)$(libdir)/libpgcommon_shlib.a'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(libdir)'
+
+uninstall:
+	rm -f '$(DESTDIR)$(libdir)/libpgcommon.a'
+	rm -f '$(DESTDIR)$(libdir)/libpgcommon_shlib.a'
+
+libpgcommon.a: $(OBJS_FRONTEND)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+#
+# Files in libpgcommon.a should use/export the "xxx_private" versions
+# of pg_char_to_encoding() and friends.
+#
+$(OBJS_FRONTEND): CPPFLAGS += -DUSE_PRIVATE_ENCODING_FUNCS
+
+
+#
+# Shared library versions of object files
+#
+
+libpgcommon_shlib.a: $(OBJS_SHLIB)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+# The JSON API normally exits on out-of-memory; disable that behavior for shared
+# library builds. This requires libpq's pqexpbuffer.h.
+jsonapi_shlib.o: override CPPFLAGS += -DJSONAPI_USE_PQEXPBUFFER
+jsonapi_shlib.o: override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
+
+# Because this uses its own compilation rule, it doesn't use the
+# dependency tracking logic from Makefile.global.  To make sure that
+# dependency tracking works anyway for the *_shlib.o files, depend on
+# their *.o siblings as well, which do have proper dependencies.  It's
+# a hack that might fail someday if there is a *_shlib.o without a
+# corresponding *.o, but there seems little reason for that.
+%_shlib.o: %.c %.o
+	$(CC) $(CFLAGS) $(CFLAGS_SL) $(CPPFLAGS) -c $< -o $@
+
+libpgcommon_excluded_shlib.a: $(OBJS_EXCLUDED_SHLIB)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+#
+# Server versions of object files
+#
+
+libpgcommon_srv.a: $(OBJS_SRV)
+	rm -f $@
+	$(AR) $(AROPT) $@ $^
+
+# Because this uses its own compilation rule, it doesn't use the
+# dependency tracking logic from Makefile.global.  To make sure that
+# dependency tracking works anyway for the *_srv.o files, depend on
+# their *.o siblings as well, which do have proper dependencies.  It's
+# a hack that might fail someday if there is a *_srv.o without a
+# corresponding *.o, but it works for now.
+%_srv.o: %.c %.o
+	$(CC) $(CFLAGS) $(subst -DFRONTEND,, $(CPPFLAGS)) -c $< -o $@
+
+# generate SQL keyword lookup table to be included into keywords*.o.
+kwlist_d.h: $(top_srcdir)/src/include/parser/kwlist.h $(GEN_KEYWORDLIST_DEPS)
+	$(GEN_KEYWORDLIST) --extern $<
+
+# Dependencies of keywords*.o need to be managed explicitly to make sure
+# that you don't get broken parsing code, even in a non-enable-depend build.
+keywords.o keywords_shlib.o keywords_srv.o: kwlist_d.h
+
+# The code imported from Ryu gets a pass on declaration-after-statement,
+# in order to keep it more closely aligned with its upstream.
+RYU_FILES = d2s.o f2s.o
+RYU_OBJS = $(RYU_FILES) $(RYU_FILES:%.o=%_shlib.o) $(RYU_FILES:%.o=%_srv.o)
+
+$(RYU_OBJS): CFLAGS += $(PERMIT_DECLARATION_AFTER_STATEMENT)
+
+clean distclean:
+	rm -f libpgcommon.a libpgcommon_shlib.a libpgcommon_srv.a libpgcommon_excluded_shlib.a
+	rm -f $(OBJS_FRONTEND) $(OBJS_SHLIB) $(OBJS_SRV)
+	rm -f kwlist_d.h
+
+
+# FILE: src/backend/Makefile
+#-------------------------------------------------------------------------
+#
+# Makefile for the postgres backend
+#
+# Portions Copyright (c) 1996-2026, PostgreSQL Global Development Group
+# Portions Copyright (c) 1994, Regents of the University of California
+#
+# src/backend/Makefile
+#
+#-------------------------------------------------------------------------
+
+PGFILEDESC = "PostgreSQL Server"
+PGAPPICON=win32
+
+subdir = src/backend
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+SUBDIRS = \
+	access \
+	archive \
+	backup \
+	bootstrap \
+	catalog \
+	parser \
+	commands \
+	executor \
+	foreign \
+	lib \
+	libpq \
+	main \
+	nodes \
+	optimizer \
+	partitioning \
+	port \
+	postmaster \
+	regex \
+	replication \
+	rewrite \
+	statistics \
+	storage \
+	tcop \
+	tsearch \
+	utils \
+	$(top_builddir)/src/timezone \
+	jit
+
+include $(srcdir)/common.mk
+
+# As of 1/2010:
+# The probes.o file is necessary for dtrace support on Solaris, and on recent
+# versions of systemtap.  (Older systemtap releases just produce an empty
+# file, but that's okay.)  However, macOS's dtrace doesn't use it and doesn't
+# even recognize the -G option.  So, build probes.o except on macOS.
+# This might need adjustment as other platforms add dtrace support.
+ifneq ($(PORTNAME), darwin)
+ifeq ($(enable_dtrace), yes)
+LOCALOBJS += utils/probes.o
+endif
+endif
+
+OBJS = \
+	$(LOCALOBJS) \
+	$(SUBDIROBJS) \
+	$(top_builddir)/src/common/libpgcommon_srv.a \
+	$(top_builddir)/src/port/libpgport_srv.a
+
+# We put libpgport and libpgcommon into OBJS, so remove it from LIBS.
+LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS))
+# The backend conditionally needs libraries that most executables don't need.
+LIBS += $(LDAP_LIBS_BE) $(ICU_LIBS) $(LIBURING_LIBS)
+
+# The backend doesn't need everything that's in LIBS, however
+LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
+
+ifeq ($(with_systemd),yes)
+LIBS += -lsystemd
+endif
+
+override LDFLAGS := $(LDFLAGS) $(LDFLAGS_EX) $(LDFLAGS_EX_BE)
+
+##########################################################################
+
+all: submake-libpgport submake-catalog-headers submake-utils-headers postgres $(POSTGRES_IMP)
+
+ifneq ($(PORTNAME), cygwin)
+ifneq ($(PORTNAME), win32)
+ifneq ($(PORTNAME), aix)
+
+postgres: $(OBJS)
+	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LIBS) -o $@
+
+endif
+endif
+endif
+
+ifeq ($(PORTNAME), cygwin)
+
+postgres: $(OBJS)
+	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) -Wl,--stack,$(WIN32_STACK_RLIMIT) -Wl,--export-all-symbols -Wl,--out-implib=libpostgres.a $(LIBS) -o $@
+
+# libpostgres.a is actually built in the preceding rule, but we need this to
+# ensure it's newer than postgres; see notes in src/backend/parser/Makefile
+libpostgres.a: postgres
+	touch $@
+
+endif # cygwin
+
+ifeq ($(PORTNAME), win32)
+LIBS += -lsecur32
+
+postgres: $(OBJS) $(WIN32RES)
+	$(CC) $(CFLAGS) $(call expand_subsys,$(OBJS)) $(WIN32RES) $(LDFLAGS) -Wl,--stack=$(WIN32_STACK_RLIMIT) -Wl,--export-all-symbols -Wl,--out-implib=libpostgres.a $(LIBS) -o $@$(X)
+
+# libpostgres.a is actually built in the preceding rule, but we need this to
+# ensure it's newer than postgres; see notes in src/backend/parser/Makefile
+libpostgres.a: postgres
+	touch $@
+
+endif # win32
+
+ifeq ($(PORTNAME), aix)
+
+postgres: $(POSTGRES_IMP)
+	$(CC) $(CFLAGS) $(call expand_subsys,$(OBJS)) $(LDFLAGS) -Wl,-bE:$(top_builddir)/src/backend/$(POSTGRES_IMP) $(LIBS) -Wl,-brtllib -o $@
+
+# Linking to a single .o with -r is a lot faster than building a .a or passing
+# all objects to MKLDEXPORT.
+#
+# It looks alluring to use $(CC) -r instead of ld -r, but that doesn't
+# trivially work with gcc, due to gcc specific static libraries linked in with
+# -r.
+$(POSTGRES_IMP): $(OBJS)
+	ld -b64 -r -o SUBSYS.o $(call expand_subsys,$^)
+	$(MKLDEXPORT) SUBSYS.o . > $@
+	@rm -f SUBSYS.o
+
+endif # aix
+
+$(top_builddir)/src/port/libpgport_srv.a: | submake-libpgport
+
+
+# The following targets are specified in make commands that appear in
+# the make files in our subdirectories. Note that it's important we
+# match the dependencies shown in the subdirectory makefiles!
+# Also, in cases where a subdirectory makefile generates two files in
+# what's really one step, such as bison producing both gram.h and gram.c,
+# we must request making the one that is shown as the secondary (dependent)
+# output, else the timestamp on it might be wrong.  By project convention,
+# the .h file is the dependent one for bison output, so we need only request
+# that; but in other cases, request both for safety.
+
+parser/gram.h: parser/gram.y
+	$(MAKE) -C parser gram.h
+
+storage/lmgr/lwlocknames.h: storage/lmgr/generate-lwlocknames.pl ../include/storage/lwlocklist.h utils/activity/wait_event_names.txt
+	$(MAKE) -C storage/lmgr lwlocknames.h
+
+# run this unconditionally to avoid needing to know its dependencies here:
+submake-catalog-headers:
+	$(MAKE) -C ../include/catalog generated-headers
+
+# run this unconditionally to avoid needing to know its dependencies here:
+submake-nodes-headers:
+	$(MAKE) -C nodes generated-header-symlinks
+
+# run this unconditionally to avoid needing to know its dependencies here:
+submake-utils-headers:
+	$(MAKE) -C utils generated-header-symlinks
+
+.PHONY: submake-catalog-headers submake-nodes-headers submake-utils-headers
+
+# Make symlinks for these headers in the include directory. That way
+# we can cut down on the -I options. Also, a symlink is automatically
+# up to date when we update the base file.
+#
+# The point of the prereqdir incantation in some of the rules below is to
+# force the symlink to use an absolute path rather than a relative path.
+# This is needed to support platforms without ln -s.
+
+.PHONY: generated-headers
+
+generated-headers: $(top_builddir)/src/include/storage/lwlocknames.h submake-catalog-headers submake-nodes-headers submake-utils-headers parser/gram.h
+
+$(top_builddir)/src/include/storage/lwlocknames.h: storage/lmgr/lwlocknames.h
+	prereqdir=`cd '$(dir $<)' >/dev/null && pwd` && \
+	  cd '$(dir $@)' && rm -f $(notdir $@) && \
+	  $(LN_S) "$$prereqdir/$(notdir $<)" .
+
+utils/probes.o: utils/probes.d $(SUBDIROBJS)
+	$(DTRACE) $(DTRACEFLAGS) -C -G -s $(call expand_subsys,$^) -o $@
+
+
+##########################################################################
+
+# This target is only needed by nls.mk.
+.PHONY: generated-parser-sources
+generated-parser-sources:
+	$(MAKE) -C parser	gram.c gram.h scan.c
+	$(MAKE) -C bootstrap	bootparse.c bootparse.h bootscanner.c
+	$(MAKE) -C replication	repl_gram.c repl_gram.h repl_scanner.c syncrep_gram.c syncrep_gram.h syncrep_scanner.c
+	$(MAKE) -C utils/adt	jsonpath_gram.c jsonpath_gram.h jsonpath_scan.c
+	$(MAKE) -C utils/misc	guc-file.c
+
+
+##########################################################################
+
+install: all installdirs install-bin
+ifeq ($(PORTNAME), cygwin)
+ifeq ($(MAKE_DLL), true)
+	$(INSTALL_DATA) libpostgres.a '$(DESTDIR)$(libdir)/libpostgres.a'
+endif
+endif
+ifeq ($(PORTNAME), win32)
+ifeq ($(MAKE_DLL), true)
+	$(INSTALL_DATA) libpostgres.a '$(DESTDIR)$(libdir)/libpostgres.a'
+endif
+endif
+	$(MAKE) -C catalog install-data
+	$(MAKE) -C tsearch install-data
+	$(MAKE) -C utils install-data
+	$(INSTALL_DATA) $(srcdir)/libpq/pg_hba.conf.sample '$(DESTDIR)$(datadir)/pg_hba.conf.sample'
+	$(INSTALL_DATA) $(srcdir)/libpq/pg_ident.conf.sample '$(DESTDIR)$(datadir)/pg_ident.conf.sample'
+	$(INSTALL_DATA) $(srcdir)/libpq/pg_hosts.conf.sample '$(DESTDIR)$(datadir)/pg_hosts.conf.sample'
+	$(INSTALL_DATA) $(srcdir)/utils/misc/postgresql.conf.sample '$(DESTDIR)$(datadir)/postgresql.conf.sample'
+
+ifeq ($(with_llvm), yes)
+install-bin: install-postgres-bitcode
+
+install-postgres-bitcode: $(OBJS) all
+	$(call install_llvm_module,postgres,$(call expand_subsys, $(filter-out $(top_builddir)/src/timezone/objfiles.txt, $(SUBDIROBJS))))
+endif
+
+install-bin: postgres $(POSTGRES_IMP) installdirs
+	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
+ifeq ($(MAKE_EXPORTS), true)
+	$(INSTALL_DATA) $(POSTGRES_IMP) '$(DESTDIR)$(pkglibdir)/$(POSTGRES_IMP)'
+	$(INSTALL_PROGRAM) $(MKLDEXPORT) '$(DESTDIR)$(pgxsdir)/$(MKLDEXPORT_DIR)/mkldexport.sh'
+endif
+
+.PHONY: install-bin
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(bindir)' '$(DESTDIR)$(datadir)'
+ifeq ($(PORTNAME), cygwin)
+ifeq ($(MAKE_DLL), true)
+	$(MKDIR_P) '$(DESTDIR)$(libdir)'
+endif
+endif
+ifeq ($(PORTNAME), win32)
+ifeq ($(MAKE_DLL), true)
+	$(MKDIR_P) '$(DESTDIR)$(libdir)'
+endif
+endif
+ifeq ($(MAKE_EXPORTS), true)
+	$(MKDIR_P) '$(DESTDIR)$(pkglibdir)'
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(MKLDEXPORT_DIR)'
+endif
+
+
+##########################################################################
+
+uninstall:
+	rm -f '$(DESTDIR)$(bindir)/postgres$(X)'
+ifeq ($(MAKE_EXPORTS), true)
+	rm -f '$(DESTDIR)$(pkglibdir)/$(POSTGRES_IMP)'
+	rm -f '$(DESTDIR)$(pgxsdir)/$(MKLDEXPORT_DIR)/mkldexport.sh'
+endif
+ifeq ($(PORTNAME), cygwin)
+ifeq ($(MAKE_DLL), true)
+	rm -f '$(DESTDIR)$(libdir)/libpostgres.a'
+endif
+endif
+ifeq ($(PORTNAME), win32)
+ifeq ($(MAKE_DLL), true)
+	rm -f '$(DESTDIR)$(libdir)/libpostgres.a'
+endif
+endif
+	$(MAKE) -C catalog uninstall-data
+	$(MAKE) -C tsearch uninstall-data
+	$(MAKE) -C utils uninstall-data
+	rm -f '$(DESTDIR)$(datadir)/pg_hba.conf.sample' \
+	      '$(DESTDIR)$(datadir)/pg_ident.conf.sample' \
+	      '$(DESTDIR)$(datadir)/pg_hosts.conf.sample' \
+	      '$(DESTDIR)$(datadir)/postgresql.conf.sample'
+ifeq ($(with_llvm), yes)
+	$(call uninstall_llvm_module,postgres)
+endif
+
+
+##########################################################################
+
+clean:
+	rm -f $(LOCALOBJS) postgres$(X) $(POSTGRES_IMP)
+ifeq ($(PORTNAME), cygwin)
+	rm -f postgres.dll libpostgres.a
+endif
+ifeq ($(PORTNAME), win32)
+	rm -f postgres.dll libpostgres.a $(WIN32RES)
+endif
+
+distclean: clean
+# generated by configure
+	rm -f port/tas.s port/pg_sema.c port/pg_shmem.c
+
+
+##########################################################################
+#
+# Support for code development.
+#
+# Use target "quick" to build "postgres" when you know all the subsystems
+# are up to date.  It saves the time of doing all the submakes.
+.PHONY: quick
+quick: $(OBJS)
+	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LIBS) -o postgres
+
+
+# FILE: doc/src/Makefile
+# doc/src/Makefile
+
+subdir = doc/src
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+
+all html man install installdirs uninstall clean distclean:
+	$(MAKE) -C sgml $@
+
+
+# FILE: contrib/xml2/xml2--1.1.sql
+/* contrib/xml2/xml2--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION xml2" to load this file. \quit
+
+--SQL for XML parser
+
+-- deprecated old name for xml_is_well_formed
+CREATE FUNCTION xml_valid(text) RETURNS bool
+AS 'xml_is_well_formed'
+LANGUAGE INTERNAL STRICT STABLE PARALLEL SAFE;
+
+CREATE FUNCTION xml_encode_special_chars(text) RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_string(text,text) RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_nodeset(text,text,text,text) RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_number(text,text) RETURNS float4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_bool(text,text) RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+-- List function
+
+CREATE FUNCTION xpath_list(text,text,text) RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_list(text,text) RETURNS text
+AS 'SELECT xpath_list($1,$2,'','')'
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE;
+
+-- Wrapper functions for nodeset where no tags needed
+
+CREATE FUNCTION xpath_nodeset(text,text)
+RETURNS text
+AS 'SELECT xpath_nodeset($1,$2,'''','''')'
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION xpath_nodeset(text,text,text)
+RETURNS text
+AS 'SELECT xpath_nodeset($1,$2,'''',$3)'
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE;
+
+-- Table function
+
+CREATE FUNCTION xpath_table(text,text,text,text,text)
+RETURNS setof record
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT STABLE PARALLEL SAFE;
+
+-- XSLT functions
+
+CREATE FUNCTION xslt_process(text,text,text)
+RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT VOLATILE PARALLEL SAFE;
+
+-- the function checks for the correct argument count
+CREATE FUNCTION xslt_process(text,text)
+RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+
+# FILE: contrib/xml2/xml2--1.1--1.2.sql
+/* contrib/xml2/xml2--1.1--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION xml2 UPDATE TO '1.2'" to load this file. \quit
+
+CREATE OR REPLACE FUNCTION xpath_list(text,text) RETURNS text
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE
+RETURN xpath_list($1, $2, ','::text);
+
+CREATE OR REPLACE FUNCTION xpath_nodeset(text,text)
+RETURNS text
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE
+RETURN xpath_nodeset($1, $2, ''::text, ''::text);
+
+CREATE OR REPLACE FUNCTION xpath_nodeset(text,text,text)
+RETURNS text
+LANGUAGE SQL STRICT IMMUTABLE PARALLEL SAFE
+RETURN xpath_nodeset($1, $2, ''::text, $3);
+
+
+# FILE: contrib/xml2/xml2--1.0--1.1.sql
+/* contrib/xml2/xml2--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION xml2 UPDATE TO '1.1'" to load this file. \quit
+
+ALTER FUNCTION xml_valid(text) PARALLEL SAFE;
+ALTER FUNCTION xml_encode_special_chars(text) PARALLEL SAFE;
+ALTER FUNCTION xpath_string(text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_nodeset(text, text, text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_number(text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_bool(text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_list(text, text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_list(text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_nodeset(text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_nodeset(text, text, text) PARALLEL SAFE;
+ALTER FUNCTION xpath_table(text, text, text, text, text) PARALLEL SAFE;
+ALTER FUNCTION xslt_process(text, text, text) PARALLEL SAFE;
+ALTER FUNCTION xslt_process(text, text) PARALLEL SAFE;
+
+
+# FILE: contrib/xml2/Makefile
+# contrib/xml2/Makefile
+
+MODULE_big = pgxml
+OBJS = \
+	$(WIN32RES) \
+	xpath.o \
+	xslt_proc.o
+
+EXTENSION = xml2
+DATA = xml2--1.1.sql \
+	xml2--1.1--1.2.sql \
+	xml2--1.0--1.1.sql
+PGFILEDESC = "xml2 - XPath querying and XSLT"
+
+REGRESS = xml2
+
+SHLIB_LINK += $(filter -lxslt, $(LIBS)) -lxml2
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/xml2
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/uuid-ossp/uuid-ossp--1.1.sql
+/* contrib/uuid-ossp/uuid-ossp--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use '''CREATE EXTENSION "uuid-ossp"''' to load this file. \quit
+
+CREATE FUNCTION uuid_nil()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_nil'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_ns_dns()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_ns_dns'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_ns_url()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_ns_url'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_ns_oid()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_ns_oid'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_ns_x500()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_ns_x500'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_generate_v1()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_generate_v1'
+VOLATILE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_generate_v1mc()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_generate_v1mc'
+VOLATILE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_generate_v3(namespace uuid, name text)
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_generate_v3'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_generate_v4()
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_generate_v4'
+VOLATILE STRICT LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION uuid_generate_v5(namespace uuid, name text)
+RETURNS uuid
+AS 'MODULE_PATHNAME', 'uuid_generate_v5'
+IMMUTABLE STRICT LANGUAGE C PARALLEL SAFE;
+
+
+# FILE: contrib/uuid-ossp/uuid-ossp--1.0--1.1.sql
+/* contrib/uuid-ossp/uuid-ossp--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION uuid-ossp UPDATE TO '1.1'" to load this file. \quit
+
+ALTER FUNCTION uuid_nil() PARALLEL SAFE;
+ALTER FUNCTION uuid_ns_dns() PARALLEL SAFE;
+ALTER FUNCTION uuid_ns_url() PARALLEL SAFE;
+ALTER FUNCTION uuid_ns_oid() PARALLEL SAFE;
+ALTER FUNCTION uuid_ns_x500() PARALLEL SAFE;
+ALTER FUNCTION uuid_generate_v1() PARALLEL SAFE;
+ALTER FUNCTION uuid_generate_v1mc() PARALLEL SAFE;
+ALTER FUNCTION uuid_generate_v3(uuid, text) PARALLEL SAFE;
+ALTER FUNCTION uuid_generate_v4() PARALLEL SAFE;
+ALTER FUNCTION uuid_generate_v5(uuid, text) PARALLEL SAFE;
+
+
+# FILE: contrib/uuid-ossp/Makefile
+# contrib/uuid-ossp/Makefile
+
+MODULE_big = uuid-ossp
+OBJS = \
+	$(WIN32RES) \
+	uuid-ossp.o
+
+EXTENSION = uuid-ossp
+DATA = uuid-ossp--1.1.sql uuid-ossp--1.0--1.1.sql
+PGFILEDESC = "uuid-ossp - UUID generation"
+
+REGRESS = uuid_ossp
+
+SHLIB_LINK += $(UUID_LIBS)
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/uuid-ossp
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/tsm_system_rows/tsm_system_rows--1.0.sql
+/* contrib/tsm_system_rows/tsm_system_rows--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION tsm_system_rows" to load this file. \quit
+
+CREATE FUNCTION system_rows(internal)
+RETURNS tsm_handler
+AS 'MODULE_PATHNAME', 'tsm_system_rows_handler'
+LANGUAGE C STRICT;
+
+
+# FILE: contrib/tsm_system_rows/Makefile
+# contrib/tsm_system_rows/Makefile
+
+MODULE_big = tsm_system_rows
+OBJS = \
+	$(WIN32RES) \
+	tsm_system_rows.o
+PGFILEDESC = "tsm_system_rows - TABLESAMPLE method which accepts number of rows as a limit"
+
+EXTENSION = tsm_system_rows
+DATA = tsm_system_rows--1.0.sql
+
+REGRESS = tsm_system_rows
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/tsm_system_rows
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/vacuumlo/Makefile
+# contrib/vacuumlo/Makefile
+
+PGFILEDESC = "vacuumlo - removes orphaned large objects"
+PGAPPICON = win32
+
+PROGRAM = vacuumlo
+OBJS = \
+	$(WIN32RES) \
+	vacuumlo.o
+
+TAP_TESTS = 1
+
+PG_CPPFLAGS = -I$(libpq_srcdir)
+PG_LIBS_INTERNAL = $(libpq_pgport)
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/vacuumlo
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/unaccent/unaccent--1.1.sql
+/* contrib/unaccent/unaccent--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION unaccent" to load this file. \quit
+
+CREATE FUNCTION unaccent(regdictionary, text)
+	RETURNS text
+	AS 'MODULE_PATHNAME', 'unaccent_dict'
+	LANGUAGE C STABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION unaccent(text)
+	RETURNS text
+	AS 'MODULE_PATHNAME', 'unaccent_dict'
+	LANGUAGE C STABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION unaccent_init(internal)
+	RETURNS internal
+	AS 'MODULE_PATHNAME', 'unaccent_init'
+	LANGUAGE C PARALLEL SAFE;
+
+CREATE FUNCTION unaccent_lexize(internal,internal,internal,internal)
+	RETURNS internal
+	AS 'MODULE_PATHNAME', 'unaccent_lexize'
+	LANGUAGE C PARALLEL SAFE;
+
+CREATE TEXT SEARCH TEMPLATE unaccent (
+	INIT = unaccent_init,
+	LEXIZE = unaccent_lexize
+);
+
+CREATE TEXT SEARCH DICTIONARY unaccent (
+	TEMPLATE = unaccent,
+	RULES    = 'unaccent'
+);
+
+
+# FILE: contrib/unaccent/unaccent--1.0--1.1.sql
+/* contrib/unaccent/unaccent--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION unaccent UPDATE TO '1.1'" to load this file. \quit
+
+ALTER FUNCTION unaccent(regdictionary, text) PARALLEL SAFE;
+ALTER FUNCTION unaccent(text) PARALLEL SAFE;
+ALTER FUNCTION unaccent_init(internal) PARALLEL SAFE;
+ALTER FUNCTION unaccent_lexize(internal, internal, internal, internal) PARALLEL SAFE;
+
+
+# FILE: contrib/unaccent/generate_unaccent_rules.py
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# This script builds unaccent.rules on standard output when given the
+# contents of UnicodeData.txt [1] and Latin-ASCII.xml [2] given as
+# arguments. Optionally includes ligature expansion and Unicode CLDR
+# Latin-ASCII transliterator, enabled by default, this can be disabled
+# with "--no-ligatures-expansion" command line option.
+#
+# The approach is to use the Unicode decomposition data to identify
+# precomposed codepoints that are equivalent to a ligature of several
+# letters, or a base letter with any number of diacritical marks.
+#
+# This approach handles most letters with diacritical marks and some
+# ligatures.  However, several characters (notably a majority of
+# ligatures) don't have decomposition. To handle all these cases, one can
+# use a standard Unicode transliterator available in Common Locale Data
+# Repository (CLDR): Latin-ASCII.  This transliterator associates Unicode
+# characters to ASCII-range equivalent.  Unless "--no-ligatures-expansion"
+# option is enabled, the XML file of this transliterator [2] -- given as a
+# command line argument -- will be parsed and used.
+#
+# Ideally you should use the latest release for each data set.  This
+# script is compatible with at least CLDR release 29.
+#
+# [1] https://www.unicode.org/Public/${UNICODE_VERSION}/ucd/UnicodeData.txt
+# [2] https://raw.githubusercontent.com/unicode-org/cldr/${TAG}/common/transforms/Latin-ASCII.xml
+
+import argparse
+import codecs
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+sys.stdout = codecs.getwriter('utf8')(sys.stdout.buffer)
+
+# The ranges of Unicode characters that we consider to be "plain letters".
+# For now we are being conservative by including only Latin and Greek.  This
+# could be extended in future based on feedback from people with relevant
+# language knowledge.
+PLAIN_LETTER_RANGES = ((ord('a'), ord('z')),  # Latin lower case
+                       (ord('A'), ord('Z')),  # Latin upper case
+                       (0x03b1, 0x03c9),      # GREEK SMALL LETTER ALPHA, GREEK SMALL LETTER OMEGA
+                       (0x0391, 0x03a9))      # GREEK CAPITAL LETTER ALPHA, GREEK CAPITAL LETTER OMEGA
+
+# Combining marks follow a "base" character, and result in a composite
+# character. Example: "U&'A\0300'"produces "À".There are three types of
+# combining marks: enclosing (Me), non-spacing combining (Mn), spacing
+# combining (Mc). We identify the ranges of marks we feel safe removing.
+# References:
+#   https://en.wikipedia.org/wiki/Combining_character
+#   https://www.unicode.org/charts/PDF/U0300.pdf
+#   https://www.unicode.org/charts/PDF/U20D0.pdf
+COMBINING_MARK_RANGES = ((0x0300, 0x0362),   # Mn: Accents, IPA
+                         (0x20dd, 0x20E0),   # Me: Symbols
+                         (0x20e2, 0x20e4),)  # Me: Screen, keycap, triangle
+
+
+def print_record(codepoint, letter):
+    if letter:
+        # If the letter has whitespace or double quotes, escape double
+        # quotes and apply more quotes around it.
+        if (' ' in letter) or ('"' in letter):
+            letter = '"' + letter.replace('"', '""') + '"'
+        output = chr(codepoint) + "\t" + letter
+    else:
+        output = chr(codepoint)
+
+    print(output)
+
+
+class Codepoint:
+    def __init__(self, id, general_category, combining_ids):
+        self.id = id
+        self.general_category = general_category
+        self.combining_ids = combining_ids
+
+
+def is_mark_to_remove(codepoint):
+    """Return true if this is a combining mark to remove."""
+    if not is_mark(codepoint):
+        return False
+
+    for begin, end in COMBINING_MARK_RANGES:
+        if codepoint.id >= begin and codepoint.id <= end:
+            return True
+    return False
+
+
+def is_plain_letter(codepoint):
+    """Return true if codepoint represents a "plain letter"."""
+    for begin, end in PLAIN_LETTER_RANGES:
+        if codepoint.id >= begin and codepoint.id <= end:
+            return True
+    return False
+
+
+def is_mark(codepoint):
+    """Returns true for diacritical marks (combining codepoints)."""
+    return codepoint.general_category in ("Mn", "Me", "Mc")
+
+
+def is_letter_with_marks(codepoint, table):
+    """Returns true for letters combined with one or more marks."""
+    # See https://www.unicode.org/reports/tr44/tr44-14.html#General_Category_Values
+
+    # Some codepoints redirect directly to another, instead of doing any
+    # "combining"...  but sometimes they redirect to a codepoint that doesn't
+    # exist, so ignore those.
+    if len(codepoint.combining_ids) == 1 and codepoint.combining_ids[0] in table:
+        return is_letter_with_marks(table[codepoint.combining_ids[0]], table)
+
+    # A letter without diacritical marks has none of them.
+    if any(is_mark(table[i]) for i in codepoint.combining_ids[1:]) is False:
+        return False
+
+    # Check if the base letter of this letter has marks.
+    codepoint_base = codepoint.combining_ids[0]
+    if is_plain_letter(table[codepoint_base]) is False and \
+       is_letter_with_marks(table[codepoint_base], table) is False:
+        return False
+
+    return True
+
+
+def is_letter(codepoint, table):
+    """Return true for letter with or without diacritical marks."""
+    return is_plain_letter(codepoint) or is_letter_with_marks(codepoint, table)
+
+
+def get_plain_letter(codepoint, table):
+    """Return the base codepoint without marks. If this codepoint has more
+    than one combining character, do a recursive lookup on the table to
+    find out its plain base letter."""
+    if is_letter_with_marks(codepoint, table):
+        if len(table[codepoint.combining_ids[0]].combining_ids) > 1:
+            return get_plain_letter(table[codepoint.combining_ids[0]], table)
+        elif is_plain_letter(table[codepoint.combining_ids[0]]):
+            return table[codepoint.combining_ids[0]]
+
+        # Should not come here
+        assert False, 'Codepoint U+%0.2X' % codepoint.id
+    elif is_plain_letter(codepoint):
+        return codepoint
+
+    # Should not come here
+    assert False, 'Codepoint U+%0.2X' % codepoint.id
+
+
+def is_ligature(codepoint, table):
+    """Return true for letters combined with letters."""
+    return all(i in table and is_letter(table[i], table) for i in codepoint.combining_ids)
+
+def get_plain_letters(codepoint, table):
+    """Return a list of plain letters from a ligature."""
+    assert(is_ligature(codepoint, table))
+    return [get_plain_letter(table[id], table) for id in codepoint.combining_ids]
+
+
+def parse_cldr_latin_ascii_transliterator(latinAsciiFilePath):
+    """Parse the XML file and return a set of tuples (src, trg), where "src"
+    is the original character and "trg" the substitute."""
+    charactersSet = set()
+
+    # RegEx to parse rules
+    rulePattern = re.compile(r'^(?:(.)|(\\u[0-9a-fA-F]{4})) \u2192 (?:\'(.+)\'|(.+)) ;')
+
+    # construct tree from XML
+    transliterationTree = ET.parse(latinAsciiFilePath)
+    transliterationTreeRoot = transliterationTree.getroot()
+
+    # Fetch all the transliteration rules.  Since release 29 of Latin-ASCII.xml
+    # all the transliteration rules are located in a single tRule block with
+    # all rules separated into separate lines.
+    blockRules = transliterationTreeRoot.findall("./transforms/transform/tRule")
+    assert(len(blockRules) == 1)
+
+    # Split the block of rules into one element per line.
+    rules = blockRules[0].text.splitlines()
+
+    # And finish the processing of each individual rule.
+    for rule in rules:
+        matches = rulePattern.search(rule)
+
+        # The regular expression capture four groups corresponding
+        # to the characters.
+        #
+        # Group 1: plain "src" char. Empty if group 2 is not.
+        # Group 2: unicode-escaped "src" char (e.g. "\u0110"). Empty if group 1 is not.
+        #
+        # Group 3: plain "trg" char. Empty if group 4 is not.
+        # Group 4: plain "trg" char between quotes. Empty if group 3 is not.
+        if matches is not None:
+            src = matches.group(1) if matches.group(1) is not None else bytes(matches.group(2), 'UTF-8').decode('unicode-escape')
+            trg = matches.group(3) if matches.group(3) is not None else matches.group(4)
+
+            # "'" and """ are escaped
+            trg = trg.replace("\\'", "'").replace('\\"', '"')
+
+            # the parser of unaccent only accepts non-whitespace characters
+            # for "src" and "trg" (see unaccent.c)
+            if not src.isspace() and not trg.isspace():
+                if src == "\u210c":
+                    # This mapping seems to be in error, and causes a collision
+                    # by disagreeing with the main Unicode database file:
+                    # https://unicode-org.atlassian.net/browse/CLDR-17656
+                    continue
+                charactersSet.add((ord(src), trg))
+
+    return charactersSet
+
+
+def special_cases():
+    """Returns the special cases which are not handled by other methods"""
+    charactersSet = set()
+
+    # Cyrillic
+    charactersSet.add((0x0401, "\u0415"))  # CYRILLIC CAPITAL LETTER IO
+    charactersSet.add((0x0451, "\u0435"))  # CYRILLIC SMALL LETTER IO
+
+    # Symbols of "Letterlike Symbols" Unicode Block (U+2100 to U+214F)
+    charactersSet.add((0x2103, "\xb0C"))   # DEGREE CELSIUS
+    charactersSet.add((0x2109, "\xb0F"))   # DEGREE FAHRENHEIT
+
+    return charactersSet
+
+
+def main(args):
+    # https://www.unicode.org/reports/tr44/tr44-14.html#Character_Decomposition_Mappings
+    decomposition_type_pattern = re.compile(" *<[^>]*> *")
+
+    table = {}
+    all = []
+
+    # unordered set for ensure uniqueness
+    charactersSet = set()
+
+    # read file UnicodeData.txt
+    with open(
+      args.unicodeDataFilePath, mode='r', encoding='UTF-8',
+      ) as unicodeDataFile:
+        # read everything we need into memory
+        for line in unicodeDataFile:
+            fields = line.split(";")
+            if len(fields) > 5:
+                # https://www.unicode.org/reports/tr44/tr44-14.html#UnicodeData.txt
+                general_category = fields[2]
+                decomposition = fields[5]
+                decomposition = re.sub(decomposition_type_pattern, ' ', decomposition)
+                id = int(fields[0], 16)
+                combining_ids = [int(s, 16) for s in decomposition.split(" ") if s != ""]
+                codepoint = Codepoint(id, general_category, combining_ids)
+                table[id] = codepoint
+                all.append(codepoint)
+
+    # walk through all the codepoints looking for interesting mappings
+    for codepoint in all:
+        if codepoint.general_category.startswith('L') and \
+           len(codepoint.combining_ids) > 0:
+            if is_letter_with_marks(codepoint, table):
+                charactersSet.add((codepoint.id,
+                                   chr(get_plain_letter(codepoint, table).id)))
+            elif args.noLigaturesExpansion is False and is_ligature(codepoint, table):
+                charactersSet.add((codepoint.id,
+                                   "".join(chr(combining_codepoint.id)
+                                           for combining_codepoint
+                                           in get_plain_letters(codepoint, table))))
+        elif is_mark_to_remove(codepoint):
+            charactersSet.add((codepoint.id, None))
+
+    # add CLDR Latin-ASCII characters
+    if not args.noLigaturesExpansion:
+        charactersSet |= parse_cldr_latin_ascii_transliterator(args.latinAsciiFilePath)
+        charactersSet |= special_cases()
+
+    # sort for more convenient display
+    charactersList = sorted(charactersSet, key=lambda characterPair: characterPair[0])
+
+    for characterPair in charactersList:
+        print_record(characterPair[0], characterPair[1])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='This script builds unaccent.rules on standard output when given the contents of UnicodeData.txt and Latin-ASCII.xml given as arguments.')
+    parser.add_argument("--unicode-data-file", help="Path to formatted text file corresponding to UnicodeData.txt.", type=str, required=True, dest='unicodeDataFilePath')
+    parser.add_argument("--latin-ascii-file", help="Path to XML file from Unicode Common Locale Data Repository (CLDR) corresponding to Latin-ASCII transliterator (Latin-ASCII.xml).", type=str, dest='latinAsciiFilePath')
+    parser.add_argument("--no-ligatures-expansion", help="Do not expand ligatures and do not use Unicode CLDR Latin-ASCII transliterator. By default, this option is not enabled and \"--latin-ascii-file\" argument is required. If this option is enabled, \"--latin-ascii-file\" argument is optional and ignored.", action="store_true", dest='noLigaturesExpansion')
+    args = parser.parse_args()
+
+    if args.noLigaturesExpansion is False and args.latinAsciiFilePath is None:
+        sys.stderr.write('You must specify the path to Latin-ASCII transliterator file with \"--latin-ascii-file\" option or use \"--no-ligatures-expansion\" option. Use \"-h\" option for help.')
+        sys.exit(1)
+
+    main(args)
+
+
+# FILE: contrib/unaccent/Makefile
+# contrib/unaccent/Makefile
+
+MODULE_big = unaccent
+OBJS = \
+	$(WIN32RES) \
+	unaccent.o
+
+EXTENSION = unaccent
+DATA = unaccent--1.1.sql unaccent--1.0--1.1.sql
+DATA_TSEARCH = unaccent.rules
+PGFILEDESC = "unaccent - text search dictionary that removes accents"
+
+REGRESS = unaccent
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/unaccent
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+update-unicode: $(srcdir)/unaccent.rules
+
+# Allow running this even without --with-python
+ifeq ($(PYTHON),)
+PYTHON = python
+endif
+
+$(srcdir)/unaccent.rules: generate_unaccent_rules.py ../../src/common/unicode/UnicodeData.txt Latin-ASCII.xml
+	$(PYTHON) $< --unicode-data-file $(word 2,$^) --latin-ascii-file $(word 3,$^) >$@
+
+# Only download it once; dependencies must match src/common/unicode/
+../../src/common/unicode/UnicodeData.txt: $(top_builddir)/src/Makefile.global
+	$(MAKE) -C $(@D) $(@F)
+
+# Dependency on Makefile.global is for CLDR_VERSION
+Latin-ASCII.xml: $(top_builddir)/src/Makefile.global
+	$(DOWNLOAD) https://raw.githubusercontent.com/unicode-org/cldr/release-$(subst .,-,$(CLDR_VERSION))/common/transforms/Latin-ASCII.xml
+
+distclean:
+	rm -f Latin-ASCII.xml
+
+
+# FILE: contrib/test_decoding/Makefile
+# contrib/test_decoding/Makefile
+
+MODULES = test_decoding
+PGFILEDESC = "test_decoding - example of a logical decoding output plugin"
+
+REGRESS = ddl xact rewrite toast permissions decoding_in_xact \
+	decoding_into_rel binary prepared replorigin time messages \
+	spill slot truncate stream stats twophase twophase_stream
+ISOLATION = mxact delayed_startup ondisk_startup concurrent_ddl_dml \
+	oldest_xmin snapshot_transfer subxact_without_top concurrent_stream \
+	twophase_snapshot slot_creation_error catalog_change_snapshot \
+	skip_snapshot_restore invalidation_distribution parallel_session_origin
+
+REGRESS_OPTS = --temp-config $(top_srcdir)/contrib/test_decoding/logical.conf
+ISOLATION_OPTS = --temp-config $(top_srcdir)/contrib/test_decoding/logical.conf
+
+# Disabled because these tests require "wal_level=logical", which
+# typical installcheck users do not have (e.g. buildfarm clients).
+NO_INSTALLCHECK = 1
+
+TAP_TESTS = 1
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/test_decoding
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+# But it can nonetheless be very helpful to run tests on preexisting
+# installation, allow to do so, but only if requested explicitly.
+installcheck-force:
+	$(pg_regress_installcheck) $(REGRESS)
+	$(pg_isolation_regress_installcheck) $(ISOLATION)
+
+
+# FILE: contrib/tsm_system_time/tsm_system_time--1.0.sql
+/* contrib/tsm_system_time/tsm_system_time--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION tsm_system_time" to load this file. \quit
+
+CREATE FUNCTION system_time(internal)
+RETURNS tsm_handler
+AS 'MODULE_PATHNAME', 'tsm_system_time_handler'
+LANGUAGE C STRICT;
+
+
+# FILE: contrib/tsm_system_time/Makefile
+# contrib/tsm_system_time/Makefile
+
+MODULE_big = tsm_system_time
+OBJS = \
+	$(WIN32RES) \
+	tsm_system_time.o
+PGFILEDESC = "tsm_system_time - TABLESAMPLE method which accepts time in milliseconds as a limit"
+
+EXTENSION = tsm_system_time
+DATA = tsm_system_time--1.0.sql
+
+REGRESS = tsm_system_time
+
+SHLIB_LINK += $(filter -lm, $(LIBS))
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/tsm_system_time
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/tablefunc/tablefunc--1.0.sql
+/* contrib/tablefunc/tablefunc--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION tablefunc" to load this file. \quit
+
+CREATE FUNCTION normal_rand(int4, float8, float8)
+RETURNS setof float8
+AS 'MODULE_PATHNAME','normal_rand'
+LANGUAGE C VOLATILE STRICT;
+
+-- the generic crosstab function:
+CREATE FUNCTION crosstab(text)
+RETURNS setof record
+AS 'MODULE_PATHNAME','crosstab'
+LANGUAGE C STABLE STRICT;
+
+-- examples of building custom type-specific crosstab functions:
+CREATE TYPE tablefunc_crosstab_2 AS
+(
+	row_name TEXT,
+	category_1 TEXT,
+	category_2 TEXT
+);
+
+CREATE TYPE tablefunc_crosstab_3 AS
+(
+	row_name TEXT,
+	category_1 TEXT,
+	category_2 TEXT,
+	category_3 TEXT
+);
+
+CREATE TYPE tablefunc_crosstab_4 AS
+(
+	row_name TEXT,
+	category_1 TEXT,
+	category_2 TEXT,
+	category_3 TEXT,
+	category_4 TEXT
+);
+
+CREATE FUNCTION crosstab2(text)
+RETURNS setof tablefunc_crosstab_2
+AS 'MODULE_PATHNAME','crosstab'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION crosstab3(text)
+RETURNS setof tablefunc_crosstab_3
+AS 'MODULE_PATHNAME','crosstab'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION crosstab4(text)
+RETURNS setof tablefunc_crosstab_4
+AS 'MODULE_PATHNAME','crosstab'
+LANGUAGE C STABLE STRICT;
+
+-- obsolete:
+CREATE FUNCTION crosstab(text,int)
+RETURNS setof record
+AS 'MODULE_PATHNAME','crosstab'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION crosstab(text,text)
+RETURNS setof record
+AS 'MODULE_PATHNAME','crosstab_hash'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION connectby(text,text,text,text,int,text)
+RETURNS setof record
+AS 'MODULE_PATHNAME','connectby_text'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION connectby(text,text,text,text,int)
+RETURNS setof record
+AS 'MODULE_PATHNAME','connectby_text'
+LANGUAGE C STABLE STRICT;
+
+-- These 2 take the name of a field to ORDER BY as 4th arg (for sorting siblings)
+
+CREATE FUNCTION connectby(text,text,text,text,text,int,text)
+RETURNS setof record
+AS 'MODULE_PATHNAME','connectby_text_serial'
+LANGUAGE C STABLE STRICT;
+
+CREATE FUNCTION connectby(text,text,text,text,text,int)
+RETURNS setof record
+AS 'MODULE_PATHNAME','connectby_text_serial'
+LANGUAGE C STABLE STRICT;
+
+
+# FILE: contrib/tablefunc/Makefile
+# contrib/tablefunc/Makefile
+
+MODULES = tablefunc
+
+EXTENSION = tablefunc
+DATA = tablefunc--1.0.sql
+PGFILEDESC = "tablefunc - various functions that return tables"
+
+REGRESS = tablefunc
+
+LDFLAGS_SL += $(filter -lm, $(LIBS))
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/tablefunc
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/tcn/tcn--1.0.sql
+/* contrib/tcn/tcn--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION tcn" to load this file. \quit
+
+CREATE FUNCTION triggered_change_notification()
+RETURNS pg_catalog.trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+
+# FILE: contrib/tcn/Makefile
+# contrib/tcn/Makefile
+
+MODULES = tcn
+
+EXTENSION = tcn
+DATA = tcn--1.0.sql
+PGFILEDESC = "tcn - trigger function notifying listeners"
+
+ISOLATION = tcn
+ISOLATION_OPTS = --load-extension=tcn
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/tcn
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/sslinfo/sslinfo--1.2.sql
+/* contrib/sslinfo/sslinfo--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION sslinfo" to load this file. \quit
+
+CREATE FUNCTION ssl_client_serial() RETURNS numeric
+AS 'MODULE_PATHNAME', 'ssl_client_serial'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_is_used() RETURNS boolean
+AS 'MODULE_PATHNAME', 'ssl_is_used'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_version() RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_version'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_cipher() RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_cipher'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_client_cert_present() RETURNS boolean
+AS 'MODULE_PATHNAME', 'ssl_client_cert_present'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_client_dn_field(text) RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_client_dn_field'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_issuer_field(text) RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_issuer_field'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_client_dn() RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_client_dn'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION ssl_issuer_dn() RETURNS text
+AS 'MODULE_PATHNAME', 'ssl_issuer_dn'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION
+ssl_extension_info(OUT name text,
+    OUT value text,
+    OUT critical boolean
+) RETURNS SETOF record
+AS 'MODULE_PATHNAME', 'ssl_extension_info'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+
+# FILE: contrib/sslinfo/sslinfo--1.1--1.2.sql
+/* contrib/sslinfo/sslinfo--1.1--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION sslinfo UPDATE TO '1.2'" to load this file. \quit
+
+ALTER FUNCTION ssl_client_serial() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_is_used() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_version() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_cipher() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_client_cert_present() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_client_dn_field(text) PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_issuer_field(text) PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_client_dn() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_issuer_dn() PARALLEL RESTRICTED;
+ALTER FUNCTION ssl_extension_info() PARALLEL RESTRICTED;
+
+
+# FILE: contrib/sslinfo/sslinfo--1.0--1.1.sql
+/* contrib/sslinfo/sslinfo--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "ALTER EXTENSION sslinfo UPDATE TO '1.1'" to load this file. \quit
+
+CREATE FUNCTION
+ssl_extension_info(OUT name text,
+	OUT value text,
+    OUT critical boolean
+) RETURNS SETOF record
+AS 'MODULE_PATHNAME', 'ssl_extension_info'
+LANGUAGE C STRICT;
+
+
+# FILE: contrib/sslinfo/Makefile
+# contrib/sslinfo/Makefile
+
+MODULE_big = sslinfo
+OBJS = \
+	$(WIN32RES) \
+	sslinfo.o
+
+EXTENSION = sslinfo
+DATA = sslinfo--1.2.sql sslinfo--1.1--1.2.sql sslinfo--1.0--1.1.sql
+PGFILEDESC = "sslinfo - information about client SSL certificate"
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/sslinfo
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+SHLIB_LINK += $(filter -lssl -lcrypto, $(LIBS))
+
+
+# FILE: contrib/spi/refint--1.0.sql
+/* contrib/spi/refint--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION refint" to load this file. \quit
+
+CREATE FUNCTION check_primary_key()
+RETURNS trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+CREATE FUNCTION check_foreign_key()
+RETURNS trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+
+# FILE: contrib/spi/moddatetime--1.0.sql
+/* contrib/spi/moddatetime--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION moddatetime" to load this file. \quit
+
+CREATE FUNCTION moddatetime()
+RETURNS trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+
+# FILE: contrib/spi/insert_username--1.0.sql
+/* contrib/spi/insert_username--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION insert_username" to load this file. \quit
+
+CREATE FUNCTION insert_username()
+RETURNS trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+
+# FILE: contrib/spi/autoinc--1.0.sql
+/* contrib/spi/autoinc--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION autoinc" to load this file. \quit
+
+CREATE FUNCTION autoinc()
+RETURNS trigger
+AS 'MODULE_PATHNAME'
+LANGUAGE C;
+
+
+# FILE: contrib/spi/Makefile
+# contrib/spi/Makefile
+
+MODULES = autoinc insert_username moddatetime refint
+
+EXTENSION = autoinc insert_username moddatetime refint
+
+DATA = autoinc--1.0.sql \
+       insert_username--1.0.sql \
+       moddatetime--1.0.sql \
+       refint--1.0.sql
+PGFILEDESC = "spi - examples of using SPI and triggers"
+
+REGRESS = autoinc refint
+
+DOCS = $(addsuffix .example, $(MODULES))
+
+# this is needed for the regression tests;
+# comment out if you want a quieter refint package for other uses
+PG_CPPFLAGS = -DREFINT_VERBOSE
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/spi
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/seg/seg--1.3--1.4.sql
+/* contrib/seg/seg--1.3--1.4.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION seg UPDATE TO '1.4'" to load this file. \quit
+
+-- Remove @ and ~
+DROP OPERATOR @ (seg, seg);
+DROP OPERATOR ~ (seg, seg);
+
+
+# FILE: contrib/seg/seg--1.2--1.3.sql
+/* contrib/seg/seg--1.2--1.3.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION seg UPDATE TO '1.3'" to load this file. \quit
+
+--
+-- Get rid of unnecessary compress and decompress support functions.
+--
+-- To be allowed to drop the opclass entry for a support function,
+-- we must change the entry's dependency type from 'internal' to 'auto',
+-- as though it were a loose member of the opfamily rather than being
+-- bound into a particular opclass.  There's no SQL command for that,
+-- so fake it with a manual update on pg_depend.
+--
+DO LANGUAGE plpgsql
+$$
+DECLARE
+  my_schema pg_catalog.text := pg_catalog.quote_ident(pg_catalog.current_schema());
+  old_path pg_catalog.text := pg_catalog.current_setting('search_path');
+BEGIN
+-- for safety, transiently set search_path to just pg_catalog+pg_temp
+PERFORM pg_catalog.set_config('search_path', 'pg_catalog, pg_temp', true);
+
+UPDATE pg_catalog.pg_depend
+SET deptype = 'a'
+WHERE classid = 'pg_catalog.pg_amproc'::pg_catalog.regclass
+  AND objid =
+    (SELECT objid
+     FROM pg_catalog.pg_depend
+     WHERE classid = 'pg_catalog.pg_amproc'::pg_catalog.regclass
+       AND refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass
+       AND (refobjid = (my_schema || '.gseg_compress(internal)')::pg_catalog.regprocedure))
+  AND refclassid = 'pg_catalog.pg_opclass'::pg_catalog.regclass
+  AND deptype = 'i';
+
+UPDATE pg_catalog.pg_depend
+SET deptype = 'a'
+WHERE classid = 'pg_catalog.pg_amproc'::pg_catalog.regclass
+  AND objid =
+    (SELECT objid
+     FROM pg_catalog.pg_depend
+     WHERE classid = 'pg_catalog.pg_amproc'::pg_catalog.regclass
+       AND refclassid = 'pg_catalog.pg_proc'::pg_catalog.regclass
+       AND (refobjid = (my_schema || '.gseg_decompress(internal)')::pg_catalog.regprocedure))
+  AND refclassid = 'pg_catalog.pg_opclass'::pg_catalog.regclass
+  AND deptype = 'i';
+
+PERFORM pg_catalog.set_config('search_path', old_path, true);
+END
+$$;
+
+ALTER OPERATOR FAMILY gist_seg_ops USING gist drop function 3 (seg);
+ALTER EXTENSION seg DROP function gseg_compress(pg_catalog.internal);
+DROP function gseg_compress(pg_catalog.internal);
+
+ALTER OPERATOR FAMILY gist_seg_ops USING gist drop function 4 (seg);
+ALTER EXTENSION seg DROP function gseg_decompress(pg_catalog.internal);
+DROP function gseg_decompress(pg_catalog.internal);
+
+
+# FILE: contrib/seg/seg--1.1.sql
+/* contrib/seg/seg--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION seg" to load this file. \quit
+
+-- Create the user-defined type for 1-D floating point intervals (seg)
+
+CREATE FUNCTION seg_in(cstring)
+RETURNS seg
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION seg_out(seg)
+RETURNS cstring
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE TYPE seg (
+	INTERNALLENGTH = 12,
+	INPUT = seg_in,
+	OUTPUT = seg_out
+);
+
+COMMENT ON TYPE seg IS
+'floating point interval ''FLOAT .. FLOAT'', ''.. FLOAT'', ''FLOAT ..'' or ''FLOAT''';
+
+--
+-- External C-functions for R-tree methods
+--
+
+-- Left/Right methods
+
+CREATE FUNCTION seg_over_left(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_over_left(seg, seg) IS
+'overlaps or is left of';
+
+CREATE FUNCTION seg_over_right(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_over_right(seg, seg) IS
+'overlaps or is right of';
+
+CREATE FUNCTION seg_left(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_left(seg, seg) IS
+'is left of';
+
+CREATE FUNCTION seg_right(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_right(seg, seg) IS
+'is right of';
+
+
+-- Scalar comparison methods
+
+CREATE FUNCTION seg_lt(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_lt(seg, seg) IS
+'less than';
+
+CREATE FUNCTION seg_le(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_le(seg, seg) IS
+'less than or equal';
+
+CREATE FUNCTION seg_gt(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_gt(seg, seg) IS
+'greater than';
+
+CREATE FUNCTION seg_ge(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_ge(seg, seg) IS
+'greater than or equal';
+
+CREATE FUNCTION seg_contains(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_contains(seg, seg) IS
+'contains';
+
+CREATE FUNCTION seg_contained(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_contained(seg, seg) IS
+'contained in';
+
+CREATE FUNCTION seg_overlap(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_overlap(seg, seg) IS
+'overlaps';
+
+CREATE FUNCTION seg_same(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_same(seg, seg) IS
+'same as';
+
+CREATE FUNCTION seg_different(seg, seg)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_different(seg, seg) IS
+'different';
+
+-- support routines for indexing
+
+CREATE FUNCTION seg_cmp(seg, seg)
+RETURNS int4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+COMMENT ON FUNCTION seg_cmp(seg, seg) IS 'btree comparison function';
+
+CREATE FUNCTION seg_union(seg, seg)
+RETURNS seg
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION seg_inter(seg, seg)
+RETURNS seg
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION seg_size(seg)
+RETURNS float4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+-- miscellaneous
+
+CREATE FUNCTION seg_center(seg)
+RETURNS float4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION seg_upper(seg)
+RETURNS float4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+CREATE FUNCTION seg_lower(seg)
+RETURNS float4
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT IMMUTABLE PARALLEL SAFE;
+
+
+--
+-- OPERATORS
+--
+
+CREATE OPERATOR < (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_lt,
+	COMMUTATOR = '>',
+	NEGATOR = '>=',
+	RESTRICT = scalarltsel,
+	JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_le,
+	COMMUTATOR = '>=',
+	NEGATOR = '>',
+	RESTRICT = scalarltsel,
+	JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_gt,
+	COMMUTATOR = '<',
+	NEGATOR = '<=',
+	RESTRICT = scalargtsel,
+	JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR >= (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_ge,
+	COMMUTATOR = '<=',
+	NEGATOR = '<',
+	RESTRICT = scalargtsel,
+	JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR << (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_left,
+	COMMUTATOR = '>>',
+	RESTRICT = positionsel,
+	JOIN = positionjoinsel
+);
+
+CREATE OPERATOR &< (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_over_left,
+	RESTRICT = positionsel,
+	JOIN = positionjoinsel
+);
+
+CREATE OPERATOR && (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_overlap,
+	COMMUTATOR = '&&',
+	RESTRICT = areasel,
+	JOIN = areajoinsel
+);
+
+CREATE OPERATOR &> (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_over_right,
+	RESTRICT = positionsel,
+	JOIN = positionjoinsel
+);
+
+CREATE OPERATOR >> (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_right,
+	COMMUTATOR = '<<',
+	RESTRICT = positionsel,
+	JOIN = positionjoinsel
+);
+
+CREATE OPERATOR = (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_same,
+	COMMUTATOR = '=',
+	NEGATOR = '<>',
+	RESTRICT = eqsel,
+	JOIN = eqjoinsel,
+	MERGES
+);
+
+CREATE OPERATOR <> (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_different,
+	COMMUTATOR = '<>',
+	NEGATOR = '=',
+	RESTRICT = neqsel,
+	JOIN = neqjoinsel
+);
+
+CREATE OPERATOR @> (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_contains,
+	COMMUTATOR = '<@',
+	RESTRICT = contsel,
+	JOIN = contjoinsel
+);
+
+CREATE OPERATOR <@ (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_contained,
+	COMMUTATOR = '@>',
+	RESTRICT = contsel,
+	JOIN = contjoinsel
+);
+
+-- obsolete:
+CREATE OPERATOR @ (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_contains,
+	COMMUTATOR = '~',
+	RESTRICT = contsel,
+	JOIN = contjoinsel
+);
+
+CREATE OPERATOR ~ (
+	LEFTARG = seg,
+	RIGHTARG = seg,
+	PROCEDURE = seg_contained,
+	COMMUTATOR = '@',
+	RESTRICT = contsel,
+	JOIN = contjoinsel
+);
+
+
+-- define the GiST support methods
+CREATE FUNCTION gseg_consistent(internal,seg,smallint,oid,internal)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_compress(internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_decompress(internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_penalty(internal,internal,internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_picksplit(internal, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_union(internal, internal)
+RETURNS seg
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+CREATE FUNCTION gseg_same(seg, seg, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+
+
+-- Create the operator classes for indexing
+
+CREATE OPERATOR CLASS seg_ops
+    DEFAULT FOR TYPE seg USING btree AS
+        OPERATOR        1       < ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       = ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       > ,
+        FUNCTION        1       seg_cmp(seg, seg);
+
+CREATE OPERATOR CLASS gist_seg_ops
+DEFAULT FOR TYPE seg USING gist
+AS
+	OPERATOR	1	<< ,
+	OPERATOR	2	&< ,
+	OPERATOR	3	&& ,
+	OPERATOR	4	&> ,
+	OPERATOR	5	>> ,
+	OPERATOR	6	= ,
+	OPERATOR	7	@> ,
+	OPERATOR	8	<@ ,
+	OPERATOR	13	@ ,
+	OPERATOR	14	~ ,
+	FUNCTION	1	gseg_consistent (internal, seg, smallint, oid, internal),
+	FUNCTION	2	gseg_union (internal, internal),
+	FUNCTION	3	gseg_compress (internal),
+	FUNCTION	4	gseg_decompress (internal),
+	FUNCTION	5	gseg_penalty (internal, internal, internal),
+	FUNCTION	6	gseg_picksplit (internal, internal),
+	FUNCTION	7	gseg_same (seg, seg, internal);
+
+
+# FILE: contrib/seg/seg--1.1--1.2.sql
+/* contrib/seg/seg--1.1--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION seg UPDATE TO '1.2'" to load this file. \quit
+
+ALTER OPERATOR <= (seg, seg) SET (
+	RESTRICT = scalarlesel,
+	JOIN = scalarlejoinsel
+);
+
+ALTER OPERATOR >= (seg, seg) SET (
+	RESTRICT = scalargesel,
+	JOIN = scalargejoinsel
+);
+
+
+# FILE: contrib/seg/seg--1.0--1.1.sql
+/* contrib/seg/seg--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION seg UPDATE TO '1.1'" to load this file. \quit
+
+-- Update procedure signatures the hard way.
+-- We use to_regprocedure() so that query doesn't fail if run against 9.6beta1 definitions,
+-- wherein the signatures have been updated already.  In that case to_regprocedure() will
+-- return NULL and no updates will happen.
+DO LANGUAGE plpgsql
+$$
+DECLARE
+  my_schema pg_catalog.text := pg_catalog.quote_ident(pg_catalog.current_schema());
+  old_path pg_catalog.text := pg_catalog.current_setting('search_path');
+BEGIN
+-- for safety, transiently set search_path to just pg_catalog+pg_temp
+PERFORM pg_catalog.set_config('search_path', 'pg_catalog, pg_temp', true);
+
+UPDATE pg_catalog.pg_proc SET
+  proargtypes = pg_catalog.array_to_string(newtypes::pg_catalog.oid[], ' ')::pg_catalog.oidvector,
+  pronargs = pg_catalog.array_length(newtypes, 1)
+FROM (VALUES
+(NULL::pg_catalog.text, NULL::pg_catalog.text[]), -- establish column types
+('gseg_consistent(internal,SCH.seg,int4,oid,internal)', '{internal,SCH.seg,int2,oid,internal}')
+) AS update_data (oldproc, newtypestext),
+LATERAL (
+  SELECT array_agg(replace(typ, 'SCH', my_schema)::regtype) as newtypes FROM unnest(newtypestext) typ
+) ls
+WHERE oid = to_regprocedure(my_schema || '.' || replace(oldproc, 'SCH', my_schema));
+
+PERFORM pg_catalog.set_config('search_path', old_path, true);
+END
+$$;
+
+ALTER FUNCTION seg_in(cstring) PARALLEL SAFE;
+ALTER FUNCTION seg_out(seg) PARALLEL SAFE;
+ALTER FUNCTION seg_over_left(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_over_right(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_left(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_right(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_lt(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_le(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_gt(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_ge(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_contains(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_contained(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_overlap(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_same(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_different(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_cmp(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_union(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_inter(seg, seg) PARALLEL SAFE;
+ALTER FUNCTION seg_size(seg) PARALLEL SAFE;
+ALTER FUNCTION seg_center(seg) PARALLEL SAFE;
+ALTER FUNCTION seg_upper(seg) PARALLEL SAFE;
+ALTER FUNCTION seg_lower(seg) PARALLEL SAFE;
+ALTER FUNCTION gseg_consistent(internal, seg, smallint, oid, internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_compress(internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_decompress(internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_penalty(internal, internal, internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_picksplit(internal, internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_union(internal, internal) PARALLEL SAFE;
+ALTER FUNCTION gseg_same(seg, seg, internal) PARALLEL SAFE;
+
+
+# FILE: contrib/seg/Makefile
+# contrib/seg/Makefile
+
+MODULE_big = seg
+OBJS = \
+	$(WIN32RES) \
+	seg.o \
+	segparse.o \
+	segscan.o
+
+EXTENSION = seg
+DATA = seg--1.1.sql seg--1.1--1.2.sql seg--1.2--1.3.sql seg--1.3--1.4.sql \
+	seg--1.0--1.1.sql
+PGFILEDESC = "seg - line segment data type"
+
+HEADERS = segdata.h
+
+REGRESS = security seg partition
+
+EXTRA_CLEAN = segparse.h segparse.c segscan.c
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/seg
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# See notes in src/backend/parser/Makefile about the following two rules
+segparse.h: segparse.c
+	touch $@
+
+segparse.c: BISONFLAGS += -d
+
+# Force these dependencies to be known even without dependency info built:
+segparse.o segscan.o: segparse.h
+
+
+# FILE: contrib/sepgsql/Makefile
+# contrib/sepgsql/Makefile
+
+MODULE_big = sepgsql
+OBJS = \
+	$(WIN32RES) \
+	database.o \
+	dml.o \
+	hooks.o \
+	label.o \
+	proc.o \
+	relation.o \
+	schema.o \
+	selinux.o \
+	uavc.o
+DATA_built = sepgsql.sql
+PGFILEDESC = "sepgsql - SELinux integration"
+
+TAP_TESTS = 1
+
+# Note: because we don't tell the Makefile there are any regression tests,
+# we have to clean those result files explicitly
+EXTRA_CLEAN = -r $(pg_regress_clean_files) tmp/ *.pp sepgsql-regtest.if sepgsql-regtest.fc
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/sepgsql
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+SHLIB_LINK += -lselinux
+
+
+# FILE: contrib/pgrowlocks/pgrowlocks--1.2.sql
+/* contrib/pgrowlocks/pgrowlocks--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION pgrowlocks" to load this file. \quit
+
+CREATE FUNCTION pgrowlocks(IN relname text,
+    OUT locked_row TID,		-- row TID
+    OUT locker XID,		-- locking XID
+    OUT multi bool,		-- multi XID?
+    OUT xids xid[],		-- multi XIDs
+    OUT modes text[],		-- multi XID statuses
+    OUT pids INTEGER[])		-- locker's process id
+RETURNS SETOF record
+AS 'MODULE_PATHNAME', 'pgrowlocks'
+LANGUAGE C STRICT PARALLEL SAFE;
+
+
+# FILE: contrib/pgrowlocks/pgrowlocks--1.1--1.2.sql
+/* contrib/pgrowlocks/pgrowlocks--1.1--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION pgrowlocks UPDATE TO '1.2'" to load this file. \quit
+
+ALTER FUNCTION pgrowlocks(text) PARALLEL SAFE;
+
+
+# FILE: contrib/pgrowlocks/pgrowlocks--1.0--1.1.sql
+/* contrib/pgrowlocks/pgrowlocks--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION pgrowlocks UPDATE TO '1.1'" to load this file. \quit
+
+ALTER EXTENSION pgrowlocks DROP FUNCTION pgrowlocks(text);
+DROP FUNCTION pgrowlocks(text);
+CREATE FUNCTION pgrowlocks(IN relname text,
+    OUT locked_row TID,		-- row TID
+    OUT locker XID,		-- locking XID
+    OUT multi bool,		-- multi XID?
+    OUT xids xid[],		-- multi XIDs
+    OUT modes text[],		-- multi XID statuses
+    OUT pids INTEGER[])		-- locker's process id
+RETURNS SETOF record
+AS 'MODULE_PATHNAME', 'pgrowlocks'
+LANGUAGE C STRICT;
+
+
+# FILE: contrib/pgrowlocks/Makefile
+# contrib/pgrowlocks/Makefile
+
+MODULE_big	= pgrowlocks
+OBJS = \
+	$(WIN32RES) \
+	pgrowlocks.o
+
+EXTENSION = pgrowlocks
+DATA = pgrowlocks--1.2.sql pgrowlocks--1.1--1.2.sql pgrowlocks--1.0--1.1.sql
+PGFILEDESC = "pgrowlocks - display row locking information"
+
+ISOLATION = pgrowlocks
+ISOLATION_OPTS = --load-extension=pgrowlocks
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+subdir = contrib/pgrowlocks
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/postgres_fdw/postgres_fdw--1.2--1.3.sql
+/* contrib/postgres_fdw/postgres_fdw--1.2--1.3.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION postgres_fdw UPDATE TO '1.3'" to load this file. \quit
+
+-- takes internal parameter to prevent calling from SQL
+CREATE FUNCTION postgres_fdw_connection(oid, oid, internal)
+RETURNS text
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+ALTER FOREIGN DATA WRAPPER postgres_fdw CONNECTION postgres_fdw_connection;
+
+
+# FILE: contrib/postgres_fdw/postgres_fdw--1.1--1.2.sql
+/* contrib/postgres_fdw/postgres_fdw--1.1--1.2.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION postgres_fdw UPDATE TO '1.2'" to load this file. \quit
+
+/* First we have to remove it from the extension */
+ALTER EXTENSION postgres_fdw DROP FUNCTION postgres_fdw_get_connections ();
+
+/* Then we can drop it */
+DROP FUNCTION postgres_fdw_get_connections ();
+
+CREATE FUNCTION postgres_fdw_get_connections (
+    IN check_conn boolean DEFAULT false, OUT server_name text,
+    OUT user_name text, OUT valid boolean, OUT used_in_xact boolean,
+    OUT closed boolean, OUT remote_backend_pid int4)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME', 'postgres_fdw_get_connections_1_2'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+
+# FILE: contrib/postgres_fdw/postgres_fdw--1.0.sql
+/* contrib/postgres_fdw/postgres_fdw--1.0.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION postgres_fdw" to load this file. \quit
+
+CREATE FUNCTION postgres_fdw_handler()
+RETURNS fdw_handler
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+CREATE FUNCTION postgres_fdw_validator(text[], oid)
+RETURNS void
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
+
+CREATE FOREIGN DATA WRAPPER postgres_fdw
+  HANDLER postgres_fdw_handler
+  VALIDATOR postgres_fdw_validator;
+
+
+# FILE: contrib/postgres_fdw/postgres_fdw--1.0--1.1.sql
+/* contrib/postgres_fdw/postgres_fdw--1.0--1.1.sql */
+
+-- complain if script is sourced in psql, rather than via ALTER EXTENSION
+\echo Use "ALTER EXTENSION postgres_fdw UPDATE TO '1.1'" to load this file. \quit
+
+CREATE FUNCTION postgres_fdw_get_connections (OUT server_name text,
+    OUT valid boolean)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION postgres_fdw_disconnect (text)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION postgres_fdw_disconnect_all ()
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+
+# FILE: contrib/postgres_fdw/Makefile
+# contrib/postgres_fdw/Makefile
+
+MODULE_big = postgres_fdw
+OBJS = \
+	$(WIN32RES) \
+	connection.o \
+	deparse.o \
+	option.o \
+	postgres_fdw.o \
+	shippable.o
+PGFILEDESC = "postgres_fdw - foreign data wrapper for PostgreSQL"
+
+PG_CPPFLAGS = -I$(libpq_srcdir)
+SHLIB_LINK_INTERNAL = $(libpq)
+
+EXTENSION = postgres_fdw
+DATA = postgres_fdw--1.0.sql postgres_fdw--1.0--1.1.sql postgres_fdw--1.1--1.2.sql postgres_fdw--1.2--1.3.sql
+
+REGRESS = postgres_fdw query_cancel
+ISOLATION = eval_plan_qual
+ISOLATION_OPTS = --load-extension=postgres_fdw
+TAP_TESTS = 1
+
+ifdef USE_PGXS
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
+else
+SHLIB_PREREQS = submake-libpq
+subdir = contrib/postgres_fdw
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
+endif
+
+
+# FILE: contrib/pgstattuple/pgstattuple--1.4.sql
+/* contrib/pgstattuple/pgstattuple--1.4.sql */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION pgstattuple" to load this file. \quit
+
+CREATE FUNCTION pgstattuple(IN relname text,
+    OUT table_len BIGINT,		-- physical table length in bytes
+    OUT tuple_count BIGINT,		-- number of live tuples
+    OUT tuple_len BIGINT,		-- total tuples length in bytes
+    OUT tuple_percent FLOAT8,		-- live tuples in %
+    OUT dead_tuple_count BIGINT,	-- number of dead tuples
+    OUT dead_tuple_len BIGINT,		-- total dead tuples length in bytes
+    OUT dead_tuple_p

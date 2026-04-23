@@ -1,0 +1,3 @@
+https://github.com/OWASP/owasp-modsecurity-crs.git
+https://github.com/OWASP/owasp-modsecurity-crs.git
+https://github.com/django/djangorestframework.git

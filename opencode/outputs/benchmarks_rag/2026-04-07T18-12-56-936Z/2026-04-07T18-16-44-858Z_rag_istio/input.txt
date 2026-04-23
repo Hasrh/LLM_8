@@ -1,0 +1,3267 @@
+
+
+# FILE: SUPPORT.md
+# Support
+
+Here are some resources to help you understand and use Istio:
+
+- For in-depth information about how to use Istio, visit [istio.io](https://istio.io)
+- To ask questions and get assistance from our community, visit [GitHub Discussions](https://github.com/istio/istio/discussions)
+- To learn how to participate in our overall community, visit [our community page](https://istio.io/latest/get-involved/)
+
+
+# FILE: RELEASE_BRANCHES.md
+﻿# Release Branches
+
+Release branches have a name of `release-MAJOR.MINOR`. Essential Istio repositories are branched from master roughly 4
+weeks prior to a new release. The `istio/istio.io` repository does not get branched until the release is ready
+for publication.
+
+This document outlines getting in new features after a new branch has been cut and the process for getting a PR
+merged in before and after the first public release.
+
+# Feature Freeze
+
+One week before a release, the release branch goes into a state of code freeze. At this point only critical release
+blocking bugs are addressed. Additional changes that are targeted for new features and capabilities will not be merged.
+
+## Features requiring API changes
+
+If a PR change requires an API change
+* Updates to documentation do not require explicit approval from the Technical Oversight Committee (TOC). This can be
+  held off after the release. Hiding/Showing documentation does not require TOC approval.
+* Cases for other API changes require TOC approval
+    * Simple `meshConfig` changes have been approved in the past. Functionality should not be enabled by default.
+* For large API changes, 2 members of the TOC must approve the PR before release manager approval in the release branch
+  of the istio/api repository. This does not have to wait for the weekly TOC meeting.
+    * Risk should be assessed in the PR.
+        * Have installs and upgrades affected by this feature?
+        * Is the feature still being worked on?
+        * Is the default behavior altered?
+        * Is this turned on by default?
+        * How many users are affected by this change?
+
+## Feature implementation
+
+Release managers will continue to have a final say in what gets merged or not, unless directed by the TOC. See the next
+section if the implementation is done, but a bug is being addressed.
+
+* Any code that changes feature functionality must be done within 2 weeks of the release branch cutting. Even then it is
+ at the discretion of the release managers if PRs will be accepted and merged into the release branch.
+* All code merged in after the feature freeze must have an associated GitHub issue and a release note (exception for
+  unit and integration test changes).
+    * The release managers may not know of all the features being worked on for an Istio release. Developers must
+      make their case as to why their PR should be merged.
+* Developers submitting PRs after the code freeze and after the first release candidate must provide justification
+for including it in the “.0” release. Otherwise, the PRs will not be merged until after the release.
+* For large fixes (>100 LOC that’s not from generated files), SMEs from that area must also approve the PR.
+
+## Bug Fixes
+
+* Bug fixes will not be merged in until the first release has been published, unless it addresses a critical issue.
+* All changes should have an associated GitHub issue and/or a release note.
+* Large fixes, where the LOC>100 not withstanding unit tests changes, require subject matter expert approval.
+
+# Backporting fixes
+
+* Cherry-picking is discussed in the original PR and subject-matter experts have approved the backport.
+    * Behavioral changes should be highly scrutinized, while typo fixes don't require that level of scrutiny.
+* It is preferable that cherry-picks are done by the istio-testing bot.
+    * Automated cherry-picks do not need subject-matter experts to approve if discussed in the original PR.
+    * To trigger the bot cherry pick, either:
+        * Apply the correct `cherrypick/release-X.XX` label to the PR, and the bot should pick it up.
+        * Use an explicit PR comment command: `/cherry-pick release-X.XX`
+        * It is strongly preferred to always apply the correct `cherrypick/` label manually to aid search and tracking, even if you use the comment command method.
+* All changes should have an associated GitHub issue and/or a release note.
+    * In the event that a bug cannot be automatically backported, the istio-testing bot creates an issue for a failed
+    attempt and assigns it to the developer. This issue **is not** sufficient for requesting approval.
+* For manual cherry-picks:
+    * Large fixes, where the LOC>100 not withstanding unit tests changes, require subject-matter expert approval.
+    * Small fixes should be handled by the release managers.
+
+
+# FILE: README.md
+# Istio
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1395/badge)](https://bestpractices.coreinfrastructure.org/projects/1395)
+[![Go Report Card](https://goreportcard.com/badge/github.com/istio/istio)](https://goreportcard.com/report/github.com/istio/istio)
+[![GoDoc](https://godoc.org/istio.io/istio?status.svg)](https://godoc.org/istio.io/istio)
+
+<a href="https://istio.io/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cncf/artwork/refs/heads/main/projects/istio/icon/color/istio-icon-color.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://github.com/istio/istio/raw/master/logo/istio-bluelogo-whitebackground-unframed.svg">
+      <img title="Istio" height="100" width="100" alt="Istio logo" src="https://github.com/istio/istio/raw/master/logo/istio-bluelogo-whitebackground-unframed.svg">
+    </picture>
+</a>
+
+---
+
+Istio is an open source service mesh that layers transparently onto existing distributed applications. Istio’s powerful features provide a uniform and more efficient way to secure, connect, and monitor services. Istio is the path to load balancing, service-to-service authentication, and monitoring – with few or no service code changes.
+
+- For in-depth information about how to use Istio, visit [istio.io](https://istio.io)
+- To ask questions and get assistance from our community, visit [GitHub Discussions](https://github.com/istio/istio/discussions)
+- To learn how to participate in our overall community, visit [our community page](https://istio.io/about/community)
+
+In this README:
+
+- [Introduction](#introduction)
+- [Repositories](#repositories)
+- [Issue management](#issue-management)
+
+In addition, here are some other documents you may wish to read:
+
+- [Istio Community](https://github.com/istio/community#istio-community) - describes how to get involved and contribute to the Istio project
+- [Istio Developer's Guide](https://github.com/istio/istio/wiki/Preparing-for-Development) - explains how to set up and use an Istio development environment
+- [Project Conventions](https://github.com/istio/istio/wiki/Development-Conventions) - describes the conventions we use within the code base
+- [Creating Fast and Lean Code](https://github.com/istio/istio/wiki/Writing-Fast-and-Lean-Code) - performance-oriented advice and guidelines for the code base
+
+You'll find many other useful documents on our [Wiki](https://github.com/istio/istio/wiki).
+
+## Introduction
+
+[Istio](https://istio.io/latest/docs/concepts/what-is-istio/) is an open platform for providing a uniform way to [integrate
+microservices](https://istio.io/latest/docs/examples/microservices-istio/), manage [traffic flow](https://istio.io/latest/docs/concepts/traffic-management/) across microservices, enforce policies
+and aggregate telemetry data. Istio's control plane provides an abstraction
+layer over the underlying cluster management platform, such as Kubernetes.
+
+Istio is composed of these components:
+
+- **Envoy** - Sidecar proxies per microservice to handle ingress/egress traffic
+   between services in the cluster and from a service to external
+   services. The proxies form a _secure microservice mesh_ providing a rich
+   set of functions like discovery, rich layer-7 routing, circuit breakers,
+   policy enforcement and telemetry recording/reporting
+   functions.
+
+  > Note: The service mesh is not an overlay network. It
+  > simplifies and enhances how microservices in an application talk to each
+  > other over the network provided by the underlying platform.
+
+* **Ztunnel** - A lightweight data plane proxy written in Rust,
+    used in Ambient mesh mode to provide secure connectivity and observability for workloads without sidecar proxies.
+
+- **Istiod** - The Istio control plane. It provides service discovery, configuration and certificate management.
+
+## Repositories
+
+The Istio project is divided across a few GitHub repositories:
+
+- [istio/api](https://github.com/istio/api). This repository defines
+component-level APIs and common configuration formats for the Istio platform.
+
+- [istio/community](https://github.com/istio/community). This repository contains
+information on the Istio community, including the various documents that govern
+the Istio open source project.
+
+- [istio/istio](README.md). This is the main code repository. It hosts Istio's
+core components, install artifacts, and sample programs. It includes:
+
+    - [istioctl](istioctl/). This directory contains code for the
+[_istioctl_](https://istio.io/latest/docs/reference/commands/istioctl/) command line utility.
+
+    - [pilot](pilot/). This directory
+contains platform-specific code to populate the
+[abstract service model](https://istio.io/docs/concepts/traffic-management/#pilot), dynamically reconfigure the proxies
+when the application topology changes, as well as translate
+[routing rules](https://istio.io/latest/docs/reference/config/networking/) into proxy specific configuration.
+
+    - [security](security/). This directory contains [security](https://istio.io/latest/docs/concepts/security/) related code.
+
+- [istio/proxy](https://github.com/istio/proxy). The Istio proxy contains
+extensions to the [Envoy proxy](https://github.com/envoyproxy/envoy) (in the form of
+Envoy filters) that support authentication, authorization, and telemetry collection.
+
+- [istio/ztunnel](https://github.com/istio/ztunnel). The repository contains the Rust implementation of the ztunnel
+component of Ambient mesh.
+
+- [istio/client-go](https://github.com/istio/client-go). This repository defines
+  auto-generated Kubernetes clients for interacting with Istio resources programmatically.
+
+> [!NOTE]
+> Only the `istio/api` and `istio/client-go` repositories expose stable interfaces intended for direct usage as libraries.
+
+## Issue management
+
+We use GitHub to track all of our bugs and feature requests. Each issue we track has a variety of metadata:
+
+- **Epic**. An epic represents a feature area for Istio as a whole. Epics are fairly broad in scope and are basically product-level things.
+Each issue is ultimately part of an epic.
+
+- **Milestone**. Each issue is assigned a milestone. This is 0.1, 0.2, ..., or 'Nebulous Future'. The milestone indicates when we
+think the issue should get addressed.
+
+- **Priority**. Each issue has a priority which is represented by the column in the [Prioritization](https://github.com/orgs/istio/projects/6) project. Priority can be one of
+P0, P1, P2, or >P2. The priority indicates how important it is to address the issue within the milestone. P0 says that the
+milestone cannot be considered achieved if the issue isn't resolved.
+
+---
+
+<div align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cncf/artwork/refs/heads/main/other/cncf/horizontal/color-whitetext/cncf-color-whitetext.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/cncf/artwork/master/other/cncf/horizontal/color/cncf-color.svg">
+      <img width="300" alt="Cloud Native Computing Foundation logo" src="https://raw.githubusercontent.com/cncf/artwork/refs/heads/main/other/cncf/horizontal/color-whitetext/cncf-color-whitetext.svg">
+    </picture>
+    <p>Istio is a <a href="https://cncf.io">Cloud Native Computing Foundation</a> project.</p>
+</div>
+
+
+# FILE: Makefile
+# WARNING: DO NOT EDIT, THIS FILE IS PROBABLY A COPY
+#
+# The original version of this file is located in the https://github.com/istio/common-files repo.
+# If you're looking at this file in a different repo and want to make a change, please go to the
+# common-files repo, make the change there and check it in. Then come back to this repo and run
+# "make update-common".
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+SHELL := /usr/bin/env bash
+
+# allow optional per-repo overrides
+-include Makefile.overrides.mk
+
+# Set the environment variable BUILD_WITH_CONTAINER to use a container
+# to build the repo. The only dependencies in this mode are to have make and
+# docker. If you'd rather build with a local tool chain instead, you'll need to
+# figure out all the tools you need in your environment to make that work.
+export BUILD_WITH_CONTAINER ?= 0
+
+ifeq ($(BUILD_WITH_CONTAINER),1)
+
+# An export free of arguments in a Makefile places all variables in the Makefile into the
+# environment. This is needed to allow overrides from Makefile.overrides.mk.
+export
+
+RUN = ./common/scripts/run.sh
+
+MAKE_DOCKER = $(RUN) make --no-print-directory -e -f Makefile.core.mk
+
+%:
+	@$(MAKE_DOCKER) $@
+
+default:
+	@$(MAKE_DOCKER)
+
+shell:
+	@$(RUN) /bin/bash
+
+.PHONY: default shell
+
+else
+
+# If we are not in build container, we need a workaround to get environment properly set
+# Write to file, then include
+$(shell mkdir -p out)
+$(shell $(shell pwd)/common/scripts/setup_env.sh envfile > out/.env)
+include out/.env
+# An export free of arguments in a Makefile places all variables in the Makefile into the
+# environment. This behavior may be surprising to many that use shell often, which simply
+# displays the existing environment
+export
+
+export GOBIN ?= $(GOPATH)/bin
+include Makefile.core.mk
+
+endif
+
+
+# FILE: LICENSE
+
+                                Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: CONTRIBUTING.md
+# Contribution guidelines
+
+So you want to hack on Istio? Yay! Please refer to Istio's overall
+[contribution guidelines](https://github.com/istio/community/blob/master/CONTRIBUTING.md)
+to find out how you can help.
+
+
+# FILE: BUGS-AND-FEATURE-REQUESTS.md
+# Bugs and Feature Requests
+
+You can report bugs and feature requests to the Istio team in one of three places:
+
+- [Product Bugs and Feature Requests](https://github.com/istio/istio/issues)
+- [Documentation Bugs and Feature Requests](https://github.com/istio/istio.io/issues)
+- [Community and Governance Issues](https://github.com/istio/community/issues)
+
+For security vulnerabilities, please don't report a bug (which is public) and instead follow
+[these procedures](https://istio.io/about/security-vulnerabilities/).
+
+
+# FILE: security/README.md
+Please check our [website](https://istio.io/docs/concepts/security/) for
+more information.
+
+
+# FILE: release/downloadIstioCtl.sh
+#!/bin/sh
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############################################################################
+
+set -e
+
+# Separate downloader for istioctl
+#
+# You can fetch the istioctl file using:
+# curl -sL https://raw.githubusercontent.com/istio/istio/${BRANCH}/release/downloadIstioCtl.sh | sh -
+#
+# where ${BRANCH} is either your branch name (e.g. release-1.4) or master.
+#
+
+# Determines the operating system.
+OS="${TARGET_OS:-$(uname)}"
+if [ "${OS}" = "Darwin" ] ; then
+  OSEXT="osx"
+else
+  OSEXT="linux"
+fi
+
+# Determine the latest Istio version by version number ignoring alpha, beta, and rc versions.
+if [ "${ISTIO_VERSION}" = "" ] ; then
+  ISTIO_VERSION="$(curl -sL https://github.com/istio/istio/releases | \
+                  grep -o 'releases/[0-9]*.[0-9]*.[0-9]*/' | sort -V | \
+                  tail -1 | awk -F'/' '{ print $2}')"
+  ISTIO_VERSION="${ISTIO_VERSION##*/}"
+fi
+
+if [ "${ISTIO_VERSION}" = "" ] ; then
+  printf "Unable to get latest Istio version. Set ISTIO_VERSION env var and re-run. For example: export ISTIO_VERSION=1.14.0"
+  exit 1;
+fi
+
+LOCAL_ARCH=$(uname -m)
+if [ "${TARGET_ARCH}" ]; then
+    LOCAL_ARCH=${TARGET_ARCH}
+fi
+
+case "${LOCAL_ARCH}" in
+  x86_64|amd64)
+    ISTIO_ARCH=amd64
+    ;;
+  armv8*|aarch64*|arm64)
+    ISTIO_ARCH=arm64
+    ;;
+  armv*)
+    ISTIO_ARCH=armv7
+    ;;
+  *)
+    echo "This system's architecture, ${LOCAL_ARCH}, isn't supported"
+    exit 1
+    ;;
+esac
+
+download_failed () {
+  printf "Download failed, please make sure your ISTIO_VERSION is correct and verify the download URL exists!"
+  exit 1
+}
+
+# Downloads the istioctl binary archive.
+tmp=$(mktemp -d /tmp/istioctl.XXXXXX)
+NAME="istioctl-${ISTIO_VERSION}"
+
+URL="https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istioctl-${ISTIO_VERSION}-${OSEXT}.tar.gz"
+ARCH_URL="https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istioctl-${ISTIO_VERSION}-${OSEXT}-${ISTIO_ARCH}.tar.gz"
+
+with_arch() {
+  printf "\nDownloading %s from %s ...\n" "${NAME}" "$ARCH_URL"
+  if ! curl -o /dev/null -sIf "$ARCH_URL"; then
+    printf "\n%s is not found, please specify a valid ISTIO_VERSION and TARGET_ARCH\n" "$ARCH_URL"
+    exit 1
+  fi
+  filename="istioctl-${ISTIO_VERSION}-${OSEXT}-${ISTIO_ARCH}.tar.gz"
+  curl -fsL -o "${tmp}/${filename}" "$ARCH_URL"
+  tar -xzf "${tmp}/${filename}" -C "${tmp}"
+}
+
+without_arch() {
+  printf "\n Downloading %s from %s ... \n" "${NAME}" "${URL}"
+  if ! curl -o /dev/null -sIf "$URL"; then
+    printf "\n%s is not found, please specify a valid ISTIO_VERSION\n" "$URL"
+    exit 1
+  fi
+  filename="istioctl-${ISTIO_VERSION}-${OSEXT}.tar.gz"
+  curl -fsL -o "${tmp}/${filename}" "$URL"
+  tar -xzf "${tmp}/${filename}" -C "${tmp}"
+}
+
+# Istio 1.6 and above support arch
+# Istio 1.5 and below do not have arch support
+ARCH_SUPPORTED="1.6"
+# Istio 1.10 and above support arch for osx arm64
+ARCH_SUPPORTED_OSX="1.10"
+
+if [ "${OS}" = "Linux" ] ; then
+  # This checks if ISTIO_VERSION is less than ARCH_SUPPORTED (version-sort's before it)
+  if [ "$(printf '%s\n%s' "${ARCH_SUPPORTED}" "${ISTIO_VERSION}" | sort -V | head -n 1)" = "${ISTIO_VERSION}" ]; then
+    without_arch
+  else
+    with_arch
+  fi
+elif [ "${OS}" = "Darwin" ] ; then
+  # This checks if ISTIO_VERSION is less than ARCH_SUPPORTED_OSX (version-sort's before it) or ISTIO_ARCH not equal to arm64
+  if [ "$(printf '%s\n%s' "${ARCH_SUPPORTED_OSX}" "${ISTIO_VERSION}" | sort -V | head -n 1)" = "${ISTIO_VERSION}" ] || [ "${ISTIO_ARCH}" != "arm64" ]; then
+    without_arch
+  else
+    with_arch
+  fi
+else
+  download_failed
+fi
+
+printf "%s download complete!\n" "${filename}"
+
+# setup istioctl
+mkdir -p "$HOME/.istioctl/bin"
+mv "${tmp}/istioctl" "$HOME/.istioctl/bin/istioctl"
+chmod +x "$HOME/.istioctl/bin/istioctl"
+rm -r "${tmp}"
+
+# Print message
+printf "\n"
+printf "Add the istioctl to your path with:"
+printf "\n"
+printf "  export PATH=\$HOME/.istioctl/bin:\$PATH \n"
+printf "\n"
+printf "Begin the Istio pre-installation check by running:\n"
+printf "\t istioctl x precheck \n"
+printf "\n"
+printf "Need more information? Visit https://istio.io/docs/reference/commands/istioctl/ \n"
+
+
+# FILE: release/downloadIstioCandidate.sh
+#!/bin/sh
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# This file will be fetched as: curl -L https://git.io/getLatestIstio | sh -
+# so it should be pure bourne shell, not bash (and not reference other scripts)
+#
+# The script fetches the latest Istio release candidate and untars it.
+# You can pass variables on the command line to download a specific version
+# or to override the processor architecture. For example, to download
+# Istio 1.6.8 for the x86_64 architecture and linux OS,
+# run curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.6.8 TARGET_ARCH=x86_64 TARGET_OS=Linux sh -.
+
+set -e
+
+# Determines the operating system.
+OS="${TARGET_OS:-$(uname)}"
+if [ "${OS}" = "Darwin" ] ; then
+  OSEXT="osx"
+else
+  OSEXT="linux"
+fi
+
+# Determine the latest Istio version by version number ignoring alpha, beta, and rc versions.
+if [ "${ISTIO_VERSION}" = "" ] ; then
+  ISTIO_VERSION="$(curl -sL https://github.com/istio/istio/releases | \
+                  grep -o 'releases/[0-9]*.[0-9]*.[0-9]*/' | sort -V | \
+                  tail -1 | awk -F'/' '{ print $2}')"
+  ISTIO_VERSION="${ISTIO_VERSION##*/}"
+fi
+
+LOCAL_ARCH=$(uname -m)
+if [ "${TARGET_ARCH}" ]; then
+    LOCAL_ARCH=${TARGET_ARCH}
+fi
+
+case "${LOCAL_ARCH}" in
+  x86_64|amd64)
+    ISTIO_ARCH=amd64
+    ;;
+  armv8*|aarch64*|arm64)
+    ISTIO_ARCH=arm64
+    ;;
+  armv*)
+    ISTIO_ARCH=armv7
+    ;;
+  *)
+    echo "This system's architecture, ${LOCAL_ARCH}, isn't supported"
+    exit 1
+    ;;
+esac
+
+if [ "${ISTIO_VERSION}" = "" ] ; then
+  printf "Unable to get latest Istio version. Set ISTIO_VERSION env var and re-run. For example: export ISTIO_VERSION=1.24.1"
+  exit 1;
+fi
+
+NAME="istio-$ISTIO_VERSION"
+URL="https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-${OSEXT}.tar.gz"
+ARCH_URL="https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istio-${ISTIO_VERSION}-${OSEXT}-${ISTIO_ARCH}.tar.gz"
+
+with_arch() {
+  printf "\nDownloading %s from %s ...\n" "$NAME" "$ARCH_URL"
+  if ! curl -o /dev/null -sIf "$ARCH_URL"; then
+    printf "\n%s is not found, please specify a valid ISTIO_VERSION and TARGET_ARCH\n" "$ARCH_URL"
+    exit 1
+  fi
+  curl -fsLO "$ARCH_URL"
+  filename="istio-${ISTIO_VERSION}-${OSEXT}-${ISTIO_ARCH}.tar.gz"
+  tar -xzf "${filename}"
+  rm "${filename}"
+}
+
+without_arch() {
+  printf "\nDownloading %s from %s ..." "$NAME" "$URL"
+  if ! curl -o /dev/null -sIf "$URL"; then
+    printf "\n%s is not found, please specify a valid ISTIO_VERSION\n" "$URL"
+    exit 1
+  fi
+  curl -fsLO "$URL"
+  filename="istio-${ISTIO_VERSION}-${OSEXT}.tar.gz"
+  tar -xzf "${filename}"
+  rm "${filename}"
+}
+
+# Istio 1.6 and above support arch
+# Istio 1.5 and below do not have arch support
+ARCH_SUPPORTED="1.6"
+# Istio 1.10 and above support arch for osx arm64
+ARCH_SUPPORTED_OSX="1.10"
+
+if [ "${OS}" = "Linux" ] ; then
+  # This checks if ISTIO_VERSION is less than ARCH_SUPPORTED (version-sort's before it)
+  if [ "$(printf '%s\n%s' "${ARCH_SUPPORTED}" "${ISTIO_VERSION}" | sort -V | head -n 1)" = "${ISTIO_VERSION}" ]; then
+    without_arch
+  else
+    with_arch
+  fi
+elif [ "${OS}" = "Darwin" ] ; then
+  # This checks if ISTIO_VERSION is less than ARCH_SUPPORTED_OSX (version-sort's before it) or ISTIO_ARCH not equal to arm64
+  if [ "$(printf '%s\n%s' "${ARCH_SUPPORTED_OSX}" "${ISTIO_VERSION}" | sort -V | head -n 1)" = "${ISTIO_VERSION}" ] || [ "${ISTIO_ARCH}" != "arm64" ]; then
+    without_arch
+  else
+    with_arch
+  fi
+else
+  printf "\n\n"
+  printf "Unable to download Istio %s at this moment!\n" "$ISTIO_VERSION"
+  printf "Please verify the version you are trying to download.\n\n"
+  exit 1
+fi
+
+printf ""
+printf "\nIstio %s download complete!\n" "$ISTIO_VERSION"
+printf "\n"
+printf "The Istio release archive has been downloaded to the %s directory.\n" "$NAME"
+printf "\n"
+BINDIR="$(cd "$NAME/bin" && pwd)"
+printf "To configure the istioctl client tool for your workstation,\n"
+printf "add the %s directory to your environment path variable with:\n" "$BINDIR"
+printf "\t export PATH=\"\$PATH:%s\"\n" "$BINDIR"
+printf "\n"
+printf "Begin the Istio pre-installation check by running:\n"
+printf "\t istioctl x precheck \n"
+printf "\n"
+printf "Try Istio in ambient mode\n\thttps://istio.io/latest/docs/ambient/getting-started/\n"
+printf "Try Istio in sidecar mode\n\thttps://istio.io/latest/docs/setup/getting-started/\n"
+printf "Install guides for ambient mode\n\thttps://istio.io/latest/docs/ambient/install/\n"
+printf "Install guides for sidecar mode\n\thttps://istio.io/latest/docs/setup/install/\n"
+printf "\n"
+printf "Need more information? Visit https://istio.io/latest/docs/ \n"
+
+
+# FILE: tools/skip-image.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -eu
+
+# This is a dedicated script to allow reference from script and makefile
+
+# Determine if we should skip an image
+# $1 = docker target
+# $2 = variant
+# We will filter out test image distroless variant; they do not need to support distroless
+if [[ $2 == "distroless" ]]; then
+  if [[ $1 =~ docker.app ]]; then
+    exit 0
+  fi
+fi
+exit 1
+
+
+# FILE: tools/golangci-override.yaml
+version: "2"
+linters:
+  settings:
+    depguard:
+      rules:
+        AllGoFiles:
+          files:
+            - $all
+          deny:
+            - pkg: golang.org/x/net/http2/h2c
+              desc: h2c.NewHandler is unsafe; use wrapper istio.io/istio/pkg/h2c
+            - pkg: github.com/golang/protobuf/jsonpb
+              desc: don't use the jsonpb package directly; use util/protomarshal instead
+            - pkg: google.golang.org/protobuf/encoding/protojson
+              desc: don't use the protojson package directly; use util/protomarshal instead
+            - pkg: gomodules.xyz/jsonpatch/v3
+              desc: don't use v3; v2 is orders of magnitude higher performance
+            - pkg: k8s.io/apimachinery/pkg/util/sets
+              desc: use istio.io/istio/pkg/util/sets
+            - pkg: k8s.io/utils/set
+              desc: use istio.io/istio/pkg/util/sets
+            - pkg: k8s.io/utils/env
+              desc: use istio.io/istio/pkg/env
+            - pkg: k8s.io/utils/strings/slices
+              desc: use istio.io/istio/pkg/slices
+            - pkg: k8s.io/utils/pointer
+              desc: use istio.io/istio/pkg/ptr
+            - pkg: go.opencensus.io
+              desc: do not use OpenCensus; use OpenTelemetry instead
+            - pkg: golang.org/x/exp/maps
+              desc: do not use golang.org/x/exp/maps; use istio.io/istio/pkg/maps instead
+            - pkg: maps
+              desc: do not use maps; use istio.io/istio/pkg/maps instead
+            - pkg: golang.org/x/exp/slices
+              desc: do not use golang.org/x/exp/slices; use istio.io/istio/pkg/slices instead
+            - pkg: slices
+              desc: do not use slices; use istio.io/istio/pkg/slices instead
+            - pkg: gopkg.in/yaml.v2
+              desc: do not use gopkg.in/yaml.v2; use sigs.k8s.io/yaml instead
+            - pkg: gopkg.in/yaml.v3
+              desc: do not use gopkg.in/yaml.v3; use sigs.k8s.io/yaml instead
+            - pkg: github.com/ghodss/yaml
+              desc: do not use github.com/ghodss/yaml; use sigs.k8s.io/yaml instead
+        DenyOpenTelemetry:
+          files:
+            - $all
+            - '!**/pkg/monitoring/**'
+            - '!**/pkg/tracing/**'
+          deny:
+            - pkg: go.opentelemetry.io/otel
+              desc: do not use OpenTelemetry directly; use pkg/monitoring
+            - pkg: go.opentelemetry.io/otel/metric
+              desc: do not use OpenTelemetry directly; use pkg/monitoring
+        DenyOperatorAndIstioctl:
+          files:
+            - '!$test'
+            - '!**/operator/**'
+            - '!**/istioctl/**'
+            - '!**/tools/bug-report/**'
+            - '!**/pkg/kube/**'
+            - '!**/pkg/url/**'
+            - '!**/pkg/test/framework/**'
+            - '!**/tests/fuzz/**'
+          deny:
+            - pkg: istio.io/istio/operator
+              desc: operator should not be imported
+            - pkg: istio.io/istio/istioctl
+              desc: istioctl should not be imported
+        DenyProtobufV1:
+          files:
+            - $all
+          deny:
+            - pkg: github.com/golang/protobuf/ptypes
+              desc: do not use github.com/golang/protobuf/ptypes; use google.golang.org/protobuf/types/known instead
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+
+# FILE: tools/gen_istio_image_list.sh
+#!/bin/bash
+# 
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script generates the list of images used by Istio on the control
+# plane, data plane as well as addons.We generate this list by looking
+# at the values.yaml file where the Helm charts are stored, as well as
+# reading the values of DOCKER_TARGETS rule in the istio-docker.mk file.
+
+ISTIO_HELM_CHART=https://api.github.com/repos/istio/istio/contents/install/kubernetes/helm/istio/charts
+ISTIO_GITHUB=https://raw.githubusercontent.com/istio/istio
+
+function get_istio_images() {
+    buff=''
+    continue_processing=0
+
+    curl --silent "${ISTIO_GITHUB}/${1}/tools/istio-docker.mk" -o temp.file
+
+    while IFS= read -r line 
+    do 
+       if [[ $line == DOCKER_TARGETS* ]]
+       then
+           buff+=${line#DOCKER_TARGETS}
+           continue_processing=1
+       else
+           if [ $continue_processing -eq 1 ]
+           then
+              if [[ $line == *\\ ]]
+              then
+                buff=${buff%\\}$line
+              else
+                buff=${buff%\\}$line
+                break
+              fi
+           fi
+       fi
+    done < temp.file
+
+    for repo in $buff; do
+       if [[ $repo == *docker.* ]]
+       then
+           istio_component=${repo##*docker.};
+           istio_repo=release/$istio_component;
+           echo registry.istio.io/"$istio_repo":"${1}"
+       fi
+    done
+
+    if [ -f temp.file ];
+    then
+       rm temp.file
+    fi
+}
+
+function get_current_release() {
+    TAGS="$(curl --silent 'https://api.github.com/repos/istio/istio/tags' | grep -o '"name": "[0-9].[0-9].[0-9]"' | tr -d '"' )"
+    for tag in $TAGS;
+    do
+      if [[ $tag != name: ]]
+      then
+         if [[ $tag > $latest_tag ]]
+         then
+            latest_tag=$tag
+         fi
+      fi
+    done
+    echo "$latest_tag"
+}
+
+function get_istio_addons() {
+    branches=$(curl --silent "${ISTIO_HELM_CHART}?ref=${1}" | grep '"name": *' | tr -d '", ')
+    for branch in ${branches}; do
+        REPO=${branch##name:}
+        curl --silent "${ISTIO_GITHUB}/${1}/install/kubernetes/helm/istio/charts/${REPO}/values.yaml" -o temp.file
+        
+        HUB=$(grep -E 'hub: |repository: ' temp.file | awk '{print $2 $4}')
+        IMAGE=$(grep "image: " temp.file | awk '{print $2 $4}')
+        TAG=$(grep "tag: " temp.file | awk '{print $2 $4}')
+
+        hubs=()
+        images=()
+        tags=()
+
+        for hub in ${HUB}; do
+          hubs+=( "$hub" );
+        done
+
+        for img in ${IMAGE}; do
+          images+=( "$img" );
+        done
+
+        for tag in ${TAG}; do
+          tags+=( "$tag" );
+        done
+
+        for i in "${!hubs[@]}"; do
+          if [ -z "${images[$i]}" ]
+          then
+             echo "${hubs[$i]}":"${tags[$i]}"
+          else
+             echo "${hubs[$i]}"/"${images[$i]}":"${tags[$i]}"
+          fi 
+        done
+    done
+    if [ -f temp.file  ];
+    then 
+       rm temp.file
+    fi
+}
+
+function display_usage() {
+    echo 
+    echo "List Istio images and addons for a given release. If release is not specified, it will list images for the latest Istio release."
+    echo 
+    echo "USAGE: ./gen_istio_image_list.sh [-v|--version] [-h|--help]"
+    echo "      -v|--version : Istio release"
+    echo "      -h|--help : Prints usage information"
+    exit 1
+}
+
+# Process the input arguments.
+while [[ "$#" -gt 0 ]];
+do
+   case "$1" in
+      -v|--version )
+          if [ -z "$2"  ];
+          then
+             echo "Please provide an Istio release."
+             display_usage
+          else
+             if [[ "$2" =~ [0-9]+\.[0-9]+\.[0-9]+ ]];
+             then
+                CURRENT_RELEASE="$2"
+             else
+                echo
+                echo "Enter a valid Istio release [<major>.<minor>.<LTS patch level>]"
+                echo
+                exit 1
+             fi
+          fi
+          shift 2;;
+      -h|--help )
+          display_usage ;;
+      * )
+          echo "Unknown argument: $1"
+          display_usage ;;
+   esac
+done
+
+if [ -z "${CURRENT_RELEASE}" ]
+then
+    CURRENT_RELEASE=$(get_current_release)
+fi
+get_istio_images "${CURRENT_RELEASE}"
+get_istio_addons "${CURRENT_RELEASE}"
+
+
+# FILE: tools/dump_kubernetes.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+
+echo "Use istioctl bug-report instead.";
+echo "https://istio.io/latest/docs/releases/bugs/#kubernetes-cluster-state-archives";
+exit 1;
+
+
+# FILE: tools/dump-docker-logs.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -eu
+
+if [ -z ${CI+x} ]; then
+  # When not in CI, do nothing
+  exit 0;
+fi
+
+echo "Fetching docker container status"
+docker ps || true
+echo "Fetching buildx logs"
+docker logs buildx_buildkit_container-builder0 || true
+echo "Fetching docker logs"
+cat /var/log/docker.log || true
+echo "Fetching local registry logs"
+docker logs kind-registry || true
+
+
+# FILE: tools/docker.yaml
+# docker.yaml provides details about each Dockerfile in the repo.
+# Unlike standard Dockerfiles, Istio builds artifacts outside of docker and then copies them to a temp folder;
+# This folder is then passed as the docker context. This avoids complex .dockerignore or large context loads.
+
+# Example image config
+example:
+- name: helloworld # Name of the image. Will end up pushed to <HUB>/helloworld:<TAG>
+  dockerfile: helloworld/Dockerfile.proxyv2
+  files:
+  # Include a static file
+  # Inside the Dockerfile, this is referenced by the base name (README.md), not the full name.
+  - samples/README.md
+  targets:
+  # Build a file with make, then include as a static file
+  - ${TARGET_OUT_LINUX}/helloworld
+
+images:
+
+# Base images
+- name: base
+  dockerfile: docker/Dockerfile.base
+  base: true
+
+- name: distroless
+  dockerfile: docker/Dockerfile.distroless
+  base: true
+
+# Production images
+- name: proxyv2
+  dockerfile: pilot/docker/Dockerfile.proxyv2
+  files:
+  - tools/packaging/common/envoy_bootstrap.json
+  - ${TARGET_OUT_LINUX}/${RELEASE_MODE}/${SIDECAR}
+  targets:
+  - ${TARGET_OUT_LINUX}/pilot-agent
+- name: pilot
+  dockerfile: pilot/docker/Dockerfile.pilot
+  targets:
+  - ${TARGET_OUT_LINUX}/pilot-discovery
+- name: agentgateway
+  dockerfile: pilot/docker/Dockerfile.agentgateway
+
+- name: istioctl
+  dockerfile: istioctl/docker/Dockerfile.istioctl
+  targets:
+  - ${TARGET_OUT_LINUX}/istioctl
+
+- name: install-cni
+  dockerfile: cni/deployments/kubernetes/Dockerfile.install-cni
+  targets:
+  - ${TARGET_OUT_LINUX}/istio-cni
+  - ${TARGET_OUT_LINUX}/install-cni
+
+- name: ztunnel
+  dockerfile: pilot/docker/Dockerfile.ztunnel
+  files:
+  - ${TARGET_OUT_LINUX}/ztunnel # TODO "${RELEASE_MODE}" to allow separate debug builds
+
+  # Test images
+- name: app
+  dockerfile: pkg/test/echo/docker/Dockerfile.app
+  files:
+  - tests/testdata/certs/dns
+  targets:
+  - ${TARGET_OUT_LINUX}/client
+  - ${TARGET_OUT_LINUX}/server
+
+# Sample authz server
+- name: ext-authz
+  dockerfile: samples/extauthz/docker/Dockerfile
+  targets:
+    - ${TARGET_OUT_LINUX}/extauthz
+
+# TODO(https://github.com/istio/istio/issues/38224)
+- name: app_sidecar_rockylinux_9
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar_centos_8
+  files:
+  - tools/packaging/common/envoy_bootstrap.json
+  - tests/testdata/certs
+  - pkg/test/echo/docker/echo-start.sh
+  - pkg/test/echo/docker/sudoers
+  targets:
+  - ${TARGET_OUT_LINUX}/release/istio-sidecar.rpm
+  - ${TARGET_OUT_LINUX}/client
+  - ${TARGET_OUT_LINUX}/server
+- name: app_sidecar_debian_12
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar
+  files:
+  - tools/packaging/common/envoy_bootstrap.json
+  - tests/testdata/certs
+  - pkg/test/echo/docker/echo-start.sh
+  - pkg/test/echo/docker/sudoers
+  targets:
+  - ${TARGET_OUT_LINUX}/release/istio-sidecar.deb
+  - ${TARGET_OUT_LINUX}/client
+  - ${TARGET_OUT_LINUX}/server
+  emulationRequired: true
+- name: app_sidecar_ubuntu_noble
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar
+  files:
+  - tools/packaging/common/envoy_bootstrap.json
+  - tests/testdata/certs
+  - pkg/test/echo/docker/echo-start.sh
+  - pkg/test/echo/docker/sudoers
+  targets:
+  - ${TARGET_OUT_LINUX}/release/istio-sidecar.deb
+  - ${TARGET_OUT_LINUX}/client
+  - ${TARGET_OUT_LINUX}/server
+  emulationRequired: true
+- name: app_sidecar_ubuntu_bionic
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar
+  files:
+  - tools/packaging/common/envoy_bootstrap.json
+  - tests/testdata/certs
+  - pkg/test/echo/docker/echo-start.sh
+  - pkg/test/echo/docker/sudoers
+  targets:
+  - ${TARGET_OUT_LINUX}/release/istio-sidecar.deb
+  - ${TARGET_OUT_LINUX}/client
+  - ${TARGET_OUT_LINUX}/server
+  emulationRequired: true
+
+# Test base images
+- name: app_sidecar_base_debian_12 # latest debian
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar_base
+  base: true
+- name: app_sidecar_base_ubuntu_noble # newest ubuntu
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar_base
+  base: true
+- name: app_sidecar_base_ubuntu_bionic # oldest supported ubuntu
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar_base
+  base: true
+#  TODO(https://github.com/istio/istio/issues/38224)
+- name: app_sidecar_base_rockylinux_9 # newest RHEL-based
+  dockerfile: pkg/test/echo/docker/Dockerfile.app_sidecar_base_centos
+  base: true
+
+
+# FILE: tools/docker-copy.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+INPUTS=("${@}")
+TARGET_ARCH=${TARGET_ARCH:-amd64}
+DOCKER_WORKING_DIR=${INPUTS[${#INPUTS[@]}-1]}
+FILES=("${INPUTS[@]:0:${#INPUTS[@]}-1}")
+
+set -eu;
+
+# detect_arch returns "amd64", "arm64", or "" depending on if the file is arch specific
+function detect_arch() {
+  FILE=${1}
+  extension="${FILE##*.}"
+  if [[ "${extension}" == "deb" ]]; then
+    arch="$(dpkg-deb --info "${FILE}" | grep Arch | cut -d: -f 2 | cut -c 2-)"
+    echo "${arch}"
+    return 0
+  elif [[ "${extension}" == "rpm" ]]; then
+    arch="$(rpm -qp --queryformat '%{arch}' "${FILE}" 2>/dev/null || true)"
+    case ${arch} in
+      "x86_64")
+        echo "amd64"
+        return 0
+        ;;
+      "aarch64")
+        echo "arm64"
+        return 0
+        ;;
+    esac
+  fi
+  FILE_INFO=$(file "${FILE}" || true)
+  if [[ ${FILE_INFO} == *"ELF 64-bit LSB"* ]]; then
+    case ${FILE_INFO} in
+      *x86-64*)
+        echo "amd64"
+        return 0
+        ;;
+      *aarch64*)
+        echo "arm64"
+        return 0
+        ;;
+    esac
+  fi
+}
+
+function may_copy_into_arch_named_sub_dir() {
+  local FILE=${1}
+  local COPY_ARCH_RELATED=${COPY_ARCH_RELATED:-1}
+
+  local arch
+  arch="$(detect_arch "${FILE}")"
+  local FILE_INFO
+  FILE_INFO=$(file "${FILE}" || true)
+
+  if [[ "${arch}" != "" && ${COPY_ARCH_RELATED} == 1 ]]; then
+    # if other arch files exists, should copy too.
+    for ARCH in "amd64" "arm64"; do
+      # like file `out/linux_amd64/pilot-discovery`
+      # should check  `out/linux_arm64/pilot-discovery` exists then do copy
+
+      local FILE_ARCH_RELATED=${FILE/linux_${TARGET_ARCH}/linux_${ARCH}}
+
+      if [[ ${FILE_ARCH_RELATED} != "${FILE}" && -f ${FILE_ARCH_RELATED} ]]; then
+        COPY_ARCH_RELATED=0 may_copy_into_arch_named_sub_dir "${FILE_ARCH_RELATED}"
+      fi
+    done
+  fi
+
+  # For arch specific, will put an arch named sub dir like
+  #   arm64/
+  #   amd64/
+  dst="${DOCKER_WORKING_DIR}"
+  if [[ "${arch}" != "" ]]; then
+    dst+="/${arch}/"
+  fi
+  mkdir -p "${dst}"
+  cp -rp "${FILE}" "${dst}"
+
+  # Based on type, explicit set permissions. These may differ on host machine due to umask, so always override.
+  out="${dst}/$(basename "${FILE}")"
+  if [[ -d "${out}" ]]; then
+    chmod -R a+r "${out}"
+  elif [[ -x "${out}" ]]; then
+    chmod 755 "${out}"
+  else
+    chmod a+r "${out}"
+  fi
+}
+
+mkdir -p "${DOCKER_WORKING_DIR}"
+for FILE in "${FILES[@]}"; do
+  may_copy_into_arch_named_sub_dir "${FILE}"
+done
+
+
+# FILE: tools/convert_RbacConfig_to_ClusterRbacConfig.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+set -u
+
+# This script is provided to help converting RbacConfig to ClusterRbacConfig automatically. The RbacConfig
+# will be deleted after the corresponding ClusterRbacConfig is successfully applied.
+# The RbacConfig is deprecated by ClusterRbacConfig due to an implementation bug that could cause the
+# RbacConfig to be namespace scoped in some cases. The ClusterRbacConfig has exactly same specification
+# as the RbacConfig, but with correctly implemented cluster scope.
+
+RBAC_CONFIGS=$(kubectl get RbacConfig --all-namespaces --no-headers --ignore-not-found)
+if [ "${RBAC_CONFIGS}" == "" ]
+then
+  echo "RbacConfig not found"
+  exit 0
+fi
+
+RBAC_CONFIG_COUNT=$(echo "${RBAC_CONFIGS}" | wc -l)
+if [ "${RBAC_CONFIG_COUNT}" -ne 1 ]
+then
+  echo "${RBAC_CONFIGS}"
+  echo "found ${RBAC_CONFIG_COUNT} RbacConfigs, expecting only 1. Please delete extra RbacConfigs and execute again."
+  exit 1
+fi
+
+NS=$(echo "${RBAC_CONFIGS}" | cut -f 1 -d ' ')
+echo "converting RbacConfig in namespace $NS to ClusterRbacConfig"
+
+SPEC=$(kubectl get RbacConfig default -n "${NS}" -o yaml | sed -n -e '/spec:/,$p')
+
+cat <<EOF | kubectl apply -n "${NS}" -f -
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ClusterRbacConfig
+metadata:
+  name: default
+${SPEC}
+EOF
+
+# shellcheck disable=SC2181
+if [ $? -ne 0 ]
+then
+  echo "failed to apply ClusterRbacConfig"
+  exit 1
+fi
+
+echo "waiting for 15 seconds to delete RbacConfig"
+sleep 15
+kubectl delete RbacConfig --all -n "${NS}"
+
+
+# FILE: tools/commonfiles-postprocess.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# shellcheck disable=SC2016
+yq ea '. as $item ireduce ({}; . *d $item )' ./common/config/.golangci.yml ./tools/golangci-override.yaml > ./common/config/.golangci.yml.tmp
+mv ./common/config/.golangci.yml.tmp ./common/config/.golangci.yml
+
+
+# FILE: tools/build-kind-image.sh
+#!/usr/bin/env bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script builds a multi-arch kind node image
+# Largely copied from https://github.com/kubernetes-sigs/kind/blob/2a1e9df91fd22d6ae5b91648b6c1a606ab4cdf30/hack/release/build/push-node.sh
+# Example usage, without building (preferred): `tools/build-kind-image.sh v1.23.4 registry.istio.io/testing/kind-node:v1.23.4`
+# Example usage: `tools/build-kind-image.sh ~/go/src/k8s.io/kubernetes registry.istio.io/testing/kind-node:v1.23.4`
+
+set -uex
+
+kdir="${1:?Kubernetes directory OR version}"
+registry="${2:?registry}"
+
+ARCHES="${ARCHES:-amd64 arm64}"
+IFS=" " read -r -a __arches__ <<< "$ARCHES"
+
+images=()
+for arch in "${__arches__[@]}"; do
+    image="${registry}-${arch}"
+    kind build node-image --image="${image}" --arch="${arch}" "${kdir}"
+    images+=("${image}")
+done
+
+# combine to manifest list tagged with kubernetes version
+export DOCKER_CLI_EXPERIMENTAL=enabled
+# images must be pushed to be referenced by docker manifest
+# we push only after all builds have succeeded
+for image in "${images[@]}"; do
+    docker push "${image}"
+done
+docker manifest rm "${registry}" || true
+docker manifest create "${registry}" "${images[@]}"
+docker manifest push "${registry}"
+
+
+# FILE: tools/build-base-images.sh
+#!/usr/bin/env bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script runs go tests in a package, but each test is run individually. This helps
+# isolate tests that are improperly depending on global state modification of other tests
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+set -ex
+
+toJson () {
+        python3 -c '
+import sys, yaml, json
+yml = list(y for y in yaml.safe_load_all(sys.stdin) if y)
+if len(yml) == 1: yml = yml[0]
+json.dump(yml, sys.stdout, indent=4)
+'
+}
+
+# shellcheck source=prow/lib.sh
+source "${ROOT}/prow/lib.sh"
+buildx-create
+
+HUBS="${HUBS:?specify a space separated list of hubs}"
+TAG="${TAG:?specify a tag}"
+defaultTargets="$(< "${ROOT}/tools/docker.yaml" toJson | toJson | jq '[.images[] | select(.base) | .name] | join(",")' -r)"
+DOCKER_TARGETS="${DOCKER_TARGETS:-${defaultTargets}}"
+
+# For multi architecture building:
+# See https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408 for more info
+# * docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# * docker buildx create --name multi-arch --platform linux/amd64,linux/arm64 --use
+# * export DOCKER_ARCHITECTURES="linux/amd64,linux/arm64"
+# Note: if you already have a container builder before running the qemu setup you will need to restart them
+"${ROOT}/tools/docker" --push --no-cache --no-clobber --targets="${DOCKER_TARGETS}"
+
+APKO_IMAGES=""
+for h in ${HUBS}; do
+  for t in ${TAGS:-$TAG}; do
+    APKO_IMAGES+="${h}/iptables:$t "
+  done
+done
+
+# Build apko base image, which isn't part of our image building tool
+APKO_ARCHES="$(echo "${DOCKER_ARCHITECTURES:-arm64,amd64}" | sed 's/linux\///g')"
+
+# Verify the image contains only expected binaries.
+dir=$(mktemp -d)
+pushd "${dir}" > /dev/null
+apko build "${ROOT}/docker/iptables.yaml" dummy-tag "${dir}/img.tar"
+tar xf "${dir}/img.tar"
+echo "write ${dir}"
+for f in *.tar.gz; do
+  exefiles+="$(tar tvfz "${f}" | grep '^-..x' |  awk '{print $6}')"
+  exefiles+="\n"
+done
+unexpectedFiles="$(
+  <<<"${exefiles}" grep -v '^usr/lib/xtables' | \
+    # Allow all libraries - maybe we should lock down more though
+    grep -v '^usr/bin/xtables' | \
+    grep -v '^usr/bin/ldconfig$' | \
+    grep -v '^usr/bin/nft' | \
+    grep -v '^usr/share/doc/nftables/examples/.*.nft' | \
+    grep -v '^etc/apk/commit_hooks.d/ldconfig-commit.sh$' | \
+    grep -v '.*\.so[0-9\.]*' | \
+    # TODO: Remove the following test files when getting a nftables-slim=1.1.1 package from packages.wolfi.dev/os
+    grep -v '^usr/bin/clear' | \
+    grep -v '^usr/bin/infocmp' | \
+    grep -v '^usr/bin/tabs' | \
+    grep -v '^usr/bin/tic' | \
+    grep -v '^usr/bin/toe' | \
+    grep -v '^usr/bin/tput' | \
+    grep -v '^usr/bin/tset' || true
+)"
+expectedFiles=(
+  "usr/bin/xtables-legacy-multi"
+  "usr/bin/nft"
+)
+for want in "${expectedFiles[@]}"; do
+  if ! grep -q "${want}" <<<"${exefiles}"; then
+    echo "Missing expected binary! ${want}"
+    exit 1
+  fi
+done
+if [[ "${unexpectedFiles}" != "" ]]; then
+  echo "Found unexpected binaries: ${unexpectedFiles}"
+  exit 1
+fi
+popd > /dev/null
+# Now actually build it
+# shellcheck disable=SC2086
+apko publish --arch="${APKO_ARCHES}" docker/iptables.yaml ${APKO_IMAGES}
+
+
+# FILE: manifests/zzz_profile.yaml
+{{/*
+WARNING: DO NOT EDIT, THIS FILE IS A PROBABLY COPY.
+The original version of this file is located at /manifests directory.
+If you want to make a change in this file, edit the original one and run "make gen".
+
+Complex logic ahead...
+We have three sets of values, in order of precedence (last wins):
+1. The builtin values.yaml defaults
+2. The profile the user selects
+3. Users input (-f or --set)
+
+Unfortunately, Helm provides us (1) and (3) together (as .Values), making it hard to insert (2).
+
+However, we can workaround this by placing all of (1) under a specific key (.Values.defaults).
+We can then merge the profile onto the defaults, then the user settings onto that.
+Finally, we can set all of that under .Values so the chart behaves without awareness.
+*/}}
+{{- if $.Values.defaults}}
+{{ fail (cat
+  "Setting with .default prefix found; remove it. For example, replace `--set defaults.hub=foo` with `--set hub=foo`. Defaults set:\n"
+  ($.Values.defaults | toYaml |nindent 4)
+) }}
+{{- end }}
+{{- $defaults := $.Values._internal_defaults_do_not_set }}
+{{- $_ := unset $.Values "_internal_defaults_do_not_set" }}
+{{- $profile := dict }}
+{{- with (coalesce ($.Values).profile ($.Values.global).profile) }}
+{{- with $.Files.Get (printf "files/profile-%s.yaml" .)}}
+{{- $profile = (. | fromYaml) }}
+{{- else }}
+{{ fail (cat "unknown profile" .) }}
+{{- end }}
+{{- end }}
+{{- with .Values.compatibilityVersion }}
+{{- with $.Files.Get (printf "files/profile-compatibility-version-%s.yaml" .) }}
+{{- $ignore := mustMergeOverwrite $profile (. | fromYaml) }}
+{{- else }}
+{{ fail (cat "unknown compatibility version" $.Values.compatibilityVersion) }}
+{{- end }}
+{{- end }}
+{{- with (coalesce ($.Values).platform ($.Values.global).platform) }}
+{{- with $.Files.Get (printf "files/profile-platform-%s.yaml" .) }}
+{{- $ignore := mustMergeOverwrite $profile (. | fromYaml) }}
+{{- else }}
+{{ fail (cat "unknown platform" .) }}
+{{- end }}
+{{- end }}
+{{- if $profile }}
+{{- $a := mustMergeOverwrite $defaults $profile }}
+{{- end }}
+#  Flatten globals, if defined on a per-chart basis
+{{- if FLATTEN_GLOBALS_REPLACEMENT }}
+{{- $a := mustMergeOverwrite $defaults ($profile.global) ($.Values.global | default dict)  }}
+{{- end }}
+{{- $x := set $.Values "_original" (deepCopy $.Values) }}
+{{- $b := set $ "Values" (mustMergeOverwrite $defaults $.Values) }}
+
+{{/*
+Labels that should be applied to ALL resources.
+*/}}
+{{- define "istio.labels" -}}
+{{- if .Release.Service -}}
+app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+{{- end }}
+{{- if .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+{{- end }}
+app.kubernetes.io/part-of: "istio"
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+{{- if and .Chart.Name .Chart.Version }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end -}}
+
+
+# FILE: manifests/manifest.go
+// Copyright Istio Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package manifests
+
+import (
+	"embed"
+	"io/fs"
+	"os"
+)
+
+// FS embeds the manifests
+//
+//go:embed all:charts/* profiles/*
+var FS embed.FS
+
+// BuiltinOrDir returns a FS for the provided directory. If no directory is passed, the compiled in
+// FS will be used
+func BuiltinOrDir(dir string) fs.FS {
+	if dir == "" {
+		return FS
+	}
+	return os.DirFS(dir)
+}
+
+
+# FILE: releasenotes/template.yaml
+apiVersion: release-notes/v2
+
+# This YAML file describes the format for specifying a release notes entry for Istio.
+# This should be filled in for all user facing changes.
+
+# kind describes the type of change that this represents.
+# Valid Values are:
+# - bug-fix -- Used to specify that this change represents a bug fix.
+# - security-fix -- Used to specify that this change represents a vulnerability fix.
+# - feature -- Used to specify a new feature that has been added.
+# - test -- Used to describe additional testing added. This file is optional for
+#   tests, but included for completeness.
+kind:
+
+# area describes the area that this change affects.
+# Valid values are:
+# - traffic-management
+# - security
+# - telemetry
+# - installation
+# - istioctl
+# - documentation
+area:
+
+# issue is a list of GitHub issues resolved in this note.
+# If issue is not in the current repo, specify its full URL instead.
+issue:
+
+# releaseNotes is a markdown listing of any user facing changes. This will appear in the
+# release notes.
+releaseNotes:
+
+# upgradeNotes is a markdown listing of any changes that will affect the upgrade
+# process. This will appear in the release notes.
+upgradeNotes:
+  - title:
+    content:
+
+# docs is a list of related docs to the change.
+docs:
+
+
+# securityNotes is a markdown listing of any changes related to the security of
+# Istio.
+securityNotes:
+
+
+# FILE: releasenotes/README.md
+# Istio Release Notes
+
+This directory contains the release notes, upgrade notes, and security notes for Istio.
+Notes should be created as part of the pull request for any user facing changes. Before
+a release, the release notes utility will be run in order to generate a release notes file
+which will be reviewed by the release managers and documentation team.
+
+## When to Add Release Notes
+
+Release notes should be added for any user facing changes. These include:
+* CLI changes
+* API changes
+* Configuration schema change
+* Behavioral change
+* Change in non-functional attributes such as efficiency or availability, availability of a new platform
+* A warning about a deprecation
+* Fix of a previous Known Issue
+* Promoting features
+
+No release notes are required for changes to:
+* Tests
+* Build Infrastructure
+* Fixes of bugs that have not been released.
+
+## Adding a Release Note
+
+To create a release note, create a new file in the [./notes](./notes) directory based on
+the [template](./template.yaml). The filename doesn't matter as long as it ends with a `.yaml`
+extension and matches the format specified in the template. However, please make names descriptive.
+
+```yaml
+apiVersion: release-notes/v2
+kind: bug-fix
+area: traffic-management
+
+# issue is a list of GitHub issues resolved in this note.
+issue:
+  - https://github.com/istio/istio/issues/23622
+  - 23624
+
+docs:
+ - '[usage] https://istio.io/latest/docs/tasks/traffic-management/request-routing/'
+ - '[reference] https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/'
+
+releaseNotes:
+- |
+  **Fixed** an issue preventing the operator from recreating watched resources if they are deleted
+
+upgradeNotes:
+  - title: Change the readiness port of gateways
+    content: |
+      If you are using the 15020 port to check the health of your Istio ingress gateway with your Kubernetes network load balancer, change the port from 15020 to 15021.
+
+securityNotes:
+- |
+  __[CVE-2020-15104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15104)__:
+  When validating TLS certificates, Envoy incorrectly allows a wildcard DNS Subject Alternative Name to apply to multiple subdomains. For example, with a SAN of `*.example.com`, Envoy incorrectly allows `nested.subdomain.example.com`, when it should only allow `subdomain.example.com`.
+    - CVSS Score: 6.6 [AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:L/A:N/E:F/RL:O/RC:C](https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:L/A:N/E:F/RL:O/RC:C&version=3.1)
+```
+
+Some release notes may affect multiple types of notes. For those, please fill in all respective areas. For notes that only affect one or two areas, please fill in only those sections. Sections that don't have content can be omitted.
+
+### Area
+
+This field describes the area of Istio that the note affects. Valid values include:
+* traffic-management
+* security
+* telemetry
+* extensibility
+* installation
+* istioctl
+* documentation
+
+### Issue
+
+While many pull requests will only fix a single GitHub issue, some pull requests may fix multiple issues. Please list all fixed GitHub issues. Issues written as numbers only will be interpreted as being reported against the `istio/istio` repo, while issues recorded as URLs will be read as the supplied URLs.
+
+## docs
+
+The `docs` field should be used to list related documentation. These will be turned into links and appended to the note alongside the issues. Quotes are **required** for docs entries or you may see YAML errors such as `did not find expected alphabetic or numeric character`.
+
+### Release Notes
+
+These notes detail bug fixes, feature additions, removals, or other general content that has an impact to users. Release notes should be written in complete sentences, and the first word should be an action presented in the format `**Action**`. Acceptable actions are: `**Added**`, `**Deprecated**`, `**Enabled**`, `**Fixed**`, `**Optimized**`, `**Improved**`, `**Removed**`, `**Promoted**`, and `**Upgraded**`.
+
+### Upgrade Notes
+
+These notes detail the changes which purposefully break backwards compatibility with the previous version of Istio. The notes also mention changes which preserve backwards compatibility while introducing new behavior. Changes are only included if the new behavior would be unexpected to a user. These should be written in paragraph format with a title and content.
+
+### Security Notes
+
+These notes detail fixes to security issues in Istio. These may be upgrades to vulnerable libraries, fixes for CVEs, or related content. Security Notes should start with the first the CVE ID in the format `__[CVE-2020-15104](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15104)__` followed by a description and then the CVSS score in the format `CVSS Score: 6.6 [AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:L/A:N/E:F/RL:O/RC:C](https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:L/A:N/E:F/RL:O/RC:C&version=3.1)`
+
+## Adding a release note to multiple Istio Releases
+
+Just as code fixes should be added to master first, notes should as well. To add a note to multiple releases, just cherrypick them over to the appropriate release and the release notes tooling will include them in its generation.
+
+
+# FILE: prow/release-test.sh
+#!/bin/bash
+
+# Copyright 2018 Istio Authors
+
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+
+#       http://www.apache.org/licenses/LICENSE-2.0
+
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+set -eux
+
+DRY_RUN=true "${ROOT}"/prow/release-commit.sh || {
+  tools/dump-docker-logs.sh
+  exit 1
+}
+
+
+# FILE: prow/release-commit.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+set -eux
+
+# shellcheck source=prow/lib.sh
+source "${ROOT}/prow/lib.sh"
+
+setup_gcloud_credentials
+
+# Old prow image does not set this, so needed explicitly here as this is not called through make
+export GO111MODULE=on
+
+DOCKER_HUB=${DOCKER_HUB:-registry.istio.io/testing}
+HELM_HUB=${HELM_HUB:-gcr.io/istio-testing/charts}
+GCS_BUCKET=${GCS_BUCKET:-istio-build/dev}
+
+# Enable emulation required for cross compiling a few images (VMs)
+docker run --rm --privileged "${DOCKER_HUB}/qemu-user-static" --reset -p yes
+export ISTIO_DOCKER_QEMU=true
+
+# Use a pinned version in case breaking changes are needed
+BUILDER_SHA=0d2d6c63fa55fd0a059d873f84ffc82d7cb799d9
+
+# Reference to the next minor version of Istio
+# This will create a version like 1.4-alpha.sha
+NEXT_VERSION=$(cat "${ROOT}/VERSION")
+TAG=$(git rev-parse HEAD)
+VERSION="${NEXT_VERSION}-alpha.${TAG}"
+
+# In CI we want to store the outputs to artifacts, which will preserve the build
+# If not specified, we can just create a temporary directory
+WORK_DIR="$(mktemp -d)/build"
+mkdir -p "${WORK_DIR}"
+
+MANIFEST=$(cat <<EOF
+version: ${VERSION}
+docker: ${DOCKER_HUB}
+directory: ${WORK_DIR}
+ignoreVulnerability: true
+dependencies:
+${DEPENDENCIES:-$(cat <<EOD
+  istio:
+    localpath: ${ROOT}
+  api:
+    git: https://github.com/istio/api
+    auto: modules
+  proxy:
+    git: https://github.com/istio/proxy
+    auto: deps
+  client-go:
+    git: https://github.com/istio/client-go
+    auto: modules
+  test-infra:
+    git: https://github.com/istio/test-infra
+    branch: master
+  tools:
+    git: https://github.com/istio/tools
+    branch: master
+  release-builder:
+    git: https://github.com/istio/release-builder
+    sha: ${BUILDER_SHA}
+  ztunnel:
+    git: https://github.com/istio/ztunnel
+    auto: deps
+architectures: [linux/amd64, linux/arm64]
+EOD
+)}
+dashboards:
+  istio-mesh-dashboard: 7639
+  istio-performance-dashboard: 11829
+  istio-service-dashboard: 7636
+  istio-workload-dashboard: 7630
+  pilot-dashboard: 7645
+  istio-extension-dashboard: 13277
+  ztunnel-dashboard: 21306
+${PROXY_OVERRIDE:-}
+EOF
+)
+
+# "Temporary" hacks
+export PATH=${GOPATH}/bin:${PATH}
+
+go install "istio.io/release-builder@${BUILDER_SHA}"
+
+release-builder build --manifest <(echo "${MANIFEST}")
+
+release-builder validate --release "${WORK_DIR}/out"
+
+if [[ -z "${DRY_RUN:-}" ]]; then
+  release-builder publish --release "${WORK_DIR}/out" \
+    --gcsbucket "${GCS_BUCKET}" --gcsaliases "${TAG},${NEXT_VERSION}-dev,latest" \
+    --dockerhub "gcr.io/istio-testing" --helmhub "${HELM_HUB}" --dockertags "${TAG},${VERSION},${NEXT_VERSION}-dev,latest"
+fi
+
+
+# FILE: prow/lib.sh
+#!/bin/bash
+
+# Copyright 2018 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+WD=$(dirname "$0")
+WD=$(cd "$WD" || exit; pwd)
+ROOT=$(dirname "$WD")
+
+# shellcheck source=common/scripts/tracing.sh
+source "${ROOT}/common/scripts/tracing.sh"
+
+function date_cmd() {
+  case "$(uname)" in
+    "Darwin")
+      [ -z "$(which gdate)" ] && echo "gdate is required for OSX. Try installing coreutils from MacPorts or Brew."
+      gdate "$@"
+      ;;
+    *)
+      date "$@"
+      ;;
+  esac
+}
+
+# Output a message, with a timestamp matching istio log format
+function log() {
+  echo -e "$(date_cmd -u '+%Y-%m-%dT%H:%M:%S.%NZ')\t$*"
+}
+
+# Trace runs the provided command and records additional timing information
+# NOTE: to avoid spamming the logs, we disable xtrace and re-enable it before executing the function
+# and after completion. If xtrace was never set, this will result in xtrace being enabled.
+# Ideally we would restore the old xtrace setting, but I don't think its possible to do that without also log-spamming
+# If we need to call it from a context without xtrace we can just make a new function.
+function trace() {
+  { set +x; } 2>/dev/null
+  log "Running '${1}'"
+  start="$(date_cmd -u +%s.%N)"
+  { set -x; } 2>/dev/null
+
+  tracing::run "$1" "${@:2}"
+
+  { set +x; } 2>/dev/null
+  elapsed=$(date_cmd +%s.%N --date="$start seconds ago" )
+  log "Command '${1}' complete in ${elapsed}s"
+  # Write to YAML file as well for easy reading by tooling
+  echo "'${1}': $elapsed" >> "${ARTIFACTS}/trace.yaml"
+  { set -x; } 2>/dev/null
+}
+
+function setup_gcloud_credentials() {
+  if [[ $(command -v gcloud) ]]; then
+    gcloud auth configure-docker us-docker.pkg.dev -q
+  elif [[ $(command -v docker-credential-gcr) ]]; then
+    docker-credential-gcr configure-docker --registries=-us-docker.pkg.dev
+  else
+    echo "No credential helpers found, push to docker may not function properly"
+  fi
+}
+
+function setup_and_export_git_sha() {
+  if [[ -n "${CI:-}" ]]; then
+
+    if [ -z "${PULL_PULL_SHA:-}" ]; then
+      if [ -z "${PULL_BASE_SHA:-}" ]; then
+        GIT_SHA="$(git rev-parse --verify HEAD)"
+        export GIT_SHA
+      else
+        export GIT_SHA="${PULL_BASE_SHA}"
+      fi
+    else
+      export GIT_SHA="${PULL_PULL_SHA}"
+    fi
+  else
+    # Use the current commit.
+    GIT_SHA="$(git rev-parse --verify HEAD)"
+    export GIT_SHA
+  fi
+  GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  export GIT_BRANCH
+  setup_gcloud_credentials
+}
+
+# Download and unpack istio release artifacts.
+function download_untar_istio_release() {
+  local url_path=${1}
+  local tag=${2}
+  local dir=${3:-.}
+  # Download artifacts
+  LINUX_DIST_URL="${url_path}/istio-${tag}-linux.tar.gz"
+
+  wget  -q "${LINUX_DIST_URL}" -P "${dir}"
+  tar -xzf "${dir}/istio-${tag}-linux.tar.gz" -C "${dir}"
+}
+
+function buildx-create() {
+  WD=$(dirname "$0")
+  WD=$(cd "$WD" || exit; pwd)
+  ROOT=$(dirname "$WD")
+  "$ROOT/prow/buildx-create"
+}
+
+function build_images() {
+  SELECT_TEST="${1}"
+
+  # Build just the images needed for tests
+  # TODO: add agentgateway once tests are added
+  targets="docker.pilot docker.proxyv2 "
+
+  # use ubuntu:jammy to test vms by default
+  nonDistrolessTargets="docker.app docker.app_sidecar_ubuntu_noble docker.ext-authz "
+  if [[ "${JOB_TYPE:-presubmit}" == "postsubmit" ]]; then
+    # We run tests across all VM types only in postsubmit
+    nonDistrolessTargets+="docker.app_sidecar_ubuntu_bionic docker.app_sidecar_debian_12 docker.app_sidecar_rockylinux_9 "
+  fi
+  if [[ "${SELECT_TEST}" == "test.integration.ambient.kube" || "${SELECT_TEST}" == "test.integration.kube"  || "${SELECT_TEST}" == "test.integration.helm.kube" || "${JOB_TYPE:-postsubmit}" == "postsubmit" ]]; then
+    targets+="docker.ztunnel "
+  fi
+  targets+="docker.install-cni "
+  # Integration tests are always running on local architecture (no cross compiling), so find out what that is.
+  arch="linux/amd64"
+  if [[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "arm64" ]]; then
+      arch="linux/arm64"
+  fi
+  if [[ "${VARIANT:-default}" == "distroless" ]]; then
+    DOCKER_ARCHITECTURES="${arch}" DOCKER_BUILD_VARIANTS="distroless" DOCKER_TARGETS="${targets}" make dockerx.pushx
+    DOCKER_ARCHITECTURES="${arch}" DOCKER_BUILD_VARIANTS="default" DOCKER_TARGETS="${nonDistrolessTargets}" make dockerx.pushx
+  else
+   DOCKER_ARCHITECTURES="${arch}"  DOCKER_BUILD_VARIANTS="${VARIANT:-default}" DOCKER_TARGETS="${targets} ${nonDistrolessTargets}" make dockerx.pushx
+  fi
+}
+
+# Creates a local registry for kind nodes to pull images from. Expects that the "kind" network already exists.
+function setup_kind_registry() {
+  # create a registry container if it not running already
+  running="$(docker inspect -f '{{.State.Running}}' "${KIND_REGISTRY_NAME}" 2>/dev/null || true)"
+  if [[ "${running}" != 'true' ]]; then
+      docker run \
+        -d --restart=always -p "${KIND_REGISTRY_PORT}:5000" --name "${KIND_REGISTRY_NAME}" \
+        registry.istio.io/testing/registry:2
+
+    # Allow kind nodes to reach the registry
+    docker network connect "kind" "${KIND_REGISTRY_NAME}"
+  fi
+
+  # https://docs.tilt.dev/choosing_clusters.html#discovering-the-registry
+  for cluster in $(kind get clusters); do
+    # TODO get context/config from existing variables
+    if [[ "${DEVCONTAINER}" ]]; then
+      kind export kubeconfig --name="${cluster}" --internal
+    else
+      kind export kubeconfig --name="${cluster}"
+    fi
+    for node in $(kind get nodes --name="${cluster}"); do
+      docker exec "${node}" mkdir -p "${KIND_REGISTRY_DIR}"
+      cat <<EOF | docker exec -i "${node}" cp /dev/stdin "${KIND_REGISTRY_DIR}/hosts.toml"
+[host."http://${KIND_REGISTRY_NAME}:5000"]
+EOF
+    
+      kubectl annotate node "${node}" "kind.x-k8s.io/registry=kind-registry:${KIND_REGISTRY_PORT}" --overwrite;
+    done
+
+    # Document the local registry
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-registry-hosting
+  namespace: kube-public
+data:
+  localRegistryHosting.v1: |
+    host: "localhost:${KIND_REGISTRY_PORT}"
+    help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
+EOF
+  done
+}
+
+# setup_cluster_reg is used to set up a cluster registry for multicluster testing
+function setup_cluster_reg () {
+    MAIN_CONFIG=""
+    for context in "${CLUSTERREG_DIR}"/*; do
+        if [[ -z "${MAIN_CONFIG}" ]]; then
+            MAIN_CONFIG="${context}"
+        fi
+        export KUBECONFIG="${context}"
+        kubectl delete ns istio-system-multi --ignore-not-found
+        kubectl delete clusterrolebinding istio-multi-test --ignore-not-found
+        kubectl create ns istio-system-multi
+        kubectl create sa istio-multi-test -n istio-system-multi
+        kubectl create clusterrolebinding istio-multi-test --clusterrole=cluster-admin --serviceaccount=istio-system-multi:istio-multi-test
+        CLUSTER_NAME=$(kubectl config view --minify=true -o "jsonpath={.clusters[].name}")
+        gen_kubeconf_from_sa istio-multi-test "${context}"
+    done
+    export KUBECONFIG="${MAIN_CONFIG}"
+}
+
+function gen_kubeconf_from_sa () {
+    local service_account=$1
+    local filename=$2
+
+    SERVER=$(kubectl config view --minify=true -o "jsonpath={.clusters[].cluster.server}")
+    SECRET_NAME=$(kubectl get sa "${service_account}" -n istio-system-multi -o jsonpath='{.secrets[].name}')
+    CA_DATA=$(kubectl get secret "${SECRET_NAME}" -n istio-system-multi -o "jsonpath={.data['ca\\.crt']}")
+    TOKEN=$(kubectl get secret "${SECRET_NAME}" -n istio-system-multi -o "jsonpath={.data['token']}" | base64 --decode)
+
+    cat <<EOF > "${filename}"
+      apiVersion: v1
+      clusters:
+         - cluster:
+             certificate-authority-data: ${CA_DATA}
+             server: ${SERVER}
+           name: ${CLUSTER_NAME}
+      contexts:
+         - context:
+             cluster: ${CLUSTER_NAME}
+             user: ${CLUSTER_NAME}
+           name: ${CLUSTER_NAME}
+      current-context: ${CLUSTER_NAME}
+      kind: Config
+      preferences: {}
+      users:
+         - name: ${CLUSTER_NAME}
+           user:
+             token: ${TOKEN}
+EOF
+}
+
+# gives a copy of a given topology JSON editing the given key on the entry with the given cluster name
+function set_topology_value() {
+    local JSON="$1"
+    local CLUSTER_NAME="$2"
+    local KEY="$3"
+    local VALUE="$4"
+    VALUE=$(echo "${VALUE}" | awk '{$1=$1};1')
+
+    echo "${JSON}" | jq '(.[] | select(.clusterName =="'"${CLUSTER_NAME}"'") | .'"${KEY}"') |="'"${VALUE}"'"'
+}
+
+# FILE: prow/integ-suite-kind.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# Usage: ./integ-suite-kind.sh TARGET
+# Example: ./integ-suite-kind.sh test.integration.pilot.kube.presubmit
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+# Exit immediately for non zero status
+set -e
+# Check unset variables
+set -u
+# Print commands
+set -x
+
+# shellcheck source=prow/lib.sh
+source "${ROOT}/prow/lib.sh"
+setup_and_export_git_sha
+
+# shellcheck source=common/scripts/kind_provisioner.sh
+source "${ROOT}/common/scripts/kind_provisioner.sh"
+
+TOPOLOGY=SINGLE_CLUSTER
+NODE_IMAGE="registry.istio.io/testing/kind-node:v1.35.0"
+KIND_CONFIG=""
+CLUSTER_TOPOLOGY_CONFIG_FILE="${ROOT}/prow/config/topology/multicluster.json"
+CLUSTER_NAME="${CLUSTER_NAME:-istio-testing}"
+CLUSTER_YAML="${CLUSTER_YAML:-prow/config/default.yaml}"
+
+export FAST_VM_BUILDS=true
+export ISTIO_DOCKER_BUILDER="${ISTIO_DOCKER_BUILDER:-crane}"
+# DEVCONTAINER controls a set of features that allow this script to be run from
+# within a dev container using ghcr.io/devcontainers/features/docker-outside-of-docker
+export DEVCONTAINER="${DEVCONTAINER:-}"
+if [[ "${DEVCONTAINER}" ]]; then
+  export ISTIO_DOCKER_BUILDER=docker
+fi
+export NOMETALBINSTALL="${NOMETALBINSTALL:-}"
+
+PARAMS=()
+
+while (( "$#" )); do
+  case "$1" in
+    # Node images can be found at https://github.com/kubernetes-sigs/kind/releases
+    # For example, kindest/node:v1.14.0
+    --node-image)
+      NODE_IMAGE=$2
+      shift 2
+    ;;
+    # Config for enabling different Kubernetes features in KinD (see prow/config{endpointslice.yaml,trustworthy-jwt.yaml}).
+    --kind-config)
+    KIND_CONFIG=$2
+    shift 2
+    ;;
+    --skip-setup)
+      SKIP_SETUP=true
+      shift
+    ;;
+    --skip-cleanup)
+      SKIP_CLEANUP=true
+      shift
+    ;;
+    --skip-build)
+      SKIP_BUILD=true
+      shift
+    ;;
+    --manual)
+      MANUAL=true
+      shift
+    ;;
+    --topology)
+      case $2 in
+        SINGLE_CLUSTER | MULTICLUSTER | AMBIENT_MULTICLUSTER )
+          TOPOLOGY=$2
+          echo "Running with topology ${TOPOLOGY}"
+          ;;
+        *)
+          echo "Error: Unsupported topology ${TOPOLOGY}" >&2
+          exit 1
+          ;;
+      esac
+      shift 2
+    ;;
+    --topology-config)
+      CLUSTER_TOPOLOGY_CONFIG_FILE="${ROOT}/${2}"
+      shift 2
+    ;;
+    -*)
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ -f /proc/cpuinfo ]; then
+  echo "Checking CPU..."
+  grep 'model' /proc/cpuinfo || true
+fi
+
+# Default IP family of the cluster is IPv4
+KIND_IP_FAMILY="ipv4"
+export IP_FAMILIES="${IP_FAMILIES:-IPv4}"
+if [[ "$IP_FAMILIES" == "IPv6" ]]; then
+   KIND_IP_FAMILY="ipv6"
+elif [[ "$IP_FAMILIES" =~ "IPv6" ]] && [[ "$IP_FAMILIES" =~ "IPv4" ]]; then
+   KIND_IP_FAMILY="dual"
+fi
+export KIND_IP_FAMILY
+
+# LoadBalancer in Kind is supported using metallb
+export TEST_ENV=kind-metallb
+
+# See https://kind.sigs.k8s.io/docs/user/quick-start/#loading-an-image-into-your-cluster
+export PULL_POLICY=IfNotPresent
+
+# We run a local-registry in a docker container that KinD nodes pull from
+# These values are must match what is in config/trustworthy-jwt.yaml
+export KIND_REGISTRY_NAME="kind-registry"
+export KIND_REGISTRY_PORT="5000"
+export KIND_REGISTRY="localhost:${KIND_REGISTRY_PORT}"
+export KIND_REGISTRY_DIR="/etc/containerd/certs.d/localhost:${KIND_REGISTRY_PORT}"
+
+export HUB=${HUB:-"testing"}
+export TAG="${TAG:-"istio-testing"}"
+export VARIANT
+
+# If we're not intending to pull from an actual remote registry, use the local kind registry
+if [[ -z "${SKIP_BUILD:-}" ]]; then
+  HUB="${KIND_REGISTRY}"
+  export HUB
+fi
+
+# Setup junit report and verbose logging
+export T="${T:-"-v -count=1"}"
+export CI="true"
+
+export ARTIFACTS="${ARTIFACTS:-$(mktemp -d)}"
+trace "init" make init
+
+if [[ -z "${SKIP_SETUP:-}" ]]; then
+  # Use KIND_CONFIG if specified, otherwise fall back to CLUSTER_YAML
+  if [[ -n "${KIND_CONFIG}" ]]; then
+    export DEFAULT_CLUSTER_YAML="${ROOT}/${KIND_CONFIG}"
+  else
+    export DEFAULT_CLUSTER_YAML="${ROOT}/${CLUSTER_YAML}"
+  fi
+  export METRICS_SERVER_CONFIG_DIR='./prow/config/metrics'
+
+  if [[ "${TOPOLOGY}" == "SINGLE_CLUSTER" ]]; then
+    trace "setup kind cluster" setup_kind_cluster_retry "${CLUSTER_NAME}" "${NODE_IMAGE}" "${KIND_CONFIG}"
+  else
+    trace "load cluster topology" load_cluster_topology "${CLUSTER_TOPOLOGY_CONFIG_FILE}"
+    trace "setup kind clusters" setup_kind_clusters "${NODE_IMAGE}" "${KIND_IP_FAMILY}"
+
+    TOPOLOGY_JSON=$(cat "${CLUSTER_TOPOLOGY_CONFIG_FILE}")
+    for i in $(seq 0 $((${#CLUSTER_NAMES[@]} - 1))); do
+      CLUSTER="${CLUSTER_NAMES[i]}"
+      KCONFIG="${KUBECONFIGS[i]}"
+      TOPOLOGY_JSON=$(set_topology_value "${TOPOLOGY_JSON}" "${CLUSTER}" "meta.kubeconfig" "${KCONFIG}")
+    done
+    RUNTIME_TOPOLOGY_CONFIG_FILE="${ARTIFACTS}/topology-config.json"
+    echo "${TOPOLOGY_JSON}" > "${RUNTIME_TOPOLOGY_CONFIG_FILE}"
+
+    export INTEGRATION_TEST_TOPOLOGY_FILE
+    INTEGRATION_TEST_TOPOLOGY_FILE="${RUNTIME_TOPOLOGY_CONFIG_FILE}"
+
+    export INTEGRATION_TEST_KUBECONFIG
+    INTEGRATION_TEST_KUBECONFIG=NONE
+  fi
+fi
+
+if [[ -z "${SKIP_BUILD:-}" ]]; then
+  trace "setup kind registry" setup_kind_registry
+  trace "build images" build_images "${PARAMS[*]}"
+
+  # upload WASM plugins to kind-registry
+  registry_url=$(if [ -z "$DEVCONTAINER" ]; then echo "localhost"; else echo $KIND_REGISTRY_NAME; fi):$KIND_REGISTRY_PORT
+  crane copy registry.istio.io/testing/wasm/attributegen:359dcd3a19f109c50e97517fe6b1e2676e870c4d "$registry_url/testing/wasm/attributegen:0.0.1" --insecure
+  crane copy registry.istio.io/testing/wasm/header-injector:0.0.1 "$registry_url/testing/wasm/header-injector:0.0.1" --insecure
+  crane copy registry.istio.io/testing/wasm/header-injector:0.0.2 "$registry_url/testing/wasm/header-injector:0.0.2" --insecure
+
+  # Make "kind-registry" resolvable in IPv6 cluster
+  if [[ "$KIND_IP_FAMILY" == "ipv6" ]]; then
+    kind_registry_ip=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{if eq $k "kind"}}{{.GlobalIPv6Address}}{{end}}{{end}}' kind-registry)
+    coredns_config=$(kubectl get -oyaml -n=kube-system configmap/coredns)
+    echo "Current CoreDNS config:"
+    echo "${coredns_config}"
+    patched_coredns_config=$(kubectl get -oyaml -n=kube-system configmap/coredns | sed -e '/^ *ready/i\
+        hosts {\
+            '"$kind_registry_ip"' kind-registry.lan\
+            '"$kind_registry_ip"' kind-registry.\
+            fallthrough\
+        }')
+    echo "Patched CoreDNS config:"
+    echo "${patched_coredns_config}"
+    printf '%s' "${patched_coredns_config}" | kubectl apply -f -
+  fi
+  # CoreDNS by default caches Kubernetes objects for 30s. This leads to problematic timing issues when we tear down + re-install
+  # in our tests. We will negative-cache the object, adding up to 30s on each test suite.
+  # See https://github.com/coredns/coredns/pull/2348
+  kubectl get -oyaml -n=kube-system configmap/coredns | sed 's/ttl 30/ttl 0/g' | kubectl apply -f -
+fi
+
+# Run the test target if provided.
+if [[ -n "${PARAMS:-}" ]]; then
+  trace "test" make "${PARAMS[*]}"
+fi
+
+# Check if the user is running the clusters in manual mode.
+if [[ -n "${MANUAL:-}" ]]; then
+  echo "Running cluster(s) in manual mode. Press any key to shutdown and exit..."
+  read -rsn1
+  exit 0
+fi
+
+
+# FILE: prow/coverage.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -eux
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+# shellcheck source=prow/lib.sh
+source "${ROOT}/prow/lib.sh"
+setup_and_export_git_sha
+
+export ARTIFACTS="${ARTIFACTS:-$(mktemp -d)}"
+
+# Define paths for reports
+REPORT_COVERAGE="${REPORT_COVERAGE:-${ARTIFACTS}/coverage.out}"
+
+mkdir -p "$(dirname "${REPORT_COVERAGE}")"
+# Run the Go coverage test
+go test ./... -coverprofile="${REPORT_COVERAGE}"
+if ! command -v overcover &>/dev/null; then
+  echo "Overcover is not installed. Installing..."
+  go install github.com/klmitch/overcover@latest
+fi
+
+overcover --coverprofile="${REPORT_COVERAGE}" ./...
+echo "Coverage report generated: ${REPORT_COVERAGE}"
+
+
+# FILE: prow/benchtest.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+WD=$(dirname "$0")
+WD=$(cd "$WD"; pwd)
+ROOT=$(dirname "$WD")
+
+# shellcheck source=prow/lib.sh
+source "${ROOT}/prow/lib.sh"
+setup_and_export_git_sha
+
+set -eux
+
+GCS_BENCHMARK_DIR="${GCS_BENCHMARK_DIR:-istio-prow/benchmarks}"
+
+BENCHMARK_COUNT="${BENCHMARK_COUNT:-5}"
+BENCHMARK_CPUS="${BENCHMARK_CPUS:-8}"
+
+REPORT_JUNIT="${REPORT_JUNIT:-${ARTIFACTS}/junit_benchmarks.xml}"
+REPORT_PLAINTEXT="${REPORT_PLAINTEXT:-${ARTIFACTS}/benchmark-log.txt}"
+
+# Sha we should compare against. Defaults to the PULL_BASE_SHA, which is the last commit on the branch we are on.
+# For example, a PR on master will compare to the HEAD of master.
+COMPARE_GIT_SHA="${COMPARE_GIT_SHA:-${PULL_BASE_SHA:-${GIT_SHA}}}"
+
+case "${1}" in
+  run)
+    shift
+    benchmarkjunit "$@" -l "${REPORT_PLAINTEXT}" --output="${REPORT_JUNIT}" \
+      --test-arg "--benchmem" \
+      --test-arg "--count=${BENCHMARK_COUNT}" \
+      --test-arg "--cpu=${BENCHMARK_CPUS}" \
+      --test-arg "--test.timeout=60m" \
+      --test-arg "-tags=vtprotobuf"
+    # Print out the results as well for ease of debugging, so they are in the logs instead of just output
+    cat "${REPORT_PLAINTEXT}"
+    ;;
+  report)
+    # Upload the reports to a well known path based on git SHA
+    gsutil cp "${REPORT_JUNIT}" "gs://${GCS_BENCHMARK_DIR}/${GIT_SHA}.xml"
+    gsutil cp "${REPORT_PLAINTEXT}" "gs://${GCS_BENCHMARK_DIR}/${GIT_SHA}.txt"
+    ;;
+  compare)
+    # Fetch previous results, and compare them.
+    curl "https://storage.googleapis.com/${GCS_BENCHMARK_DIR}/${COMPARE_GIT_SHA}.txt" > "${ARTIFACTS}/baseline-benchmark-log.txt"
+    benchstat "${ARTIFACTS}/baseline-benchmark-log.txt" "${REPORT_PLAINTEXT}"
+    ;;
+  *)
+    echo "unknown command, expect report, run, or compare."
+    ;;
+esac
+
+
+# FILE: bin/update_ztunnel.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+
+UPDATE_BRANCH=${UPDATE_BRANCH:-"master"}
+
+SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOTDIR=$(dirname "${SCRIPTPATH}")
+cd "${ROOTDIR}"
+
+# Get the sha of top commit
+# $1 = repo
+function getSha() {
+  local dir result
+  dir=$(mktemp -d)
+  git clone --depth=1 "https://github.com/istio/${1}.git" -b "${UPDATE_BRANCH}" "${dir}"
+
+  result="$(cd "${dir}" && git rev-parse HEAD)"
+  rm -rf "${dir}"
+
+  echo "${result}"
+}
+
+sed -i '/ZTUNNEL_REPO_SHA/,/lastStableSHA/ { s/"lastStableSHA":.*/"lastStableSHA": "'"$(getSha ztunnel)"'"/  }' istio.deps
+
+
+# FILE: bin/update_proxy.sh
+#!/bin/bash
+
+# Copyright 2020 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Update the Proxy SHA in istio.deps with the first argument
+# Exit immediately for non zero status
+set -e
+# Check unset variables
+set -u
+# Print commands
+set -x
+
+SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOTDIR=$(dirname "${SCRIPTPATH}")
+cd "${ROOTDIR}"
+
+# Wait for the proxy to become available
+ISTIO_ENVOY_VERSION=${ISTIO_ENVOY_VERSION:-$1}
+ISTIO_ENVOY_LINUX_VERSION=${ISTIO_ENVOY_LINUX_VERSION:-${ISTIO_ENVOY_VERSION}}
+ISTIO_ENVOY_BASE_URL=${ISTIO_ENVOY_BASE_URL:-https://storage.googleapis.com/istio-build/proxy}
+ISTIO_ENVOY_RELEASE_URL=${ISTIO_ENVOY_RELEASE_URL:-${ISTIO_ENVOY_BASE_URL}/envoy-alpha-${ISTIO_ENVOY_LINUX_VERSION}.tar.gz}
+ISTIO_ENVOY_ARM_RELEASE_URL=${ISTIO_ENVOY_ARM_RELEASE_URL:-${ISTIO_ENVOY_BASE_URL}/envoy-alpha-${ISTIO_ENVOY_LINUX_VERSION}-arm64.tar.gz}
+SLEEP_TIME=60
+
+printf "Verifying %s is available\n" "$ISTIO_ENVOY_RELEASE_URL"
+until curl --output /dev/null --silent --head --fail "$ISTIO_ENVOY_RELEASE_URL"; do
+    printf '.'
+    sleep $SLEEP_TIME
+done
+printf '\n'
+
+printf "Verifying %s is available\n" "$ISTIO_ENVOY_ARM_RELEASE_URL"
+until curl --output /dev/null --silent --head --fail "$ISTIO_ENVOY_ARM_RELEASE_URL"; do
+    printf '.'
+    sleep $SLEEP_TIME
+done
+printf '\n'
+
+# Update the dependency in istio.deps
+sed -i '/PROXY_REPO_SHA/,/lastStableSHA/ { s/"lastStableSHA":.*/"lastStableSHA": "'"$1"'"/  }' istio.deps
+
+
+# FILE: bin/update_deps.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -exo pipefail
+
+UPDATE_BRANCH=${UPDATE_BRANCH:-"master"}
+
+SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOTDIR=$(dirname "${SCRIPTPATH}")
+cd "${ROOTDIR}"
+
+# Get the sha of top commit
+# $1 = repo
+function getSha() {
+  git ls-remote "https://github.com/istio/${1}.git" "refs/heads/${UPDATE_BRANCH}" | cut -f 1
+}
+
+make update-common
+
+export GO111MODULE=on
+go get -u "istio.io/api@${UPDATE_BRANCH}"
+go get -u "istio.io/client-go@${UPDATE_BRANCH}"
+go mod tidy
+
+sed -i "s/^BUILDER_SHA=.*\$/BUILDER_SHA=$(getSha release-builder)/" prow/release-commit.sh
+chmod +x prow/release-commit.sh
+sed -i '/PROXY_REPO_SHA/,/lastStableSHA/ { s/"lastStableSHA":.*/"lastStableSHA": "'"$(getSha proxy)"'"/  }; /ZTUNNEL_REPO_SHA/,/lastStableSHA/ { s/"lastStableSHA":.*/"lastStableSHA": "'"$(getSha ztunnel)"'"/  }' istio.deps
+
+# shellcheck disable=SC1001
+LATEST_DISTROLESS_SHA256=$(crane digest cgr.dev/chainguard/static | awk -F\: '{print $2}')
+sed -i -E "s/sha256:[a-z0-9]+/sha256:${LATEST_DISTROLESS_SHA256}/g" docker/Dockerfile.distroless
+
+
+# FILE: bin/update_crds.sh
+#!/bin/bash
+
+# Copyright 2019 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -ex
+
+fail() {
+  echo "$@" 1>&2
+  exit 1
+}
+
+API_TMP="$(mktemp -d -u)"
+
+trap 'rm -rf "${API_TMP}"' EXIT
+
+SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOTDIR=$(dirname "${SCRIPTPATH}")
+cd "${ROOTDIR}"
+
+REPO="github.com/istio/api"
+# using the pseudo version we have in go.mod file. e.g. v.0.0.0-<timestamp>-<SHA>
+# first check if there's a replace: e.g. replace istio.io/api => github.com/USER/istioapi v0.0.0-<timestamp>-<SHA>
+SHA=$(grep "istio.io/api" go.mod | grep "^replace" | awk -F "-" '{print $NF}')
+if [ -n "${SHA}" ]; then
+  REPO=$(grep "istio.io/api" go.mod | grep "^replace" | awk '{print $4}')
+else
+  SHA=$(grep "istio.io/api" go.mod | head -n1 | awk '{ print $2 }')
+  if [[ ${SHA} == *"-"* && ! ${SHA} =~ -rc.[0-9]$ && ! ${SHA} =~ -beta.[0-9]$ && ! ${SHA} =~ -alpha.[0-9]$ ]]; then
+    # not an official release or release candidate, so get the commit sha
+    SHA=$(echo "${SHA}" | awk -F '-' '{ print $NF }')
+  fi
+fi
+
+if [ -z "${SHA}" ]; then
+  fail "Unable to retrieve the commit SHA of istio/api from go.mod file. Not updating the CRD file. Please make sure istio/api exists in the Go module.";
+fi
+
+git clone --filter=tree:0 "https://${REPO}" "${API_TMP}" && cd "${API_TMP}"
+git checkout "${SHA}"
+if [ ! -f "${API_TMP}/kubernetes/customresourcedefinitions.gen.yaml" ]; then
+  echo "Generated Custom Resource Definitions file does not exist in the commit SHA ${SHA}. Not updating the CRD file."
+  exit
+fi
+rm -f "${ROOTDIR}/manifests/charts/base/files/crd-all.gen.yaml"
+cp "${API_TMP}/kubernetes/customresourcedefinitions.gen.yaml" "${ROOTDIR}/manifests/charts/base/files/crd-all.gen.yaml"
+cp "${API_TMP}"/tests/testdata/* "${ROOTDIR}/pkg/config/validation/testdata/crds"
+
+cd "${ROOTDIR}"
+
+GATEWAY_VERSION=$(grep "gateway-api\s" go.mod | awk '{ print $2 }')
+if [[ ${GATEWAY_VERSION} == *"-"* && ! ${GATEWAY_VERSION} =~ -rc.?[0-9]$ ]]; then
+  # not an official release or release candidate, so get the commit sha
+  SHORT_SHA=$(echo "${GATEWAY_VERSION}" | awk -F '-' '{ print $NF }')
+  GATEWAY_VERSION=$(curl -s -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kubernetes-sigs/gateway-api/commits/${SHORT_SHA}" | jq -r .sha)
+fi
+if [ -z "${GATEWAY_VERSION}" ]; then
+  fail "Unable to retrieve the gateway-api version from go.mod file. Not updating the CRD file.";
+fi
+
+echo "# Generated with \`kubectl kustomize \"https://github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=${GATEWAY_VERSION}\"\`" > "${API_TMP}/gateway-api-crd.yaml"
+if ! kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=${GATEWAY_VERSION}" >> "${API_TMP}/gateway-api-crd.yaml"; then
+  fail "Unable to generate the CRDs for ${GATEWAY_VERSION}. Not updating the CRD file.";
+fi
+
+rm -f "${ROOTDIR}/tests/integration/pilot/testdata/gateway-api-crd.yaml"
+cp "${API_TMP}/gateway-api-crd.yaml" "${ROOTDIR}/tests/integration/pilot/testdata/gateway-api-crd.yaml"
+
+GATEWAY_API_INFERENCE_VERSION=$(grep "gateway-api-inference-extension" go.mod | awk '{ print $2 }')
+if [[ ${GATEWAY_API_INFERENCE_VERSION} == *"-"* && ! ${GATEWAY_API_INFERENCE_VERSION} =~ -rc.?[0-9]$ ]]; then
+  # not an official release or release candidate, so get the commit sha
+  SHORT_SHA=$(echo "${GATEWAY_API_INFERENCE_VERSION}" | awk -F '-' '{ print $NF }')
+  GATEWAY_API_INFERENCE_VERSION=$(curl -s -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/kubernetes-sigs/gateway-api-inference-extension/commits/${SHORT_SHA}" | jq -r .sha)
+fi
+if [ -z "${GATEWAY_API_INFERENCE_VERSION}" ]; then
+  fail "Unable to retrieve the gateway-api-inference-extension version from go.mod file. Not updating the CRD file.";
+fi
+
+echo "# Generated with \`kubectl kustomize \"https://github.com/kubernetes-sigs/gateway-api-inference-extension/config/crd/?ref=${GATEWAY_API_INFERENCE_VERSION}\"\`" > "${API_TMP}/gateway-api-inference-extension-crd.yaml"
+if ! kubectl kustomize "github.com/kubernetes-sigs/gateway-api-inference-extension/config/crd/?ref=${GATEWAY_API_INFERENCE_VERSION}" >> "${API_TMP}/gateway-api-inference-extension-crd.yaml"; then
+  fail "Unable to generate the CRDs for ${GATEWAY_API_INFERENCE_VERSION}. Not updating the CRD file.";
+fi
+
+rm -f "${ROOTDIR}/tests/integration/pilot/testdata/gateway-api-inference-extension-crd.yaml"
+cp "${API_TMP}/gateway-api-inference-extension-crd.yaml" "${ROOTDIR}/tests/integration/pilot/testdata/gateway-api-inference-extension-crd.yaml"
+
+
+# FILE: bin/retry.sh
+#!/bin/bash
+
+# Copyright Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# retry.sh retries a command until it succeeds. It accepts a regex pattern to match failures on to
+# determine if a retry should be attempted.
+# Example: retry.sh "connection timed out" ./my-flaky-script.sh some args
+# This will run "my-flaky-script.sh", retrying any failed runs that output "connection timed out" up
+# to 5 times.
+
+function fail {
+  echo "${1}" >&2
+  exit 1
+}
+
+function isatty() {
+ if [ -t 1 ] ; then
+   return 0
+  else
+   return 1
+  fi
+}
+
+function retry {
+  local tmpFile
+  tmpFile=$(mktemp)
+  trap 'rm -f "${tmpFile}"' EXIT
+
+  local failureRegex="$1"
+  shift
+  local n=1
+  local max=5
+  while true; do
+    unset SHELL # Don't let environment control which shell to use
+    if isatty; then
+      if [ "$(uname)" == "Darwin" ]; then
+        script -q -r "${tmpFile}" "${*}"
+      else
+        script --flush --quiet --return "${tmpFile}" --command "${*}"
+      fi
+    else
+      # if we aren't a TTY, run directly as script will always run with a tty, which may output content that
+      # we cannot display
+      set -o pipefail; "$@" 2>&1 | tee "${tmpFile}"
+    fi
+    # shellcheck disable=SC2181
+    if [[ $? == 0 ]]; then
+      break
+    fi
+    if ! grep -Eq "${failureRegex}" "${tmpFile}"; then
+      fail "Unexpected failure"
+    fi
+    if [[ $n -lt $max ]]; then
+      ((n++))
+      echo "Command failed. Attempt $n/$max:"
+    else
+      fail "The command has failed after $n attempts."
+    fi
+  done
+}
+
+retry "$@"
+
+
+# FILE: bin/init.sh
+#!/bin/bash
+
+# Copyright 2018 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Init script downloads or updates envoy and the go dependencies. Called from Makefile, which sets
+# the needed environment variables.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [[ "${TARGET_OUT_LINUX:-}" == "" ]]; then
+  echo "Environment variables not set. Make sure you run through the makefile (\`make init\`) rather than directly."
+  exit 1
+fi
+
+# Setup arch suffix for envoy binary. For backwards compatibility, amd64 has no suffix.
+if [[ "${TARGET_ARCH}" == "amd64" ]]; then
+	ISTIO_ENVOY_ARCH_SUFFIX=""
+else
+	ISTIO_ENVOY_ARCH_SUFFIX="-${TARGET_ARCH}"
+fi
+
+# Populate the git version for istio/proxy (i.e. Envoy)
+PROXY_REPO_SHA="${PROXY_REPO_SHA:-$(grep PROXY_REPO_SHA istio.deps  -A 4 | grep lastStableSHA | cut -f 4 -d '"')}"
+
+# Envoy binary variables
+ISTIO_ENVOY_BASE_URL="${ISTIO_ENVOY_BASE_URL:-https://storage.googleapis.com/istio-build/proxy}"
+
+# If we are not using the default, assume its private and we need to authenticate
+if [[ "${ISTIO_ENVOY_BASE_URL}" != "https://storage.googleapis.com/istio-build/proxy" ]]; then
+  AUTH_HEADER="Authorization: Bearer $(gcloud auth print-access-token)"
+  export AUTH_HEADER
+fi
+
+SIDECAR="${SIDECAR:-envoy}"
+
+# OS-neutral vars. These currently only work for linux.
+ISTIO_ENVOY_VERSION="${ISTIO_ENVOY_VERSION:-${PROXY_REPO_SHA}}"
+ISTIO_ENVOY_DEBUG_URL="${ISTIO_ENVOY_DEBUG_URL:-${ISTIO_ENVOY_BASE_URL}/envoy-debug-${ISTIO_ENVOY_VERSION}${ISTIO_ENVOY_ARCH_SUFFIX}.tar.gz}"
+ISTIO_ENVOY_RELEASE_URL="${ISTIO_ENVOY_RELEASE_URL:-${ISTIO_ENVOY_BASE_URL}/envoy-alpha-${ISTIO_ENVOY_VERSION}${ISTIO_ENVOY_ARCH_SUFFIX}.tar.gz}"
+
+# Envoy Linux vars.
+ISTIO_ENVOY_LINUX_VERSION="${ISTIO_ENVOY_LINUX_VERSION:-${ISTIO_ENVOY_VERSION}}"
+ISTIO_ENVOY_LINUX_DEBUG_URL="${ISTIO_ENVOY_LINUX_DEBUG_URL:-${ISTIO_ENVOY_DEBUG_URL}}"
+ISTIO_ENVOY_LINUX_RELEASE_URL="${ISTIO_ENVOY_LINUX_RELEASE_URL:-${ISTIO_ENVOY_RELEASE_URL}}"
+# Variables for the extracted debug/release Envoy artifacts.
+ISTIO_ENVOY_LINUX_DEBUG_DIR="${ISTIO_ENVOY_LINUX_DEBUG_DIR:-${TARGET_OUT_LINUX}/debug}"
+ISTIO_ENVOY_LINUX_DEBUG_NAME="${ISTIO_ENVOY_LINUX_DEBUG_NAME:-envoy-debug-${ISTIO_ENVOY_LINUX_VERSION}}"
+ISTIO_ENVOY_LINUX_DEBUG_PATH="${ISTIO_ENVOY_LINUX_DEBUG_PATH:-${ISTIO_ENVOY_LINUX_DEBUG_DIR}/${ISTIO_ENVOY_LINUX_DEBUG_NAME}}"
+
+ISTIO_ENVOY_LINUX_RELEASE_DIR="${ISTIO_ENVOY_LINUX_RELEASE_DIR:-${TARGET_OUT_LINUX}/release}"
+ISTIO_ENVOY_LINUX_RELEASE_NAME="${ISTIO_ENVOY_LINUX_RELEASE_NAME:-${SIDECAR}-${ISTIO_ENVOY_VERSION}}"
+ISTIO_ENVOY_LINUX_RELEASE_PATH="${ISTIO_ENVOY_LINUX_RELEASE_PATH:-${ISTIO_ENVOY_LINUX_RELEASE_DIR}/${ISTIO_ENVOY_LINUX_RELEASE_NAME}}"
+
+# There is no longer an Istio built Envoy binary available for the Mac. Copy the Linux binary as the Mac binary was
+# very old and likely no one was really using it (at least temporarily).
+
+# Download Envoy debug and release binaries for Linux x86_64. They will be included in the
+# docker images created by Dockerfile.proxyv2.
+
+# Gets the download command supported by the system (currently either curl or wget)
+DOWNLOAD_COMMAND=""
+function set_download_command () {
+  # Try curl.
+  if command -v curl > /dev/null; then
+    if curl --version | grep Protocols  | grep https > /dev/null; then
+      DOWNLOAD_COMMAND="curl -fLSs --retry 5 --retry-delay 1 --retry-connrefused"
+      return
+    fi
+    echo curl does not support https, will try wget for downloading files.
+  else
+    echo curl is not installed, will try wget for downloading files.
+  fi
+
+  # Try wget.
+  if command -v wget > /dev/null; then
+    DOWNLOAD_COMMAND="wget -qO -"
+    return
+  fi
+  echo wget is not installed.
+
+  echo Error: curl is not installed or does not support https, wget is not installed. \
+       Cannot download envoy. Please install wget or add support of https to curl.
+  exit 1
+}
+
+# Downloads and extract an Envoy binary if the artifact doesn't already exist.
+# Params:
+#   $1: The URL of the Envoy tar.gz to be downloaded.
+#   $2: The full path of the output binary.
+#   $3: Non-versioned name to use
+function download_envoy_if_necessary () {
+  if [[ ! -f "$2" ]] ; then
+    # Enter the output directory.
+    mkdir -p "$(dirname "$2")"
+    pushd "$(dirname "$2")"
+
+    # Download and extract the binary to the output directory.
+    echo "Downloading ${SIDECAR}: $1 to $2"
+    time ${DOWNLOAD_COMMAND} --header "${AUTH_HEADER:-}" "$1" |\
+      tar --extract --gzip --strip-components=3 --to-stdout > "$2"
+    chmod +x "$2"
+
+    # Make a copy named just "envoy" in the same directory (overwrite if necessary).
+    echo "Copying $2 to $(dirname "$2")/${3}"
+    cp -f "$2" "$(dirname "$2")/${3}"
+    popd
+  fi
+}
+
+mkdir -p "${TARGET_OUT}"
+
+# Set the value of DOWNLOAD_COMMAND (either curl or wget)
+set_download_command
+
+if [[ -n "${DEBUG_IMAGE:-}" ]]; then
+  # Download and extract the Envoy linux debug binary.
+  download_envoy_if_necessary "${ISTIO_ENVOY_LINUX_DEBUG_URL}" "$ISTIO_ENVOY_LINUX_DEBUG_PATH" "${SIDECAR}"
+else
+  echo "Skipping envoy debug. Set DEBUG_IMAGE to download."
+fi
+
+# Download and extract the Envoy linux release binary.
+download_envoy_if_necessary "${ISTIO_ENVOY_LINUX_RELEASE_URL}" "$ISTIO_ENVOY_LINUX_RELEASE_PATH" "${SIDECAR}"
+ISTIO_ENVOY_NATIVE_PATH=${ISTIO_ENVOY_LINUX_RELEASE_PATH}
+
+# Copy native envoy binary to TARGET_OUT
+echo "Copying ${ISTIO_ENVOY_NATIVE_PATH} to ${TARGET_OUT}/${SIDECAR}"
+cp -f "${ISTIO_ENVOY_NATIVE_PATH}" "${TARGET_OUT}/${SIDECAR}"
+
+# Copy the envoy binary to TARGET_OUT_LINUX if the local OS is not Linux
+if [[ "$GOOS_LOCAL" != "linux" ]]; then
+   echo "Copying ${ISTIO_ENVOY_LINUX_RELEASE_PATH} to ${TARGET_OUT_LINUX}/${SIDECAR}"
+  cp -f "${ISTIO_ENVOY_LINUX_RELEASE_PATH}" "${TARGET_OUT_LINUX}/${SIDECAR}"
+fi
+
+
+# FILE: bin/diff_yaml.py
+#!/usr/bin/env python
+#
+# Copyright 2018 Istio Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Compare 2 multi document kubernetes yaml files
+# It ensures that order does not matter
+#
+from __future__ import print_function
+import argparse
+import datadiff
+import sys
+import yaml  # pyyaml
+
+# returns fully qualified resource name of the k8s resource
+
+
+def by_resource_name(res):
+    if res is None:
+        return ""
+
+    return "{}::{}::{}".format(res['apiVersion'],
+                               res['kind'],
+                               res['metadata']['name'])
+
+
+def keydiff(k0, k1):
+    k0s = set(k0)
+    k1s = set(k1)
+    added = k1s - k0s
+    removed = k0s - k1s
+    common = k0s.intersection(k1s)
+
+    return added, removed, common
+
+
+def drop_keys(res, k1, k2):
+    if k2 in res[k1]:
+        del res[k1][k2]
+
+
+def normalize_configmap(res):
+    try:
+        if res['kind'] != "ConfigMap":
+            return res
+
+        data = res['data']
+
+        # some times keys are yamls...
+        # so parse them
+        for k in data:
+            try:
+                op = yaml.safe_load_all(data[k])
+                data[k] = list(op)
+            except yaml.YAMLError as ex:
+                print(ex)
+
+        return res
+    except KeyError as ke:
+        if 'kind' in str(ke) or 'data' in str(ke):
+            return res
+
+        raise
+
+
+def normalize_ports(res):
+    try:
+        spec = res["spec"]
+        if spec is None:
+            return res
+        ports = sorted(spec['ports'], key=lambda x: x["port"])
+        spec['ports'] = ports
+
+        return res
+    except KeyError as ke:
+        if 'spec' in str(ke) or 'ports' in str(ke) or 'port' in str(ke):
+            return res
+
+        raise
+
+
+def normalize_res(res, args):
+    if not res:
+        return res
+
+    if args.ignore_labels:
+        drop_keys(res, "metadata", "labels")
+
+    if args.ignore_namespace:
+        drop_keys(res, "metadata", "namespace")
+
+    res = normalize_ports(res)
+
+    res = normalize_configmap(res)
+
+    return res
+
+
+def normalize(rl, args):
+    for i in range(len(rl)):
+        rl[i] = normalize_res(rl[i], args)
+
+    return rl
+
+
+def compare(args):
+    j0 = normalize(list(yaml.safe_load_all(open(args.orig))), args)
+    j1 = normalize(list(yaml.safe_load_all(open(args.new))), args)
+
+    q0 = {by_resource_name(res): res for res in j0 if res is not None}
+    q1 = {by_resource_name(res): res for res in j1 if res is not None}
+
+    added, removed, common = keydiff(q0.keys(), q1.keys())
+
+    changed = 0
+    for k in sorted(common):
+        if q0[k] != q1[k]:
+            changed += 1
+
+    print("## +++ ", args.new)
+    print("## --- ", args.orig)
+    print("## Added:", len(added))
+    print("## Removed:", len

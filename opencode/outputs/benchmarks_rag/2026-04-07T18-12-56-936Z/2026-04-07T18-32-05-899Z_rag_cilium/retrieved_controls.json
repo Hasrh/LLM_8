@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-NQAISO27001Imple-022",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 22",
+    "text": "ct its ability to achieve the intended result(s) of its XXX management system.” Original Clause 4.2: “Understanding the needs and expectations of interested parties. The organisation shall determine: • The interested parties that are relevant to the XXX management system. • The relevant requirements of these interested parties. • Which of these requirements will be addressed through the XXX management system.” This clause now explicitly includes the statement: “The organisation shall determine whether climate change is a relevant issue.” The clause now also states: “Note: Relevant interested parties can have requirements related to climate change.” -- 15 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 16 SECTION 5: LEADERSHIP Information Security Policy A vital responsibility of the leadership is to establish and document an Information Security Policy (ISP) that is aligned with the key aims of the organisation. At the top level, it must either include objectives or a framework for setting them. To demonstrate that it’s aligned with your organisation’s context and the requirements of key stakeholders, it is recommended that it makes reference to, or contains a summary of, the principal issues and requirements it is designed to manage. It must also include a commitment to: • Satisfying applicable requirements relating to Information Security, such as legal requirements, customer ex",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1965968906879425
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-002",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 2",
+    "text": "-- ISO/IEC 27001:2022(E) Foreword........................................................................................................................................................................................................................................iv Introduction .................................................................................................................................................................................................................................v 1 Scope ................................................................................................................................................................................................................................. 1 2 Normative references ..................................................................................................................................................................................... 1 3 Terms and definitions .................................................................................................................................................................................... 1 4 Context of the organization ...................................................................................................................................................................... 1 4.1 Understanding the organization and its",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.18171754479408264
+  },
+  {
+    "id": "ISO-NQAISO27001Imple-001",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 1",
+    "text": "ISO 27001:2022INFORMATION SECURITY IMPLEMENTATION GUIDE 53,000 GLOBALLY CERTIFICATES 100 TRANSPARENT -- 1 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 2 > ISO 27001:2022 IMPLEMENTATION GUIDE *UK and Ireland only -- 2 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 3 Contents Introduction to the standard P04 Benefits of implementation P05 Key principles and terminology P06 PDCA cycle P07 Risk based thinking / audits P08 Process based thinking / audit P09 Annex SL P10 SECTION 1: Scope P11 SECTION 2: Normative references P12 SECTION 3: Terms and definitions P13 SECTION 4: Context of the organisation P14 SECTION 5: Leadership P16 SECTION 6: Planning P18 SECTION 7: Support P22 SECTION 8: Operation P24 SECTION 9: Performance evaluation P26 SECTION 10: Improvement P28 Get the most from your management P30 Next steps once implemented P31 Information Security Management Training P32 -- 3 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 4 INTRODUCTION TO THE STANDARD ISO 27001:2022 IMPLEMENTATION GUIDE 4 The 27000 Family The 27000 series of standards started life in 1995 as BS 7799 and was written by the UK’s Department of Trade and Industry (DTI). The standards correctly go by the title “ISO/ IEC” because they are developed and maintained jointly by two international standards bodies: ISO (the International Organisation for Standardisation) and the IEC (the International Electrotechnical Commi",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.17955376207828522
+  },
+  {
+    "id": "ISO-ISO27001pdf-017",
+    "title": "ISO27001.pdf snippet 17",
+    "text": "11.3.1 Password use ................................................................................................................................ 64 11.3.2 Unattended user equipment .......................................................................................................... 64 11.3.3 Clear desk and clear screen policy............................................................................................... 65 11.4 N ETWORK ACCESS CONTROL ................................................................................................................. 65 11.4.1 Policy on use of network services ................................................................................................. 66 11.4.2 User authentication for external connections............................................................................... 66 11.4.3 Equipment identification in networks ........................................................................................... 67 11.4.4 Remote diagnostic and configuration port protection .................................................................. 67 11.4.5 Segregation in networks ............................................................................................................... 68 11.4.6 Network connection control................................................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.17824888229370117
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-001",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 1",
+    "text": "Information security, cybersecurity and privacy protection — Information security management systems — Requirements Sécurité de l'information, cybersécurité et protection de la vie privée — Systèmes de management de la sécurité de l'information — Exigences INTERNATIONAL STANDARD ISO/IEC 27001 Third edition 2022-10 Reference number ISO/IEC 27001:2022(E) © ISO/IEC 2022 SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 1 of 26 -- ii ISO/IEC 27001:2022(E) COPYRIGHT PROTECTED DOCUMENT © ISO/IEC 2022 All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including photocopying, or posting on the internet or an intranet, without prior written permission. Permission can be requested from either ISO at the address below or ISO’s member body in the country of the requester. ISO copyright office CP 401 • Ch. de Blandonnet 8 CH-1214 Vernier, Geneva Phone: +41 22 749 01 11 Email: copyright@iso.org Website: www.iso.org Published in Switzerland © ISO/IEC 2022 – All rights reserved SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 2 of 26",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.17063799500465393
+  }
+]

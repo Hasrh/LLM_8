@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-ISO27001pdf-018",
+    "title": "ISO27001.pdf snippet 18",
+    "text": ".......... 68 11.4.7 Network routing control ............................................................................................................... 69 11.5 O PERATING SYSTEM ACCESS CONTROL .................................................................................................. 69 11.5.1 Secure log-on procedures ............................................................................................................. 69 11.5.2 User identification and authentication ......................................................................................... 70 11.5.3 Password management system...................................................................................................... 71 11.5.4 Use of system utilities ................................................................................................................... 72 11.5.5 Session time-out............................................................................................................................ 72 11.5.6 Limitation of connection time ....................................................................................................... 72 11.6 A PPLICATION AND INFORMATION ACCESS CONTROL ............................................................................. 73 11.6.1 Information access restriction ................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.2209637314081192
+  },
+  {
+    "id": "ISO-ISO27001pdf-014",
+    "title": "ISO27001.pdf snippet 14",
+    "text": "........................................................... 47 10.7.3 Information handling procedures ................................................................................................. 47 10.7.4 Security of system documentation................................................................................................. 48 10.8 EXCHANGE OF INFORMATION ................................................................................................................ 48 10.8.1 Information exchange policies and procedures ............................................................................ 49 10.8.2 Exchange agreements ................................................................................................................... 50 10.8.3 Physical media in transit .............................................................................................................. 51 10.8.4 Electronic messaging.................................................................................................................... 52 10.8.5 Business information systems ....................................................................................................... 52 -- 6 of 128 -- ISO/IEC FDIS 17799:2005(E) vi © ISO/IEC 2005 – All rights reserved 10.9 ELECTRONIC COMMERCE SERVICES .................................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.21437329053878784
+  },
+  {
+    "id": "ISO-ISO27001pdf-013",
+    "title": "ISO27001.pdf snippet 13",
+    "text": "1 Controls against malicious code................................................................................................... 42 10.4.2 Controls against mobile code ....................................................................................................... 43 10.5 BACK- UP ............................................................................................................................................... 44 10.5.1 Information back-up ..................................................................................................................... 44 10.6 N ETWORK SECURITY MANAGEMENT ...................................................................................................... 45 10.6.1 Network controls........................................................................................................................... 45 10.6.2 Security of network services ......................................................................................................... 46 10.7 MEDIA HANDLING ................................................................................................................................. 46 10.7.1 Management of removable media................................................................................................. 46 10.7.2 Disposal of media ..............................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.18739818036556244
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-022",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 22",
+    "text": "all determine the need for internal and external communications relevant to the information security management system including: a) on what to communicate; b) when to communicate; c) with whom to communicate; d) how to communicate. 7.5 Documented information 7.5.1 General The organization’s information security management system shall include: a) documented information required by this document; and © ISO/IEC 2022 – All rights reserved 6 SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 12 of 26 -- ISO/IEC 27001:2022(E) b) documented information determined by the organization as being necessary for the effectiveness of the information security management system. NOTE The extent of documented information for an information security management system can differ from one organization to another due to: 1) the size of organization and its type of activities, processes, products and services; 2) the complexity of processes and their interactions; and 3) the competence of persons. 7.5.2 Creating and updating When creating and updating documented information the organization shall ensure appropriate: a) identification and description (e.g. a title, date, author, or reference number); b) format (e.g. language, software version, graphics) and media (e.g. paper, electronic); and c) review an",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1870124787092209
+  },
+  {
+    "id": "ISO-ISO27001pdf-015",
+    "title": "ISO27001.pdf snippet 15",
+    "text": "...................... 53 10.9.1 Electronic commerce .................................................................................................................... 53 10.9.2 On-Line Transactions ................................................................................................................... 54 10.9.3 Publicly available information ..................................................................................................... 55 10.10 MONITORING ..................................................................................................................................... 55 10.10.1 Audit logging ............................................................................................................................ 55 10.10.2 Monitoring system use .............................................................................................................. 56 10.10.3 Protection of log information ................................................................................................... 57 10.10.4 Administrator and operator logs .............................................................................................. 58 10.10.5 Fault logging ............................................................................................................................ 58 10.10.6 Clock synchronization ..............................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1856732964515686
+  }
+]

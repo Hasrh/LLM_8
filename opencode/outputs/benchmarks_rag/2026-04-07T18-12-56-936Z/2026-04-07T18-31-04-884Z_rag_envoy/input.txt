@@ -1,0 +1,2182 @@
+
+
+# FILE: rustfmt.toml
+# This config is copied from https://github.com/bitdriftlabs/shared-core/blob/4114708cafb80103092b7e585987ef275a136f87/rustfmt.toml
+
+# Rust Autoformatter Config
+# =========================
+#
+# Note that most of rustfmt's configurable settings are nightly-only,
+# so we tend to run that. Typically we don't rely on unstable features,
+# but in this case there's honestly not a lot to configure that _isn't_
+# behind the `unstable_features` gate, unfortunately.
+
+edition           = "2021"
+unstable_features = true
+
+# Try to use inline annotations before using this -- disabling autoformatting
+# for a file makes it harder for everyone to share their work in that file and
+# invites bikeshedding about how code in there should look.
+ignore = []
+
+# Features are broken up into Stable and Unstable features, listed in order of
+# appearance in the Configuring Rustfmt document:
+# https://github.com/rust-lang-nursery/rustfmt/blob/master/Configurations.md
+
+## Stable Features
+
+force_explicit_abi       = true      # Default
+hard_tabs                = false     # Default
+max_width                = 100
+merge_derives            = true      # Default
+newline_style            = "Auto"    # Default
+remove_nested_parens     = true      # Default
+reorder_imports          = true      # Default
+reorder_modules          = true      # Default
+tab_spaces               = 2
+use_field_init_shorthand = false     # Default
+use_small_heuristics     = "Default" # Default
+use_try_shorthand        = true
+
+## Features that were "unstable" when we configured them
+blank_lines_lower_bound      = 0
+blank_lines_upper_bound      = 3
+combine_control_expr         = false
+comment_width                = 100
+condense_wildcard_suffixes   = true
+enum_discrim_align_threshold = 20
+error_on_line_overflow       = true
+error_on_unformatted         = false
+format_code_in_doc_comments  = true
+format_macro_bodies          = true
+format_macro_matchers        = true
+format_strings               = true
+group_imports                = "One"
+imports_granularity          = "Module"
+imports_layout               = "HorizontalVertical"
+match_block_trailing_comma   = true
+normalize_comments           = false
+normalize_doc_attributes     = true
+skip_children                = false
+spaces_around_ranges         = true
+struct_field_align_threshold = 0
+wrap_comments                = true
+
+
+# FILE: reviewers.yaml
+adisuissa:
+  maintainer: true
+  opsgenie: Adi
+  slack: UT17EMMTP
+agrawroh:
+  maintainer: true
+  opsgenie: Rohit
+  slack: U025KC9D7T5
+antoniovleonti:
+  first-pass: true
+  slack: U06DHAS4FDF
+botengyao:
+  maintainer: true
+  opsgenie: Boteng
+  slack: U037YUAK147
+daixiang0:
+  first-pass: true
+  slack: U020CJG6UU8
+danzh2010:
+  maintainer: true
+  opsgenie: Dan
+  slack: UDR2MA31P
+ggreenway:
+  maintainer: true
+  opsgenie: Greg
+  slack: U78MBV869
+jmarantz:
+  slack: U80HPLBPG
+jwendell:
+  maintainer: true
+  opsgenie: Jonh
+  slack: U7ZNNV4HF
+KBaichoo:
+  maintainer: true
+  opsgenie: Kevin
+  slack: U016ZPU8KBK
+keith:
+  maintainer: true
+  opsgenie: Keith
+  slack: UGS5P90CF
+krinkinmu:
+  maintainer: true
+  opsgenie: Mike
+  slack: U07KZ4B0H5J
+kyessenov:
+  opsgenie: kuat
+  slack: U7KTRAA8M
+  maintainer: true
+markdroth:
+  api: true
+  slack: UMN8K55A6
+mattklein123:
+  maintainer: true
+  opsgenie: Matt
+  slack: U5CALEVSL
+mathetake:
+  maintainer: true
+  opsgenie: mathetake
+  slack: UG9TD2FSB
+nezdolik:
+  maintainer: true
+  opsgenie: Kateryna
+  slack: UDYUWRL13
+paul-r-gall:
+  opsgenie: Paul
+  maintainer: true
+  slack: U0246MUEE9F
+phlax:
+  maintainer: true
+  opsgenie: phlax
+  slack: U017PLM0GNQ
+ravenblackx:
+  maintainer: true
+  opsgenie: Raven
+  slack: U02MJHFEX35
+RyanTheOptimist:
+  maintainer: true
+  opsgenie: Ryan
+  slack: U01SW3JC8GP
+silverstar194:
+  first-pass: true
+  slack: U03LNPC8JN9
+tonya11en:
+  maintainer: true
+  opsgenie: tony
+  slack: U989BG2CW
+tyxia:
+  maintainer: true
+  opsgenie: Tianyu
+  slack: U023U1ZN9SP
+wbpcode:
+  maintainer: true
+  opsgenie: Baiping
+  slack: U017KF5C0Q6
+yanavlasov:
+  maintainer: true
+  opsgenie: Yan
+  slack: UJHLR5KFS
+yanjunxiang-google:
+  maintainer: true
+  opsgenie: Yanjun
+  slack: U0210Q3SUKX
+zuercher:
+  maintainer: true
+  opsgenie: Stephan
+  slack: U78J72Q82
+
+
+# FILE: pytest.ini
+[pytest]
+addopts = -raq --ignore=tools/testing/external/*,__init__.py,testing/conf --color=yes --cov-append -p  tools.testing.plugin --cov-config=.coveragerc -Werror -vv tools
+testpaths =
+	  tests
+asyncio_mode = auto
+
+
+# FILE: VERSION.txt
+1.38.0-dev
+
+
+# FILE: STYLE.md
+# C++ coding style
+
+* Envoy currently supports C++20.
+* The Envoy source code is formatted using clang-format. Thus all white spaces, etc.
+  issues are taken care of automatically. The Azure Pipelines will automatically check
+  the code format and fail. There are make targets that can both check the format
+  (check_format) as well as fix the code format for you (fix_format). Errors in
+  .clang-tidy are enforced while other warnings are suggestions. Note that code and
+  comment blocks designated `clang-format off` must be closed with `clang-format on`.
+  To run these checks locally, see [Support Tools](support/README.md).
+* Beyond code formatting, for the most part Envoy uses the
+  [Google C++ style guidelines](https://google.github.io/styleguide/cppguide.html).
+  The following section covers the major areas where we deviate from the Google
+  guidelines.
+
+# Repository file layout
+
+* Please see [REPO_LAYOUT.md](REPO_LAYOUT.md).
+
+# Documentation
+
+* If you are modifying the data plane structurally, please keep the [Life of a
+  Request](https://www.envoyproxy.io/docs/envoy/latest/intro/life_of_a_request) documentation up-to-date.
+
+# Deviations from Google C++ style guidelines
+
+* Exceptions are allowed on the control plane, though now discouraged in new code. Adding exceptions is disallowed on the data plane.
+* References are always preferred over pointers when the reference cannot be null. This
+  includes both const and non-const references.
+* Function names should all use camel case starting with a lower case letter (e.g., `doFoo()`).
+* Struct/Class member variables have a `_` postfix (e.g., `int foo_;`).
+* Enum values using PascalCase (e.g., `RoundRobin`).
+* 100 columns is the line limit.
+* Use your GitHub name in TODO comments, e.g. `TODO(foobar): blah`.
+* Smart pointers are type aliased:
+  * `using FooPtr = std::unique_ptr<Foo>;`
+  * `using BarSharedPtr = std::shared_ptr<Bar>;`
+  * `using BlahConstSharedPtr = std::shared_ptr<const Blah>;`
+  * Regular pointers (e.g. `int* foo`) should not be type aliased.
+* `absl::optional<std::reference_wrapper<T>>` has a helper class in `envoy/common/optref.h`, and is type aliased:
+  * `using FooOptRef = OptRef<T>;`
+  * `using FooOptConstRef = OptRef<const T>;`
+* If move semantics are intended, prefer specifying function arguments with `&&`.
+  E.g., `void onHeaders(Http::HeaderMapPtr&& headers, ...)`. The rationale for this is that it
+  forces the caller to specify `std::move(...)` or pass a temporary and makes the intention at
+  the callsite clear. Otherwise, it's difficult to tell if a const reference is actually being
+  passed to the called function. This is true even for `std::unique_ptr`.
+* Prefer `unique_ptr` over `shared_ptr` wherever possible. `unique_ptr` makes ownership in
+  production code easier to reason about. Note that this creates some test oddities where
+  production code requires a `unique_ptr` but the test must still have access to the memory
+  the production code is using (mock or otherwise). In these cases it is acceptable to allocate
+  raw memory in a test and return it to the production code with the expectation that the
+  production code will hold it in a `unique_ptr` and free it. Envoy uses the factory pattern
+  quite a bit for these cases. (Search the code for "factory").
+* For accessor functions, prefer `OptRef<const T>` or `const Type&` as return types for functions
+  that return *const* references to existing objects *when there is no intention of mutation*.
+  If the caller needs to take ownership of the returned object via a `shared_ptr`, add a separate
+  function with a `SharedPtr` suffix that returns a shared pointer to
+  extend ownership. For example:
+  * `const ConnectionInfoProvider& connectionInfoProvider() const;`
+  * `ConnectionInfoProviderSharedPtr connectionInfoProviderSharedPtr() const;`
+  * `OptRef<const Route> route() const;`
+  * `RouteConstSharedPtr routeSharedPtr() const;`
+* Prefer explicitly sized integer types, such as uint64_t rather than size_t. In particular, use
+  explicitly sized integers for data that is written to disk or involved in math that might overflow.
+* The Google C++ style guide points out that [non-PoD static and global variables are forbidden](https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables).
+  This _includes_ types such as `std::string`. We encourage the use of the
+  advice in the [C++ FAQ on the static initialization
+  fiasco](https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use) for
+  how to best handle this.
+* The Google C++ style guide points out that [constant vars should be named `kConstantVar`](https://google.github.io/styleguide/cppguide.html#Constant_Names).
+  In the Envoy codebase we use `ConstantVar` or `CONSTANT_VAR`. If you pick `CONSTANT_VAR`,
+  please be certain the name is globally significant to avoid potential conflicts with #defines,
+  which are not namespace-scoped, and may appear in externally controlled header files.
+* API-level comments should follow normal Doxygen conventions. Use `@param` to describe
+  parameters and `@return <return-type>` for return values. Internal comments for
+  methods and member variables may be regular C++ `//` comments or Doxygen at
+  developer discretion. Where possible, methods should have meaningful
+  documentation on expected input and state preconditions.
+* Header guards should use `#pragma once`.
+* All code should be inside a top-level Envoy namespace. There are some
+  exceptions such as `main()` functions. When code cannot be placed inside the
+  Envoy namespace there should be a comment of the form `// NOLINT(namespace-envoy)` at
+  the top of the file.
+* If a method that must be defined outside the `test` directory is intended to be called only
+  from test code then it should have a name that ends in `ForTest()` such as `aMethodForTest()`.
+  In most cases tests can and should be structured so this is not necessary.
+* Tests default to StrictMock so will fail if hitting unexpected warnings. Feel free to use
+  NiceMock for mocks whose behavior is not the focus of a test.
+* [Thread
+  annotations](https://github.com/abseil/abseil-cpp/blob/master/absl/base/thread_annotations.h),
+  such as `ABSL_GUARDED_BY`, should be used for shared state guarded by
+  locks/mutexes.
+* Functions intended to be local to a cc file should be declared in an anonymous namespace,
+  rather than using the 'static' keyword. Note that the
+  [Google C++ style guide](https://google.github.io/styleguide/cppguide.html#Unnamed_Namespaces_and_Static_Variables)
+   allows either, but in Envoy we prefer anonymous namespaces.
+* Braces are required for all control statements include single line if, while, etc. statements.
+* Don't use [mangled Protobuf enum
+  names](https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#enum).
+
+# Error handling
+
+A few general notes on our error handling philosophy:
+
+* All error code returns should be checked.
+* At a very high level, our philosophy is that errors should be handled gracefully when caused by:
+  - Untrusted network traffic (from downstream, upstream, or extensions like filters)
+  - Raised by the Envoy process environment and are *likely* to happen
+  - Third party dependency return codes
+* Examples of likely environnmental errors include any type of network error, disk IO error, bad
+  data returned by an API call, bad data read from runtime files, etc. This includes loading
+  configuration at runtime.
+* Third party dependency return codes should be checked and gracefully handled. Examples include
+  HTTP/2 or JSON parsers. Some return codes may be handled by continuing, for example, in case of an
+  out of process RPC failure.
+* Testing should cover any serious cases that may result in infinite loops, crashes, or serious
+  errors. Non-trivial invariants are also encouraged to have testing. Internal, localized invariants
+  may not need testing.
+* Errors in the Envoy environment that are *unlikely* to happen after process initialization, should
+  lead to process death, under the assumption that the additional burden of defensive coding and
+  testing is not an effective use of time for an error that should not happen given proper system
+  setup. Examples of these types of errors include not being able to open the shared memory region,
+  system calls that should not fail assuming correct parameters (which should be validated via
+  tests), etc. Examples of system calls that should not fail when passed valid parameters include
+  the kernel returning a valid `sockaddr` after a successful call to `accept()`, `pthread_create()`,
+  `pthread_join()`, etc. However, system calls that require permissions may cause likely errors in
+  some deployments and need graceful error handling.
+* OOM events (both memory and FDs) or ENOMEM errors are considered fatal crashing errors. An OOM
+  error should never silently be ignored and should crash the process either via the C++ allocation
+  error exception, an explicit `RELEASE_ASSERT` following a third party library call, or an obvious
+  crash on a subsequent line via null pointer dereference. This rule is again based on the
+  philosophy that the engineering costs of properly handling these cases are not worth it. Time is
+  better spent designing proper system controls that shed load if resource usage becomes too high,
+  etc.
+* The "less is more" error handling philosophy described in the previous points is primarily
+  based on the fact that restarts are designed to be fast, reliable and cheap.
+* Although we strongly recommend that any type of startup error leads to a fatal error, since this
+  is almost always a result of faulty configuration which should be caught during a canary process,
+  there may be cases in which we want some classes of startup errors to be non-fatal. For example,
+  if a misconfigured option is not necessary for server operation. Although this is discouraged, we
+  will discuss these on a case by case basis during code review (an example of this
+  is the `--admin-address-path` option). **If degraded mode error handling is implemented, we require
+  that there is complete test coverage for the degraded case.** Additionally, the user should be
+  aware of the degraded state minimally via an error log of level warn or greater and via the
+  increment of a stat.
+* If you do need to log a non-fatal warning or error, you can unit-test it with EXPECT_LOG_CONTAINS
+  or EXPECT_NO_LOGS from [logging.h](test/test_common/logging.h). It's generally bad practice to
+  test by depending on log messages unless the actual behavior being validated is logging.
+  It's preferable to export statistics to enable consumption by external monitoring for any
+  behavior that should be externally consumed or to introduce appropriate internal interfaces
+  such as mocks for internal behavior.
+* The error handling philosophy described herein is based on the assumption that Envoy is deployed
+  using industry best practices (primarily canary). Major and obvious errors should always be
+  caught in canary. If a low rate error leads to periodic crash cycling when deployed to
+  production, the error rate should allow for rollback without large customer impact.
+* Tip: If the thought of adding the extra test coverage, logging, and stats to handle an error and
+  continue seems ridiculous because *"this should never happen"*, it's a very good indication that
+  the appropriate behavior is to terminate the process and not handle the error. When in doubt,
+  please discuss.
+
+# Macro Usage
+
+* The following macros are available:
+  - `RELEASE_ASSERT`: fatal check.
+  - `ASSERT`: fatal check in debug-only builds. These should be used to document (and check in
+    debug-only builds) program invariants.
+  - `ENVOY_BUG`: logs and increments a stat in release mode, fatal check in debug builds. These
+    should be used where it may be useful to detect if an efficient condition is violated in
+    production (and fatal check in debug-only builds). This will also log a stack trace
+    of the previous calls leading up to `ENVOY_BUG`.
+  - `ENVOY_NOTIFICATION`: logs and increments the ``envoy_notifications`` counter. These should be
+    used where it may be useful to detect if an efficient condition is met in production, for
+    example before rolling out a potentially disruptive configuration change.
+
+* Sub-macros alias the macros above and can be used to annotate specific situations:
+  - `ENVOY_BUG_ALPHA` (alias `ENVOY_BUG`): Used for alpha or rapidly changing protocols that need
+  detectability on probable conditions or invariants.
+
+* Per above it's acceptable to turn failures into crash semantics via `RELEASE_ASSERT(condition)` or
+  `PANIC(message)` if there is no other sensible behavior, e.g. in OOM (memory/FD) scenarios.
+* Do not `ASSERT` on conditions imposed by the external environment. Either add error handling
+  (potentially with an `ENVOY_BUG` for detectability) or `RELEASE_ASSERT` if the condition indicates
+  that the process is unrecoverable.
+* Use `ASSERT` and `ENVOY_BUG` liberally, but do not use them for things that will crash in an obvious
+  way in a subsequent line. E.g., do not do `ASSERT(foo != nullptr); foo->doSomething();`.
+* Use `ASSERT`s for true invariants and well-defined conditions that are useful for tests,
+  debug-only checks and documentation. They may be `ENVOY_BUG`s if performance allows, see point
+  below.
+* `ENVOY_BUG`s provide detectability and more confidence than an `ASSERT`. They are useful for
+  non-trivial conditions, those with complex control flow, and rapidly changing protocols. Testing
+  should be added to ensure that Envoy can continue to operate even if an `ENVOY_BUG` condition is
+  violated.
+* Annotate conditions with comments on belief or reasoning, for example `Condition is guaranteed by
+  caller foo` or `Condition is likely to hold after processing through external library foo`.
+* Macro usage should be understandable to a reader. Add comments if not. They should be robust to
+  future changes.
+* Note that there is a gray line between external environment failures and program invariant
+  violations. For example, memory corruption due to a security issue (a bug, deliberate buffer
+  overflow etc.) might manifest as a violation of program invariants or as a detectable condition in
+  the external environment (e.g. some library returning a highly unexpected error code or buffer
+  contents). Unfortunately no rule can cleanly cover when to use `RELEASE_ASSERT` vs. `ASSERT`. In
+  general we view `ASSERT` as the common case and `RELEASE_ASSERT` as the uncommon case, but
+  experience and judgment may dictate a particular approach depending on the situation. The risk of
+  process death from `RELEASE_ASSERT` should be justified with the severity and possibility of the
+  condition to avoid unintentional crashes. You may use the following guide:
+    * If a violation is high risk (will cause a crash in subsequent data processing or indicates a
+      failure state beyond recovery), use `RELEASE_ASSERT`.
+    * If a violation is medium or low risk (Envoy can continue safely) and is not expensive,
+      consider `ENVOY_BUG`.
+    * Otherwise (if a condition is expensive or test-only), use `ASSERT`.
+
+Below is a guideline for macro usage. The left side of the table has invariants and the right side
+has error conditions that can be triggered and should be gracefully handled. `ENVOY_BUG` represents
+a middle ground that can be used for uncertain conditions that need detectability. `ENVOY_BUG`s can
+also be added for errors if they warrant detection.
+
+| `ASSERT`/`RELEASE_ASSERT` | `ENVOY_BUG` | Error handling and Testing |
+| --- | --- | --- |
+| Low level invariants in data structures | | |
+| Simple, provable internal class invariants | Complex, uncertain internal class invariants (e.g. need detectability if violated) | |
+| Provable (pre/post)-conditions | Complicated but likely (pre-/post-) conditions that are low-risk (Envoy can continue safely) | Triggerable or uncertain conditions, may be based on untrusted data plane traffic or an extensions’ contract. |
+|                                                                                     | Conditions in alpha or changing extensions that need detectability. (`ENVOY_BUG_ALPHA`) | |
+| Unlikely environment errors after process initialization that would otherwise crash | | Likely environment errors, e.g. return codes from untrusted extensions, dependencies or system calls, network error, bad data read, permission based errors, etc. |
+| Fatal crashing events. e.g. OOMs, deadlocks, no process recovery possible | | |
+
+# Hermetic and deterministic tests
+
+Tests should be hermetic, i.e. have all dependencies explicitly captured and not depend on the local
+environment. In general, there should be no non-local network access. In addition:
+
+* Port numbers should not be hardcoded. Tests should bind to port zero and then discover the bound
+  port when needed. This avoids flakes due to conflicting ports and allows tests to be executed
+  concurrently by Bazel. See
+  [`test/integration/integration_test.h`](test/integration/integration_test.h) and
+  [`test/common/network/listener_impl_test.cc`](test/common/network/listener_impl_test.cc)
+  for examples of tests that do this.
+
+* Paths should be constructed using:
+  * The methods in [`TestEnvironment`](test/test_common/environment.h) for C++ tests.
+  * With `${TEST_TMPDIR}` (for writable temporary space) or `${TEST_SRCDIR}` for read-only access to
+    test inputs in shell tests.
+  * With `{{ test_tmpdir }}`, `{{ test_rundir }}` and `{{ test_udsdir }}` respectively for JSON templates.
+    `{{ test_udsdir }}` is provided for pathname based Unix Domain Sockets, which must fit within a
+    108 character limit on Linux, a property that might not hold for `{{ test_tmpdir }}`.
+
+Tests should be deterministic. They should not rely on randomness or details
+such as the current time. Instead, mocks such as
+[`MockRandomGenerator`](test/mocks/common.h) and
+[`SimulatedTimeSystem`](test/test_common/simulated_time_system.h) should be used.
+
+# Google style guides for other languages
+
+* [Python](https://google.github.io/styleguide/pyguide.html)
+* [Bash](https://google.github.io/styleguide/shell.xml)
+* [Bazel](https://bazel.build/build/style-guide)
+
+
+# FILE: SECURITY.md
+# Security Reporting Process
+
+Please report any security issue or Envoy crash report to
+envoy-security@googlegroups.com where the issue will be triaged appropriately.
+Thank you in advance for helping to keep Envoy secure.
+
+# Security Release Process
+
+Envoy is a large growing community of volunteers, users, and vendors. The Envoy community has
+adopted this security disclosure and response policy to ensure we responsibly handle critical
+issues.
+
+## Product Security Team (PST)
+
+Security vulnerabilities should be handled quickly and sometimes privately. The primary goal of this
+process is to reduce the total time users are vulnerable to publicly known exploits.
+
+The Product Security Team (PST) is responsible for organizing the entire response including internal
+communication and external disclosure but will need help from relevant developers to successfully
+run this process.
+
+The initial Product Security Team will consist of all [maintainers](OWNERS.md) in the private
+[envoy-security](https://groups.google.com/forum/#!forum/envoy-security) list. In the future we may
+decide to have a subset of maintainers work on security response given that this process is time
+consuming.
+
+## Disclosures
+
+### Private Disclosure Processes
+
+The Envoy community asks that all suspected vulnerabilities be privately and responsibly disclosed
+via the [reporting policy](README.md#reporting-security-vulnerabilities).
+
+### Public Disclosure Processes
+
+If you know of a publicly disclosed security vulnerability please IMMEDIATELY email
+[envoy-security](https://groups.google.com/forum/#!forum/envoy-security) to inform the Product
+Security Team (PST) about the vulnerability so they may start the patch, release, and communication
+process.
+
+If possible the PST will ask the person making the public report if the issue can be handled via a
+private disclosure process (for example if the full exploit details have not yet been published). If
+the reporter denies the request for private disclosure, the PST will move swiftly with the fix and
+release process. In extreme cases GitHub can be asked to delete the issue but this generally isn't
+necessary and is unlikely to make a public disclosure less damaging.
+
+## Patch, Release, and Public Communication
+
+For each vulnerability a member of the PST will volunteer to lead coordination with the "Fix Team"
+and is responsible for sending disclosure emails to the rest of the community. This lead will be
+referred to as the "Fix Lead." The detailed list of responsibilities is outlined on the
+[Fix Lead Checklist](https://docs.google.com/document/d/1cuU0m9hTQ73Te3i06-8LjQkFVn83IL22FbCoc_4IFEY/edit#heading=h.c6thx0zc0gtz)
+
+The role of Fix Lead should rotate round-robin across the PST.
+
+Note that given the current size of the Envoy community it is likely that the PST is the same as
+the "Fix team." (I.e., all maintainers). The PST may decide to bring in additional contributors
+for added expertise depending on the area of the code that contains the vulnerability.
+
+All of the timelines below are suggestions and assume a private disclosure. The Fix Lead drives the
+schedule using their best judgment based on severity and development time. If the Fix Lead is
+dealing with a public disclosure all timelines become ASAP (assuming the vulnerability has a CVSS
+score >= 4; see below). If the fix relies on another upstream project's disclosure timeline, that
+will adjust the process as well. We will work with the upstream project to fit their timeline and
+best protect our users.
+
+### Released versions and main branch
+
+If the vulnerability affects the last point release version, e.g. 1.10, then the full security
+release process described in this document will be activated. A security point release will be
+created for each currently supported Envoy version, as described in [stable releases](RELEASES.md#stable-releases),
+together with a fix to main if necessary. Older point releases,
+e.g. 1.5, are not supported by the Envoy project and will not have any security release created.
+
+If a security vulnerability affects only these older versions but not main or the last supported
+point release, the Envoy security team will share this information with the private distributor
+list, following the standard embargo process, but not create a security release. After the embargo
+expires, the vulnerability will be described as a GitHub issue. A CVE will be filed if warranted by
+severity.
+
+If a vulnerability does not affect any point release but only main, additional caveats apply:
+
+* If the issue is detected and a fix is available within 7 days of the introduction of the
+  vulnerability, or the issue is deemed a low severity vulnerability by the Envoy maintainer and
+  security teams, the fix will be publicly reviewed and landed on main. If the severity is at least
+  medium or at maintainer discretion a courtesy e-mail will be sent to envoy-users@googlegroups.com,
+  envoy-dev@googlegroups.com, envoy-security-announce@googlegroups.com and
+  cncf-envoy-distributors-announce@lists.cncf.io.
+* If the vulnerability has been in existence for more than 7 days and is medium or higher, we will
+  activate the security release process.
+
+We advise distributors and operators working from the main branch to allow at least 5 days soak
+time after cutting a binary release before distribution or rollout, to allow time for our fuzzers to
+detect issues during their execution on ClusterFuzz. A soak period of 7 days provides an even stronger
+guarantee, since we will invoke the security release process for medium or higher severity issues
+for these older bugs.
+
+**NOTE:** Contrib extensions are not eligible for Envoy security team coverage.
+
+### Threat model
+
+See https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/threat_model.
+Vulnerabilities are evaluated against this threat model when deciding whether to activate the Envoy
+security release process.
+
+### Fix Team Organization
+
+These steps should be completed within the first 24 hours of disclosure.
+
+- The Fix Lead will work quickly to identify relevant engineers from the affected projects and
+  packages and CC those engineers into the disclosure thread. These selected developers are the Fix
+  Team.
+- The Fix Lead will get the Fix Team access to private security repos to develop the fix.
+
+### Fix Development Process
+
+These steps should be completed within the 1-7 days of Disclosure.
+
+- The Fix Lead and the Fix Team will create a
+  [CVSS](https://www.first.org/cvss/specification-document) using the [CVSS
+  Calculator](https://www.first.org/cvss/calculator/3.0). The Fix Lead makes the final call on the
+  calculated CVSS; it is better to move quickly than making the CVSS perfect.
+- The Fix Team will notify the Fix Lead that work on the fix branch is complete once there are LGTMs
+  on all commits in the private repo from one or more maintainers.
+
+If the CVSS score is under 4.0 ([a low severity
+score](https://www.first.org/cvss/specification-document#i5)) the Fix Team can decide to slow the
+release process down in the face of holidays, developer bandwidth, etc. These decisions must be
+discussed on the envoy-security mailing list.
+
+A three week window will be provided to members of the private distributor list from candidate patch
+availability until the security release date. It is expected that distributors will normally be able
+to perform a release within this time window. If there are exceptional circumstances, the Envoy
+security team will raise this window to four weeks. The release window will be reduced if the
+security issue is public or embargo is broken.
+
+We will endeavor not to overlap this three week window with or place it adjacent to major corporate
+holiday periods or end-of-quarter (e.g. impacting downstream Istio releases), where possible.
+
+### Fix and disclosure SLOs
+
+* All reports to envoy-security@googlegroups.com will be triaged and have an
+  initial response within 1 business day.
+
+* Privately disclosed issues will be fixed or publicly disclosed within 90 days
+  by the Envoy security team. In exceptional circumstances we reserve the right
+  to work with the discloser to coordinate on an extension, but this will be
+  rarely used.
+
+* Any issue discovered by the Envoy security team and raised in our private bug
+  tracker will be converted to a public issue within 90 days. We will regularly
+  audit these issues to ensure that no major vulnerability (from the perspective
+  of the threat model) is accidentally leaked.
+
+* Fuzz bugs are subject to a 90 day disclosure deadline.
+
+* Three weeks notice will be provided to private distributors from patch
+  availability until the embargo deadline.
+
+* Public zero days which affect the optimized binary will be fixed ASAP, but there is
+  no SLO for this, since this will depend on the severity and impact to the
+  organizations backing the Envoy security team. After a zero day bug fix is in, the
+  PST will kick off point releases unless the bug is deemed unlikely to be encountered
+  in production (e.g. only triggered by trace logs) at which point there will instead be an email
+  to envoy-announce and users can request point releases if they believe they will be affected.
+  Publicly announced bugs which only affect debug binaries will neither trigger point
+  releases nor announce emails.
+
+### Fix Disclosure Process
+
+With the fix development underway, the Fix Lead needs to come up with an overall communication plan
+for the wider community. This Disclosure process should begin after the Fix Team has developed a Fix
+or mitigation so that a realistic timeline can be communicated to users.
+
+**Disclosure of Forthcoming Fix to Users** (Completed within 1-7 days of Disclosure)
+
+- The Fix Lead will email [envoy-security-announce@googlegroups.com](https://groups.google.com/forum/#!forum/envoy-security-announce)
+  (CC [envoy-announce@googlegroups.com](https://groups.google.com/forum/#!forum/envoy-announce))
+  informing users that a security vulnerability has been disclosed and that a fix will be made
+  available at YYYY-MM-DD HH:MM UTC in the future via this list. This time is the Release Date.
+- The Fix Lead will include any mitigating steps users can take until a fix is available.
+
+The communication to users should be actionable. They should know when to block time to apply
+patches, understand exact mitigation steps, etc.
+
+**Optional Fix Disclosure to Private Distributors List** (Completed within 1-14 days of Disclosure):
+
+- The Fix Lead will make a determination with the help of the Fix Team if an issue is critical enough
+  to require early disclosure to distributors. Generally this Private Distributor Disclosure process
+  should be reserved for remotely exploitable or privilege escalation issues. Otherwise, this
+  process can be skipped.
+- The Fix Lead will email the patches to cncf-envoy-distributors-announce@lists.cncf.io so
+  distributors can prepare builds to be available to users on the day of the issue's announcement. Any
+  patches against main will be updated and resent weekly.
+  Distributors should read about the [Private Distributors List](#private-distributors-list) to find
+  out the requirements for being added to this list.
+- **What if a vendor breaks embargo?** The PST will assess the damage. The Fix Lead will make the
+  call to release earlier or continue with the plan. When in doubt push forward and go public ASAP.
+
+**Fix Release Day** (Completed within 1-21 days of Disclosure)
+
+- The maintainers will create a new patch release branch from the latest patch release tag + the fix
+  from the security branch. As a practical example if v1.5.3 is the latest patch release in Envoy.git
+  a new branch will be created called v1.5.4 which includes only patches required to fix the issue.
+- The Fix Lead will cherry-pick the patches onto the main branch and all relevant release branches.
+  The Fix Team will LGTM and merge. Maintainers will merge these PRs as quickly as possible. Changes
+  shouldn't be made to the commits even for a typo in the CHANGELOG as this will change the git sha
+  of the commits leading to confusion and potentially conflicts as the fix is cherry-picked around
+  branches.
+- The Fix Lead will request a CVE from [DWF](https://github.com/distributedweaknessfiling/DWF-Documentation)
+  and include the CVSS and release details.
+- The Fix Lead will email envoy-{dev,users,announce}@googlegroups.com now that everything is public
+  announcing the new releases, the CVE number, and the relevant merged PRs to get wide distribution
+  and user action. As much as possible this email should be actionable and include links on how to apply
+  the fix to user's environments; this can include links to external distributor documentation.
+- The Fix Lead will remove the Fix Team from the private security repo.
+
+The reporter of a vulnerability will be granted early access to fix patches upon
+request, prior to the general disclosure of patches to the Private Distributors
+List for the purpose of testing and internal vulnerability mitigation. They must
+accept the embargo policy below in order for this to occur. If the vulnerability
+reporter is also responsible for developing fix patches, they may make use of
+the patches internally in their organization at any point in the fix cycle.
+
+### Retrospective
+
+These steps should be completed 1-3 days after the Release Date. The retrospective process
+[should be blameless](https://landing.google.com/sre/book/chapters/postmortem-culture.html).
+
+- The Fix Lead will send a retrospective of the process to envoy-dev@googlegroups.com including
+  details on everyone involved, the timeline of the process, links to relevant PRs that introduced
+  the issue, if relevant, and any critiques of the response and release process.
+- Maintainers and Fix Team are also encouraged to send their own feedback on the process to
+  envoy-dev@googlegroups.com. Honest critique is the only way we are going to get good at this as a
+  community.
+
+## Private Distributors List
+
+This list is intended to be used primarily to provide actionable information to
+multiple distribution vendors as well as a *limited* set of high impact end users at once. *This
+list is not intended in the general case for end users to find out about security issues*.
+
+### Embargo Policy
+
+The information members receive on cncf-envoy-distributors-announce must not be made public, shared, nor
+even hinted at anywhere beyond the need-to-know within your specific team except with the list's
+explicit approval. This holds true until the public disclosure date/time that was agreed upon by the
+list. Members of the list and others may not use the information for anything other than getting the
+issue fixed for your respective users.
+
+Before any information from the list is shared with respective members of your team required to fix
+said issue, they must agree to the same terms and only find out information on a need-to-know basis.
+
+We typically expect a single point-of-contact (PoC) at any given legal entity. Within the
+organization, it is the responsibility of the PoC to share CVE and related patches internally. This
+should be performed on a strictly need-to-know basis with affected groups to the extent that this is
+technically plausible. All teams should be aware of the embargo conditions and accept them.
+Ultimately, if an organization breaks embargo transitively through such sharing, they will lose
+the early disclosure privilege, so it's in their best interest to carefully share information internally,
+following best practices and use their judgement in balancing the tradeoff between protecting users
+and maintaining confidentiality.
+
+The embargo applies to information shared, source code and binary images. **It is a violation of the
+embargo policy to share binary distributions of the security fixes before the public release date.**
+This includes, but is not limited to, Envoy binaries and Docker images. It is expected that
+distributors have a method to stage and validate new binaries without exposing them publicly.
+
+If the information shared is under embargo from a third party, where Envoy is one of many projects
+that a disclosure is shared with, it is critical to consider that the ramifications of any leak will
+extend beyond the Envoy community and will leave us in a position in which we will be less likely to
+receive embargoed reports in the future.
+
+In the unfortunate event you share the information beyond what is allowed by this policy, you _must_
+urgently inform the envoy-security@googlegroups.com mailing list of exactly what information leaked
+and to whom. A retrospective will take place after the leak so we can assess how to prevent making the
+same mistake in the future.
+
+If you continue to leak information and break the policy outlined here, you will be removed from the
+list.
+
+### Contributing Back
+
+This is a team effort. As a member of the list you must carry some water. This
+could be in the form of the following:
+
+**Technical**
+
+- Review and/or test the proposed patches and point out potential issues with
+  them (such as incomplete fixes for the originally reported issues, additional
+  issues you might notice, and newly introduced bugs), and inform the list of the
+  work done even if no issues were encountered.
+
+**Administrative**
+
+- Help draft emails to the public disclosure mailing list.
+- Help with release notes.
+
+### Membership Criteria
+
+To be eligible for the cncf-envoy-distributors-announce mailing list, your
+use of Envoy should:
+
+1. Be either:
+   1. An actively maintained distribution of Envoy components. An example is
+      "SuperAwesomeLinuxDistro" which offers Envoy pre-built packages. Another
+      example is "SuperAwesomeServiceMesh" which offers a service mesh product
+      that includes Envoy as a component.
+
+   OR
+
+   2. Offer Envoy as a publicly available infrastructure or platform service, in
+      which the product clearly states (e.g. public documentation, blog posts,
+      marketing copy, etc.) that it is built on top of Envoy. E.g.,
+      "SuperAwesomeCloudProvider's Envoy as a Service (EaaS)". An infrastructure
+      service that uses Envoy for a product but does not publicly say they are
+      using Envoy does not *generally* qualify (see option 3 that follows). This is essentially IaaS
+      or PaaS. If you use Envoy to support a SaaS, e.g. "SuperAwesomeCatVideoService", this does not
+      *generally* qualify.
+
+   OR
+
+   3. An end user of Envoy that satisfies the following requirements:
+       1. Is "well known" to the Envoy community. Being "well known" is fully subjective and
+          determined by the Envoy maintainers and security team. Becoming "well known" would
+          generally be achieved by activities such as: PR contributions, either code or
+          documentation; helping other end users on Slack, GitHub, and the mailing lists; speaking
+          about use of Envoy at conferences; writing about use of Envoy in blog posts; sponsoring
+          Envoy conferences, meetups, and other activities; etc. This is a more strict variant of
+          item 5 below.
+       2. Is of sufficient size, scale, and impact to make your inclusion on the list
+          worthwhile. The definition of size, scale, and impact is fully subjective and
+          determined by the Envoy maintainers and security team. The definition will not be
+          discussed further in this document.
+       3. You *must* smoke test and then widely deploy security patches promptly and report back
+          success or failure ASAP. Furthermore, the Envoy maintainers may occasionally ask you to
+          smoke test especially risky public PRs before they are merged. Not performing these tasks
+          in a reasonably prompt timeframe will result in removal from the list. This is a more
+          strict variant of item 7 below.
+       4. In order to balance inclusion in the list versus a greater chance of accidental
+          disclosure, end users added to the list via this option will be limited to a total of
+          **10** slots. Periodic review (see below) may allow new slots to open, so please continue
+          to apply if it seems your organization would otherwise qualify. The security team also
+          reserves the right to change this limit in the future.
+       5. Note that in this context "end user" is defined as an organization that *directly*
+          operates Envoy in order to serve traffic for 1st party use cases. The 1st party use case
+          can be either internal or external facing. Critically, vendors of cloud native software
+          and solutions can *also* be end users. Being a vendor does not preclude an organization
+          from being an end user as long as it satisfies the 1st party usage criteria.
+2. Have a user or customer base not limited to your own organization (except for option 3 above).
+   We will use the size of the user or customer base as part of the criteria to determine
+   eligibility.
+3. Have a publicly verifiable track record up to present day of fixing security
+   issues.
+4. Not be a downstream or rebuild of another distribution.
+5. Be a participant and active contributor in the community.
+6. Accept the [Embargo Policy](#embargo-policy) that is outlined above. You must
+   have a way to privately stage and validate your updates that does not violate
+   the embargo.
+7. Be willing to [contribute back](#contributing-back) as outlined above.
+8. Be able to perform a security release of your product within a three week window from candidate fix
+   patch availability.
+9. Have someone already on the list vouch for the person requesting membership
+   on behalf of your distribution.
+10. Nominate an e-mail alias or list for your organization to receive updates. This should not be
+    an individual user address, but instead a list that can be maintained by your organization as
+    individuals come and go. A good example is envoy-security@seven.com, a bad example is
+    acidburn@seven.com. You must accept the invite sent to this address or you will not receive any
+    e-mail updates. This e-mail address will be [shared with the Envoy community](#Members).
+
+Note that Envoy maintainers are members of the Envoy security team. [Members of the Envoy security
+team](OWNERS.md#envoy-security-team) and the organizations that they represent are implicitly
+included in the private distributor list. These organizations do not need to meet the above list of
+criteria with the exception of the acceptance of the embargo policy.
+
+### Requesting to Join
+
+New membership requests are sent to envoy-security@googlegroups.com.
+
+In the body of your request please specify how you qualify and fulfill each
+criterion listed in [Membership Criteria](#membership-criteria).
+
+Here is a pseudo example:
+
+```
+To: envoy-security@googlegroups.com
+Subject: Seven-Corp Membership to cncf-envoy-distributors-announce
+
+Below are each criterion and why I think we, Seven-Corp, qualify.
+
+> 1. Be an actively maintained distribution of Envoy components OR offer Envoy as a publicly
+     available service in which the product clearly states that it is built on top of Envoy OR
+     be a well known end user of sufficient size, scale, and impact to make your
+     inclusion worthwhile.
+
+We distribute the "Seven" distribution of Envoy [link]. We have been doing
+this since 1999 before proxies were even cool.
+
+OR
+
+We use Envoy for our #1 rated cat video service and have 40 billion MAU, proxying 40 trillion^2 RPS
+through Envoy at the edge. Secure cat videos are our top priority. We also contribute a lot to the Envoy
+community by implementing features, not making Matt ask for documentation or tests, and writing blog
+posts about efficient Envoy cat video serving.
+
+> 2. Have a user or customer base not limited to your own organization. Please specify an
+>    approximate size of your user or customer base, including the number of
+>    production deployments.
+
+Our user base spans of the extensive "Seven" community. We have a slack and
+GitHub repos and mailing lists where the community hangs out. We have ~2000
+customers, of which approximately 400 are using Seven in production. [links]
+
+> 3. Have a publicly verifiable track record up to present day of fixing security
+     issues.
+
+We announce on our blog all upstream patches we apply to "Seven." [link to blog
+posts]
+
+> 4. Not be a downstream or rebuild of another distribution. If you offer Envoy as a publicly
+>    available infrastructure or platform service, this condition does not need to apply.
+
+This does not apply, "Seven" is a unique snowflake distribution.
+
+> 5. Be a participant and active contributor in the community.
+
+Our members, Acidburn, Cereal, and ZeroCool are outstanding members and are well
+known throughout the Envoy community. Especially for their contributions
+in hacking the Gibson.
+
+> 6. Accept the Embargo Policy that is outlined above. You must
+     have a way to privately stage and validate your updates that does not violate
+     the embargo.
+
+We accept.
+
+> 7. Be willing to contribute back as outlined above.
+
+We are definitely willing to help!
+
+> 8. Be able to perform a security release of your product within a three week window from candidate fix
+     patch availability.
+
+We affirm we can spin out new security releases within a 2 week window.
+
+> 9. Have someone already on the list vouch for the person requesting membership
+>    on behalf of your distribution.
+
+CrashOverride will vouch for the "Seven" distribution joining the distribution list.
+
+> 10. Nominate an e-mail alias or list for your organization to receive updates. This should not be
+      an individual user address, but instead a list that can be maintained by your organization as
+      individuals come and go. A good example is envoy-security@seven.com, a bad example is
+      acidburn@seven.com. You must accept the invite sent to this address or you will not receive any
+      e-mail updates. This e-mail address will be shared with the Envoy community.
+
+envoy-security@seven.com
+```
+
+### Review of membership criteria
+
+In all cases, members of the distribution list will be reviewed on a yearly basis by the maintainers
+and security team to ensure they still qualify for inclusion on the list.
+
+### Members
+
+| Organization  | End User | Last Review |
+|:-------------:|:--------:|:-----------:|
+| AWS           | No       | 07/24       |
+| Cilium        | No       | 07/24       |
+| Cloud Foundry | No       | 07/24       |
+| F5            | No       | 07/24       |
+| Google        | No       | 07/24       |
+| Istio         | No       | 07/24       |
+| Microsoft     | No       | 07/24       |
+| Red Hat       | No       | 07/24       |
+| VMware        | No       | 07/24       |
+| Tetrate       | No       | 07/24       |
+| solo.io       | No       | 07/24       |
+| Pinterest     | Yes      | 07/24       |
+| Dropbox       | Yes      | 07/24       |
+| Apple         | Yes      | 07/24       |
+| Spotify       | Yes      | 02/21       |
+| Netflix       | Yes      | 07/24       |
+| Slack         | Yes      | 07/24       |
+
+
+# FILE: SECURITY-INSIGHTS.yml
+header:
+  schema-version: '1.0.0'
+  expiration-date: '2025-01-24T01:00:00.000Z'
+  last-updated: '2024-01-24'
+  last-reviewed: '2024-01-24'
+  project-url: https://github.com/envoyproxy/envoy
+  changelog: https://www.envoyproxy.io/docs/envoy/latest/version_history/version_history#version-history
+  license: https://github.com/envoyproxy/envoy/blob/main/LICENSE
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:  # from https://github.com/envoyproxy/envoy/blob/main/OWNERS.md
+  # Senior maintainers
+  - github:ggreenway
+  - github:mattklein123
+  - github:phlax
+  - github:RyanTheOptimist
+  - github:wbpcode
+  - github:yanavlasov
+  - github:zuercher
+  # Maintainers
+  - github:adisuissa
+  - github:agrawroh
+  - github:botengyao
+  - github:jwendell
+  - github:KBaichoo
+  - github:keith
+  - github:krinkinmu
+  - github:kyessenov
+  - github:mathetake
+  - github:nezdolik
+  - github:paul-r-gall
+  - github:ravenblackx
+  - github:tonya11en
+  - github:tyxia
+  - github:yanjunxiang-google
+contribution-policy:
+  accepts-pull-requests: true
+  accepts-automated-pull-requests: true
+  code-of-conduct: https://github.com/envoyproxy/envoy/blob/main/CODE_OF_CONDUCT.md
+dependencies:
+  third-party-packages: true
+  dependencies-lists:
+  - https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/external_deps
+  env-dependencies-policy:
+    policy-url: https://github.com/envoyproxy/envoy/blob/main/DEPENDENCY_POLICY.md
+distribution-points:
+- https://github.com/envoyproxy/envoy
+documentation:
+- https://www.envoyproxy.io/docs
+security-contacts:
+- type: email
+  value: envoy-security@googlegroups.com
+security-testing:
+- tool-type: sca
+  tool-name: Dependabot
+  tool-version: latest
+  integration:
+    ad-hoc: false
+    ci: true
+    before-release: true
+- tool-type: sast
+  tool-name: CodeQL
+  tool-version: '2.13.4'
+  integration:
+    ad-hoc: false
+    ci: true
+    before-release: true
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  security-policy: https://github.com/envoyproxy/envoy/security/policy
+
+
+# FILE: REPO_LAYOUT.md
+# Repository layout overview
+
+This is a high level overview of how the repository is laid out to both aid in code investigation,
+as well as to clearly specify how extensions are added to the repository. The top level directories
+are:
+
+* [.azure-pipelines/](.azure-pipelines/): Configuration for
+[Azure Pipelines](https://azure.microsoft.com/en-us/services/devops/pipelines/).
+* [api/](api/): Envoy data plane API.
+* [bazel/](bazel/): Configuration for Envoy's use of [Bazel](https://bazel.build/).
+* [ci/](ci/): Scripts used both during CI as well as to build Docker containers.
+* [configs/](configs/): Example Envoy configurations.
+* [docs/](docs/): End user facing Envoy proxy and data plane API documentation as well as scripts
+  for publishing final docs during releases.
+* [examples/](examples/): Larger Envoy examples using Docker and Docker Compose.
+* [envoy/](envoy/): "Public" interface headers for "core" Envoy. In general,
+  these are almost entirely 100% abstract classes. There are a few cases of not-abstract classes in
+  the "public" headers, typically for performance reasons. Note that "core" includes some
+  "extensions" such as the HTTP connection manager filter and associated functionality which are
+  so fundamental to Envoy that they will likely never be optional from a compilation perspective.
+* [restarter/](restarter/): Envoy's hot restart wrapper Python script.
+* [security/](security/): Some templates for reporting security issues of Envoy. Historical security issues can also be found here.
+* [source/](source/): Source code for core Envoy as well as extensions. The layout of this directory
+  is discussed in further detail below.
+* [support/](support/): Development support scripts (pre-commit Git hooks, etc.)
+* [test/](test/): Test code for core Envoy as well as extensions. The layout of this directory is
+  discussed in further detail below.
+* [tools/](tools/): Miscellaneous tools that have not found a home somewhere else.
+
+## [source/](source/)
+
+* [common/](source/common/): Core Envoy code (not specific to extensions) that is also not
+  specific to a standalone server implementation. I.e., this is the code that could be used if Envoy
+  were eventually embedded as a library.
+* [docs/](source/docs/): Miscellaneous developer/design documentation that is not relevant for
+  the public user documentation.
+* [exe/](source/exe/): Code specific to building the final production Envoy server binary. This is
+  the only code that is not shared by integration and unit tests.
+* [extensions/](source/extensions/): Extensions to the core Envoy code. The layout of this
+  directory is discussed in further detail below.
+* [server/](source/server/): Code specific to running Envoy as a standalone server. E.g,
+  configuration, server startup, workers, etc. Over time, the line between `common/` and `server/`
+  has become somewhat blurred. Use best judgment as to where to place something.
+
+## [test/](test/)
+
+Not every directory within test is described below, but a few highlights:
+
+* Unit tests are found in directories matching their [source/](source/) equivalents. E.g.,
+  [common/](test/common/), [exe/](test/exe/), and [server/](test/server/).
+* Extension unit tests also match their source equivalents in [extensions/](test/extensions/).
+* [integration/](test/integration/) holds end-to-end integration tests using roughly the real
+  Envoy server code, fake downstream clients, and fake upstream servers. Integration tests also
+  test some of the extensions found in the repository. Note that in the future, we would like to
+  allow integration tests that are specific to extensions and are not required for covering
+  "core" Envoy functionality. Those integration tests will likely end up in the
+  [extensions/](test/extensions/) directory but further work and thinking is required before
+  we get to that point.
+* [mocks/](test/mocks/) contains mock implementations of all of the core Envoy interfaces found in
+  [include/](include/).
+* Other directories include tooling used for configuration testing, coverage testing, fuzz testing,
+  common test code, etc.
+
+## [source/extensions](source/extensions/) layout
+
+We maintain a very specific code and namespace layout for extensions. This aids in discovering
+code/extensions, and allows us specify extension owners in [CODEOWNERS](CODEOWNERS).
+
+* All extensions are either registered in [all_extensions.bzl](source/extensions/all_extensions.bzl)
+  or [extensions_build_config.bzl](source/extensions/extensions_build_config.bzl). The former is
+  for extensions that cannot be removed from the primary Envoy build. The latter is for extensions
+  that can be removed on a site specific basis. See [bazel/README.md](bazel/README.md) for how to
+  compile out extensions on a site specific basis. Note that by default extensions should be
+  removable from the build unless there is a very good reason.
+* These are the top level extension directories and associated namespaces:
+  * [access_loggers/](/source/extensions/access_loggers): Access log implementations which use
+    the `Envoy::Extensions::AccessLoggers` namespace.
+  * [bootstrap/](/source/extensions/bootstrap): Bootstrap extensions which use
+    the `Envoy::Extensions::Bootstrap` namespace.
+  * [clusters/](/source/extensions/clusters): Cluster extensions which use the
+    `Envoy::Extensions::Clusters` namespace.
+  * [compression/](/source/extensions/compression): Compression extensions
+    which use `Envoy::Extensions::Compression` namespace.
+  * [fatal_actions/](/source/extensions/fatal_actions): Fatal Action extensions
+    which use the `Envoy::Extensions::FatalActions` namespace.
+  * [filters/http/](/source/extensions/filters/http): HTTP L7 filters which use the
+    `Envoy::Extensions::HttpFilters` namespace.
+  * [filters/listener/](/source/extensions/filters/listener): Listener filters which use the
+    `Envoy::Extensions::ListenerFilters` namespace.
+  * [filters/network/](/source/extensions/filters/network): L4 network filters which use the
+    `Envoy::Extensions::NetworkFilters` namespace.
+  * [formatters/](/source/extensions/formatters): Access log formatters which use the
+    `Envoy::Extensions::Formatters` namespace.
+  * [grpc_credentials/](/source/extensions/grpc_credentials): Custom gRPC credentials which use the
+    `Envoy::Extensions::GrpcCredentials` namespace.
+  * [health_checker/](/source/extensions/health_checker): Custom health checkers which use the
+    `Envoy::Extensions::HealthCheckers` namespace.
+  * [internal_redirect/](/source/extensions/internal_redirect): Internal Redirect
+    extensions which use the `Envoy::Extensions::InternalRedirect` namespace.
+  * [quic_listeners/](/source/extensions/quic_listeners): QUIC extensions which
+    use the `Envoy::Quic` namespace.
+  * [resource_monitors/](/source/extensions/resource_monitors): Resource monitor
+    extensions which use the `Envoy::Extensions::ResourceMonitors` namespace.
+  * [retry/](/source/extensions/retry): Retry extensions which use the
+    `Envoy::Extensions::Retry` namespace.
+  * [stat_sinks/](/source/extensions/stat_sinks): Stat sink implementations which use the
+    `Envoy::Extensions::StatSinks` namespace.
+  * [tracers/](/source/extensions/tracers): Tracers which use the
+    `Envoy::Extensions::Tracers` namespace.
+  * [transport_sockets/](/source/extensions/transport_sockets): Transport socket implementations
+    which use the `Envoy::Extensions::TransportSockets` namespace.
+  * [upstreams/](/source/extensions/upstreams): Upstream extensions use the
+    `Envoy::Extensions::Upstreams` namespace.
+  * [watchdog/](/source/extensions/watchdog): Watchdog extensions use the
+    `Envoy::Extensions::Watchdog` namespace.
+  * [rate_limit_descriptors/](/source/extensions/rate_limit_descriptors): Rate limit
+    descriptor extensions use the `Envoy::Extensions::RateLimitDescriptors`
+    namespace.
+* Each extension is contained wholly in its own namespace. E.g.,
+  `Envoy::Extensions::NetworkFilters::Echo`.
+* Common code that is used by multiple extensions should be in a `common/` directory as close to
+  the extensions as possible. E.g., [filters/common/](/source/extensions/filters/common) for common
+  code that is used by both HTTP and network filters. Common code used only by two HTTP filters
+  would be found in `filters/http/common/`. Common code should be placed in a common namespace.
+  E.g., `Envoy::Extensions::Filters::Common`.
+
+## [contrib](contrib/) layout
+
+This directory contains contrib extensions. See [EXTENSION_POLICY.md](EXTENSION_POLICY.md) for
+more information.
+
+* [contrib/exe/](contrib/exe/): The default executable for contrib. This is similar to the
+  `envoy-static` target but also includes all contrib extensions, and is used to produce the
+  contrib image targets.
+* [contrib/...](contrib/): The rest of this directory mirrors the [source/extensions](source/extensions/)
+  layout. Contrib extensions are placed here.
+
+
+# FILE: RELEASES.md
+# Release Process
+
+## Active development
+
+Active development is happening on the `main` branch, and a new version is released from it.
+
+## Stable releases
+
+Stable releases of Envoy include:
+
+* Major releases in which a new version a created directly from the `main` branch.
+* Minor releases for versions covered by the extended maintenance window (any version released in the last 12 months).
+  * Security fixes backported from the `main` branch (including those deemed not worthy
+    of creating a CVE).
+  * Stability fixes backported from the `main` branch (anything that can result in a crash,
+    including crashes triggered by a trusted control plane).
+  * Bugfixes, deemed worthwhile by the maintainers of stable releases.
+
+Major releases happen quartely and follow the schedule below. Security fixes typically happen
+quarterly as well, but this depends on the number and severity of security bugs. Other releases
+are ad-hoc and best-effort.
+
+### Security releases
+
+Critical security fixes are owned by the Envoy security team, which provides fixes for the
+`main` branch. Once those fixes are ready, the maintainers
+of stable releases backport them to the remaining supported stable releases.
+
+### Backports
+
+All other security and reliability fixes can be nominated for backporting to stable releases
+by adding the `backport/review` label (this can be done using [repokitteh]'s `/backport` command
+on PRs).
+
+Only security and reliability fixes are backported, so please consider this before proposing a
+backport.
+
+Envoy release maintainers will try to review and include any pending proposed backports prior to
+patch releases. Backports can also be proposed directly, by raising a PR against the relevant
+release branch, eg `release/v1.37`.
+
+When raising a backport, please raise against **all** supported branches, that are affected.
+
+Backport PRs should pick specific commits from the `main` branch, and should be kept as specific
+commits while tracking the upstream release branch, before landing.
+
+For this reason, change should be managed using rebase rather than merge, and if adjustments are
+required they should be squashed into the relevant commit.
+
+Release branches are published as part of the security schedule described below, and immediately
+prior to a `main` release.
+
+### Release management
+
+Major releases are handled by the maintainer on-call and do not involve any backports.
+The details are outlined in the "Cutting a major release" section below.
+Security releases are handled by a Release Manager and a Fix Lead. The Release Manager is
+responsible for approving and merging backports, with responsibilties outlined
+in [BACKPORTS.md](BACKPORTS.md).
+The Fix Lead is a member of the security
+team and is responsible for coordinating the overall release. This includes identifying
+issues to be fixed in the release, communications with the Envoy community, and the
+actual mechanics of the release itself.
+
+| Quarter |       Release Manager                                          |         Fix Lead                                                         |
+|:-------:|:--------------------------------------------------------------:|:-------------------------------------------------------------------------|
+| 2020 Q1 | Piotr Sikora ([PiotrSikora](https://github.com/PiotrSikora))   |                                                                          |
+| 2020 Q2 | Piotr Sikora ([PiotrSikora](https://github.com/PiotrSikora))   |                                                                          |
+| 2020 Q3 | Yuchen Dai ([lambdai](https://github.com/lambdai))             |                                                                          |
+| 2020 Q4 | Christoph Pakulski ([cpakulski](https://github.com/cpakulski)) |                                                                          |
+| 2021 Q1 | Rei Shimizu ([Shikugawa](https://github.com/Shikugawa))        |                                                                          |
+| 2021 Q2 | Dmitri Dolguikh ([dmitri-d](https://github.com/dmitri-d))      |                                                                          |
+| 2021 Q3 | Takeshi Yoneda ([mathetake](https://github.com/mathetake))     |                                                                          |
+| 2021 Q4 | Otto van der Schaaf ([oschaaf](https://github.com/oschaaf))    |                                                                          |
+| 2022 Q1 | Otto van der Schaaf ([oschaaf](https://github.com/oschaaf))    | Ryan Hamilton ([RyanTheOptimist](https://github.com/RyanTheOptimist))    |
+| 2022 Q2 | Pradeep Rao ([pradeepcrao](https://github.com/pradeepcrao))    | Matt Klein ([mattklein123](https://github.com/mattklein123))             |
+| 2022 Q4 | Can Cecen ([cancecen](https://github.com/cancecen))            | Tony Allen ([tonya11en](https://github.com/tonya11en))                   |
+| 2023 Q3 | Boteng Yao ([botengyao](https://github.com/botengyao))         | Kateryna Nezdolii ([nezdolik](https://github.com/nezdolik))              |
+| 2023 Q4 | Paul Merrison ([pmerrison](https://github.com/pmerrison))      | Brian Sonnenberg ([briansonnenberg](https://github.com/briansonnenberg)) |
+| 2024 Q2 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+| 2024 Q3 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+| 2025 Q1 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+| 2025 Q3 | Ryan Northey ([phlax](https://github.com/phlax))               | Yan Avlasov ([yanavlasov](https://github.com/yanavlasov))                |
+| 2025 Q4 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+| 2026 Q1 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+| 2026 Q2 | Ryan Northey ([phlax](https://github.com/phlax))               | Boteng Yao ([botengyao](https://github.com/botengyao))                   |
+
+## Major release schedule
+
+In order to accommodate downstream projects, new Envoy releases are produced on a fixed release
+schedule (the 15th day of each quarter), with an acceptable delay of up to 2 weeks, with a hard
+deadline of 3 weeks.
+
+| Version |  Expected  |   Actual   | Difference | End of Life |
+|:-------:|:----------:|:----------:|:----------:|:-----------:|
+| 1.12.0  | 2019/09/30 | 2019/10/31 |  +31 days  | 2020/10/31  |
+| 1.13.0  | 2019/12/31 | 2020/01/20 |  +20 days  | 2021/01/20  |
+| 1.14.0  | 2020/03/31 | 2020/04/08 |   +8 days  | 2021/04/08  |
+| 1.15.0  | 2020/06/30 | 2020/07/07 |   +7 days  | 2021/07/07  |
+| 1.16.0  | 2020/09/30 | 2020/10/08 |   +8 days  | 2021/10/08  |
+| 1.17.0  | 2020/12/31 | 2021/01/11 |  +11 days  | 2022/01/11  |
+| 1.18.0  | 2021/03/31 | 2021/04/15 |  +15 days  | 2022/04/15  |
+| 1.19.0  | 2021/06/30 | 2021/07/13 |  +13 days  | 2022/07/13  |
+| 1.20.0  | 2021/09/30 | 2021/10/05 |   +5 days  | 2022/10/05  |
+| 1.21.0  | 2022/01/15 | 2022/01/12 |   -3 days  | 2023/01/12  |
+| 1.22.0  | 2022/04/15 | 2022/04/15 |    0 days  | 2023/04/15  |
+| 1.23.0  | 2022/07/15 | 2022/07/15 |    0 days  | 2023/07/15  |
+| 1.24.0  | 2022/10/15 | 2022/10/19 |   +4 days  | 2023/10/19  |
+| 1.25.0  | 2023/01/15 | 2023/01/18 |   +3 days  | 2024/01/18  |
+| 1.26.0  | 2023/04/15 | 2023/04/18 |   +3 days  | 2024/04/18  |
+| 1.27.0  | 2023/07/14 | 2023/07/27 |  +13 days  | 2024/07/27  |
+| 1.28.0  | 2023/10/16 | 2023/10/19 |   +3 days  | 2024/10/19  |
+| 1.29.0  | 2024/01/16 | 2024/01/16 |    0 days  | 2025/01/16  |
+| 1.30.0  | 2024/04/16 | 2024/04/16 |    0 days  | 2025/04/16  |
+| 1.31.0  | 2024/07/16 | 2024/07/19 |   +3 days  | 2025/07/19  |
+| 1.32.0  | 2024/10/15 | 2024/10/15 |    0 days  | 2025/10/15  |
+| 1.33.0  | 2025/01/14 | 2025/01/14 |    0 days  | 2026/01/14  |
+| 1.34.0  | 2025/04/15 | 2025/04/15 |    0 days  | 2026/04/15  |
+| 1.35.0  | 2025/07/15 | 2025/07/23 |    8 days  | 2026/07/23  |
+| 1.36.0  | 2025/10/14 | 2025/10/14 |    0 days  | 2026/10/14  |
+| 1.37.0  | 2026/01/13 | 2026/01/13 |    0 days  | 2027/01/13  |
+| 1.38.0  | 2026/04/14 |            |            |             |
+
+### Cutting a major release
+
+* Take a look at open issues tagged with the current release, by
+  [searching](https://github.com/envoyproxy/envoy/issues) for
+  "is:open is:issue milestone:[current milestone]" and either hold off until
+  they are fixed or bump them to the next milestone.
+* Begin marshalling the ongoing PR flow in this repo. Ask maintainers to hold off merging any
+  particularly risky PRs until after the release is tagged. This is because we aim for main to be
+  at release candidate quality at all times.
+* Do a final check of the [release notes](changelogs/current.yaml):
+  * Make any needed corrections (grammar, punctuation, formatting, etc.).
+  * Check to see if any security/stable version release notes are duplicated in
+    the major version release notes. These should not be duplicated.
+  * Switch the repo to "release" mode by running `bazel run @envoy_repo//:release`. This tool
+    will create a commit with the necessary changes for a release.
+  * Update the [RELEASES](RELEASES.md) doc with the relevant dates. Now, or after you cut the
+    release, please also make sure there's a stable maintainer signed up for next quarter,
+    and the deadline for the next release is documented in the release schedule.
+  * Get a review and merge.
+* Create a pull request with that commit and **wait for tests to pass**.
+* Once the tests have passed, and the PR has landed, CI will automatically create the tagged release and corresponding release branch.
+* Switch the repo back to "dev" mode by running `bazel run @envoy_repo//:dev`. This tool will create a commit with the
+  necessary changes to continue development.
+* Create a pull request with that commit.
+* Run the deprecate_guards.py script (`bazel run //tools/deprecate_guards:deprecate_guards`)
+* If you haven't done this before, request posting permission from admins for all the groups in the next bullet.
+* Craft a witty/uplifting email and send it to all the email aliases:
+envoy-announce@googlegroups.com
+envoy-users@googlegroups.com
+envoy-dev@googlegroups.com
+envoy-maintainers@googlegroups.com -
+include in this email a link to the latest [release page](https://github.com/envoyproxy/envoy/releases) (ending in `tag/[version]`)
+* Announce in [#envoy-dev](https://envoyproxy.slack.com/archives/C78HA81DH) and [#envoy-users](https://envoyproxy.slack.com/archives/C78M4KW76) slack channels.
+
+## Security release schedule
+
+Security releases are published on a 3-monthly cycle, around the mid point between major releases.
+
+| Quarter |  Expected  |   Actual   | Difference |
+|:-------:|:----------:|:----------:|:----------:|
+| 2024 Q2 | 2024/06/04 | 2024/06/04 |   0 days   |
+| 2024 Q3 | 2024/09/03 | 2024/09/19 |  16 days   |
+| 2024 Q4 | 2024/12/03 | 2024/12/18 |  15 days   |
+| 2025 Q1 | 2025/03/04 | 2025/03/20 |  16 days   |
+| 2025 Q2 | 2025/06/03 |     --     |     --     |
+| 2025 Q3 | 2025/09/02 | 2025/09/03 |   1 day    |
+| 2025 Q4 | 2025/12/02 | 2025/12/03 |   1 day    |
+| 2026 Q1 | 2026/03/03 | 2026/01/10 |   7 days   |
+| 2026 Q2 | 2026/06/02 |            |            |
+
+NOTE: Zero-day vulnerabilities, and upstream vulnerabilities disclosed to us under embargo, may necessitate an emergency release with little or no warning.
+
+
+# FILE: README.md
+![Envoy Logo](https://github.com/envoyproxy/artwork/blob/main/PNG/Envoy_Logo_Final_PANTONE.png)
+
+[Cloud-native high-performance edge/middle/service proxy](https://www.envoyproxy.io/)
+
+Envoy is hosted by the [Cloud Native Computing Foundation](https://cncf.io) (CNCF). If you are a
+company that wants to help shape the evolution of technologies that are container-packaged,
+dynamically-scheduled and microservices-oriented, consider joining the CNCF. For details about who's
+involved and how Envoy plays a role, read the CNCF
+[announcement](https://www.cncf.io/blog/2017/09/13/cncf-hosts-envoy/).
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1266/badge)](https://bestpractices.coreinfrastructure.org/projects/1266)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/envoyproxy/envoy/badge)](https://securityscorecards.dev/viewer/?uri=github.com/envoyproxy/envoy)
+[![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/envoy/badge)](https://clomonitor.io/projects/cncf/envoy)
+[![Azure Pipelines](https://dev.azure.com/cncf/envoy/_apis/build/status/11?branchName=main)](https://dev.azure.com/cncf/envoy/_build/latest?definitionId=11&branchName=main)
+[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/envoy.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:envoy)
+[![Jenkins](https://powerci.osuosl.org/buildStatus/icon?job=build-envoy-static-master&subject=ppc64le%20build)](https://powerci.osuosl.org/job/build-envoy-static-master/)
+[![Jenkins](https://ibmz-ci.osuosl.org/buildStatus/icon?job=Envoy_IBMZ_CI&subject=s390x%20build)](https://ibmz-ci.osuosl.org/job/Envoy_IBMZ_CI/)
+
+## Documentation
+
+* [Official documentation](https://www.envoyproxy.io/)
+* [FAQ](https://www.envoyproxy.io/docs/envoy/latest/faq/overview)
+* [Example documentation](https://github.com/envoyproxy/examples/)
+* [Blog](https://medium.com/@mattklein123/envoy-threading-model-a8d44b922310) about the threading model
+* [Blog](https://medium.com/@mattklein123/envoy-hot-restart-1d16b14555b5) about hot restart
+* [Blog](https://medium.com/@mattklein123/envoy-stats-b65c7f363342) about stats architecture
+* [Blog](https://medium.com/@mattklein123/the-universal-data-plane-api-d15cec7a) about universal data plane API
+* [Blog](https://medium.com/@mattklein123/lyfts-envoy-dashboards-5c91738816b1) on Lyft's Envoy dashboards
+
+## Related
+
+* [data-plane-api](https://github.com/envoyproxy/data-plane-api): v2 API definitions as a standalone
+  repository. This is a read-only mirror of [api](api/).
+* [envoy-perf](https://github.com/envoyproxy/envoy-perf): Performance testing framework.
+* [envoy-filter-example](https://github.com/envoyproxy/envoy-filter-example): Example of how to add new filters
+  and link to the main repository.
+
+## Contact
+
+* [envoy-announce](https://groups.google.com/forum/#!forum/envoy-announce): Low frequency mailing
+  list where we will email announcements only.
+* [envoy-security-announce](https://groups.google.com/forum/#!forum/envoy-security-announce): Low frequency mailing
+  list where we will email security related announcements only.
+* [envoy-users](https://groups.google.com/forum/#!forum/envoy-users): General user discussion.
+* [envoy-dev](https://groups.google.com/forum/#!forum/envoy-dev): Envoy developer discussion (APIs,
+  feature design, etc.).
+* [envoy-maintainers](https://groups.google.com/forum/#!forum/envoy-maintainers): Use this list
+  to reach all core Envoy maintainers.
+* [Twitter](https://twitter.com/EnvoyProxy/): Follow along on Twitter!
+* [Slack](https://envoyproxy.slack.com/): Slack, to get invited go [here](https://communityinviter.com/apps/envoyproxy/envoy).
+  * NOTE: Response to user questions is best effort on Slack. For a "guaranteed" response please email
+    envoy-users@ per the guidance in the following linked thread.
+
+Please see [this](https://groups.google.com/forum/#!topic/envoy-announce/l9zjYsnS3TY) email thread
+for information on email list usage.
+
+## Contributing
+
+Contributing to Envoy is fun and modern C++ is a lot less scary than you might think if you don't
+have prior experience. To get started:
+
+* [Contributing guide](CONTRIBUTING.md)
+* [Beginner issues](https://github.com/envoyproxy/envoy/issues?q=is%3Aopen+is%3Aissue+label%3Abeginner)
+* [Build/test quick start using docker](ci#building-and-running-tests-as-a-developer)
+* [Developer guide](DEVELOPER.md)
+* Consider installing the Envoy [development support toolchain](https://github.com/envoyproxy/envoy/blob/main/support/README.md), which helps automate parts of the development process, particularly those involving code review.
+* Please make sure that you let us know if you are working on an issue so we don't duplicate work!
+
+## Community Meeting
+
+The Envoy team has a scheduled meeting time twice per month on Tuesday at 9am PT. The public
+Google calendar is [here](https://goo.gl/PkDijT).  The meeting will only be held
+if there are agenda items listed in the [meeting
+minutes](https://goo.gl/5Cergb).  Any member of the community should be able to
+propose agenda items by adding to the minutes.  The maintainers will either confirm
+the additions to the agenda, or will cancel the meeting within 24 hours of the scheduled
+date if there is no confirmed agenda.
+
+## Security
+
+### Security Audit
+
+There has been several third party engagements focused on Envoy security:
+* In 2018 Cure53 performed a security audit, [full report](docs/security/audit_cure53_2018.pdf).
+* In 2021 Ada Logics performed an audit on our fuzzing infrastructure with recommendations for improvements, [full report](docs/security/audit_fuzzer_adalogics_2021.pdf).
+
+### Reporting security vulnerabilities
+
+If you've found a vulnerability or a potential vulnerability in Envoy please let us know at
+[envoy-security](mailto:envoy-security@googlegroups.com). We'll send a confirmation
+email to acknowledge your report, and we'll send an additional email when we've identified the issue
+positively or negatively.
+
+For further details please see our complete [security release process](SECURITY.md).
+
+### ppc64le builds
+
+Builds for the ppc64le architecture or using aws-lc are not covered by the envoy security policy. The ppc64le architecture is currently best-effort and not maintained by the Envoy maintainers.
+
+## Releases
+
+For further details please see our [release process](https://github.com/envoyproxy/envoy/blob/main/RELEASES.md).
+
+
+# FILE: PULL_REQUEST_TEMPLATE.md
+<!--
+!!!ATTENTION!!!
+
+If you are fixing *any* crash or *any* potential security issue, *do not*
+open a pull request in this repo. Please report the issue via emailing
+envoy-security@googlegroups.com where the issue will be triaged appropriately.
+Thank you in advance for helping to keep Envoy secure.
+
+!!!ATTENTION!!!
+
+For an explanation of how to fill out the fields, please see the relevant section
+in [PULL_REQUESTS.md](https://github.com/envoyproxy/envoy/blob/main/PULL_REQUESTS.md)
+
+!!!ATTENTION!!!
+
+Please check the [use of generative AI policy](https://github.com/envoyproxy/envoy/blob/main/CONTRIBUTING.md?plain=1#L41).
+
+You may use generative AI only if you fully understand the code. You need to disclose
+this usage in the PR description to ensure transparency.
+-->
+
+Commit Message:
+Additional Description:
+Risk Level:
+Testing:
+Docs Changes:
+Release Notes:
+Platform Specific Features:
+[Optional Runtime guard:]
+[Optional Fixes #Issue]
+[Optional Fixes commit #PR or SHA]
+[Optional Deprecated:]
+[Optional [API Considerations](https://github.com/envoyproxy/envoy/blob/main/api/review_checklist.md):]
+
+
+# FILE: PULL_REQUESTS.md
+When creating an Envoy pull request (PR) the text box will automatically be filled
+in with the basic fields from the [pull request template](PULL_REQUEST_TEMPLATE.md). The following
+is a more detailed explanation of what should go in each field.
+
+### <a name="title"></a>Title
+
+The title of the PR should brief (one line) noting the subsystem or the aspect this PR applies to and
+explaining the overall change. Both the component and the explanation must be lower case. For example:
+
+* ci: update build image to 44d539cb
+* docs: fix indent, buffer: add copyOut() method
+* router:add x-envoy-overloaded header
+* tls: add support for specifying TLS session ticket keys
+
+### <a name="desc"></a>Commit Message
+
+The commit message field should include an explanation of what this PR
+does. This will be used as the final commit message that maintainers will use to
+populate the commit message when merging. If this PR causes a change in behavior
+it should document the behavior before and after. If fixing a bug, please
+describe what the original issue is and how the change resolves it. If it is
+configuration controlled, it should note how the feature is enabled etc...
+
+
+### <a name="desc"></a>Additional Description
+
+The additional description field should include information of what this PR does
+that may be out of scope for a commit message. This could include additional
+information or context useful to reviewers.
+
+### <a name="risk"></a>Risk
+
+Risk Level is one of: Low | Medium | High
+
+Low: Small bug fix or small optional feature.
+
+Medium: New features that are not enabled(for example: new filter). Small-medium
+features added to existing components(for example: modification to an existing
+filter).
+
+High: Complicated changes such as flow control, rewrites of critical
+components, etc.
+
+Note: The above is only a rough guide for choosing a level,
+please ask if you have any concerns about the risk of the PR.
+
+### <a name="testing"></a>Testing
+
+The testing section should include an explanation of what testing was done, for example: unit test,
+integration, manual testing, etc.
+
+Note: It isn’t expected to do all forms of testing, please use your best judgement or ask for
+guidance if you are unsure. A good rule of thumb is the riskier the change, the
+more comprehensive the testing should be.
+
+### <a name="docs"></a>Documentation
+
+If there are documentation changes, please include a brief description of what they are. Docs
+changes may be in [docs/root](docs/root) and/or inline with the API protos. Please write in
+N/A if there were no documentation changes.
+
+Any PRs with structural changes to the dataplane should also update the [Life of a
+Request](https://www.envoyproxy.io/docs/envoy/latest/intro/life_of_a_request) documentation as appropriate.
+
+### <a name="relnotes"></a>Release notes
+
+If this change is user impacting OR extension developer impacting (filter API, etc.) you **must**
+add a release note to the [version history](changelogs/current.yaml) for the
+current version. Please include any relevant links. Each release note should be prefixed with the
+relevant subsystem in **alphabetical order** (see existing examples as a guide) and include links
+to relevant parts of the documentation. Thank you! Please write in N/A if there are no release notes.
+
+### <a name="platform_specific_features"></a>Platform Specific Features
+
+If this change involves any platform specific features (e.g. utilizing OS-specific socket options)
+or only implements new features for a limited set of platforms (e.g. Linux amd64 only), please
+include an explanation that addresses the reasoning behind this. Please also open a new tracking
+issue for each platform this change is not implemented on (and link them in the PR) to enable
+maintainers and contributors to triage. Reviewers will look for the change to avoid
+`#ifdef <OSNAME>` and rather prefer feature guards to not enable the change on a given platform
+using the build system.
+
+### <a name="runtime_guard"></a>Runtime guard
+
+If this PR has a user-visible behavioral change, or otherwise falls under the
+guidelines for runtime guarding in the [contributing doc](CONTRIBUTING.md)
+it should have a runtime guard, which should be documented both in the release
+notes and here in the PR description.
+
+For new feature additions guarded by configs, no-op refactors, docs changes etc.
+this field can be disregarded and/or removed.
+
+### <a name="issues"></a>Issues
+
+If this PR fixes an outstanding issue, please add a line of the form:
+
+Fixes #Issue
+
+This will result in the linked issue being automatically closed when the PR is
+merged. If you want to associate an issue with a PR without closing the issue,
+you may instead just tag the PR with the issue:
+
+\#Issue
+
+### <a name="commit"></a>Commit
+
+If this PR fixes or reverts a buggy commit, please add a line of the form:
+
+Fixes commit #PR
+
+or
+
+Fixes commit SHA
+
+This will allow automated tools to detect tainted commit ranges on the main branch when the PR is
+merged.
+
+### <a name="deprecated"></a>Deprecated
+
+If this PR deprecates existing Envoy APIs or code, it should include an update to the deprecated
+section of the [version history](changelogs/current.yaml) and a one line note in the
+PR description.
+
+If you mark existing APIs or code as deprecated, when the next release is cut, the
+deprecation script will create and assign an issue to you for
+cleaning up the deprecated code path.
+
+### <a name="api"></a>API Changes
+
+If this PR changes anything in the [api tree](https://github.com/envoyproxy/envoy/tree/main/api),
+please read the [API Review
+Checklist](https://github.com/envoyproxy/envoy/tree/main/api/review_checklist.md)
+and make sure that your changes have addressed all of the considerations listed there.
+Any relevant considerations should be documented under "API Considerations" in the PR description.
+
+
+# FILE: OWNERS.md
+* See [CONTRIBUTING.md](CONTRIBUTING.md) for general contribution guidelines.
+* See [GOVERNANCE.md](GOVERNANCE.md) for governance guidelines and maintainer responsibilities.
+* See [CODEOWNERS](CODEOWNERS) for a detailed list of owners for the various source directories.
+
+This page lists all active maintainers and their areas of expertise. This can be used for
+routing PRs, questions, etc. to the right place.
+
+# Senior maintainers
+<!--- If you modify senior maintainers list, please update the core-maintainers section of SECURITY-INSIGHTS.yml  -->
+
+* Matt Klein ([mattklein123](https://github.com/mattklein123)) (mattklein123@gmail.com)
+  * Catch-all, "all the things", and generally trying to make himself obsolete as fast as
+    possible.
+* Stephan Zuercher ([zuercher](https://github.com/zuercher)) (zuercher@gmail.com)
+  * Load balancing, upstream clusters and cluster manager, logging, complex HTTP routing
+    (metadata, etc.), and macOS build.
+* Greg Greenway ([ggreenway](https://github.com/ggreenway)) (ggreenway@apple.com)
+  * TLS, TCP proxy, listeners, and HTTP proxy/connection pooling.
+* Yan Avlasov ([yanavlasov](https://github.com/yanavlasov)) (yavlasov@google.com)
+  * Data plane, codecs, security, configuration.
+* Ryan Northey ([phlax](https://github.com/phlax)) (ryan@synca.io)
+  * Docs, tooling, CI, containers and sandbox examples
+* Ryan Hamilton ([RyanTheOptimist](https://github.com/ryantheoptimist)) (rch@google.com)
+  * HTTP/3, upstream connection management, Envoy Mobile.
+* Baiping Wang ([wbpcode](https://github.com/wbpcode)) (wbphub@gmail.com)
+  * Upstream, LB, tracing, logging, performance, and generic/dubbo proxy.
+* Boteng Yao ([botengyao](https://github.com/botengyao)) (boteng@google.com)
+  * Overload manager, security, logging, wasm, data plane.
+
+# Maintainers
+<!--- If you modify maintainers list, please update the core-maintainers section of SECURITY-INSIGHTS.yml -->
+
+* Adi Peleg ([adisuissa](https://github.com/adisuissa)) (adip@google.com)
+  * xDS APIs, configuration, control plane, fuzzing.
+* Kevin Baichoo ([KBaichoo](https://github.com/KBaichoo)) (envoy@kevinbaichoo.com)
+  * Data plane, overload management, flow control.
+* Keith Smiley ([keith](https://github.com/keith)) (keithbsmiley@gmail.com)
+  * Bazel, CI, compilers, linkers, general build issues, etc.
+* Kuat Yessenov ([kyessenov](https://github.com/kyessenov)) (kuat@google.com)
+  * Listeners, RBAC, CEL, matching, Istio.
+* Raven Black ([ravenblackx](https://github.com/ravenblackx)) (ravenblack@dropbox.com)
+  * Caches, file filters, and file I/O.
+* Kateryna Nezdolii ([nezdolik](https://github.com/nezdolik)) (kateryna.nezdolii@gmail.com)
+  * Load balancing, data plane, overload manager.
+* Tianyu Xia ([tyxia](https://github.com/tyxia)) (tyxia@google.com)
+  * ext_proc, data plane, flow control, CEL.
+* Tony Allen ([tonya11en](https://github.com/tonya11en)) (tony@allen.gg)
+  * Load balancing, data plane.
+* Takeshi Yoneda ([mathetake](https://github.com/mathetake)) (t.y.mathetake@gmail.com)
+  * Dynamic modules, API gateway, WASM, Istio.
+* Rohit Agrawal ([agrawroh](https://github.com/agrawroh)) (rohit.agrawal@databricks.com)
+  * Dynamic Modules, Reverse Tunnels, Lua, ExtAuthZ, Matchers, CI, Dependencies, Docs.
+* Paul Ogilby ([paul-r-gall](https://github.com/paul-r-gall)) (pgal@google.com)
+  * Request mirroring, data plane
+* Mike Krinkin ([krinkinmu](https://github.com/krinkinmu)) (krinkin.m.u@gmail.com)
+  * Build, tooling.
+* Jonh Wendell ([jwendell](https://github.com/jwendell)) (jwendell@redhat.com)
+  * CI, Build.
+* Yanjun Xiang ([yanjunxiang-google](https://github.com/yanjunxiang-google)) (yanjunxiang@google.com)
+  * ext_proc, dataplane, security.
+
+# Envoy mobile maintainers
+
+The following Envoy maintainers have final say over any changes only affecting /mobile
+
+* Ali Beyad ([abeyad](https://github.com/abeyad)) (abeyad@google.com)
+  * xDS, C++ integration tests.
+* Dan Zhang ([danzh2010](https://github.com/danzh2010)) (danzh@google.com)
+  * Envoy Mobile, QUIC, HTTP/3.
+* Paul Ogilby ([paul-r-gall](https://github.com/paul-r-gall)) (pgal@google.com)
+  * Language APIs, xDS.
+
+# Senior extension maintainers
+
+The following extension maintainers have final say over the extensions mentioned below. Once they
+approve an extension PR, it will be merged by the maintainer on-call (or any other maintainer)
+without further review.
+
+* Michael Warres ([mpwarres] (https://github.com/mpwarres)) (mpw@google.com)
+  * Wasm
+* doujiang24 ([doujiang24] https://github.com/doujiang24) (doujiang24@gmail.com)
+  * Golang
+* Lizan Zhou ([lizan](https://github.com/lizan)) (lizan.j@gmail.com)
+  * Wasm, JWT, gRPC-JSON transcoder
+* Kuo-Chung Hsu ([juniorhsu](https://github.com/juniorhsu)) (CuveeHsu@gmail.com)
+  * Thrift
+
+# Envoy security team
+
+* All senior maintainers
+* Tony Allen ([tonya11en](https://github.com/tonya11en)) (tony@allen.gg)
+* Tim Walsh ([twghu](https://github.com/twghu)) (twalsh@redhat.com)
+* Kateryna Nezdolii ([nezdolik](https://github.com/nezdolik)) (kateryna.nezdolii@gmail.com)
+* Boteng Yao ([botengyao](https://github.com/botengyao)) (boteng@google.com)
+* Kevin Baichoo ([KBaichoo](https://github.com/KBaichoo)) (envoy@kevinbaichoo.com)
+* Tianyu Xia ([tyxia](https://github.com/tyxia)) (tyxia@google.com)
+* Thomas Gschwendtner ([tgschwen](https://github.com/tgschwen)) (tgschwen@google.com)
+* Yanjun Xiang ([yanjunxiang-google](https://github.com/yanjunxiang-google)) (yanjunxiang@google.com)
+* Raven Black ([ravenblackx](https://github.com/ravenblackx)) (ravenblack@dropbox.com)
+* Kuo-Chung Hsu ([juniorhsu](https://github.com/juniorhsu)) (kuochunghsu@pinterest.com)
+* Rohit Agrawal ([agrawroh](https://github.com/agrawroh)) (rohit.agrawal@databricks.com)
+* Antonio Leonti ([antoniovleonti](https://github.com/antoniovleonti)) (leonti@google.com)
+* Takeshi Yoneda ([mathetake](https://github.com/mathetake)) (tyoneda@netflix.com)
+
+# Emeritus maintainers
+
+* Constance Caramanolis ([ccaraman](https://github.com/ccaraman)) (ccaramanolis@lyft.com)
+* Roman Dzhabarov ([RomanDzhabarov](https://github.com/RomanDzhabarov)) (rdzhabarov@lyft.com)
+* Bill Gallagher ([wgallagher](https://github.com/wgallagher)) (bgallagher@lyft.com)
+* Dan Noé ([dnoe](https://github.com/dnoe)) (dpn@google.com)
+* Sotiris Nanopoulos ([davinci26](https://github.com/davinci26)) (Sotiris.Nanopoulos@microsoft.com)
+* Asra Ali ([asraa](https://github.com/asraa)) (asraa@google.com)
+* Jose Nino ([junr03](https://github.com/junr03)) (recruiting@junr03.com)
+* Dhi Aurrahman ([dio](https://github.com/dio)) (dio@rockybars.com)
+* Dmitry Rozhkov ([rojkov](https://github.com/rojkov)) (dmitry.rozhkov@intel.com)
+* Michael Rebello ([rebello95](https://github.com/rebello95)) (mrebello@lyft.com)
+* Alan Chiu ([buildbreaker](https://github.com/buildbreaker)) (achiu@lyft.com)
+* Charles Le Borgne ([carloseltuerto](https://github.com/carloseltuerto)) (cleborgne@google.com)
+* William A Rowe Jr ([wrowe](https://github.com/wrowe)) (wrowe@rowe-clan.net)
+* Antonio Vicente ([antoniovicente](https://github.com/antoniovicente)) (avd@google.com)
+* JP Simard ([jpsim](https://github.com/jpsim)) (jp@lyft.com)
+* Rafal Augustyniak ([Augustyniak](https://github.com/Augustyniak)) (raugustyniak@lyft.com)
+* Snow Pettersen ([snowp](https://github.com/snowp)) (aickck@gmail.com)
+* Lizan Zhou ([lizan](https://github.com/lizan)) (lizan.j@gmail.com)
+* Harvey Tuch ([htuch](https://github.com/htuch)) (htuch@google.com)
+* Alex Xu ([soulxu](https://github.com/soulxu)) (hejie.xu@intel.com)
+* Alyssa Wilk ([alyssawilk](https://github.com/alyssawilk)) (alyssar@google.com)
+* Joshua Marantz ([jmarantz](https://github.com/jmarantz)) (jmarantz@google.com)
+
+# Friends of Envoy
+
+This section lists a few people that are not maintainers but typically help out with subject
+matter expert reviews. Feel free to loop them in as needed.
+
+* Yuchen Dai ([lambdai](https://github.com/lambdai)) (lambdai@google.com)
+  * v2 xDS, listeners, filter chain discovery service.
+* Michael Payne ([moderation](https://github.com/moderation)) (m@m17e.org)
+  * External dependencies, Envoy's supply chain and documentation.
+* Cerek Hillen ([crockeo](https://github.com/crockeo)) (chillen@lyft.com)
+  * Python and C++ platform bindings.
+
+# Emeritus code owners
+
+This section lists emeritus code owners who have contributed or maintained some extensions and
+now have left Envoy community or become inactive because of various reasons. When we add this
+section, some of code owners have left for a while. So, feel free to ping the maintainers if
+you find any emeritus code owners missing and would like to be added to this list.
+
+* Derek Argueta ([derekargueta](https://github.com/derekargueta))
+* marc-barry ([marc-barry](https://github.com/marc-barry))
+
+
+# FILE: LICENSE
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: GOVERNANCE.md
+# Process for becoming a maintainer
+
+Becoming a maintainer generally means that you are going to be spending substantial time on
+Envoy for the foreseeable future. You should have domain expertise and be extremely proficient in C++.
+
+* Express interest to the
+  [envoy-maintainers](https://groups.google.com/forum/#!forum/envoy-maintainers)
+  that you are interested in becoming a maintainer and, if your company does not have pre-existing maintainers,
+  that your organization is interested in and willing to sponsoring a maintainer.
+* We will expect you to start contributing increasingly complicated PRs, under the guidance
+  of the existing maintainers.
+* We may ask you to fix some issues from our backlog.
+* As you gain experience with the code base and our standards, we will ask you to do code reviews
+  for incoming PRs (i.e., all maintainers are expected to shoulder a proportional share of
+  community reviews).
+* After a period of approximately 2-3 months of contributions demonstrating understanding of (at least parts of)
+  the Envoy code base, reach back out to the maintainers list asking for feedback.  At this point, you will either
+  be granted maintainer status, or be given actionable feedback on any remaining gaps between the contributions
+  demonstrated and those expected of maintainers, at which point you can close those gaps and reach back out.
+
+## Maintainer responsibilities
+
+* Monitor email aliases.
+* Monitor Slack (delayed response is perfectly acceptable).
+* Triage GitHub issues and perform pull request reviews for other maintainers and the community.
+  The areas of specialization listed in [OWNERS.md](OWNERS.md) can be used to help with routing
+  an issue/question to the right person.
+* Triage build and CI issues. Monitor #envoy-ci and file issues for flaking or failing builds,
+  or new bugs, and either fix or find someone to fix any main build breakages.
+* During GitHub issue triage, apply all applicable [labels](https://github.com/envoyproxy/envoy/labels)
+  to each new issue. Labels are extremely useful for future issue follow up. Which labels to apply
+  is somewhat subjective so just use your best judgment. A few of the most important labels that are
+  not self explanatory are:
+  * **beginner**: Mark any issue that can reasonably be accomplished by a new contributor with
+    this label.
+  * **help wanted**: Unless it is immediately obvious that someone is going to work on an issue (and
+    if so assign it), mark it help wanted.
+  * **question**: If it's unclear if an issue is immediately actionable, mark it with the
+    question label. Questions are easy to search for and close out at a later time. Questions
+    can be promoted to other issue types once it's clear they are actionable (at which point the
+    question label should be removed).
+* Make sure that ongoing PRs are moving forward at the right pace or closing them.
+* Participate when called upon in the [security release process](SECURITY.md). Note that although
+  this should be a rare occurrence, if a serious vulnerability is found, the process may take up to
+  several full days of work to implement. This reality should be taken into account when discussing
+  time commitment obligations with employers.
+* In general continue to be willing to spend at least 25% of ones time working on Envoy (~1.25
+  business days per week).
+* We currently maintain an "on-call" rotation within the maintainers. Each on-call is 1 week.
+  Although all maintainers are welcome to perform all of the above tasks, it is the on-call
+  maintainer's responsibility to triage incoming issues/questions and marshal ongoing work
+  forward. To reiterate, it is *not* the responsibility of the on-call maintainer to answer all
+  questions and do all reviews, but it is their responsibility to make sure that everything is
+  being actively covered by someone.
+* The on-call rotation is tracked at Opsgenie. The calendar is visible
+[here](https://calendar.google.com/calendar/embed?src=d6glc0l5rc3v235q9l2j29dgovh3dn48%40import.calendar.google.com&ctz=America%2FNew_York)
+or you can subscribe to the iCal feed [here](webcal://kubernetes.app.opsgenie.com/webapi/webcal/getRecentSchedule?webcalToken=39dd1a892faa8d0d689f889b9d09ae787355ddff894396546726a5a02bac5b26&scheduleId=a3505963-c064-4c97-8865-947dfcb06060)
+
+## When does a maintainer lose maintainer status
+
+If a maintainer is no longer interested or cannot perform the maintainer duties listed above, they
+should volunteer to be moved to emeritus status. In extreme cases this can also occur by a vote of
+the maintainers per the voting process below.
+
+# xDS API shepherds
+
+The [xDS API shepherds](https://github.com/orgs/envoyproxy/teams/api-shepherds) are responsible for
+approving any PR that modifies the [api/](api/) tree. They ensure that API [style](api/STYLE.md) and
+[versioning](api/API_VERSIONING.md) policies are enforced and that a consistent approach is taken
+towards API evolution.
+
+The xDS API shepherds are also the xDS API maintainers; they work collaboratively with the community
+to drive the xDS API roadmap and review major proposed design changes. The API shepherds are
+intended to be representative of xDS client and control plane developers who are actively working on
+xDS development and evolution.
+
+As with maintainers, an API shepherd should be spending at least 25% of their time working on xDS
+developments and expect to be active in this space in the near future. API shepherds are expected to
+take on API shepherd review load and participate in meetings. They should be active on Slack `#xds`
+and responsive to GitHub issues and PRs on which they are tagged.
+
+The API shepherds are distinct to the [xDS working
+group](https://github.com/cncf/xds/blob/main/README.md), which aims to evolve xDS directionally
+towards a universal dataplane API. API shepherds are responsible for the execution of the xDS
+day-to-day and guiding xDS implementation changes. Proposals from xDS-WG will be aligned with the
+xDS API shepherds to ensure that xDS is heading towards the xDS goal of client and server neutral
+xDS. xDS API shepherds operate under the [envoyproxy](https://github.com/envoyproxy) organization
+but are expected to keep in mind the needs of all xDS clients (currently Envoy and gRPC, but we are
+aware of other in-house implementations) and the goals of xDS-WG.
+
+If you wish to become an API shepherd and satisfy the above criteria, please contact an existing
+API shepherd. We will factor in PR and review history to determine if the above API shepherd
+requirements are met. We may ask you to shadow an existing API shepherd for a period of time to
+build confidence in consistent application of the API guidelines to PRs.
+
+# Extension addition policy
+
+Adding new [extensions](REPO_LAYOUT.md#sourceextensions-layout) has a dedicated policy. Please
+see [this](./EXTENSION_POLICY.md) document for more information.
+
+# External dependency policy
+
+Adding new external dependencies has a dedicated policy. Please see [this](DEPENDENCY_POLICY.md)
+document for more information.
+
+# Conflict resolution and voting
+
+In general, we prefer that technical issues and maintainer membership are amicably worked out
+between the persons involved. If a dispute cannot be decided independently, the maintainers can be
+called in to decide an issue. If the maintainers themselves cannot decide an issue, the issue will
+be resolved by voting. The voting process is a simple majority in which each senior maintainer
+receives two votes and each normal maintainer receives one vote.
+
+# Adding new projects to the envoyproxy GitHub organization
+
+New projects will be added to the envoyproxy organization via GitHub issue discussion in one of the
+existing projects in the organization. Once sufficient discussion has taken place (~3-5 business
+days but depending on the volume of conversation), the maintainers of *the project where the issue
+was opened* (since different projects in the organization may have different maintainers) will
+decide whether the new project should be added. See the section above on voting if the maintainers
+cannot easily decide.
+
+
+# FILE: EXTENSION_POLICY.md
+# Envoy Extension Policy
+
+## Quality requirements
+
+All extensions contained in the main Envoy repository will be held to the same quality bar as the
+core Envoy code. This includes coding style, code reviews, test coverage, etc. In the future we
+may consider creating a sandbox repository for extensions that are not compiled/tested by default
+and held to a lower quality standard, but that is out of scope currently.
+
+## Adding new extensions
+
+The following procedure will be used when proposing new extensions for inclusion in the repository:
+  1. A GitHub issue should be opened describing the proposed extension as with any major feature
+  proposal.
+  2. All extensions must be sponsored by an existing maintainer. Sponsorship means that the
+  maintainer will shepherd the extension through design/code reviews. Maintainers can self-sponsor
+  extensions if they are going to write them, shepherd them, and maintain them.
+
+     Sponsorship serves two purposes:
+     * It ensures that the extension will ultimately meet the Envoy quality bar.
+     * It makes sure that incentives are aligned and that extensions are not added to the repo without
+     sufficient thought put into future maintenance.
+
+     *If sponsorship cannot be found from an existing maintainer, an organization can consider
+     [doing the work to become a maintainer](./GOVERNANCE.md#process-for-becoming-a-maintainer) in
+     order to be able to self-sponsor extensions.*
+
+  3. Each extension must have two reviewers proposed for reviewing PRs to the extension. Neither of
+  the reviewers must be a senior maintainer. Existing maintainers (including the sponsor) and other
+  contributors can count towards this number. The initial reviewers will be codified in the
+  [CODEOWNERS](./CODEOWNERS) file for long term maintenance. These reviewers can be swapped out as
+  needed.
+  4. Any extension added via this process becomes a full part of the repository. This means that any
+  API breaking changes in the core code will be automatically fixed as part of the normal PR process
+  by other contributors.
+  5. Any new dependencies added for this extension must comply with
+  [DEPENDENCY_POLICY.md](DEPENDENCY_POLICY.md), please follow the steps detailed there.
+  6. If an extension depends on platform specific functionality, be sure to guard it in the build
+  system. See [platform specific features](./PULL_REQUESTS.md#platform-specific-features).
+  Add the extension to the necessary `*_SKIP_TARGETS` in [bazel/repositories.bzl](bazel/repositories.bzl)
+  and tag tests to be skipped/failed on the unsupported platform.
+
+## Removing existing extensions
+
+As stated in the previous section, once an extension becomes part of the repository it will be
+maintained by the collective set of Envoy contributors as needed.
+
+However, if an extension has known issues that are not being rectified by the original sponsor and
+reviewers or new contributors that are willing to step into the role of extension owner, a
+[vote of the maintainers](./GOVERNANCE.md#conflict-resolution-and-voting) can be called to remove the
+extension from the repository.
+
+Extension removal process:
+
+  1. A GitHub Issue is opened listing the reason for extension removal and any available replacements.
+  2. Extension factory is modified to emit a deprecation warning.
+  3. This starts a 6 month deprecation interval, after which extension is decommissioned.
+  4. An announcement about extension deprecation is sent to the
+     [envoy-announce](https://groups.google.com/forum/#!forum/envoy-announce) email list, with the
+     instruction to comment on the GitHub issue to extend the deprecation interval. Heavily used
+     extensions may have their deprecation interval extended by 6 more months.
+  5. After the deprecation interval has expired the extension source code is removed.
+
+## Extension pull request reviews
+
+Extension PRs must not modify core Envoy code. In the event that an extension requires changes to core
+Envoy code, those changes should be submitted as a separate PR and will undergo the normal code review
+process, as documented in the [contributor's guide](./CONTRIBUTING.md).
+
+Extension PRs must be approved by at least one sponsoring maintainer and an extension reviewer. These
+may be a single individual, but it is always preferred to have multiple reviewers when feasible.
+
+In the event that the Extension PR author is a sponsoring maintainer and no other sponsoring maintainer
+is available, another maintainer may be enlisted to perform a minimal review for style and common C++
+anti-patterns. The Extension PR must still be approved by a non-maintainer reviewer.
+
+## Wasm extensions
+
+Wasm extensions are not allowed in the main envoyproxy/envoy repository unless
+part of the Wasm implementation validation. The rationale for this policy:
+* Wasm extensions should not depend upon Envoy implementation specifics as
+  they exist behind a version independent ABI. Hence, there is little value in
+  qualifying Wasm extensions in the main repository.
+* Wasm extensions introduce extensive dependencies via crates, etc. We would
+  prefer to keep the envoyproxy/envoy repository dependencies minimal, easy
+  to reason about and maintain.
+* We do not implement any core extensions in Wasm and do not plan to in the
+  medium term.
+
+## Extension stability and security posture
+
+Every extension is expected to be tagged with a `status` and `security_posture` in its
+`envoy_cc_extension` rule.
+
+The `status` is one of:
+* `stable`: The extension is stable and is expected to be production usable. This is the default if
+  no `status` is specified.
+* `alpha`: The extension is functional but has not had substantial production burn time, use only
+  with this caveat

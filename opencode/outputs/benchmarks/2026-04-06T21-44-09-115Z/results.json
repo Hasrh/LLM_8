@@ -1,0 +1,162 @@
+[
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/gitea/package.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/gitea/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-44-47-405Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/grafana/.golangci.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/grafana/.golangci.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-45-33-491Z_baseline_.golangci.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/helm/testdata/releases.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/helm/testdata/releases.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-45-59-138Z_baseline_releases.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/httpd/test/pyhttpd/htdocs/test2/alive.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/httpd/test/pyhttpd/htdocs/test2/alive.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-16-436Z_baseline_alive.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/istio/tools/proto/buf.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/istio/tools/proto/buf.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-37-519Z_baseline_buf.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kafka/trogdor/src/test/resources/log4j2.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kafka/trogdor/src/test/resources/log4j2.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-51-798Z_baseline_log4j2.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kubernetes/cluster/log-dump/logexporter-daemonset.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kubernetes/cluster/log-dump/logexporter-daemonset.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-47-23-519Z_baseline_logexporter-daemonset.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/laravel/composer.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/laravel/composer.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-47-49-484Z_baseline_composer.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/minio/Dockerfile.hotfix",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/minio/Dockerfile.hotfix",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-48-18-013Z_baseline_Dockerfile.hotfix",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/moby/vendor/resenje.org/singleflight/.golangci.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/moby/vendor/resenje.org/singleflight/.golangci.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-48-39-224Z_baseline_.golangci.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:52:25.332Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296ed3d1effepTR76cSsufIYPG",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\nrepos:\n  - repo: https://github.com/pre-commit/pre-commit-hooks\n    rev: v4.3.0\n    hooks:\n      - id: trailing-whitespace\n      - id: end-of-file-fixer\n      - id: check-yaml\n      - id: check-added-large-files\n  - repo: https://github.com/dnephin/pre-commit-golang\n    rev: v0.5.0\n    hooks:\n    - id: golangci-lint\n    - id: go-build\n\n```"
+}

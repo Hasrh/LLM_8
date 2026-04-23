@@ -1,0 +1,162 @@
+[
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/mysql-server/mysql-test/std_data/wl13681.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/mysql-server/mysql-test/std_data/wl13681.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-44-46-902Z_baseline_wl13681.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nest/tsconfig.spec.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nest/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-03-747Z_baseline_tsconfig.spec.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/next.js/vercel.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/next.js/vercel.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-19-954Z_baseline_vercel.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nginx/src/stream/ngx_stream_write_filter_module.c",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nginx/src/stream/ngx_stream_write_filter_module.c",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-21-570Z_baseline_ngx_stream_write_filter_module.c",
+    "score": 0.5,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/node/tsconfig.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/node/tsconfig.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-48-508Z_baseline_tsconfig.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-46-13-135Z_baseline_.pre-commit-config.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-46-44-748Z_baseline_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/openssl/funding.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/openssl/funding.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-16-126Z_baseline_funding.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/postgres/src/test/modules/test_json_parser/tiny.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/postgres/src/test/modules/test_json_parser/tiny.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-36-139Z_baseline_tiny.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/prometheus/web/ui/react-app/.eslintrc.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/prometheus/web/ui/react-app/.eslintrc.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-52-826Z_baseline_.eslintrc.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

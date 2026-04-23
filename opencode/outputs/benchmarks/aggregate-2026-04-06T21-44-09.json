@@ -1,0 +1,27 @@
+{
+  "dirs": [
+    "2026-04-06T21-44-09-158Z",
+    "2026-04-06T21-44-09-135Z",
+    "2026-04-06T21-44-09-124Z",
+    "2026-04-06T21-44-09-159Z",
+    "2026-04-06T21-44-09-115Z"
+  ],
+  "total_rows": 100,
+  "gpt": {
+    "total": 50,
+    "ok": 0,
+    "errors": 50,
+    "pass": 0,
+    "mean": null
+  },
+  "opencode": {
+    "total": 50,
+    "ok": 50,
+    "errors": 0,
+    "pass": 19,
+    "mean": 0.84
+  },
+  "gpt_errors_sample": [
+    "No output generated. Check the stream for errors."
+  ]
+}

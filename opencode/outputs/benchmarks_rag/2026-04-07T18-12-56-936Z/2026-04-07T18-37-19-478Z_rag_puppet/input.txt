@@ -1,0 +1,2991 @@
+
+
+# FILE: install.rb
+#! /usr/bin/env ruby
+#--
+# Copyright 2004 Austin Ziegler <ruby-install@halostatue.ca>
+#   Install utility. Based on the original installation script for rdoc by the
+#   Pragmatic Programmers.
+#
+# This program is free software. It may be redistributed and/or modified under
+# the terms of the GPL version 2 (or later) or the Ruby licence.
+#
+# Usage
+# -----
+# In most cases, if you have a typical project layout, you will need to do
+# absolutely nothing to make this work for you. This layout is:
+#
+#   bin/    # executable files -- "commands"
+#   lib/    # the source of the library
+#
+# The default behaviour:
+# 1) Build Rdoc documentation from all files in bin/ (excluding .bat and .cmd),
+#    all .rb files in lib/, ./README, ./ChangeLog, and ./Install.
+# 2) Build ri documentation from all files in bin/ (excluding .bat and .cmd),
+#    and all .rb files in lib/. This is disabled by default on Microsoft Windows.
+# 3) Install commands from bin/ into the Ruby bin directory. On Windows, if a
+#    if a corresponding batch file (.bat or .cmd) exists in the bin directory,
+#    it will be copied over as well. Otherwise, a batch file (always .bat) will
+#    be created to run the specified command.
+# 4) Install all library files ending in .rb from lib/ into Ruby's
+#    site_lib/version directory.
+#
+#++
+
+require 'rbconfig'
+require 'find'
+require 'fileutils'
+require 'tempfile'
+require 'optparse'
+require 'ostruct'
+
+PREREQS = %w{openssl facter cgi}
+MIN_FACTER_VERSION = 1.5
+
+InstallOptions = OpenStruct.new
+
+def glob(list)
+  g = list.map { |i| Dir.glob(i) }
+  g.flatten!
+  g.compact!
+  g
+end
+
+def do_configs(configs, target, strip = 'conf/')
+  Dir.mkdir(target) unless File.directory? target
+  configs.each do |cf|
+    ocf = File.join(InstallOptions.config_dir, cf.gsub(/#{strip}/, ''))
+    FileUtils.install(cf, ocf, mode: 0644, preserve: true, verbose: true)
+  end
+end
+
+def do_bins(bins, target, strip = 's?bin/')
+  Dir.mkdir(target) unless File.directory? target
+  bins.each do |bf|
+    obf = bf.gsub(/#{strip}/, '')
+    install_binfile(bf, obf, target)
+  end
+end
+
+def do_libs(libs, strip = 'lib/')
+  libs.each do |lf|
+    next if File.directory? lf
+    olf = File.join(InstallOptions.site_dir, lf.sub(/^#{strip}/, ''))
+    op = File.dirname(olf)
+    FileUtils.makedirs(op, mode: 0755, verbose: true)
+    FileUtils.chmod(0755, op)
+    FileUtils.install(lf, olf, mode: 0644, preserve: true, verbose: true)
+  end
+end
+
+def do_man(man, strip = 'man/')
+  man.each do |mf|
+    omf = File.join(InstallOptions.man_dir, mf.gsub(/#{strip}/, ''))
+    om = File.dirname(omf)
+    FileUtils.makedirs(om, mode: 0755, verbose: true)
+    FileUtils.chmod(0755, om)
+    FileUtils.install(mf, omf, mode: 0644, preserve: true, verbose: true)
+    # Solaris does not support gzipped man pages. When called with
+    # --no-check-prereqs/without facter the default gzip behavior still applies
+    unless $osname == "Solaris"
+      gzip = %x{which gzip}
+      gzip.chomp!
+      %x{#{gzip} -f #{omf}}
+    end
+  end
+end
+
+def do_locales(locale, strip = 'locales/')
+  locale.each do |lf|
+    next if File.directory? lf
+    olf = File.join(InstallOptions.locale_dir, lf.sub(/^#{strip}/, ''))
+    op = File.dirname(olf)
+    FileUtils.makedirs(op, mode: 0755, verbose: true)
+    FileUtils.chmod(0755, op)
+    FileUtils.install(lf, olf, mode: 0644, preserve: true, verbose: true)
+  end
+end
+
+# Verify that all of the prereqs are installed
+def check_prereqs
+  PREREQS.each { |pre|
+    begin
+      require pre
+      if pre == "facter"
+        # to_f isn't quite exact for strings like "1.5.1" but is good
+        # enough for this purpose.
+        facter_version = Facter.version.to_f
+        if facter_version < MIN_FACTER_VERSION
+          puts "Facter version: #{facter_version}; minimum required: #{MIN_FACTER_VERSION}; cannot install"
+          exit(-1)
+        end
+      end
+    rescue LoadError
+      puts "Could not load #{pre}; cannot install"
+      exit(-1)
+    end
+  }
+end
+
+##
+# Prepare the file installation.
+#
+def prepare_installation
+  InstallOptions.configs = true
+  InstallOptions.check_prereqs = true
+  InstallOptions.batch_files = true
+
+  ARGV.options do |opts|
+    opts.banner = "Usage: #{File.basename($0)} [options]"
+    opts.separator ""
+    opts.on('--[no-]configs', 'Prevents the installation of config files', 'Default off.') do |ontest|
+      InstallOptions.configs = ontest
+    end
+    opts.on('--destdir[=OPTIONAL]', 'Installation prefix for all targets', 'Default essentially /') do |destdir|
+      InstallOptions.destdir = destdir
+    end
+    opts.on('--configdir[=OPTIONAL]', 'Installation directory for config files', 'Default /etc/puppetlabs/puppet') do |configdir|
+      InstallOptions.configdir = configdir
+    end
+    opts.on('--codedir[=OPTIONAL]', 'Installation directory for code files', 'Default /etc/puppetlabs/code') do |codedir|
+      InstallOptions.codedir = codedir
+    end
+    opts.on('--vardir[=OPTIONAL]', 'Installation directory for var files', 'Default /opt/puppetlabs/puppet/cache') do |vardir|
+      InstallOptions.vardir = vardir
+    end
+    opts.on('--publicdir[=OPTIONAL]', 'Installation directory for public files such as the `last_run_summary.yaml` report', 'Default /opt/puppetlabs/puppet/public') do |publicdir|
+      InstallOptions.publicdir = publicdir
+    end
+    opts.on('--rundir[=OPTIONAL]', 'Installation directory for state files', 'Default /var/run/puppetlabs') do |rundir|
+      InstallOptions.rundir = rundir
+    end
+    opts.on('--logdir[=OPTIONAL]', 'Installation directory for log files', 'Default /var/log/puppetlabs/puppet') do |logdir|
+      InstallOptions.logdir = logdir
+    end
+    opts.on('--bindir[=OPTIONAL]', 'Installation directory for binaries', 'overrides RbConfig::CONFIG["bindir"]') do |bindir|
+      InstallOptions.bindir = bindir
+    end
+    opts.on('--localedir[=OPTIONAL]', 'Installation directory for locale information', 'Default /opt/puppetlabs/puppet/share/locale') do |localedir|
+      InstallOptions.localedir = localedir
+    end
+    opts.on('--ruby[=OPTIONAL]', 'Ruby interpreter to use with installation', 'overrides ruby used to call install.rb') do |ruby|
+      InstallOptions.ruby = ruby
+    end
+    opts.on('--sitelibdir[=OPTIONAL]', 'Installation directory for libraries', 'overrides RbConfig::CONFIG["sitelibdir"]') do |sitelibdir|
+      InstallOptions.sitelibdir = sitelibdir
+    end
+    opts.on('--mandir[=OPTIONAL]', 'Installation directory for man pages', 'overrides RbConfig::CONFIG["mandir"]') do |mandir|
+      InstallOptions.mandir = mandir
+    end
+    opts.on('--[no-]check-prereqs', 'Prevents validation of prerequisite libraries', 'Default on') do |prereq|
+      InstallOptions.check_prereqs = prereq
+    end
+    opts.on('--no-batch-files', 'Prevents installation of batch files for windows', 'Default off') do |batch_files|
+      InstallOptions.batch_files = false
+    end
+    opts.on('--quick', 'Performs a quick installation. Only the', 'installation is done.') do |quick|
+      InstallOptions.configs = true
+      warn "--quick is deprecated. Use --configs"
+    end
+    opts.separator("")
+    opts.on_tail('--help', "Shows this help text.") do
+      $stderr.puts opts
+      exit
+    end
+
+    opts.parse!
+  end
+
+  # Mac OS X 10.5 and higher declare bindir
+  # /System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/bin
+  # which is not generally where people expect executables to be installed
+  # These settings are appropriate defaults for all OS X versions.
+  if RUBY_PLATFORM =~ /^universal-darwin[\d\.]+$/
+    RbConfig::CONFIG['bindir'] = "/usr/bin"
+  end
+
+  # Here we only set $osname if we have opted to check for prereqs.
+  # Otherwise facter won't be guaranteed to be present.
+  if InstallOptions.check_prereqs
+    check_prereqs
+    $osname = Facter.value('os.name')
+  end
+
+  if not InstallOptions.configdir.nil?
+    configdir = InstallOptions.configdir
+  elsif $osname == "windows"
+    configdir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "puppet", "etc")
+  else
+    configdir = "/etc/puppetlabs/puppet"
+  end
+
+  if not InstallOptions.codedir.nil?
+    codedir = InstallOptions.codedir
+  elsif $osname == "windows"
+    codedir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "code")
+  else
+    codedir = "/etc/puppetlabs/code"
+  end
+
+  if not InstallOptions.vardir.nil?
+    vardir = InstallOptions.vardir
+  elsif $osname == "windows"
+    vardir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "puppet", "cache")
+  else
+    vardir = "/opt/puppetlabs/puppet/cache"
+  end
+
+  if not InstallOptions.publicdir.nil?
+    publicdir = InstallOptions.publicdir
+  elsif $osname == "windows"
+    publicdir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "puppet", "public")
+  else
+    publicdir = "/opt/puppetlabs/puppet/public"
+  end
+
+  if not InstallOptions.rundir.nil?
+    rundir = InstallOptions.rundir
+  elsif $osname == "windows"
+    rundir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "puppet", "var", "run")
+  else
+    rundir = "/var/run/puppetlabs"
+  end
+
+  if not InstallOptions.logdir.nil?
+    logdir = InstallOptions.logdir
+  elsif $osname == "windows"
+    logdir = File.join(ENV['ALLUSERSPROFILE'], "PuppetLabs", "puppet", "var", "log")
+  else
+    logdir = "/var/log/puppetlabs/puppet"
+  end
+
+  if not InstallOptions.bindir.nil?
+    bindir = InstallOptions.bindir
+  else
+    bindir = RbConfig::CONFIG['bindir']
+  end
+
+  if not InstallOptions.localedir.nil?
+    localedir = InstallOptions.localedir
+  else
+    if $osname == "windows"
+      localedir = File.join(ENV['PROGRAMFILES'], "Puppet Labs", "Puppet", "puppet", "share", "locale")
+    else
+      localedir = "/opt/puppetlabs/puppet/share/locale"
+    end
+  end
+
+  if not InstallOptions.sitelibdir.nil?
+    sitelibdir = InstallOptions.sitelibdir
+  else
+    sitelibdir = RbConfig::CONFIG["sitelibdir"]
+    if sitelibdir.nil?
+      sitelibdir = $LOAD_PATH.find { |x| x =~ /site_ruby/ }
+      if sitelibdir.nil?
+        version = [RbConfig::CONFIG["MAJOR"], RbConfig::CONFIG["MINOR"]].join(".")
+        sitelibdir = File.join(RbConfig::CONFIG["libdir"], "ruby", version, "site_ruby")
+      elsif sitelibdir !~ Regexp.quote(version)
+        sitelibdir = File.join(sitelibdir, version)
+      end
+    end
+  end
+
+  if not InstallOptions.mandir.nil?
+    mandir = InstallOptions.mandir
+  else
+    mandir = RbConfig::CONFIG['mandir']
+  end
+
+  # This is the new way forward
+  if not InstallOptions.destdir.nil?
+    destdir = InstallOptions.destdir
+  else
+    destdir = ''
+  end
+
+  configdir = join(destdir, configdir)
+  codedir = join(destdir, codedir)
+  vardir = join(destdir, vardir)
+  publicdir = join(destdir, publicdir)
+  rundir = join(destdir, rundir)
+  logdir = join(destdir, logdir)
+  bindir = join(destdir, bindir)
+  localedir = join(destdir, localedir)
+  mandir = join(destdir, mandir)
+  sitelibdir = join(destdir, sitelibdir)
+
+  FileUtils.makedirs(configdir) if InstallOptions.configs
+  FileUtils.makedirs(codedir)
+  FileUtils.makedirs(bindir)
+  FileUtils.makedirs(mandir)
+  FileUtils.makedirs(sitelibdir)
+  FileUtils.makedirs(vardir)
+  FileUtils.makedirs(publicdir)
+  FileUtils.makedirs(rundir)
+  FileUtils.makedirs(logdir)
+  FileUtils.makedirs(localedir)
+
+  InstallOptions.site_dir = sitelibdir
+  InstallOptions.codedir = codedir
+  InstallOptions.config_dir = configdir
+  InstallOptions.bin_dir = bindir
+  InstallOptions.man_dir = mandir
+  InstallOptions.var_dir = vardir
+  InstallOptions.public_dir = publicdir
+  InstallOptions.run_dir = rundir
+  InstallOptions.log_dir = logdir
+  InstallOptions.locale_dir = localedir
+end
+
+##
+# Join two paths. On Windows, dir must be converted to a relative path,
+# by stripping the drive letter, but only if the basedir is not empty.
+#
+def join(basedir, dir)
+  return "#{basedir}#{dir[2..-1]}" if $osname == "windows" and basedir.length > 0 and dir.length > 2
+
+  "#{basedir}#{dir}"
+end
+
+##
+# Install file(s) from ./bin to RbConfig::CONFIG['bindir']. Patch it on the way
+# to insert a #! line; on a Unix install, the command is named as expected
+# (e.g., bin/rdoc becomes rdoc); the shebang line handles running it. Under
+# windows, we add an '.rb' extension and let file associations do their stuff.
+def install_binfile(from, op_file, target)
+  tmp_file = Tempfile.new('puppet-binfile')
+
+  if not InstallOptions.ruby.nil?
+    ruby = InstallOptions.ruby
+  else
+    ruby = File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['ruby_install_name'])
+  end
+
+  File.open(from) do |ip|
+    File.open(tmp_file.path, "w") do |op|
+      op.puts "#!#{ruby}" unless $osname == "windows"
+      contents = ip.readlines
+      contents.shift if contents[0] =~ /^#!/
+      op.write contents.join
+    end
+  end
+
+  if $osname == "windows" && InstallOptions.batch_files
+    installed_wrapper = false
+
+    unless File.extname(from) =~ /\.(cmd|bat)/
+      if File.exist?("#{from}.bat")
+        FileUtils.install("#{from}.bat", File.join(target, "#{op_file}.bat"), mode: 0755, preserve: true, verbose: true)
+        installed_wrapper = true
+      end
+
+      if File.exist?("#{from}.cmd")
+        FileUtils.install("#{from}.cmd", File.join(target, "#{op_file}.cmd"), mode: 0755, preserve: true, verbose: true)
+        installed_wrapper = true
+      end
+
+      if not installed_wrapper
+        tmp_file2 = Tempfile.new('puppet-wrapper')
+        cwv = <<-EOS
+@echo off
+SETLOCAL
+if exist "%~dp0environment.bat" (
+  call "%~dp0environment.bat" %0 %*
+) else (
+  SET "PATH=%~dp0;%PATH%"
+)
+ruby.exe -S -- puppet %*
+EOS
+        File.open(tmp_file2.path, "w") { |cw| cw.puts cwv }
+        FileUtils.install(tmp_file2.path, File.join(target, "#{op_file}.bat"), mode: 0755, preserve: true, verbose: true)
+
+        tmp_file2.unlink
+      end
+    end
+  end
+  FileUtils.install(tmp_file.path, File.join(target, op_file), mode: 0755, preserve: true, verbose: true)
+  tmp_file.unlink
+end
+
+# Change directory into the puppet root so we don't get the wrong files for install.
+FileUtils.cd File.dirname(__FILE__) do
+  # Set these values to what you want installed.
+  configs = glob(%w{conf/puppet.conf conf/hiera.yaml})
+  bins  = glob(%w{bin/*})
+  man   = glob(%w{man/man[0-9]/*})
+  libs  = glob(%w{lib/**/*})
+  locales = glob(%w{locales/**/*})
+
+  prepare_installation
+
+  if $osname == "windows"
+    windows_bins = glob(%w{ext/windows/*bat})
+  end
+
+  do_configs(configs, InstallOptions.config_dir) if InstallOptions.configs
+  do_bins(bins, InstallOptions.bin_dir)
+  do_bins(windows_bins, InstallOptions.bin_dir, 'ext/windows/') if $osname == "windows" && InstallOptions.batch_files
+  do_libs(libs)
+  do_locales(locales)
+  do_man(man) unless $osname == "windows"
+end
+
+
+# FILE: README.md
+# Puppet
+
+![RSpec tests](https://github.com/puppetlabs/puppet/workflows/RSpec%20tests/badge.svg)
+[![Gem Version](https://badge.fury.io/rb/puppet.svg)](https://badge.fury.io/rb/puppet)
+[![Inline docs](https://inch-ci.org/github/puppetlabs/puppet.svg)](https://inch-ci.org/github/puppetlabs/puppet)
+
+Puppet, an automated administrative engine for your Linux, Unix, and Windows systems, performs
+administrative tasks (such as adding users, installing packages, and updating server
+configurations) based on a centralized specification.
+
+## Documentation
+
+Documentation for Puppet and related projects can be found online at the
+[Puppet Docs site](https://puppet.com/docs).
+
+### HTTP API
+
+[HTTP API Index](https://puppet.com/docs/puppet/latest/http_api/http_api_index.html)
+
+## Installation
+
+The best way to run Puppet is with [Puppet Enterprise (PE)](https://puppet.com/products/puppet-enterprise/),
+which also includes orchestration features, a web console, and professional support.
+The PE documentation is [available here.](https://puppet.com/docs/pe/latest)
+
+To install an open source release of Puppet,
+[see the installation guide on the docs site.](https://puppet.com/docs/puppet/latest/installing_and_upgrading.html)
+
+If you need to run Puppet from source as a tester or developer,
+see the [Quick Start to Developing on Puppet](docs/quickstart.md) guide.
+
+## Developing and Contributing
+
+We'd love to get contributions from you! For a quick guide to getting your
+system setup for developing, take a look at our [Quickstart
+Guide](https://github.com/puppetlabs/puppet/blob/main/docs/quickstart.md). Once you are up and running, take a look at the
+[Contribution Documents](https://github.com/puppetlabs/.github/blob/main/CONTRIBUTING.md) to see how to get your changes merged
+in.
+
+For more complete docs on developing with Puppet, take a look at the
+rest of the [developer documents](https://github.com/puppetlabs/puppet/blob/main/docs/index.md).
+
+## Licensing
+
+See [LICENSE](https://github.com/puppetlabs/puppet/blob/main/LICENSE) file. Puppet is licensed by Puppet, Inc. under the Apache license. Puppet, Inc. can be contacted at: info@puppet.com
+
+## Support
+
+Please log issues in this project's [GitHub Issues](https://github.com/puppetlabs/puppet/issues). A [mailing
+list](https://groups.google.com/forum/?fromgroups#!forum/puppet-users) is
+available for asking questions and getting help from others, or if you prefer chat, we also have a [Puppet Community slack.](https://puppetcommunity.slack.com/)
+
+We use semantic version numbers for our releases and recommend that users stay
+as up-to-date as possible by upgrading to patch releases and minor releases as
+they become available.
+
+Bug fixes and ongoing development will occur in minor releases for the current
+major version. Security fixes will be backported to a previous major version on
+a best-effort basis, until the previous major version is no longer maintained.
+
+For example: If a security vulnerability is discovered in Puppet 8.1.1, we
+would fix it in the 8 series, most likely as 8.1.2. Maintainers would then make
+a best effort to backport that fix onto the latest Puppet 7 release.
+
+Long-term support, including security patches and bug fixes, is available for
+commercial customers. Please see the following page for more details:
+
+[Puppet Enterprise Support Lifecycle](https://puppet.com/docs/puppet-enterprise/product-support-lifecycle/)
+
+
+# FILE: LICENSE
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: CODE_OF_CONDUCT.md
+# Community Guidelines and Code of Conduct
+
+We want to keep the Puppet communities awesome, and we need your help to keep it
+that way. While we have specific guidelines for various tools (see links below),
+in general, you should:
+
+* **Be nice**: Be courteous, respectful and polite to fellow community members. No
+  offensive comments related to gender, gender identity or expression, sexual
+  orientation, disability, physical appearance, body size, race, religion; no
+  sexual images in public spaces, real or implied violence, intimidation,
+  oppression, stalking, following, harassing photography or recording, sustained
+  disruption of talks or other events, inappropriate physical contact, doxxing, or
+  unwelcome sexual attention will be tolerated. We like nice people way better
+  than mean ones!
+* **Encourage diversity and participation**: Make everyone in our community feel
+  welcome, regardless of their background, and do everything possible to encourage
+  participation in our community.
+* **Focus on constructive criticisms**: When offering suggestions, whether in online
+  discussions or as comments on a pull request, you should always use welcoming
+  and inclusive language. Be respectful of differing viewpoints and the fact that
+  others may not have the same experiences you do. Offer suggestions for
+  improvement, rather than focusing on mistakes. When others critique your work or
+  ideas, gracefully accept the criticisms and default to assuming good intentions.
+* **Keep it legal**: Basically, don't get us in trouble. Share only content that you
+  own, do not share private or sensitive information, and don't break the law.
+* **Stay on topic**: Keep conversation in a thread on topic, whether that's a pull
+  request or a Slack conversation or anything else. Make sure that you are posting
+  to the correct channel and remember that nobody likes spam.
+
+## Guideline violations --- 3 strikes method
+
+The point of this section is not to find opportunities to punish people, but we
+do need a fair way to deal with people who do harm to our community. Extreme
+violations of a threatening, abusive, destructive, or illegal nature will be
+addressed immediately and are not subject to 3 strikes.
+
+* First occurrence: We'll give you a friendly, but public, reminder that the
+  behavior is inappropriate according to our guidelines.
+* Second occurrence: We'll send you a private message with a warning that any
+  additional violations will result in removal from the community.
+* Third occurrence: Depending on the violation, we might need to delete or ban
+  your account.
+
+Notes:
+
+* Obvious spammers are banned on first occurrence. If we don’t do this, we’ll
+  have spam all over the place.
+* Violations are forgiven after 6 months of good behavior, and we won’t hold a grudge.
+* People who are committing minor formatting / style infractions will get some
+  education, rather than hammering them in the 3 strikes process.
+
+Contact conduct@puppet.com to report abuse or appeal violations. This email list
+goes to Kara Sowles (kara at puppet.com) and Katie Abbott (katie dot abbott at
+puppet.com). In the case of appeals, we know that mistakes happen, and we’ll
+work with you to come up with a fair solution if there has been a
+misunderstanding.
+
+## Full text
+
+See our [full community guidelines](https://puppet.com/community/community-guidelines),
+covering Slack, IRC, events and other forms of community participation.
+
+## Credits
+
+Credit to [01.org](https://01.org/community/participation-guidelines) and
+[meego.com](http://wiki.meego.com/Community_guidelines), since they formed the
+starting point for many of these guidelines.
+
+The Event Code of Conduct is based on the [example policy from the Geek Feminism wiki](http://geekfeminism.wikia.com/wiki/Conference_anti-harassment),
+created by the Ada Initiative and other volunteers. The [PyCon Code of Conduct](https://github.com/python/pycon-code-of-conduct) also served as inspiration.
+
+
+# FILE: util/binary_search_specs.rb
+#!/usr/bin/env ruby
+# Author: Nick Lewis
+
+specs_in_order = File.read('spec_order.txt').split
+
+failing_spec = ARGV.first
+
+specs = specs_in_order[0...specs_in_order.index(failing_spec)]
+
+suspects = specs
+
+while suspects.length > 1 do
+  count = suspects.length
+  specs_to_run = suspects[0...(count/2)]
+  puts "Trying #{specs_to_run.join(' ')}"
+  start = Time.now
+  system("bundle exec rspec #{specs_to_run.join(' ')} #{failing_spec}")
+  puts "Finished in #{Time.now - start} seconds"
+  if $? == 0
+    puts "This group is innocent. The culprit is in the other half."
+    suspects = suspects[(count/2)..-1]
+  else
+    puts "One of these is guilty."
+    suspects = specs_to_run
+  end
+end
+
+puts "The culprit is #{suspects.first}"
+
+
+# FILE: util/README_UTIL.md
+Development Utilities
+=====================
+
+The scripts in this directory are utility scripts useful during development.
+
+binary_search_specs.rb
+----------------------
+
+This script, written by Nick Lewis, is useful if you encounter a spec failure which only occurs when run in some sequence with other specs.  If you have a spec which passes by itself, but fails when run with the full spec suite, this script will help track it down.
+
+The puppet spec/spec_helper.rb checks for an environment variable LOG_SPEC_ORDER.  If this is present, it will save the current order of the spec files to './spec_order.txt'.
+
+This file is then used by binary_search_specs.rb so that:
+
+    $ ./util/binary_search_specs.rb spec/unit/foo_spec.rb
+
+will begin bisecting runs before and after this spec until it narrows down to a candidate which seems to be effecting foo_spec.rb and causing it to fail.
+
+### with parallel-spec
+
+To get the groups that the parallel task is running, run: be util/rspec_grouper 1000. Then run each spit out file with "be util/rspec_runner <groupfile>". If it fails, rename it to spec_order.txt and run the binary script.
+
+### Curl
+
+For simple cases of testing REST API via curl:
+
+* edit ~/tests/master/:confdir/auth.conf and add `"allow *"` to `"path /"`
+
+Now you should be able to:
+
+```bash
+jpartlow@percival:~/work/puppet$ curl -k -H 'Accept: text/pson' https://puppetmaster:8140/main/resource/user/nobody
+{"type":"User","title":"nobody","tags":["user","nobody"],"exported":false,"parameters":{"ensure":"present","home":"/nonexistent","uid":65534,"gid":65534,"comment":"nobody","shell":"/bin/sh","groups":[],"expiry":"absent","provider":"useradd","membership":"minimum","role_membership":"minimum","auth_membership":"minimum","profile_membership":"minimum","key_membership":"minimum","attribute_membership":"minimum","loglevel":"notice"}}
+```
+
+For more complex authorization cases you will need to reference the agents keys:
+
+```bash
+jpartlow@percival:~/work/puppet$ curl -H 'Accept: text/pson' --cert `puppet agent --configprint hostcert` --key `be puppet agent --configprint hostprivkey` --cacert `be puppet agent --configprint localcacert` https://puppetmaster:8140/foo/node/percival.corp.puppetlabs.net
+```
+
+
+# FILE: locales/config.yaml
+---
+# This is the project-specific configuration file for setting up
+# fast_gettext for your project.
+gettext:
+  # This is used for the name of the .pot and .po files; they will be
+  # called <project_name>.pot
+  project_name: 'puppet'
+  # This is used in comments in the .pot and .po files to indicate what
+  # project the files belong to and should be a little more descriptive than
+  # <project_name>
+  package_name: Puppet automation framework
+  # The locale that the default messages in the .pot file are in
+  default_locale: en
+  # The address for sending bug reports.
+  bugs_address: https://tickets.puppetlabs.com
+  # The holder of the copyright.
+  copyright_holder: Puppet, Inc.
+  # Patterns for +Dir.glob+ used to find all files that might contain
+  # translatable content, relative to the project root directory
+  source_files:
+    - 'lib/**/*.rb'
+  # Patterns for +Dir.glob+ used to find all files contained in
+  # `source_files` that should be ignored when searching for translatable
+  # content, relative to the project root directory
+  exclude_files:
+    - 'lib/puppet/pops/types/type_formatter.rb'
+    # The semantic_puppet gem is temporarily vendored (PUP-7114), and it
+    # handles its own translation.
+    - 'lib/puppet/vendor/**/*.rb'
+
+
+# FILE: ext/project_data.yaml
+---
+project: 'puppet'
+gem_rdoc_options:
+  - --title
+  - "Puppet - Configuration Management"
+  - --main
+  - README.md
+  - --line-numbers
+# Array of files to include when building source tarballs
+files:
+  - '[A-Z]*'
+  - install.rb
+  - bin
+  - lib
+  - conf
+  - man
+  - examples
+  - ext
+  - tasks
+  - locales
+
+
+# FILE: ext/build_defaults.yaml
+---
+packager: 'puppetlabs'
+
+# These are the build targets used by the packaging repo. Uncomment to allow use.
+#final_mocks: 'pl-el-5-i386 pl-el-6-i386 pl-el-7-x86_64'
+#cows: 'base-lucid-i386.cow base-precise-i386.cow base-squeeze-i386.cow base-trusty-i386.cow base-wheezy-i386.cow'
+pbuild_conf: '/etc/pbuilderrc'
+
+build_gem: TRUE
+build_dmg: FALSE
+sign_tar: FALSE
+yum_host: 'yum.puppetlabs.com'
+yum_repo_path: '/opt/repository/yum/'
+apt_signing_server: 'apt.puppetlabs.com'
+apt_repo_url: 'http://apt.puppetlabs.com'
+apt_repo_path: '/opt/repository/incoming'
+tar_host: 'downloads.puppetlabs.com'
+nonfinal_gem_path: '/opt/repository-nightlies/downloads/gems/puppet8-nightly'
+
+
+# FILE: ext/README.md
+# `ext/` directory details 
+This directory contains files used internally when packaging [puppet](https://github.com/puppetlabs/puppet) and [puppet-agent](https://github.com/puppetlabs/puppet-agent)
+What follows is a more detailed description of each directory/file:
+* `debian/` - init scripts for puppet (used for Debian-based platforms that do not support systemd)
+* `hiera/hiera.yaml` - installed to `$codedir/environments/production`as a default Hiera configuration file
+* `osx/puppet.plist` - puppet launchd plist for macOS
+* `redhat/` -  init scripts for puppet (used for EL-based platforms that do not support systemd)
+* `solaris/smf/` - service manifests for Solaris 11
+* `suse/client.init` - init script for puppet (used for SUSE-based platforms that do not support systemd) 
+* `systemd/puppet.service` - systemd unit file for puppet
+* `windows/` - the puppet daemon for Windows, and other useful `.bat` helper wrappers
+* `build_defaults.yaml` - information pertaining to the puppetlabs build automation
+* `project_data.yaml` - information used when packaging the puppet gem
+
+# FILE: spec/spec_helper.rb
+# NOTE: a lot of the stuff in this file is duplicated in the "puppet_spec_helper" in the project
+#  puppetlabs_spec_helper.  We should probably eat our own dog food and get rid of most of this from here,
+#  and have the puppet core itself use puppetlabs_spec_helper
+
+dir = File.expand_path(File.dirname(__FILE__))
+$LOAD_PATH.unshift File.join(dir, 'lib')
+
+# Don't want puppet getting the command line arguments for rake
+ARGV.clear
+
+begin
+  require 'rubygems'
+rescue LoadError
+end
+
+require 'puppet'
+
+# Stub out gettext's `_` and `n_()` methods, which attempt to load translations.
+# Several of our mocks (mostly around file system interaction) are broken by
+# FastGettext's implementation of these methods.
+require 'puppet/gettext/stubs'
+
+require 'rspec'
+require 'rspec/its'
+
+# So everyone else doesn't have to include this base constant.
+module PuppetSpec
+  FIXTURE_DIR = File.join(File.expand_path(File.dirname(__FILE__)), "fixtures") unless defined?(FIXTURE_DIR)
+end
+
+require 'pathname'
+require 'tmpdir'
+require 'fileutils'
+
+require 'puppet_spec/verbose'
+require 'puppet_spec/files'
+require 'puppet_spec/settings'
+require 'puppet_spec/fixtures'
+require 'puppet_spec/matchers'
+require 'puppet_spec/unindent'
+require 'puppet/test/test_helper'
+
+Pathname.glob("#{dir}/shared_contexts/*.rb") do |file|
+  require file.relative_path_from(Pathname.new(dir))
+end
+
+Pathname.glob("#{dir}/shared_behaviours/**/*.rb") do |behaviour|
+  require behaviour.relative_path_from(Pathname.new(dir))
+end
+
+Pathname.glob("#{dir}/shared_examples/**/*.rb") do |behaviour|
+  require behaviour.relative_path_from(Pathname.new(dir))
+end
+
+require 'webmock/rspec'
+require 'vcr'
+VCR.configure do |vcr|
+  vcr.cassette_library_dir = File.expand_path('vcr/cassettes', PuppetSpec::FIXTURE_DIR)
+  vcr.hook_into :webmock
+  vcr.configure_rspec_metadata!
+  # Uncomment next line to debug vcr
+  # vcr.debug_logger = $stderr
+end
+
+# Disable VCR by default
+VCR.turn_off!
+
+RSpec.configure do |config|
+  include PuppetSpec::Fixtures
+
+  exclude_filters = {}
+  exclude_filters[:benchmark] = true unless ENV['BENCHMARK']
+  config.filter_run_excluding exclude_filters
+
+  config.filter_run_when_matching :focus
+
+  config.mock_with :rspec do |mocks|
+    mocks.verify_partial_doubles = true
+  end
+
+  tmpdir = Puppet::FileSystem.expand_path(Dir.mktmpdir("rspecrun"))
+  oldtmpdir = Puppet::FileSystem.expand_path(Dir.tmpdir())
+  ENV['TMPDIR'] = tmpdir
+
+  Puppet::Test::TestHelper.initialize
+
+  config.before :all do
+    Puppet::Test::TestHelper.before_all_tests()
+    if ENV['PROFILE'] == 'all'
+      require 'ruby-prof'
+      RubyProf.start
+    end
+  end
+
+  config.after :all do
+    if ENV['PROFILE'] == 'all'
+      require 'ruby-prof'
+      result = RubyProf.stop
+      printer = RubyProf::CallTreePrinter.new(result)
+      open(File.join(ENV['PROFILEOUT'],"callgrind.all.#{Time.now.to_i}.trace"), "w") do |f|
+        printer.print(f)
+      end
+    end
+
+    Puppet::Test::TestHelper.after_all_tests()
+  end
+
+  config.before :each do |test|
+    # Disabling garbage collection inside each test, and only running it at
+    # the end of each block, gives us an ~ 15 percent speedup, and more on
+    # some platforms *cough* windows *cough* that are a little slower.
+    GC.disable
+
+    # TODO: in a more sane world, we'd move this logging redirection into our TestHelper class.
+    #  Without doing so, external projects will all have to roll their own solution for
+    #  redirecting logging, and for validating expected log messages.  However, because the
+    #  current implementation of this involves creating an instance variable "@logs" on
+    #  EVERY SINGLE TEST CLASS, and because there are over 1300 tests that are written to expect
+    #  this instance variable to be available--we can't easily solve this problem right now.
+    #
+    # redirecting logging away from console, because otherwise the test output will be
+    #  obscured by all of the log output
+    @logs = []
+    Puppet::Util::Log.close_all
+    if ENV["PUPPET_TEST_LOG_LEVEL"]
+      Puppet::Util::Log.level = ENV["PUPPET_TEST_LOG_LEVEL"].intern
+    end
+    if ENV["PUPPET_TEST_LOG"]
+      Puppet::Util::Log.newdestination(ENV["PUPPET_TEST_LOG"])
+      m = test.metadata
+      Puppet.notice("*** BEGIN TEST #{m[:file_path]}:#{m[:line_number]}")
+    end
+    Puppet::Util::Log.newdestination(Puppet::Test::LogCollector.new(@logs))
+
+    @log_level = Puppet::Util::Log.level
+
+    base = PuppetSpec::Files.tmpdir('tmp_settings')
+    Puppet[:vardir] = File.join(base, 'var')
+    Puppet[:publicdir] = File.join(base, 'public')
+    Puppet[:confdir] = File.join(base, 'etc')
+    Puppet[:codedir] = File.join(base, 'code')
+    Puppet[:logdir] = "$vardir/log"
+    Puppet[:rundir] = "$vardir/run"
+    Puppet[:hiera_config] = File.join(base, 'hiera')
+
+    FileUtils.mkdir_p Puppet[:statedir]
+    FileUtils.mkdir_p Puppet[:publicdir]
+
+    Puppet::Test::TestHelper.before_each_test()
+  end
+
+  # Facter 2 uses two versions of the GCE API, so match using regex
+  PUPPET_FACTER_2_GCE_URL = %r{^http://metadata/computeMetadata/v1(beta1)?}.freeze
+  PUPPET_FACTER_3_GCE_URL = "http://metadata.google.internal/computeMetadata/v1/?recursive=true&alt=json".freeze
+
+  # Facter azure metadata endpoint
+  PUPPET_FACTER_AZ_URL = "http://169.254.169.254/metadata/instance?api-version=2020-09-01"
+
+  # Facter EC2 endpoint
+  PUPPET_FACTER_EC2_METADATA = 'http://169.254.169.254/latest/meta-data/'
+  PUPPET_FACTER_EC2_USERDATA = 'http://169.254.169.254/latest/user-data/'
+
+  config.around :each do |example|
+    # Ignore requests from Facter to external services
+    stub_request(:get, PUPPET_FACTER_2_GCE_URL)
+    stub_request(:get, PUPPET_FACTER_3_GCE_URL)
+    stub_request(:get, PUPPET_FACTER_AZ_URL)
+    stub_request(:get, PUPPET_FACTER_EC2_METADATA)
+    stub_request(:get, PUPPET_FACTER_EC2_USERDATA)
+
+    # Enable VCR if the example is tagged with `:vcr` metadata.
+    if example.metadata[:vcr]
+      VCR.turn_on!
+      begin
+        example.run
+      ensure
+        VCR.turn_off!
+      end
+    else
+      example.run
+    end
+  end
+
+  config.after :each do
+    Puppet::Test::TestHelper.after_each_test()
+
+    # TODO: would like to move this into puppetlabs_spec_helper, but there are namespace issues at the moment.
+    allow(Dir).to receive(:entries).and_call_original
+    PuppetSpec::Files.cleanup
+
+    # TODO: this should be abstracted in the future--see comments above the '@logs' block in the
+    #  "before" code above.
+    #
+    # clean up after the logging changes that we made before each test.
+    @logs.clear
+    Puppet::Util::Log.close_all
+    Puppet::Util::Log.level = @log_level
+
+    # This will perform a GC between tests, but only if actually required.  We
+    # experimented with forcing a GC run, and that was less efficient than
+    # just letting it run all the time.
+    GC.enable
+  end
+
+  config.after :suite do
+    # Log the spec order to a file, but only if the LOG_SPEC_ORDER environment variable is
+    #  set.  This should be enabled on Jenkins runs, as it can be used with Nick L.'s bisect
+    #  script to help identify and debug order-dependent spec failures.
+    if ENV['LOG_SPEC_ORDER']
+      File.open("./spec_order.txt", "w") do |logfile|
+        config.instance_variable_get(:@files_to_run).each { |f| logfile.puts f }
+      end
+    end
+
+    # return to original tmpdir
+    ENV['TMPDIR'] = oldtmpdir
+    FileUtils.rm_rf(tmpdir)
+  end
+
+  if ENV['PROFILE']
+    require 'ruby-prof'
+
+    def profile
+      result = RubyProf.profile { yield }
+      name = RSpec.current_example.metadata[:full_description].downcase.gsub(/[^a-z0-9_-]/, "-").gsub(/-+/, "-")
+      printer = RubyProf::CallTreePrinter.new(result)
+      open(File.join(ENV['PROFILEOUT'],"callgrind.#{name}.#{Time.now.to_i}.trace"), "w") do |f|
+        printer.print(f)
+      end
+    end
+
+    config.around(:each) do |example|
+      if ENV['PROFILE'] == 'each' or (example.metadata[:profile] and ENV['PROFILE'])
+        profile { example.run }
+      else
+        example.run
+      end
+    end
+  end
+end
+
+
+# FILE: references/type.md
+---
+layout: default
+built_from_commit: a0909f4eae7490d52cb1e7dc81010592ba607679
+title: Resource Type Reference (Single-Page)
+canonical: "/puppet/latest/type.html"
+toc_levels: 2
+toc: columns
+---
+
+# Resource Type Reference (Single-Page)
+
+> **NOTE:** This page was generated from the Puppet source code on 2024-11-04 23:38:25 +0000
+
+
+
+## About resource types
+
+### Built-in types and custom types
+
+This is the documentation for Puppet's built-in resource types and providers. Additional resource types are distributed in Puppet modules.
+
+You can find and install modules by browsing the
+[Puppet Forge](http://forge.puppet.com). See each module's documentation for
+information on how to use its custom resource types. For more information about creating custom types, see [Custom resources](/docs/puppet/latest/custom_resources.html).
+
+> As of Puppet 6.0, some resource types were removed from Puppet and repackaged as individual modules. These supported type modules are still included in the `puppet-agent` package, so you don't have to download them from the Forge. See the complete list of affected types in the [supported type modules](#supported-type-modules-in-puppet-agent) section.
+
+### Declaring resources
+
+To manage resources on a target system, declare them in Puppet
+manifests. For more details, see
+[the resources page of the Puppet language reference.](/docs/puppet/latest/lang_resources.html)
+
+You can also browse and manage resources interactively using the
+`puppet resource` subcommand; run `puppet resource --help` for more information.
+
+### Namevars and titles
+
+All types have a special attribute called the _namevar_. This is the attribute
+used to uniquely identify a resource on the target system.
+
+Each resource has a specific namevar attribute, which is listed on this page in
+each resource's reference. If you don't specify a value for the namevar, its
+value defaults to the resource's _title_.
+
+**Example of a title as a default namevar:**
+
+```puppet
+file { '/etc/passwd':
+  owner => 'root',
+  group => 'root',
+  mode  => '0644',
+}
+```
+
+In this code, `/etc/passwd` is the _title_ of the file resource.
+
+The file type's namevar is `path`. Because we didn't provide a `path` value in
+this example, the value defaults to the title, `/etc/passwd`.
+
+**Example of a namevar:**
+
+```puppet
+file { 'passwords':
+  path  => '/etc/passwd',
+  owner => 'root',
+  group => 'root',
+  mode  => '0644',
+}
+```
+
+This example is functionally similar to the previous example. Its `path`
+namevar attribute has an explicitly set value separate from the title, so
+its name is still `/etc/passwd`.
+
+Other Puppet code can refer to this resource as `File['/etc/passwd']` to
+declare relationships.
+
+### Attributes, parameters, properties
+
+The _attributes_ (sometimes called _parameters_) of a resource determine its
+desired state. They either directly modify the system (internally, these are
+called "properties") or they affect how the resource behaves (for instance,
+adding a search path for `exec` resources or controlling directory recursion
+on `file` resources).
+
+### Providers
+
+_Providers_ implement the same resource type on different kinds of systems.
+They usually do this by calling out to external commands.
+
+Although Puppet automatically selects an appropriate default provider, you
+can override the default with the `provider` attribute. (For example, `package`
+resources on Red Hat systems default to the `yum` provider, but you can specify
+`provider => gem` to install Ruby libraries with the `gem` command.)
+
+Providers often specify binaries that they require. Fully qualified binary
+paths indicate that the binary must exist at that specific path, and
+unqualified paths indicate that Puppet searches for the binary using the
+shell path.
+
+### Features
+
+_Features_ are abilities that some providers might not support. Generally, a
+feature corresponds to some allowed values for a resource attribute.
+
+This is often the case with the `ensure` attribute. In most types, Puppet
+doesn't create new resources when omitting `ensure` but still modifies existing
+resources to match specifications in the manifest. However, in some types this
+isn't always the case, or additional values provide more granular control. For
+example, if a `package` provider supports the `purgeable` feature, you can
+specify `ensure => purged` to delete configuration files installed by the
+package.
+
+Resource types define the set of features they can use, and providers can
+declare which features they provide.
+
+## Puppet 6.0 type changes
+
+In Puppet 6.0, we removed some of Puppet's built-in types and moved them into individual modules.
+
+### Supported type modules in `puppet-agent`
+
+The following types are included in supported modules on the Forge. However, they are also included in the `puppet-agent` package, so you do not have to install them separately. See each module's README for detailed information about that type.
+
+- [`augeas`](https://forge.puppet.com/puppetlabs/augeas_core)
+- [`cron`](https://forge.puppet.com/puppetlabs/cron_core)
+- [`host`](https://forge.puppet.com/puppetlabs/host_core)
+- [`mount`](https://forge.puppet.com/puppetlabs/mount_core)
+- [`scheduled_task`](https://forge.puppet.com/puppetlabs/scheduled_task)
+- [`selboolean`](https://forge.puppet.com/puppetlabs/selinux_core)
+- [`selmodule`](https://forge.puppet.com/puppetlabs/selinux_core)
+- [`ssh_authorized_key`](https://forge.puppet.com/puppetlabs/sshkeys_core)
+- [`sshkey`](https://forge.puppet.com/puppetlabs/sshkeys_core)
+- [`yumrepo`](https://forge.puppet.com/puppetlabs/yumrepo_core)
+- [`zfs`](https://forge.puppet.com/puppetlabs/zfs_core)
+- [`zone`](https://forge.puppet.com/puppetlabs/zone_core)
+- [`zpool`](https://forge.puppet.com/puppetlabs/zfs_core)
+
+### Type modules available on the Forge
+
+The following types are contained in modules that are maintained, but are not repackaged into Puppet agent. If you need to use them, you must install the modules separately. 
+
+- [`k5login`](https://forge.puppet.com/puppetlabs/k5login_core)
+- [`mailalias`](https://forge.puppet.com/puppetlabs/mailalias_core)
+- [`maillist`](https://forge.puppet.com/puppetlabs/maillist_core)
+
+### Deprecated types
+
+The following types were deprecated with Puppet 6.0.0. They are available in modules, but are not updated. If you need to use them, you must install the modules separately.
+
+- [`computer`](https://forge.puppet.com/puppetlabs/macdslocal_core)
+- [`interface`](https://github.com/puppetlabs/puppetlabs-network_device_core) (Use the updated [`cisco_ios module`](https://forge.puppet.com/puppetlabs/cisco_ios/readme) instead.
+- [`macauthorization`](https://forge.puppet.com/puppetlabs/macdslocal_core)
+- [`mcx`](https://forge.puppet.com/puppetlabs/macdslocal_core)
+- [The Nagios types](https://forge.puppet.com/puppetlabs/nagios_core)
+- [`router`](https://github.com/puppetlabs/puppetlabs-network_device_core) (Use the updated [`cisco_ios module`](https://forge.puppet.com/puppetlabs/cisco_ios/readme) instead.
+- [`vlan`](https://github.com/puppetlabs/puppetlabs-network_device_core) (Use the updated [`cisco_ios module`](https://forge.puppet.com/puppetlabs/cisco_ios/readme) instead.
+
+## Puppet core types
+
+For a list of core Puppet types, see the [core types cheat sheet][core-types-cheatsheet].
+
+## exec
+
+* [Attributes](#exec-attributes)
+* [Providers](#exec-providers)
+
+### Description {#exec-description}
+
+Executes external commands.
+
+Any command in an `exec` resource **must** be able to run multiple times
+without causing harm --- that is, it must be *idempotent*. There are three
+main ways for an exec to be idempotent:
+
+* The command itself is already idempotent. (For example, `apt-get update`.)
+* The exec has an `onlyif`, `unless`, or `creates` attribute, which prevents
+  Puppet from running the command unless some condition is met. The
+  `onlyif` and `unless` commands of an `exec` are used in the process of
+  determining whether the `exec` is already in sync, therefore they must be run
+  during a noop Puppet run.
+* The exec has `refreshonly => true`, which allows Puppet to run the
+  command only when some other resource is changed. (See the notes on refreshing
+  below.)
+
+The state managed by an `exec` resource represents whether the specified command
+_needs to be_ executed during the catalog run. The target state is always that
+the command does not need to be executed. If the initial state is that the
+command _does_ need to be executed, then successfully executing the command
+transitions it to the target state.
+
+The `unless`, `onlyif`, and `creates` properties check the initial state of the
+resource. If one or more of these properties is specified, the exec might not
+need to run. If the exec does not need to run, then the system is already in
+the target state. In such cases, the exec is considered successful without
+actually executing its command.
+
+A caution: There's a widespread tendency to use collections of execs to
+manage resources that aren't covered by an existing resource type. This
+works fine for simple tasks, but once your exec pile gets complex enough
+that you really have to think to understand what's happening, you should
+consider developing a custom resource type instead, as it is much
+more predictable and maintainable.
+
+**Duplication:** Even though `command` is the namevar, Puppet allows
+multiple `exec` resources with the same `command` value.
+
+**Refresh:** `exec` resources can respond to refresh events (via
+`notify`, `subscribe`, or the `~>` arrow). The refresh behavior of execs
+is non-standard, and can be affected by the `refresh` and
+`refreshonly` attributes:
+
+* If `refreshonly` is set to true, the exec runs _only_ when it receives an
+  event. This is the most reliable way to use refresh with execs.
+* If the exec has already run and then receives an event, it runs its
+  command **up to two times.** If an `onlyif`, `unless`, or `creates` condition
+  is no longer met after the first run, the second run does not occur.
+* If the exec has already run, has a `refresh` command, and receives an
+  event, it runs its normal command. Then, if any `onlyif`, `unless`, or `creates`
+  conditions are still met, the exec runs its `refresh` command.
+* If the exec has an `onlyif`, `unless`, or `creates` attribute that prevents it
+  from running, and it then receives an event, it still will not run.
+* If the exec has `noop => true`, would otherwise have run, and receives
+  an event from a non-noop resource, it runs once. However, if it has a `refresh`
+  command, it runs that instead of its normal command.
+
+In short: If there's a possibility of your exec receiving refresh events,
+it is extremely important to make sure the run conditions are restricted.
+
+**Autorequires:** If Puppet is managing an exec's cwd or the executable
+file used in an exec's command, the exec resource autorequires those
+files. If Puppet is managing the user that an exec should run as, the
+exec resource autorequires that user.
+
+### Attributes {#exec-attributes}
+
+<pre><code>exec { 'resource title':
+  <a href="#exec-attribute-command">command</a>     =&gt; <em># <strong>(namevar)</strong> The actual command to execute.  Must either be...</em>
+  <a href="#exec-attribute-creates">creates</a>     =&gt; <em># A file to look for before running the command...</em>
+  <a href="#exec-attribute-cwd">cwd</a>         =&gt; <em># The directory from which to run the command.  If </em>
+  <a href="#exec-attribute-environment">environment</a> =&gt; <em># An array of any additional environment variables </em>
+  <a href="#exec-attribute-group">group</a>       =&gt; <em># The group to run the command as.  This seems to...</em>
+  <a href="#exec-attribute-logoutput">logoutput</a>   =&gt; <em># Whether to log command output in addition to...</em>
+  <a href="#exec-attribute-onlyif">onlyif</a>      =&gt; <em># A test command that checks the state of the...</em>
+  <a href="#exec-attribute-path">path</a>        =&gt; <em># The search path used for command execution...</em>
+  <a href="#exec-attribute-provider">provider</a>    =&gt; <em># The specific backend to use for this `exec...</em>
+  <a href="#exec-attribute-refresh">refresh</a>     =&gt; <em># An alternate command to run when the `exec...</em>
+  <a href="#exec-attribute-refreshonly">refreshonly</a> =&gt; <em># The command should only be run as a refresh...</em>
+  <a href="#exec-attribute-returns">returns</a>     =&gt; <em># The expected exit code(s).  An error will be...</em>
+  <a href="#exec-attribute-timeout">timeout</a>     =&gt; <em># The maximum time the command should take.  If...</em>
+  <a href="#exec-attribute-tries">tries</a>       =&gt; <em># The number of times execution of the command...</em>
+  <a href="#exec-attribute-try_sleep">try_sleep</a>   =&gt; <em># The time to sleep in seconds between...</em>
+  <a href="#exec-attribute-umask">umask</a>       =&gt; <em># Sets the umask to be used while executing this...</em>
+  <a href="#exec-attribute-unless">unless</a>      =&gt; <em># A test command that checks the state of the...</em>
+  <a href="#exec-attribute-user">user</a>        =&gt; <em># The user to run the command as.  > **Note:*...</em>
+  # ...plus any applicable <a href="https://puppet.com/docs/puppet/latest/metaparameter.html">metaparameters</a>.
+}</code></pre>
+
+
+#### command {#exec-attribute-command}
+
+_(**Namevar:** If omitted, this attribute's value defaults to the resource's title.)_
+
+The actual command to execute.  Must either be fully qualified
+or a search path for the command must be provided.  If the command
+succeeds, any output produced will be logged at the instance's
+normal log level (usually `notice`), but if the command fails
+(meaning its return code does not match the specified code) then
+any output is logged at the `err` log level.
+
+Multiple `exec` resources can use the same `command` value; Puppet
+only uses the resource title to ensure `exec`s are unique.
+
+On *nix platforms, the command can be specified as an array of
+strings and Puppet will invoke it using the more secure method of
+parameterized system calls. For example, rather than executing the
+malicious injected code, this command will echo it out:
+
+    command => ['/bin/echo', 'hello world; rm -rf /']
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### creates {#exec-attribute-creates}
+
+A file to look for before running the command. The command will
+only run if the file **doesn't exist.**
+
+This parameter doesn't cause Puppet to create a file; it is only
+useful if **the command itself** creates a file.
+
+    exec { 'tar -xf /Volumes/nfs02/important.tar':
+      cwd     => '/var/tmp',
+      creates => '/var/tmp/myfile',
+      path    => ['/usr/bin', '/usr/sbin',],
+    }
+
+In this example, `myfile` is assumed to be a file inside
+`important.tar`. If it is ever deleted, the exec will bring it
+back by re-extracting the tarball. If `important.tar` does **not**
+actually contain `myfile`, the exec will keep running every time
+Puppet runs.
+
+This parameter can also take an array of files, and the command will
+not run if **any** of these files exist. Consider this example:
+
+    creates => ['/tmp/file1', '/tmp/file2'],
+
+The command is only run if both files don't exist.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### cwd {#exec-attribute-cwd}
+
+The directory from which to run the command.  If
+this directory does not exist, the command will fail.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### environment {#exec-attribute-environment}
+
+An array of any additional environment variables you want to set for a
+command, such as `[ 'HOME=/root', 'MAIL=root@example.com']`.
+Note that if you use this to set PATH, it will override the `path`
+attribute. Multiple environment variables should be specified as an
+array.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### group {#exec-attribute-group}
+
+The group to run the command as.  This seems to work quite
+haphazardly on different platforms -- it is a platform issue
+not a Ruby or Puppet one, since the same variety exists when
+running commands as different users in the shell.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### logoutput {#exec-attribute-logoutput}
+
+Whether to log command output in addition to logging the
+exit code. Defaults to `on_failure`, which only logs the output
+when the command has an exit code that does not match any value
+specified by the `returns` attribute. As with any resource type,
+the log level can be controlled with the `loglevel` metaparameter.
+
+Valid values are `true`, `false`, `on_failure`.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### onlyif {#exec-attribute-onlyif}
+
+A test command that checks the state of the target system and restricts
+when the `exec` can run. If present, Puppet runs this test command
+first, and only runs the main command if the test has an exit code of 0
+(success). For example:
+
+    exec { 'logrotate':
+      path     => '/usr/bin:/usr/sbin:/bin',
+      provider => shell,
+      onlyif   => 'test `du /var/log/messages | cut -f1` -gt 100000',
+    }
+
+This would run `logrotate` only if that test returns true.
+
+Note that this test command runs with the same `provider`, `path`,
+`user`, `cwd`, and `group` as the main command. If the `path` isn't set, you
+must fully qualify the command's name.
+
+Since this command is used in the process of determining whether the
+`exec` is already in sync, it must be run during a noop Puppet run.
+
+This parameter can also take an array of commands. For example:
+
+    onlyif => ['test -f /tmp/file1', 'test -f /tmp/file2'],
+
+or an array of arrays. For example:
+
+    onlyif => [['test', '-f', '/tmp/file1'], 'test -f /tmp/file2']
+
+This `exec` would only run if every command in the array has an
+exit code of 0 (success).
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### path {#exec-attribute-path}
+
+The search path used for command execution.
+Commands must be fully qualified if no path is specified.  Paths
+can be specified as an array or as a ':' separated list.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### provider {#exec-attribute-provider}
+
+The specific backend to use for this `exec`
+resource. You will seldom need to specify this --- Puppet will usually
+discover the appropriate provider for your platform.
+
+Available providers are:
+
+* [`posix`](#exec-provider-posix)
+* [`shell`](#exec-provider-shell)
+* [`windows`](#exec-provider-windows)
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### refresh {#exec-attribute-refresh}
+
+An alternate command to run when the `exec` receives a refresh event
+from another resource. By default, Puppet runs the main command again.
+For more details, see the notes about refresh behavior above, in the
+description for this resource type.
+
+Note that this alternate command runs with the same `provider`, `path`,
+`user`, and `group` as the main command. If the `path` isn't set, you
+must fully qualify the command's name.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### refreshonly {#exec-attribute-refreshonly}
+
+The command should only be run as a
+refresh mechanism for when a dependent object is changed.  It only
+makes sense to use this option when this command depends on some
+other object; it is useful for triggering an action:
+
+    # Pull down the main aliases file
+    file { '/etc/aliases':
+      source => 'puppet://server/module/aliases',
+    }
+
+    # Rebuild the database, but only when the file changes
+    exec { newaliases:
+      path        => ['/usr/bin', '/usr/sbin'],
+      subscribe   => File['/etc/aliases'],
+      refreshonly => true,
+    }
+
+Note that only `subscribe` and `notify` can trigger actions, not `require`,
+so it only makes sense to use `refreshonly` with `subscribe` or `notify`.
+
+Valid values are `true`, `false`.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### returns {#exec-attribute-returns}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The expected exit code(s).  An error will be returned if the
+executed command has some other exit code. Can be specified as an array
+of acceptable exit codes or a single value.
+
+On POSIX systems, exit codes are always integers between 0 and 255.
+
+On Windows, **most** exit codes should be integers between 0
+and 2147483647.
+
+Larger exit codes on Windows can behave inconsistently across different
+tools. The Win32 APIs define exit codes as 32-bit unsigned integers, but
+both the cmd.exe shell and the .NET runtime cast them to signed
+integers. This means some tools will report negative numbers for exit
+codes above 2147483647. (For example, cmd.exe reports 4294967295 as -1.)
+Since Puppet uses the plain Win32 APIs, it will report the very large
+number instead of the negative number, which might not be what you
+expect if you got the exit code from a cmd.exe session.
+
+Microsoft recommends against using negative/very large exit codes, and
+you should avoid them when possible. To convert a negative exit code to
+the positive one Puppet will use, add it to 4294967296.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### timeout {#exec-attribute-timeout}
+
+The maximum time the command should take.  If the command takes
+longer than the timeout, the command is considered to have failed
+and will be stopped. The timeout is specified in seconds. The default
+timeout is 300 seconds and you can set it to 0 to disable the timeout.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### tries {#exec-attribute-tries}
+
+The number of times execution of the command should be tried.
+This many attempts will be made to execute the command until an
+acceptable return code is returned. Note that the timeout parameter
+applies to each try rather than to the complete set of tries.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### try_sleep {#exec-attribute-try_sleep}
+
+The time to sleep in seconds between 'tries'.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### umask {#exec-attribute-umask}
+
+Sets the umask to be used while executing this command
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### unless {#exec-attribute-unless}
+
+A test command that checks the state of the target system and restricts
+when the `exec` can run. If present, Puppet runs this test command
+first, then runs the main command unless the test has an exit code of 0
+(success). For example:
+
+    exec { '/bin/echo root >> /usr/lib/cron/cron.allow':
+      path   => '/usr/bin:/usr/sbin:/bin',
+      unless => 'grep ^root$ /usr/lib/cron/cron.allow 2>/dev/null',
+    }
+
+This would add `root` to the cron.allow file (on Solaris) unless
+`grep` determines it's already there.
+
+Note that this test command runs with the same `provider`, `path`,
+`user`, `cwd`, and `group` as the main command. If the `path` isn't set, you
+must fully qualify the command's name.
+
+Since this command is used in the process of determining whether the
+`exec` is already in sync, it must be run during a noop Puppet run.
+
+This parameter can also take an array of commands. For example:
+
+    unless => ['test -f /tmp/file1', 'test -f /tmp/file2'],
+
+or an array of arrays. For example:
+
+    unless => [['test', '-f', '/tmp/file1'], 'test -f /tmp/file2']
+
+This `exec` would only run if every command in the array has a
+non-zero exit code.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+#### user {#exec-attribute-user}
+
+The user to run the command as.
+
+> **Note:** Puppet cannot execute commands as other users on Windows.
+
+Note that if you use this attribute, any error output is not captured
+due to a bug within Ruby. If you use Puppet to create this user, the
+exec automatically requires the user, as long as it is specified by
+name.
+
+The $HOME environment variable is not automatically set when using
+this attribute.
+
+([↑ Back to exec attributes](#exec-attributes))
+
+
+### Providers {#exec-providers}
+
+#### posix {#exec-provider-posix}
+
+Executes external binaries by invoking Ruby's `Kernel.exec`.
+When the command is a string, it will be executed directly,
+without a shell, if it follows these rules:
+ - no meta characters
+ - no shell reserved word and no special built-in
+
+When the command is an Array of Strings, passed as `[cmdname, arg1, ...]`
+it will be executed directly(the first element is taken as a command name
+and the rest are passed as parameters to command with no shell expansion)
+This is a safer and more predictable way to execute most commands,
+but prevents the use of globbing and shell built-ins (including control
+logic like "for" and "if" statements).
+
+If the use of globbing and shell built-ins is desired, please check
+the `shell` provider
+
+* Default for `feature` == `posix`.
+
+#### shell {#exec-provider-shell}
+
+Passes the provided command through `/bin/sh`; only available on
+POSIX systems. This allows the use of shell globbing and built-ins, and
+does not require that the path to a command be fully-qualified. Although
+this can be more convenient than the `posix` provider, it also means that
+you need to be more careful with escaping; as ever, with great power comes
+etc. etc.
+
+This provider closely resembles the behavior of the `exec` type
+in Puppet 0.25.x.
+
+#### windows {#exec-provider-windows}
+
+Execute external binaries on Windows systems. As with the `posix`
+provider, this provider directly calls the command with the arguments
+given, without passing it through a shell or performing any interpolation.
+To use shell built-ins --- that is, to emulate the `shell` provider on
+Windows --- a command must explicitly invoke the shell:
+
+    exec {'echo foo':
+      command => 'cmd.exe /c echo "foo"',
+    }
+
+If no extension is specified for a command, Windows will use the `PATHEXT`
+environment variable to locate the executable.
+
+**Note on PowerShell scripts:** PowerShell's default `restricted`
+execution policy doesn't allow it to run saved scripts. To run PowerShell
+scripts, specify the `remotesigned` execution policy as part of the
+command:
+
+    exec { 'test':
+      path    => 'C:/Windows/System32/WindowsPowerShell/v1.0',
+      command => 'powershell -executionpolicy remotesigned -file C:/test.ps1',
+    }
+
+* Default for `os.name` == `windows`.
+
+
+
+
+---------
+
+## file
+
+* [Attributes](#file-attributes)
+* [Providers](#file-providers)
+* [Provider Features](#file-provider-features)
+
+### Description {#file-description}
+
+Manages files, including their content, ownership, and permissions.
+
+The `file` type can manage normal files, directories, and symlinks; the
+type should be specified in the `ensure` attribute.
+
+File contents can be managed directly with the `content` attribute, or
+downloaded from a remote source using the `source` attribute; the latter
+can also be used to recursively serve directories (when the `recurse`
+attribute is set to `true` or `local`). On Windows, note that file
+contents are managed in binary mode; Puppet never automatically translates
+line endings.
+
+**Autorequires:** If Puppet is managing the user or group that owns a
+file, the file resource will autorequire them. If Puppet is managing any
+parent directories of a file, the file resource autorequires them.
+
+Warning: Enabling `recurse` on directories containing large numbers of
+files slows agent runs. To manage file attributes for many files,
+consider using alternative methods such as the `chmod_r`, `chown_r`,
+ or `recursive_file_permissions` modules from the Forge.
+
+### Attributes {#file-attributes}
+
+<pre><code>file { 'resource title':
+  <a href="#file-attribute-path">path</a>                    =&gt; <em># <strong>(namevar)</strong> The path to the file to manage.  Must be fully...</em>
+  <a href="#file-attribute-ensure">ensure</a>                  =&gt; <em># Whether the file should exist, and if so what...</em>
+  <a href="#file-attribute-backup">backup</a>                  =&gt; <em># Whether (and how) file content should be backed...</em>
+  <a href="#file-attribute-checksum">checksum</a>                =&gt; <em># The checksum type to use when determining...</em>
+  <a href="#file-attribute-checksum_value">checksum_value</a>          =&gt; <em># The checksum of the source contents. Only md5...</em>
+  <a href="#file-attribute-content">content</a>                 =&gt; <em># The desired contents of a file, as a string...</em>
+  <a href="#file-attribute-ctime">ctime</a>                   =&gt; <em># A read-only state to check the file ctime. On...</em>
+  <a href="#file-attribute-force">force</a>                   =&gt; <em># Perform the file operation even if it will...</em>
+  <a href="#file-attribute-group">group</a>                   =&gt; <em># Which group should own the file.  Argument can...</em>
+  <a href="#file-attribute-ignore">ignore</a>                  =&gt; <em># A parameter which omits action on files matching </em>
+  <a href="#file-attribute-links">links</a>                   =&gt; <em># How to handle links during file actions.  During </em>
+  <a href="#file-attribute-max_files">max_files</a>               =&gt; <em># In case the resource is a directory and the...</em>
+  <a href="#file-attribute-mode">mode</a>                    =&gt; <em># The desired permissions mode for the file, in...</em>
+  <a href="#file-attribute-mtime">mtime</a>                   =&gt; <em># A read-only state to check the file mtime. On...</em>
+  <a href="#file-attribute-owner">owner</a>                   =&gt; <em># The user to whom the file should belong....</em>
+  <a href="#file-attribute-provider">provider</a>                =&gt; <em># The specific backend to use for this `file...</em>
+  <a href="#file-attribute-purge">purge</a>                   =&gt; <em># Whether unmanaged files should be purged. This...</em>
+  <a href="#file-attribute-recurse">recurse</a>                 =&gt; <em># Whether to recursively manage the _contents_ of...</em>
+  <a href="#file-attribute-recurselimit">recurselimit</a>            =&gt; <em># How far Puppet should descend into...</em>
+  <a href="#file-attribute-replace">replace</a>                 =&gt; <em># Whether to replace a file or symlink that...</em>
+  <a href="#file-attribute-selinux_ignore_defaults">selinux_ignore_defaults</a> =&gt; <em># If this is set, Puppet will not call the SELinux </em>
+  <a href="#file-attribute-selrange">selrange</a>                =&gt; <em># What the SELinux range component of the context...</em>
+  <a href="#file-attribute-selrole">selrole</a>                 =&gt; <em># What the SELinux role component of the context...</em>
+  <a href="#file-attribute-seltype">seltype</a>                 =&gt; <em># What the SELinux type component of the context...</em>
+  <a href="#file-attribute-seluser">seluser</a>                 =&gt; <em># What the SELinux user component of the context...</em>
+  <a href="#file-attribute-show_diff">show_diff</a>               =&gt; <em># Whether to display differences when the file...</em>
+  <a href="#file-attribute-source">source</a>                  =&gt; <em># A source file, which will be copied into place...</em>
+  <a href="#file-attribute-source_permissions">source_permissions</a>      =&gt; <em># Whether (and how) Puppet should copy owner...</em>
+  <a href="#file-attribute-sourceselect">sourceselect</a>            =&gt; <em># Whether to copy all valid sources, or just the...</em>
+  <a href="#file-attribute-staging_location">staging_location</a>        =&gt; <em># When rendering a file first render it to this...</em>
+  <a href="#file-attribute-target">target</a>                  =&gt; <em># The target for creating a link.  Currently...</em>
+  <a href="#file-attribute-type">type</a>                    =&gt; <em># A read-only state to check the file...</em>
+  <a href="#file-attribute-validate_cmd">validate_cmd</a>            =&gt; <em># A command for validating the file's syntax...</em>
+  <a href="#file-attribute-validate_replacement">validate_replacement</a>    =&gt; <em># The replacement string in a `validate_cmd` that...</em>
+  # ...plus any applicable <a href="https://puppet.com/docs/puppet/latest/metaparameter.html">metaparameters</a>.
+}</code></pre>
+
+
+#### path {#file-attribute-path}
+
+_(**Namevar:** If omitted, this attribute's value defaults to the resource's title.)_
+
+The path to the file to manage.  Must be fully qualified.
+
+On Windows, the path should include the drive letter and should use `/` as
+the separator character (rather than `\\`).
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### ensure {#file-attribute-ensure}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+Whether the file should exist, and if so what kind of file it should be.
+Possible values are `present`, `absent`, `file`, `directory`, and `link`.
+
+* `present` accepts any form of file existence, and creates a
+  normal file if the file is missing. (The file will have no content
+  unless the `content` or `source` attribute is used.)
+* `absent` ensures the file doesn't exist, and deletes it if necessary.
+* `file` ensures it's a normal file, and enables use of the `content` or
+  `source` attribute.
+* `directory` ensures it's a directory, and enables use of the `source`,
+  `recurse`, `recurselimit`, `ignore`, and `purge` attributes.
+* `link` ensures the file is a symlink, and **requires** that you also
+  set the `target` attribute. Symlinks are supported on all Posix
+  systems and on Windows Vista / 2008 and higher. On Windows, managing
+  symlinks requires Puppet agent's user account to have the "Create
+  Symbolic Links" privilege; this can be configured in the "User Rights
+  Assignment" section in the Windows policy editor. By default, Puppet
+  agent runs as the Administrator account, which has this privilege.
+
+Puppet avoids destroying directories unless the `force` attribute is set
+to `true`. This means that if a file is currently a directory, setting
+`ensure` to anything but `directory` or `present` will cause Puppet to
+skip managing the resource and log either a notice or an error.
+
+There is one other non-standard value for `ensure`. If you specify the
+path to another file as the ensure value, it is equivalent to specifying
+`link` and using that path as the `target`:
+
+    # Equivalent resources:
+
+    file { '/etc/inetd.conf':
+      ensure => '/etc/inet/inetd.conf',
+    }
+
+    file { '/etc/inetd.conf':
+      ensure => link,
+      target => '/etc/inet/inetd.conf',
+    }
+
+However, we recommend using `link` and `target` explicitly, since this
+behavior can be harder to read and is
+[deprecated](https://docs.puppet.com/puppet/4.3/deprecated_language.html)
+as of Puppet 4.3.0.
+
+Valid values are `absent` (also called `false`), `file`, `present`, `directory`, `link`. Values can match `/./`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### backup {#file-attribute-backup}
+
+Whether (and how) file content should be backed up before being replaced.
+This attribute works best as a resource default in the site manifest
+(`File { backup => main }`), so it can affect all file resources.
+
+* If set to `false`, file content won't be backed up.
+* If set to a string beginning with `.`, such as `.puppet-bak`, Puppet will
+  use copy the file in the same directory with that value as the extension
+  of the backup. (A value of `true` is a synonym for `.puppet-bak`.)
+* If set to any other string, Puppet will try to back up to a filebucket
+  with that title. Puppet automatically creates a **local** filebucket
+  named `puppet` if one doesn't already exist. See the `filebucket` resource
+  type for more details.
+
+Default value: `false`
+
+Backing up to a local filebucket isn't particularly useful. If you want
+to make organized use of backups, you will generally want to use the
+primary Puppet server's filebucket service. This requires declaring a
+filebucket resource and a resource default for the `backup` attribute
+in site.pp:
+
+    # /etc/puppetlabs/puppet/manifests/site.pp
+    filebucket { 'main':
+      path   => false,                # This is required for remote filebuckets.
+      server => 'puppet.example.com', # Optional; defaults to the configured primary Puppet server.
+    }
+
+    File { backup => main, }
+
+If you are using multiple primary servers, you will want to
+centralize the contents of the filebucket. Either configure your load
+balancer to direct all filebucket traffic to a single primary server, or use
+something like an out-of-band rsync task to synchronize the content on all
+primary servers.
+
+> **Note**: Enabling and using the backup option, and by extension the
+  filebucket resource, requires appropriate planning and management to ensure
+  that sufficient disk space is available for the file backups. Generally, you
+  can implement this using one of the following two options:
+  - Use a `find` command and `crontab` entry to retain only the last X days
+  of file backups. For example:
+
+  ```
+  find /opt/puppetlabs/server/data/puppetserver/bucket -type f -mtime +45 -atime +45 -print0 | xargs -0 rm
+  ```
+
+  - Restrict the directory to a maximum size after which the oldest items are removed.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### checksum {#file-attribute-checksum}
+
+The checksum type to use when determining whether to replace a file's contents.
+
+The default checksum type is sha256.
+
+Valid values are `sha256`, `sha256lite`, `md5`, `md5lite`, `sha1`, `sha1lite`, `sha512`, `sha384`, `sha224`, `mtime`, `ctime`, `none`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### checksum_value {#file-attribute-checksum_value}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The checksum of the source contents. Only md5, sha256, sha224, sha384 and sha512
+are supported when specifying this parameter. If this parameter is set,
+source_permissions will be assumed to be false, and ownership and permissions
+will not be read from source.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### content {#file-attribute-content}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The desired contents of a file, as a string. This attribute is mutually
+exclusive with `source` and `target`.
+
+Newlines and tabs can be specified in double-quoted strings using
+standard escaped syntax --- \n for a newline, and \t for a tab.
+
+With very small files, you can construct content strings directly in
+the manifest...
+
+    define resolve($nameserver1, $nameserver2, $domain, $search) {
+        $str = "search ${search}
+            domain ${domain}
+            nameserver ${nameserver1}
+            nameserver ${nameserver2}
+            "
+
+        file { '/etc/resolv.conf':
+          content => $str,
+        }
+    }
+
+...but for larger files, this attribute is more useful when combined with the
+[template](https://puppet.com/docs/puppet/latest/function.html#template)
+or [file](https://puppet.com/docs/puppet/latest/function.html#file)
+function.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### ctime {#file-attribute-ctime}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+A read-only state to check the file ctime. On most modern *nix-like
+systems, this is the time of the most recent change to the owner, group,
+permissions, or content of the file.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### force {#file-attribute-force}
+
+Perform the file operation even if it will destroy one or more directories.
+You must use `force` in order to:
+
+* `purge` subdirectories
+* Replace directories with files or links
+* Remove a directory when `ensure => absent`
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### group {#file-attribute-group}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+Which group should own the file.  Argument can be either a group
+name or a group ID.
+
+On Windows, a user (such as "Administrator") can be set as a file's group
+and a group (such as "Administrators") can be set as a file's owner;
+however, a file's owner and group shouldn't be the same. (If the owner
+is also the group, files with modes like `"0640"` will cause log churn, as
+they will always appear out of sync.)
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### ignore {#file-attribute-ignore}
+
+A parameter which omits action on files matching
+specified patterns during recursion.  Uses Ruby's builtin globbing
+engine, so shell metacharacters such as `[a-z]*` are fully supported.
+Matches that would descend into the directory structure are ignored,
+such as `*/*`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### links {#file-attribute-links}
+
+How to handle links during file actions.  During file copying,
+`follow` will copy the target file instead of the link and `manage`
+will copy the link itself. When not copying, `manage` will manage
+the link, and `follow` will manage the file to which the link points.
+
+Valid values are `follow`, `manage`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### max_files {#file-attribute-max_files}
+
+In case the resource is a directory and the recursion is enabled, puppet will
+generate a new resource for each file file found, possible leading to
+an excessive number of resources generated without any control.
+
+Setting `max_files` will check the number of file resources that
+will eventually be created and will raise a resource argument error if the
+limit will be exceeded.
+
+Use value `0` to log a warning instead of raising an error.
+
+Use value `-1` to disable errors and warnings due to max files.
+
+Values can match `/^[0-9]+$/`, `/^-1$/`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### mode {#file-attribute-mode}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The desired permissions mode for the file, in symbolic or numeric
+notation. This value **must** be specified as a string; do not use
+un-quoted numbers to represent file modes.
+
+If the mode is omitted (or explicitly set to `undef`), Puppet does not
+enforce permissions on existing files and creates new files with
+permissions of `0644`.
+
+The `file` type uses traditional Unix permission schemes and translates
+them to equivalent permissions for systems which represent permissions
+differently, including Windows. For detailed ACL controls on Windows,
+you can leave `mode` unmanaged and use
+[the puppetlabs/acl module.](https://forge.puppetlabs.com/puppetlabs/acl)
+
+Numeric modes should use the standard octal notation of
+`<SETUID/SETGID/STICKY><OWNER><GROUP><OTHER>` (for example, "0644").
+
+* Each of the "owner," "group," and "other" digits should be a sum of the
+  permissions for that class of users, where read = 4, write = 2, and
+  execute/search = 1.
+* The setuid/setgid/sticky digit is also a sum, where setuid = 4, setgid = 2,
+  and sticky = 1.
+* The setuid/setgid/sticky digit is optional. If it is absent, Puppet will
+  clear any existing setuid/setgid/sticky permissions. (So to make your intent
+  clear, you should use at least four digits for numeric modes.)
+* When specifying numeric permissions for directories, Puppet sets the search
+  permission wherever the read permission is set.
+
+Symbolic modes should be represented as a string of comma-separated
+permission clauses, in the form `<WHO><OP><PERM>`:
+
+* "Who" should be any combination of u (user), g (group), and o (other), or a (all)
+* "Op" should be = (set exact permissions), + (add select permissions),
+  or - (remove select permissions)
+* "Perm" should be one or more of:
+    * r (read)
+    * w (write)
+    * x (execute/search)
+    * t (sticky)
+    * s (setuid/setgid)
+    * X (execute/search if directory or if any one user can execute)
+    * u (user's current permissions)
+    * g (group's current permissions)
+    * o (other's current permissions)
+
+Thus, mode `"0664"` could be represented symbolically as either `a=r,ug+w`
+or `ug=rw,o=r`.  However, symbolic modes are more expressive than numeric
+modes: a mode only affects the specified bits, so `mode => 'ug+w'` will
+set the user and group write bits, without affecting any other bits.
+
+See the manual page for GNU or BSD `chmod` for more details
+on numeric and symbolic modes.
+
+On Windows, permissions are translated as follows:
+
+* Owner and group names are mapped to Windows SIDs
+* The "other" class of users maps to the "Everyone" SID
+* The read/write/execute permissions map to the `FILE_GENERIC_READ`,
+  `FILE_GENERIC_WRITE`, and `FILE_GENERIC_EXECUTE` access rights; a
+  file's owner always has the `FULL_CONTROL` right
+* "Other" users can't have any permissions a file's group lacks,
+  and its group can't have any permissions its owner lacks; that is, "0644"
+  is an acceptable mode, but "0464" is not.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### mtime {#file-attribute-mtime}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+A read-only state to check the file mtime. On *nix-like systems, this
+is the time of the most recent change to the content of the file.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### owner {#file-attribute-owner}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The user to whom the file should belong.  Argument can be a user name or a
+user ID.
+
+On Windows, a group (such as "Administrators") can be set as a file's owner
+and a user (such as "Administrator") can be set as a file's group; however,
+a file's owner and group shouldn't be the same. (If the owner is also
+the group, files with modes like `"0640"` will cause log churn, as they
+will always appear out of sync.)
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### provider {#file-attribute-provider}
+
+The specific backend to use for this `file`
+resource. You will seldom need to specify this --- Puppet will usually
+discover the appropriate provider for your platform.
+
+Available providers are:
+
+* [`posix`](#file-provider-posix)
+* [`windows`](#file-provider-windows)
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### purge {#file-attribute-purge}
+
+Whether unmanaged files should be purged. This option only makes
+sense when `ensure => directory` and `recurse => true`.
+
+* When recursively duplicating an entire directory with the `source`
+  attribute, `purge => true` will automatically purge any files
+  that are not in the source directory.
+* When managing files in a directory as individual resources,
+  setting `purge => true` will purge any files that aren't being
+  specifically managed.
+
+If you have a filebucket configured, the purged files will be uploaded,
+but if you do not, this will destroy data.
+
+Unless `force => true` is set, purging will **not** delete directories,
+although it will delete the files they contain.
+
+If `recurselimit` is set and you aren't using `force => true`, purging
+will obey the recursion limit; files in any subdirectories deeper than the
+limit will be treated as unmanaged and left alone.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### recurse {#file-attribute-recurse}
+
+Whether to recursively manage the _contents_ of a directory. This attribute
+is only used when `ensure => directory` is set. The allowed values are:
+
+* `false` --- The default behavior. The contents of the directory will not be
+  automatically managed.
+* `remote` --- If the `source` attribute is set, Puppet will automatically
+  manage the contents of the source directory (or directories), ensuring
+  that equivalent files and directories exist on the target system and
+  that their contents match.
+
+  Using `remote` will disable the `purge` attribute, but results in faster
+  catalog application than `recurse => true`.
+
+  The `source` attribute is mandatory when `recurse => remote`.
+* `true` --- If the `source` attribute is set, this behaves similarly to
+  `recurse => remote`, automatically managing files from the source directory.
+
+  This also enables the `purge` attribute, which can delete unmanaged
+  files from a directory. See the description of `purge` for more details.
+
+  The `source` attribute is not mandatory when using `recurse => true`, so you
+  can enable purging in directories where all files are managed individually.
+
+By default, setting recurse to `remote` or `true` will manage _all_
+subdirectories. You can use the `recurselimit` attribute to limit the
+recursion depth.
+
+Valid values are `true`, `false`, `remote`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### recurselimit {#file-attribute-recurselimit}
+
+How far Puppet should descend into subdirectories, when using
+`ensure => directory` and either `recurse => true` or `recurse => remote`.
+The recursion limit affects which files will be copied from the `source`
+directory, as well as which files can be purged when `purge => true`.
+
+Setting `recurselimit => 0` is the same as setting `recurse => false` ---
+Puppet will manage the directory, but all of its contents will be treated
+as unmanaged.
+
+Setting `recurselimit => 1` will manage files and directories that are
+directly inside the directory, but will not manage the contents of any
+subdirectories.
+
+Setting `recurselimit => 2` will manage the direct contents of the
+directory, as well as the contents of the _first_ level of subdirectories.
+
+This pattern continues for each incremental value of `recurselimit`.
+
+Values can match `/^[0-9]+$/`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### replace {#file-attribute-replace}
+
+Whether to replace a file or symlink that already exists on the local system but
+whose content doesn't match what the `source` or `content` attribute
+specifies.  Setting this to false allows file resources to initialize files
+without overwriting future changes.  Note that this only affects content;
+Puppet will still manage ownership and permissions.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### selinux_ignore_defaults {#file-attribute-selinux_ignore_defaults}
+
+If this is set, Puppet will not call the SELinux function selabel_lookup to
+supply defaults for the SELinux attributes (seluser, selrole,
+seltype, and selrange). In general, you should leave this set at its
+default and only set it to true when you need Puppet to not try to fix
+SELinux labels automatically.
+
+Valid values are `true`, `false`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### selrange {#file-attribute-selrange}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+What the SELinux range component of the context of the file should be.
+Any valid SELinux range component is accepted.  For example `s0` or
+`SystemHigh`.  If not specified, it defaults to the value returned by
+selabel_lookup for the file, if any exists.  Only valid on systems with
+SELinux support enabled and that have support for MCS (Multi-Category
+Security).
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### selrole {#file-attribute-selrole}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+What the SELinux role component of the context of the file should be.
+Any valid SELinux role component is accepted.  For example `role_r`.
+If not specified, it defaults to the value returned by selabel_lookup for
+the file, if any exists.  Only valid on systems with SELinux support
+enabled.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### seltype {#file-attribute-seltype}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+What the SELinux type component of the context of the file should be.
+Any valid SELinux type component is accepted.  For example `tmp_t`.
+If not specified, it defaults to the value returned by selabel_lookup for
+the file, if any exists.  Only valid on systems with SELinux support
+enabled.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### seluser {#file-attribute-seluser}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+What the SELinux user component of the context of the file should be.
+Any valid SELinux user component is accepted.  For example `user_u`.
+If not specified, it defaults to the value returned by selabel_lookup for
+the file, if any exists.  Only valid on systems with SELinux support
+enabled.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### show_diff {#file-attribute-show_diff}
+
+Whether to display differences when the file changes, defaulting to
+true.  This parameter is useful for files that may contain passwords or
+other secret data, which might otherwise be included in Puppet reports or
+other insecure outputs.  If the global `show_diff` setting
+is false, then no diffs will be shown even if this parameter is true.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### source {#file-attribute-source}
+
+A source file, which will be copied into place on the local system. This
+attribute is mutually exclusive with `content` and `target`. Allowed
+values are:
+
+* `puppet:` URIs, which point to files in modules or Puppet file server
+mount points.
+* Fully qualified paths to locally available files (including files on NFS
+shares or Windows mapped drives).
+* `file:` URIs, which behave the same as local file paths.
+* `http(s):` URIs, which point to files served by common web servers.
+
+The normal form of a `puppet:` URI is:
+
+`puppet:///modules/<MODULE NAME>/<FILE PATH>`
+
+This will fetch a file from a module on the Puppet master (or from a
+local module when using Puppet apply). Given a `modulepath` of
+`/etc/puppetlabs/code/modules`, the example above would resolve to
+`/etc/puppetlabs/code/modules/<MODULE NAME>/files/<FILE PATH>`.
+
+Unlike `content`, the `source` attribute can be used to recursively copy
+directories if the `recurse` attribute is set to `true` or `remote`. If
+a source directory contains symlinks, use the `links` attribute to
+specify whether to recreate links or follow them.
+
+_HTTP_ URIs cannot be used to recursively synchronize whole directory
+trees. You cannot use `source_permissions` values other than `ignore`
+because HTTP servers do not transfer any metadata that translates to
+ownership or permission details.
+
+Puppet determines if file content is synchronized by computing a checksum
+for the local file and comparing it against the `checksum_value`
+parameter. If the `checksum_value` parameter is not specified for
+`puppet` and `file` sources, Puppet computes a checksum based on its
+`Puppet[:digest_algorithm]`. For `http(s)` sources, Puppet uses the
+first HTTP header it recognizes out of the following list:
+`X-Checksum-Sha256`, `X-Checksum-Sha1`, `X-Checksum-Md5` or `Content-MD5`.
+If the server response does not include one of these headers, Puppet
+defaults to using the `Last-Modified` header. Puppet updates the local
+file if the header is newer than the modified time (mtime) of the local
+file.
+
+_HTTP_ URIs can include a user information component so that Puppet can
+retrieve file metadata and content from HTTP servers that require HTTP Basic
+authentication. For example `https://<user>:<pass>@<server>:<port>/path/to/file.`
+
+When connecting to _HTTPS_ servers, Puppet trusts CA certificates in the
+puppet-agent certificate bundle and the Puppet CA. You can configure Puppet
+to trust additional CA certificates using the `Puppet[:ssl_trust_store]`
+setting.
+
+Multiple `source` values can be specified as an array, and Puppet will
+use the first source that exists. This can be used to serve different
+files to different system types:
+
+    file { '/etc/nfs.conf':
+      source => [
+        "puppet:///modules/nfs/conf.${host}",
+        "puppet:///modules/nfs/conf.${os['name']}",
+        'puppet:///modules/nfs/conf'
+      ]
+    }
+
+Alternately, when serving directories recursively, multiple sources can
+be combined by setting the `sourceselect` attribute to `all`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### source_permissions {#file-attribute-source_permissions}
+
+Whether (and how) Puppet should copy owner, group, and mode permissions from
+the `source` to `file` resources when the permissions are not explicitly
+specified. (In all cases, explicit permissions will take precedence.)
+Valid values are `use`, `use_when_creating`, and `ignore`:
+
+* `ignore` (the default) will never apply the owner, group, or mode from
+  the `source` when managing a file. When creating new files without explicit
+  permissions, the permissions they receive will depend on platform-specific
+  behavior. On POSIX, Puppet will use the umask of the user it is running as.
+  On Windows, Puppet will use the default DACL associated with the user it is
+  running as.
+* `use` will cause Puppet to apply the owner, group,
+  and mode from the `source` to any files it is managing.
+* `use_when_creating` will only apply the owner, group, and mode from the
+  `source` when creating a file; existing files will not have their permissions
+  overwritten.
+
+Valid values are `use`, `use_when_creating`, `ignore`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### sourceselect {#file-attribute-sourceselect}
+
+Whether to copy all valid sources, or just the first one.  This parameter
+only affects recursive directory copies; by default, the first valid
+source is the only one used, but if this parameter is set to `all`, then
+all valid sources will have all of their contents copied to the local
+system. If a given file exists in more than one source, the version from
+the earliest source in the list will be used.
+
+Valid values are `first`, `all`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### staging_location {#file-attribute-staging_location}
+
+When rendering a file first render it to this location. The default
+location is the same path as the desired location with a unique filename.
+This parameter is useful in conjuction with validate_cmd to test a
+file before moving the file to it's final location.
+WARNING: File replacement is only guaranteed to be atomic if the staging
+location is on the same filesystem as the final location.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### target {#file-attribute-target}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The target for creating a link.  Currently, symlinks are the
+only type supported. This attribute is mutually exclusive with `source`
+and `content`.
+
+Symlink targets can be relative, as well as absolute:
+
+    # (Useful on Solaris)
+    file { '/etc/inetd.conf':
+      ensure => link,
+      target => 'inet/inetd.conf',
+    }
+
+Directories of symlinks can be served recursively by instead using the
+`source` attribute, setting `ensure` to `directory`, and setting the
+`links` attribute to `manage`.
+
+Valid values are `notlink`. Values can match `/./`.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### type {#file-attribute-type}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+A read-only state to check the file type.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### validate_cmd {#file-attribute-validate_cmd}
+
+A command for validating the file's syntax before replacing it. If
+Puppet would need to rewrite a file due to new `source` or `content`, it
+will check the new content's validity first. If validation fails, the file
+resource will fail.
+
+This command must have a fully qualified path, and should contain a
+percent (`%`) token where it would expect an input file. It must exit `0`
+if the syntax is correct, and non-zero otherwise. The command will be
+run on the target system while applying the catalog, not on the primary Puppet server.
+
+Example:
+
+    file { '/etc/apache2/apache2.conf':
+      content      => 'example',
+      validate_cmd => '/usr/sbin/apache2 -t -f %',
+    }
+
+This would replace apache2.conf only if the test returned true.
+
+Note that if a validation command requires a `%` as part of its text,
+you can specify a different placeholder token with the
+`validate_replacement` attribute.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+#### validate_replacement {#file-attribute-validate_replacement}
+
+The replacement string in a `validate_cmd` that will be replaced
+with an input file name.
+
+([↑ Back to file attributes](#file-attributes))
+
+
+### Providers {#file-providers}
+
+#### posix {#file-provider-posix}
+
+Uses POSIX functionality to manage file ownership and permissions.
+
+* Supported features: `manages_symlinks`.
+
+#### windows {#file-provider-windows}
+
+Uses Microsoft Windows functionality to manage file ownership and permissions.
+
+* Supported features: `manages_symlinks`.
+
+### Provider Features {#file-provider-features}
+
+Available features:
+
+* `manages_symlinks` --- The provider can manage symbolic links.
+
+Provider support:
+
+* **posix** - _manages symlinks_
+* **windows** - _manages symlinks_
+  
+
+
+
+
+---------
+
+## filebucket
+
+* [Attributes](#filebucket-attributes)
+
+### Description {#filebucket-description}
+
+A repository for storing and retrieving file content by cryptographic checksum. Can
+be local to each agent node, or centralized on a primary Puppet server. All
+puppet servers provide a filebucket service that agent nodes can access
+via HTTP, but you must declare a filebucket resource before any agents
+will do so.
+
+Filebuckets are used for the following features:
+
+- **Content backups.** If the `file` type's `backup` attribute is set to
+  the name of a filebucket, Puppet will back up the _old_ content whenever
+  it rewrites a file; see the documentation for the `file` type for more
+  details. These backups can be used for manual recovery of content, but
+  are more commonly used to display changes and differences in a tool like
+  Puppet Dashboard.
+
+To use a central filebucket for backups, you will usually want to declare
+a filebucket resource and a resource default for the `backup` attribute
+in site.pp:
+
+    # /etc/puppetlabs/puppet/manifests/site.pp
+    filebucket { 'main':
+      path   => false,                # This is required for remote filebuckets.
+      server => 'puppet.example.com', # Optional; defaults to the configured primary server.
+    }
+
+    File { backup => main, }
+
+Puppet Servers automatically provide the filebucket service, so
+this will work in a default configuration. If you have a heavily
+restricted Puppet Server `auth.conf` file, you may need to allow access to the
+`file_bucket_file` endpoint.
+
+### Attributes {#filebucket-attributes}
+
+<pre><code>filebucket { 'resource title':
+  <a href="#filebucket-attribute-name">name</a>   =&gt; <em># <strong>(namevar)</strong> The name of the...</em>
+  <a href="#filebucket-attribute-path">path</a>   =&gt; <em># The path to the _local_ filebucket; defaults to...</em>
+  <a href="#filebucket-attribute-port">port</a>   =&gt; <em># The port on which the remote server is...</em>
+  <a href="#filebucket-attribute-server">server</a> =&gt; <em># The server providing the remote filebucket...</em>
+  # ...plus any applicable <a href="https://puppet.com/docs/puppet/latest/metaparameter.html">metaparameters</a>.
+}</code></pre>
+
+
+#### name {#filebucket-attribute-name}
+
+_(**Namevar:** If omitted, this attribute's value defaults to the resource's title.)_
+
+The name of the filebucket.
+
+([↑ Back to filebucket attributes](#filebucket-attributes))
+
+
+#### path {#filebucket-attribute-path}
+
+The path to the _local_ filebucket; defaults to the value of the
+`clientbucketdir` setting.  To use a remote filebucket, you _must_ set
+this attribute to `false`.
+
+([↑ Back to filebucket attributes](#filebucket-attributes))
+
+
+#### port {#filebucket-attribute-port}
+
+The port on which the remote server is listening.
+
+This setting is _only_ consulted if the `path` attribute is set to `false`.
+
+If this attribute is not specified, the first entry in the `server_list`
+configuration setting is used, followed by the value of the `serverport`
+setting if `server_list` is not set.
+
+([↑ Back to filebucket attributes](#filebucket-attributes))
+
+
+#### server {#filebucket-attribute-server}
+
+The server providing the remote filebucket service.
+
+This setting is _only_ consulted if the `path` attribute is set to `false`.
+
+If this attribute is not specified, the first entry in the `server_list`
+configuration setting is used, followed by the value of the `server` setting
+if `server_list` is not set.
+
+([↑ Back to filebucket attributes](#filebucket-attributes))
+
+
+
+
+
+---------
+
+## group
+
+* [Attributes](#group-attributes)
+* [Providers](#group-providers)
+* [Provider Features](#group-provider-features)
+
+### Description {#group-description}
+
+Manage groups. On most platforms this can only create groups.
+Group membership must be managed on individual users.
+
+On some platforms such as OS X, group membership is managed as an
+attribute of the group, not the user record. Providers must have
+the feature 'manages_members' to manage the 'members' property of
+a group record.
+
+### Attributes {#group-attributes}
+
+<pre><code>group { 'resource title':
+  <a href="#group-attribute-name">name</a>                 =&gt; <em># <strong>(namevar)</strong> The group name. While naming limitations vary by </em>
+  <a href="#group-attribute-ensure">ensure</a>               =&gt; <em># Create or remove the group.  Valid values are...</em>
+  <a href="#group-attribute-allowdupe">allowdupe</a>            =&gt; <em># Whether to allow duplicate GIDs.  Valid values...</em>
+  <a href="#group-attribute-attribute_membership">attribute_membership</a> =&gt; <em># AIX only. Configures the behavior of the...</em>
+  <a href="#group-attribute-attributes">attributes</a>           =&gt; <em># Specify group AIX attributes, as an array of...</em>
+  <a href="#group-attribute-auth_membership">auth_membership</a>      =&gt; <em># Configures the behavior of the `members...</em>
+  <a href="#group-attribute-forcelocal">forcelocal</a>           =&gt; <em># Forces the management of local accounts when...</em>
+  <a href="#group-attribute-gid">gid</a>                  =&gt; <em># The group ID.  Must be specified numerically....</em>
+  <a href="#group-attribute-ia_load_module">ia_load_module</a>       =&gt; <em># The name of the I&A module to use to manage this </em>
+  <a href="#group-attribute-members">members</a>              =&gt; <em># The members of the group. For platforms or...</em>
+  <a href="#group-attribute-provider">provider</a>             =&gt; <em># The specific backend to use for this `group...</em>
+  <a href="#group-attribute-system">system</a>               =&gt; <em># Whether the group is a system group with lower...</em>
+  # ...plus any applicable <a href="https://puppet.com/docs/puppet/latest/metaparameter.html">metaparameters</a>.
+}</code></pre>
+
+
+#### name {#group-attribute-name}
+
+_(**Namevar:** If omitted, this attribute's value defaults to the resource's title.)_
+
+The group name. While naming limitations vary by operating system,
+it is advisable to restrict names to the lowest common denominator,
+which is a maximum of 8 characters beginning with a letter.
+
+Note that Puppet considers group names to be case-sensitive, regardless
+of the platform's own rules; be sure to always use the same case when
+referring to a given group.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### ensure {#group-attribute-ensure}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+Create or remove the group.
+
+Valid values are `present`, `absent`.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### allowdupe {#group-attribute-allowdupe}
+
+Whether to allow duplicate GIDs.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### attribute_membership {#group-attribute-attribute_membership}
+
+AIX only. Configures the behavior of the `attributes` parameter.
+
+* `minimum` (default) --- The provided list of attributes is partial, and Puppet
+  **ignores** any attributes that aren't listed there.
+* `inclusive` --- The provided list of attributes is comprehensive, and
+  Puppet **purges** any attributes that aren't listed there.
+
+Valid values are `inclusive`, `minimum`.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### attributes {#group-attribute-attributes}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+Specify group AIX attributes, as an array of `'key=value'` strings. This
+parameter's behavior can be configured with `attribute_membership`.
+
+
+
+Requires features manages_aix_lam.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### auth_membership {#group-attribute-auth_membership}
+
+Configures the behavior of the `members` parameter.
+
+* `false` (default) --- The provided list of group members is partial,
+  and Puppet **ignores** any members that aren't listed there.
+* `true` --- The provided list of of group members is comprehensive, and
+  Puppet **purges** any members that aren't listed there.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### forcelocal {#group-attribute-forcelocal}
+
+Forces the management of local accounts when accounts are also
+being managed by some other Name Switch Service (NSS). For AIX, refer to the `ia_load_module` parameter.
+
+This option relies on your operating system's implementation of `luser*` commands, such as `luseradd` , `lgroupadd`, and `lusermod`. The `forcelocal` option could behave unpredictably in some circumstances. If the tools it depends on are not available, it might have no effect at all.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+Requires features manages_local_users_and_groups.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### gid {#group-attribute-gid}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The group ID.  Must be specified numerically.  If no group ID is
+specified when creating a new group, then one will be chosen
+automatically according to local system standards. This will likely
+result in the same group having different GIDs on different systems,
+which is not recommended.
+
+On Windows, this property is read-only and will return the group's security
+identifier (SID).
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### ia_load_module {#group-attribute-ia_load_module}
+
+The name of the I&A module to use to manage this group.
+This should be set to `files` if managing local groups.
+
+
+
+Requires features manages_aix_lam.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### members {#group-attribute-members}
+
+_(**Property:** This attribute represents concrete state on the target system.)_
+
+The members of the group. For platforms or directory services where group
+membership is stored in the group objects, not the users. This parameter's
+behavior can be configured with `auth_membership`.
+
+
+
+Requires features manages_members.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### provider {#group-attribute-provider}
+
+The specific backend to use for this `group`
+resource. You will seldom need to specify this --- Puppet will usually
+discover the appropriate provider for your platform.
+
+Available providers are:
+
+* [`aix`](#group-provider-aix)
+* [`directoryservice`](#group-provider-directoryservice)
+* [`groupadd`](#group-provider-groupadd)
+* [`ldap`](#group-provider-ldap)
+* [`pw`](#group-provider-pw)
+* [`windows_adsi`](#group-provider-windows_adsi)
+
+([↑ Back to group attributes](#group-attributes))
+
+
+#### system {#group-attribute-system}
+
+Whether the group is a system group with lower GID.
+
+Valid values are `true`, `false`, `yes`, `no`.
+
+([↑ Back to group attributes](#group-attributes))
+
+
+### Providers {#group-providers}
+
+#### aix {#group-provider-aix}
+
+Group management for AIX.
+
+* Required binaries: `/usr/bin/chgroup`, `/usr/bin/mkgroup`, `/usr/sbin/lsgroup`, `/usr/sbin/rmgroup`.
+* Default for `os.name` == `aix`.
+* Supported features: `manages_aix_lam`, `manages_local_users_and_groups`, `manages_members`.
+
+#### directoryservice {#group-provider-directoryservice}
+
+Group management using DirectoryService on OS X.
+
+* Required binaries: `/usr/bin/dscl`.
+* Default for `os.name` == `darwin`.
+* Supported features: `manages_members`.
+
+#### groupadd {#group-provider-groupadd}
+
+Group management via `groupadd` and its ilk. The default for most platforms.
+
+To use the `forcelocal` parameter, you need to install the `libuser` package (providing
+ `/usr/sbin/lgroupadd` and `/usr/sbin/luseradd`).
+
+* Required binaries: `groupadd`, `groupdel`, `groupmod`, `lgroupadd`, `lgroupdel`, `lgroupmod`, `usermod`.
+* Supported features: `system_groups`.
+
+#### ldap {#group-pro

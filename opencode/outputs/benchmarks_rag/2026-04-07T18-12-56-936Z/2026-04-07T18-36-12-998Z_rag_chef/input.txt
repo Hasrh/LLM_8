@@ -1,0 +1,3482 @@
+
+
+# FILE: post-bundle-install.rb
+#!/usr/bin/env ruby
+
+gem_home = Gem.paths.home
+
+puts "fixing bundle installed gems in #{gem_home}"
+
+# Install gems from git repos.  This makes the assumption that there is a <gem_name>.gemspec and
+# you can simply gem build + gem install the resulting gem, so nothing fancy.  This does not use
+# rake install since we need --conservative --minimal-deps in order to not install duplicate gems.
+#
+Dir["#{gem_home}/bundler/gems/*"].each do |gempath|
+  matches = File.basename(gempath).match(/.*-[A-Fa-f0-9]{12}/)
+  next unless matches
+
+  gem_name = File.basename(Dir["#{gempath}/*.gemspec"].first, ".gemspec")
+  # FIXME: should strip any valid ruby platform off of the gem_name if it matches
+
+  next unless gem_name
+
+  # FIXME: should omit the gem which is in the current directory and not hard code chef
+  next if %w{chef chef-universal-mingw-ucrt proxifier}.include?(gem_name)
+
+  puts "re-installing #{gem_name}..."
+
+  Dir.chdir(gempath) do
+    system("gem build #{gem_name}.gemspec") or raise "gem build failed"
+    system("gem install #{gem_name}*.gem --conservative --minimal-deps --no-document") or raise "gem install failed"
+  end
+
+  # Starting in ffi 1.17, FFI ships native extensions. However, we don't
+  # want that as we need them to be compiled in our omnibus environment so
+  # they will hae the correct run path in the environment so they can find
+  # their libraries.
+  #
+  # We've updated the gemspec file to force compilation (`force_ruby_platform`),
+  # however, appbundler will end up re-running `gem install` on the gems
+  # installed from git, which, for reasons that aren't entirely clear will
+  # pull in the pre-packaged native extensions instead of the ones that were
+  # already in our bundle.
+  #
+  # This will leave us with _two_ versions installed at the same version,
+  # for example:
+  #   ffi (1.17.1 ruby x86_64-linux-gnu, 1.16.0)
+  #
+  # This output shows 1.17.1 has both the one we compiled ('ruby') and the
+  # pre-compiled ones (x86_64-linux-gnu). So, we walk everything that is
+  # installed and for all versions 1.17 and higher, we remove the version
+  # with native extensions.
+  #
+  # For more information, see:
+  #   https://github.com/ffi/ffi/issues/1139
+
+  puts "Cleaning up broken versions of ffi..."
+  # Get a list of ffi versions, for anything 1.17 and newer, remove any
+  # pre-compiled gems, only use the ones we installed compiled right now
+  # which will have the right LD run path.
+  r, w = IO.pipe
+  spawn("gem list --exact ffi", out: w)
+  w.close
+  out = r.read
+  r.close
+  m = out.match(/ffi \((.*)\)/)
+  versions = m[1].split(", ")
+  versions.each do |ver|
+    # split "1.17.1 ruby x86_64-linux-gnu" by spaces
+    version_info = ver.split
+    # first word is version
+    version = version_info[0]
+    # all the others are platforms
+    platforms = version_info[1..]
+
+    # split "1.17.1" by dots
+    v = version.split(".")
+    # we only care about 1.17 and higher
+    next unless v[0].to_i > 1 || v[1].to_i >= 17
+
+    # iterate through platforms
+    platforms.each do |platform|
+      next if platform == "ruby" || platform.include?("mingw") || platform.include?("darwin")
+
+      # sometimes its reported with -gnu, sometimes not, but you need
+      # -gnu here.
+      platform << "-gnu" if platform.end_with?("linux")
+      c = "gem uninstall ffi --platform #{platform} --version #{version} --all --force"
+      puts c
+      system(c)
+    end
+  end
+
+  puts "Leftover ffi dependency tree..."
+  system("gem dependency ffi")
+end
+
+
+# FILE: dobi.yaml
+# Chef Expeditor uses this file to build the chef/chef Docker image using Dobi (dnephin/dobi)
+#
+# If you wish to build the chef-infra-client Docker image, you do not need to use this file.
+# You can build the Docker image for yourself by simply running:
+#
+#   docker build .
+#
+# For more information on how this file is used, please check out the Chef Expeditor docs:
+#   https://expeditor.chef.io/docs/pipelines/docker/
+
+image=chef:
+  image: '{env.IMAGE_REGISTRY}/chef'
+  context: .
+  tags:
+    - '{env.EXPEDITOR_VERSION}'
+  args:
+    VERSION: '{env.EXPEDITOR_VERSION}'
+    CHANNEL: unstable
+  annotations:
+    tags:
+      - expeditor:default-tags={{channel}}
+      - expeditor:final-channel-tags=latest,{{major}},{{major}}.{{minor}}
+
+
+# FILE: dangerfile.js
+import { danger, fail, markdown, message, peril, schedule, warn } from 'danger'
+
+// Check if chef gem versions have been modified in Gemfile.lock
+async function checkChefGemVersions() {
+    if (!danger.git.modified_files.includes("Gemfile.lock")) {
+        return
+    }
+
+    const versionsComparison = await danger.git.diffForFile("Gemfile.lock")
+    if (!versionsComparison) {
+        return
+    }
+
+    const chefGems = ['chef (', 'chef-bin (', 'chef-config (', 'chef-utils (']
+    const changedGems = []
+
+    // Check if any of the chef gem version lines were modified
+    versionsComparison.diff.split('\n').forEach(line => {
+        // Look for lines that start with +/- and contain gem version info
+        if ((line.startsWith('+') || line.startsWith('-')) && !line.startsWith('+++') && !line.startsWith('---')) {
+            chefGems.forEach(gem => {
+                if (line.includes(gem) && !changedGems.includes(gem.replace(' (', ''))) {
+                    changedGems.push(gem.replace(' (', ''))
+                }
+            })
+        }
+    })
+
+    if (changedGems.length > 0) {
+        const gemList = changedGems.map(g => `\`${g}\``).join(', ')
+
+        if (danger.github.pr.body && danger.github.pr.body.includes("manual-update")) {
+            message(`✅ This PR modifies version(s) for: ${gemList} in Gemfile.lock. The PR includes 'manual-update' flag, so this is allowed.`)
+        } else {
+            fail(`❌ This PR modifies version(s) for: ${gemList} in Gemfile.lock. Core chef gem versions should not be changed unless this is an intentional version bump. If this is intentional, add 'manual-update' to the PR description to bypass this check.`)
+        }
+    }
+}
+
+// Enforce our Gemfile update policy
+if (danger.git.modified_files.includes("Gemfile.lock") &&
+    danger.github.pr.user.type !== "Bot") {
+    /*
+     * our default template now includes --conservative, so we have to
+     * strip that out. Oops.
+     */
+    body = danger.github.pr.body
+    body = body.replace("I have used `--conservative` to do it", "")
+
+    if (danger.git.modified_files.includes("Gemfile") || danger.git.modified_files.includes("chef.gemspec") || danger.git.modified_files.includes("chef-universal-mingw-ucrt.gemspec")) {
+        message("PR updates Gemfile.lock, but it also updates Gemfile/gemspec, so that" +
+            " is probably OK - but the reviewer should check updates are solely" +
+            " from the Gemfile update")
+    } else if (!body.includes("--conservative")) {
+        if (danger.github.pr.body.includes("#gemlock_major_upgrade")) {
+            message("PR updates Gemfile.lock, but output doesn't appear to be in" +
+                " the PR Description. However #gemlock_major_upgrade does, so allowing")
+        } else {
+            fail("Gem/Bundle changes were not documented in the Description. If" +
+                " this is a major update, add #gemlock_major_upgrade to the PR" +
+                " Description.")
+        }
+    }
+}
+
+function normalizeBody(text) {
+    // Strip whitespace differences and checkbox state so we catch
+    // templates where someone only ticked boxes but wrote nothing.
+    return text.replace(/\r\n/g, '\n').replace(/- \[x\]/gi, '- [ ]').trim()
+}
+
+// Check if PR description has been properly filled out by comparing
+// against the PR template (from this repo, falling back to chef/.github).
+async function checkPRDescription() {
+    const body = danger.github.pr.body || ""
+
+    if (danger.github.pr.user.type === "Bot") {
+        return
+    }
+
+    const api = danger.github.api
+    const owner = danger.github.thisPR.owner
+    const repo = danger.github.thisPR.repo
+
+    let template = null
+    // Check this repo first, then the org-level .github repo
+    for (const [o, r, path] of [[owner, repo, ".github/PULL_REQUEST_TEMPLATE.md"], [owner, ".github", ".github/PULL_REQUEST_TEMPLATE.md"]]) {
+        try {
+            const { data } = await api.repos.getContent({ owner: o, repo: r, path })
+            template = Buffer.from(data.content, 'base64').toString('utf-8')
+            break
+        } catch (e) {
+            // not found, try next
+        }
+    }
+
+    if (!template) {
+        return
+    }
+
+    if (normalizeBody(body) === normalizeBody(template)) {
+        fail("❌ PR description is the unedited template. Please fill in a description of your changes.")
+    }
+}
+
+async function stickyWorkflowChangeReminder() {
+    if (danger.github.pr.user.type === "Bot") {
+        return
+    }
+
+    const workflowChanges = danger.git.modified_files.filter(file =>
+        file.startsWith(".github/workflows/")
+    )
+
+    if (workflowChanges.length === 0) {
+        return
+    }
+
+    const filesList = workflowChanges.map(f => `- \`${f}\``).join("\n")
+
+    const body = `
+### ⚠️ Workflow changes detected
+
+This PR modifies GitHub Actions workflow files:
+
+${filesList}
+
+**Reviewer reminder – please double-check for:**
+- [ ] Changes to **secrets usage** or new secret references
+- [ ] Workflow **permissions** increases (especially \`contents\`, \`actions\`, or \`id-token\`)
+- [ ] Any way secrets could be **exfiltrated** (logs, artifacts, uploads)
+
+These workflow changes are gated for manual approval — please review carefully before approving.
+`
+
+    const api = danger.github.api
+    const issue = danger.github.pr.number
+    const repo = danger.github.thisPR.repo
+    const owner = danger.github.thisPR.owner
+
+    const { data: comments } = await api.issues.listComments({
+        owner,
+        repo,
+        issue_number: issue,
+        per_page: 100,
+    })
+
+    const existing = comments.find(c =>
+        c.user?.login === "github-actions[bot]" &&
+        c.body?.includes("⚠️ Workflow changes detected")
+    )
+
+    if (existing) {
+        await api.issues.updateComment({
+            owner,
+            repo,
+            comment_id: existing.id,
+            body,
+        })
+    } else {
+        await api.issues.createComment({
+            owner,
+            repo,
+            issue_number: issue,
+            body,
+        })
+    }
+}
+
+// Check for chef gem version changes
+schedule(checkChefGemVersions())
+
+// Check PR description
+schedule(checkPRDescription())
+
+// Remind reviewers about workflow changes
+schedule(stickyWorkflowChangeReminder)
+
+
+# FILE: cspell.json
+// cSpell Settings
+{
+  "version": "0.2",
+  // language - current active spelling language
+  "language": "en",
+  "dictionaryDefinitions": [
+    {
+      "name": "chef",
+      "path": "https://raw.githubusercontent.com/chef/chef_dictionary/main/chef.txt",
+      "description": "Custom Chef Dictionary"
+    }
+  ],
+  "dictionaries": ["chef"],
+  // words - list of words to be always considered correct
+  "words": [
+    "abcz",
+    "abdulin",
+    "ABORTIFHUNG",
+    "ACCOUNTDISABLE",
+    "activationkey",
+    "ADAP",
+    "addlock",
+    "addormodify",
+    "addrs",
+    "ADMINI",
+    "adminonly",
+    "Afile",
+    "afonov",
+    "agrs",
+    "airgapped",
+    "aixinit",
+    "akzhan",
+    "Alam",
+    "Albenzi",
+    "Alloc",
+    "alloc",
+    "Allowlist",
+    "allowlist",
+    "allowlisted",
+    "allowlisting",
+    "allowlists",
+    "allowselfservice",
+    "alnum",
+    "alwayslastline",
+    "amazonlinux",
+    "Anson",
+    "anonymized",
+    "APISSL",
+    "applewood",
+    "approle",
+    "Appscript",
+    "appscript",
+    "ARCHITEW",
+    "archq",
+    "argdup",
+    "arity",
+    "armhf",
+    "arry",
+    "Arțăriși",
+    "ASSIGNPRIMARYTOKEN",
+    "astring",
+    "ATTRIBS",
+    "attribs",
+    "attrname",
+    "AUTHN",
+    "AUTHROOT",
+    "Autoconverted",
+    "AUTODATASEG",
+    "autodetect",
+    "autodetected",
+    "autogenerated",
+    "autohome",
+    "automake",
+    "autoneg",
+    "autoreconf",
+    "autorefresh",
+    "autoreplacing",
+    "Autorun",
+    "autostr",
+    "autotest",
+    "autotools",
+    "Autovivification",
+    "autovivifies",
+    "autovivify",
+    "autovivifying",
+    "avishai",
+    "azureuser",
+    "Backcompat",
+    "backcompat",
+    "backends",
+    "backoff",
+    "BACKOFFICE",
+    "backslashing",
+    "backtraces",
+    "backupfile",
+    "BADDB",
+    "BADKEY",
+    "badssl",
+    "balatero",
+    "barbaz",
+    "basch",
+    "basearch",
+    "basenames",
+    "basepath",
+    "baseurl",
+    "baseurls",
+    "Bcast",
+    "bcast",
+    "benesch",
+    "bianco",
+    "binfile",
+    "binlink",
+    "binlinking",
+    "binmode",
+    "binread",
+    "bitmask",
+    "bkup",
+    "blackduck",
+    "BLDR",
+    "bldr",
+    "blockdev",
+    "bobo",
+    "bobotclown",
+    "bootstrapper",
+    "bootstrappers",
+    "borat",
+    "bsearch",
+    "bsevn",
+    "BSTR",
+    "bufptr",
+    "bufsize",
+    "bugfixing",
+    "BUNDER",
+    "bypassproxy",
+    "bytesize",
+    "cabfile",
+    "Calastone",
+    "CALLGATE",
+    "calloc",
+    "CANTOPEN",
+    "CANTREAD",
+    "CANTWRITE",
+    "carg",
+    "caron",
+    "Cavallo",
+    "ccdata",
+    "certfile",
+    "certpassword",
+    "Certstore",
+    "certstore",
+    "CFPREFERENCES",
+    "cfprefsd",
+    "chaput",
+    "chardev",
+    "chatops",
+    "chdev",
+    "checksummed",
+    "checksumming",
+    "chefbin",
+    "chefcli",
+    "chefclientbootstraptask",
+    "chefclientinstalldone",
+    "CHEFCONFIG",
+    "chefdir",
+    "chefignored",
+    "chefignores",
+    "chefscriptresult",
+    "CHEFSERVERURL",
+    "cheftest",
+    "CHEFUTILS",
+    "chefzero",
+    "chgrpmem",
+    "childitem",
+    "CHINESEBIG",
+    "chocolateyinstall",
+    "CIFS",
+    "ckbk",
+    "cksum",
+    "cleanpath",
+    "cleanpaths",
+    "cleanroom",
+    "CLEARTEXT",
+    "CLIENTAUTHISSUER",
+    "CLIENTNAME",
+    "clientname",
+    "clitoken",
+    "CLOEXEC",
+    "cmdline",
+    "CMDS",
+    "cmds",
+    "Cmnd",
+    "CMPL",
+    "CNAME",
+    "cname",
+    "codepage",
+    "codepath",
+    "codepaths",
+    "codeql",
+    "CODESEG",
+    "COLORINDEX",
+    "COLORREF",
+    "COLORSPACE",
+    "COMBOBOX",
+    "commandline",
+    "compat",
+    "COMPOSITECHECK",
+    "computerlevel",
+    "COMPUTERNAME",
+    "computername",
+    "computersystem",
+    "COMSPEC",
+    "comspec",
+    "Cond",
+    "confd",
+    "confdef",
+    "configfetcher",
+    "configurables",
+    "configurationdata",
+    "confnew",
+    "confold",
+    "constructor",
+    "CONSTS",
+    "consts",
+    "containername",
+    "containerpath",
+    "contruct",
+    "Convertto",
+    "cookbookname",
+    "copypasta",
+    "coreutils",
+    "corretto",
+    "cpio",
+    "Crae",
+    "CREAT",
+    "createhomedir",
+    "Createobject",
+    "creds",
+    "crlfile",
+    "crlnum",
+    "Crory",
+    "Crosta",
+    "CRYPTOPROTECT",
+    "CRYPTPROTECT",
+    "cssh",
+    "csum",
+    "ctfs",
+    "CTRY",
+    "CTYPE",
+    "curr",
+    "Cxxx",
+    "cygwin",
+    "DACL",
+    "Dacl",
+    "dacl",
+    "Daemonization",
+    "DATACENTER",
+    "Datacenter",
+    "datacenter",
+    "DATAFILE",
+    "DATALINK",
+    "datas",
+    "dbag",
+    "DBATCH",
+    "DBCS",
+    "dctoken",
+    "DDTHH",
+    "dearmor",
+    "dearmored",
+    "Decompressor",
+    "decompressor",
+    "Decryptor",
+    "decryptor",
+    "dedup",
+    "DEFAULTCHAR",
+    "defaultguard",
+    "defn",
+    "defns",
+    "deinstall",
+    "delegators",
+    "deletable",
+    "deletin",
+    "delim",
+    "deliminates",
+    "DELIMS",
+    "delims",
+    "depsolved",
+    "DESCR",
+    "deserialization",
+    "destdir",
+    "devaux",
+    "devel",
+    "DEVICEEVENT",
+    "devicename",
+    "DEVIOCTL",
+    "devmode",
+    "devuan",
+    "Dfsn",
+    "DFSR",
+    "dgrade",
+    "Dialup",
+    "DIDNT",
+    "diffable",
+    "dirglob",
+    "disablerepo",
+    "DISCARDABLE",
+    "DISCARDNS",
+    "displayname",
+    "Distros",
+    "distros",
+    "DMGs",
+    "dnephin",
+    "docgen",
+    "domainandname",
+    "DOMAINNAME",
+    "domainname",
+    "domainuser",
+    "Doppel",
+    "dos2unix",
+    "DOSDUPHANDLE",
+    "dotdeb",
+    "dotdirs",
+    "dotfile",
+    "dotfiles",
+    "dotglob",
+    "DOTMATCH",
+    "downcased",
+    "downcases",
+    "downto",
+    "DPAPI",
+    "Dreamcat",
+    "dscacheutil",
+    "dscresource",
+    "dslocal",
+    "DUPEUX",
+    "DWORDLONG",
+    "DYNALINK",
+    "DYNLINK",
+    "EAGAIN",
+    "EASTEUROPE",
+    "eastus",
+    "ebusy",
+    "eckey",
+    "ecparam",
+    "edir",
+    "efivarfs",
+    "egid",
+    "egrep",
+    "ELOOP",
+    "EMBEDDEDNT",
+    "EMBEDDEDSERVER",
+    "enableable",
+    "ENABLEDELAYEDEXPANSION",
+    "enablegroups",
+    "enablement",
+    "enablerepo",
+    "encap",
+    "Encryptor",
+    "encryptor",
+    "endlocal",
+    "entriesread",
+    "envdata",
+    "ENVVAR",
+    "Errno",
+    "erroraction",
+    "errorhandler",
+    "ERRORLEVEL",
+    "Eruby",
+    "eruby",
+    "escapepath",
+    "ESRCH",
+    "etags",
+    "euca",
+    "euid",
+    "EVENTNAME",
+    "EXCED",
+    "executability",
+    "executionpolicy",
+    "execvp",
+    "exitcode",
+    "expandproperty",
+    "expandtab",
+    "EXTGLOB",
+    "extname",
+    "extrastuff",
+    "Exts",
+    "exts",
+    "FACs",
+    "failburger",
+    "FAILCRITICALERRORS",
+    "failovermethod",
+    "fakeweb",
+    "FAPI",
+    "fastestmirror",
+    "fastrestart",
+    "faststart",
+    "faststop",
+    "fatals",
+    "fcntl",
+    "Fcontext",
+    "fcontext",
+    "featurename",
+    "FEFF",
+    "FFLAGS",
+    "fflags",
+    "Fichter",
+    "fieldname",
+    "Fileexists",
+    "filehandle",
+    "FILEMARK",
+    "fileno",
+    "filesets",
+    "filesize",
+    "filespecificity",
+    "filestat",
+    "filesystems",
+    "FILETIME",
+    "filterm",
+    "finalizer",
+    "findfs",
+    "Fixnums",
+    "flushcache",
+    "fmri",
+    "fname",
+    "foorb",
+    "forcearch",
+    "FORCECLOSEAPPLICATIONS",
+    "FORCEMINIMIZE",
+    "FORCEOFFFEEDBACK",
+    "FORCEONFEEDBACK",
+    "forwardslashes",
+    "fpath",
+    "FSCTL",
+    "ftype",
+    "FUGLY",
+    "fullpath",
+    "fullpolicy",
+    "FULLSCREEN",
+    "fuzzify",
+    "Fuzzyurl",
+    "fuzzyurl",
+    "gaffneyc",
+    "gecos",
+    "gempath",
+    "gencaches",
+    "getaddrinfo",
+    "getbinaryfile",
+    "getc",
+    "getenforce",
+    "GETFD",
+    "GETFL",
+    "getgr",
+    "getgrgid",
+    "getgrnam",
+    "gethostbyname",
+    "getlogin",
+    "getmodhandle",
+    "getnode",
+    "getobj",
+    "getopts",
+    "getppid",
+    "getprint",
+    "getprocaddr",
+    "getpw",
+    "getremotelogin",
+    "getsebool",
+    "getspnam",
+    "gettext",
+    "GETTHUMBPRINTCODE",
+    "gettime",
+    "gettimezone",
+    "gettype",
+    "getwd",
+    "gids",
+    "gilles",
+    "globalstate",
+    "Globbing",
+    "globbing",
+    "globsafe",
+    "globstar",
+    "gmake",
+    "gmetric",
+    "gname",
+    "googlechrome",
+    "GOPRIVATE",
+    "GOTOU",
+    "gotoyuzo",
+    "Gpasswd",
+    "gpasswd",
+    "gpgautoimportkeys",
+    "grafana",
+    "grafanaserviceapi",
+    "Graty",
+    "Groh",
+    "groupinstall",
+    "groupmembership",
+    "GROUPNAME",
+    "groupname",
+    "grype",
+    "gzipped",
+    "habfile",
+    "habicat",
+    "HACCEL",
+    "hacky",
+    "halp",
+    "HANGEUL",
+    "hardstatus",
+    "HARDWAREPROFILECHANGE",
+    "haselwanter",
+    "hashify",
+    "hawtness",
+    "HBITMAP",
+    "HBRUSH",
+    "HCOLORSPACE",
+    "HCONV",
+    "HCONVLIST",
+    "HCURSOR",
+    "HDDEDATA",
+    "HDESK",
+    "hdidutil",
+    "HDROP",
+    "HDWP",
+    "Heinen",
+    "HENHMETAFILE",
+    "hexencode",
+    "HFILE",
+    "HFONT",
+    "HGDIOBJ",
+    "HGLOBAL",
+    "HHOOK",
+    "HIBYTE",
+    "HICON",
+    "Hinderliter",
+    "HINSTANCE",
+    "hintname",
+    "hivename",
+    "HIWORD",
+    "HLOCAL",
+    "HMENU",
+    "HMETAFILE",
+    "HMOD",
+    "HMODULE",
+    "HMONITOR",
+    "homebrew-apple",
+    "HOMESHARE",
+    "hongli",
+    "Hostnames",
+    "hostnames",
+    "hostport",
+    "hostspec",
+    "hostspecific",
+    "hoststr",
+    "HPALETTE",
+    "HPEN",
+    "HRESULT",
+    "HRGN",
+    "HRSRC",
+    "Huon",
+    "HWADDR",
+    "hwaddr",
+    "hwaddress",
+    "HWINSTA",
+    "HWND",
+    "HWNDS",
+    "ichannel",
+    "iconlocation",
+    "idmv",
+    "iface",
+    "ifdef",
+    "IGNORECASE",
+    "igroups",
+    "illumos",
+    "imageinfo",
+    "Immutablize",
+    "immutablize",
+    "inact",
+    "includedir",
+    "includepkgs",
+    "includer",
+    "Indentable",
+    "indentable",
+    "INET",
+    "inet",
+    "infc",
+    "INFLOOP",
+    "iniparse",
+    "Inout",
+    "inout",
+    "inpipe",
+    "INPORT",
+    "inputformat",
+    "Insserv",
+    "insserv",
+    "installable",
+    "installondemand",
+    "installonlypkgs",
+    "installp",
+    "installshield",
+    "instanceid",
+    "INTERDOMAIN",
+    "interfacetype",
+    "interpolatedexitcode",
+    "Intility",
+    "ints",
+    "Invokercd",
+    "invokercd",
+    "invokereturnasis",
+    "IOAV",
+    "Ionuț",
+    "IOPL",
+    "IPACK",
+    "IPADDR",
+    "ipaddr",
+    "ipaddress",
+    "IPPROTO",
+    "ireton",
+    "isalnum",
+    "isalpha",
+    "isatty",
+    "isdigit",
+    "ivname",
+    "IVNAMES",
+    "Jagtap",
+    "jailmode",
+    "janky",
+    "javatooling",
+    "jbcs",
+    "jeppe",
+    "jesai",
+    "JOHAB",
+    "juanje",
+    "jxvf",
+    "Kauppila",
+    "Keane",
+    "keeppackages",
+    "keychain",
+    "keyfile",
+    "keygen",
+    "keyid",
+    "keyivgen",
+    "KEYNAME",
+    "keyname",
+    "keypair",
+    "keyrings",
+    "keyscan",
+    "keysign",
+    "KEYTAB",
+    "keytab",
+    "kool",
+    "Kouznetsov",
+    "KSEC",
+    "kwargs",
+    "laco",
+    "Landauer",
+    "langenbach",
+    "LANGID",
+    "lastcmdlet",
+    "LASTDAY",
+    "lastday",
+    "LASTEXITCODE",
+    "lastexitcode",
+    "Lavey",
+    "lchmod",
+    "lchown",
+    "LCID",
+    "LCTYPE",
+    "ldif",
+    "LEADBYTE",
+    "Leff",
+    "leinartas",
+    "lgrmi",
+    "lgrpi",
+    "LGRPID",
+    "LHND",
+    "libselinux",
+    "linuxbrew",
+    "linuxmint",
+    "LISTBOX",
+    "listprop",
+    "lita",
+    "literalpath",
+    "ljust",
+    "lltstype",
+    "LMEM",
+    "LMSHARE",
+    "LMSTR",
+    "LOBYTE",
+    "localdomain",
+    "LOCALGROUP",
+    "localgroupname",
+    "localip",
+    "localmachine",
+    "localname",
+    "localport",
+    "localsystem",
+    "localtime",
+    "LOCKCOUNT",
+    "logfile",
+    "loginclass",
+    "loginwindow",
+    "LOGLOCATION",
+    "logopts",
+    "logstring",
+    "LONGLONG",
+    "losetup",
+    "lowercased",
+    "LOWORD",
+    "LPARAM",
+    "LPBOOL",
+    "LPBY",
+    "LPBYTE",
+    "LPCOLORREF",
+    "LPCSTR",
+    "LPCTSTR",
+    "LPCVOID",
+    "LPCWSTR",
+    "lpdw",
+    "LPDWORD",
+    "LPHANDLE",
+    "LPINT",
+    "LPLONG",
+    "lplp",
+    "LPOSVERSIONINFO",
+    "LPOVERLAPPED",
+    "LPSECURITY",
+    "LPSTR",
+    "lpsz",
+    "LPTR",
+    "LPTSTR",
+    "lptstr",
+    "LPVOID",
+    "LPWIN",
+    "LPWORD",
+    "LPWSTR",
+    "LRESULT",
+    "lsfs",
+    "lslpp",
+    "lssrc",
+    "lstchg",
+    "lsuser",
+    "ltrace",
+    "lucene",
+    "LUID",
+    "Luid",
+    "luid",
+    "LUIDS",
+    "MACCP",
+    "machinename",
+    "macterm",
+    "madsen",
+    "magick",
+    "mailservers",
+    "MAILSLOT",
+    "mailslot",
+    "MAILTO",
+    "mailto",
+    "mainloop",
+    "Mainmodule",
+    "makecache",
+    "makedirs",
+    "MAKELONG",
+    "MAKEWORD",
+    "margs",
+    "Masayoshi",
+    "mashify",
+    "matchdot",
+    "Mathieson",
+    "MAXARGS",
+    "MAXDWORD",
+    "maxlogins",
+    "MDICHILD",
+    "MEDIUMBUSINESS",
+    "memcpy",
+    "memlock",
+    "MESSAGEDEST",
+    "MESSAGENAME",
+    "METAFILE",
+    "metafile",
+    "metalink",
+    "metaparameter",
+    "metasearch",
+    "miah",
+    "middlewares",
+    "Midgley",
+    "miimon",
+    "MINALLOCSIZE",
+    "minmax",
+    "mirrorlist",
+    "mirrorlists",
+    "miscutils",
+    "MITM",
+    "mkgroup",
+    "mkmf",
+    "mkpath",
+    "MKTEMP",
+    "mktemp",
+    "mktmpdir",
+    "mname",
+    "mntfs",
+    "modname",
+    "MODULETYPE",
+    "mollison",
+    "monkeypatch",
+    "Monkeypatches",
+    "monologger",
+    "MONTHLYDATE",
+    "MONTHLYDOW",
+    "monthlydow",
+    "moodle",
+    "mountpoint",
+    "mounttab",
+    "mpkg",
+    "MPSSVC",
+    "MSDNQTR",
+    "MSGBOX",
+    "msgmax",
+    "msgqueue",
+    "MSIERRORCODE",
+    "MSIHANDLE",
+    "MSVCRT",
+    "MSXML",
+    "MSYSTEM",
+    "MULTILINE",
+    "multiline",
+    "multipackage",
+    "multiplatform",
+    "Multiresource",
+    "multiresource",
+    "multitenant",
+    "multithreaded",
+    "Multiuser",
+    "multivalue",
+    "munge",
+    "Mutators",
+    "mutexes",
+    "MUXWAITERS",
+    "myapp",
+    "myawesomea",
+    "mycert",
+    "mycorp",
+    "myecrequest",
+    "myfail",
+    "mygem",
+    "myname",
+    "myorg",
+    "myprop",
+    "myrecipe",
+    "myrsarequest",
+    "mysignedcert",
+    "mytoken",
+    "myworkgroup",
+    "namespacing",
+    "namp",
+    "NCRC",
+    "nejsum",
+    "NERR",
+    "netaddr",
+    "netapi",
+    "NETBINDADD",
+    "NETBINDCHANGE",
+    "NETBINDDISABLE",
+    "NETBINDENABLE",
+    "NETBINDREMOVE",
+    "NETCARD",
+    "nethttp",
+    "NETLOGON",
+    "netmsg",
+    "NETNAME",
+    "NETPATH",
+    "netpbm",
+    "Nevra",
+    "nevra",
+    "nevras",
+    "newcron",
+    "newfile",
+    "newguard",
+    "newpkg",
+    "newval",
+    "nginxserviceapi",
+    "nillable",
+    "nistp",
+    "nlist",
+    "NOACCESS",
+    "NOACTION",
+    "NOALIGNMENTFAULTEXCEPT",
+    "noarch",
+    "noauth",
+    "noauto",
+    "nobrowse",
+    "NOCHANGES",
+    "NOCOMPACT",
+    "noconfirm",
+    "nocreate",
+    "Nodearray",
+    "NODELAY",
+    "Nodename",
+    "nodename",
+    "NODISCARD",
+    "nodocument",
+    "NOEXEC",
+    "noexec",
+    "NOFILE",
+    "nofile",
+    "NOFOLLOW",
+    "NOFORCE",
+    "noforce",
+    "NOGPFAULTERRORBOX",
+    "nogpgcheck",
+    "nokeys",
+    "NOLICPROMPT",
+    "NOLOGON",
+    "NONBLOCK",
+    "NONINTERACTIVE",
+    "noninteractive",
+    "nonio",
+    "NONPAGED",
+    "NONZEROLHND",
+    "NONZEROLPTR",
+    "NOOPENFILEERRORBOX",
+    "noprofile",
+    "noprogressbar",
+    "NORESTART",
+    "norestart",
+    "nospace",
+    "nospinner",
+    "notapplicable",
+    "notauser",
+    "notconfigured",
+    "notdoingit",
+    "notfound",
+    "NOTIMEOUTIFNOTHUNG",
+    "notlike",
+    "NOTUSED",
+    "noverify",
+    "NOWAIT",
+    "NPAS",
+    "nproc",
+    "nread",
+    "NTSTATUS",
+    "nupkg",
+    "objfs",
+    "OBJS",
+    "objs",
+    "OEMCP",
+    "ojeda",
+    "oldguard",
+    "OLDLOGLOCATION",
+    "oldpackage",
+    "oldval",
+    "ONBOOT",
+    "onboot",
+    "Onddo",
+    "oneshot",
+    "onidle",
+    "onlogon",
+    "ONPARENT",
+    "onparent",
+    "onstart",
+    "OPLOCK",
+    "optarg",
+    "optind",
+    "optstr",
+    "ORGNAME",
+    "orgname",
+    "osquery",
+    "OSVERSIONINFOEX",
+    "otherfiles",
+    "outform",
+    "outpipe",
+    "outputpath",
+    "Overridable",
+    "overridable",
+    "Overriders",
+    "ovpn",
+    "OXID",
+    "packageinfo",
+    "Packageprovider",
+    "packagesource",
+    "pagefiles",
+    "pagefileset",
+    "parallelizer",
+    "PARAMCHANGE",
+    "parms",
+    "Partof",
+    "passstr",
+    "passthru",
+    "passw",
+    "PASSWORDNAME",
+    "passwordprompt",
+    "PATCHLEVEL",
+    "pathed",
+    "PATHEXT",
+    "PATHFINDING",
+    "Pathnames",
+    "pbkdf",
+    "PBOOL",
+    "PBOOLEAN",
+    "PBYTE",
+    "pcch",
+    "PCHAR",
+    "pconfig",
+    "PCRYPTPROTECT",
+    "PCSTR",
+    "PCTSTR",
+    "PCWSTR",
+    "PDATA",
+    "pdata",
+    "PDWORD",
+    "PDWORDLONG",
+    "performant",
+    "permissives",
+    "PFILETIME",
+    "PFLOAT",
+    "PGENERICMAPPING",
+    "phabricator",
+    "PHALF",
+    "PHANDLE",
+    "Philis",
+    "PHKEY",
+    "PIDFILE",
+    "pidfiles",
+    "pkgconfig",
+    "pkgin",
+    "pkginfos",
+    "pkgrm",
+    "pkgs",
+    "PKINIT",
+    "PLCID",
+    "PLISTBUDDY",
+    "plistbuddy",
+    "plists",
+    "PLONG",
+    "PLONGLONG",
+    "PLSA",
+    "PLUID",
+    "PLUTIL",
+    "plutil",
+    "PNAME",
+    "Policybuilder",
+    "policycoreutils",
+    "POLICYNAME",
+    "portageq",
+    "portcon",
+    "PORTVERSION",
+    "POSI",
+    "POST'ing",
+    "postprocess",
+    "postrm",
+    "POWEREVENT",
+    "powershellget",
+    "ppid",
+    "prco",
+    "Precompiled",
+    "PRECOMPOSED",
+    "precreated",
+    "prefixlen",
+    "prefmaxlen",
+    "prefname",
+    "preinstall",
+    "PREPARSE",
+    "prepended",
+    "prepender",
+    "Prepending",
+    "preprod",
+    "prereqs",
+    "preseed",
+    "preseeding",
+    "PRESHUTDOWN",
+    "primarygroupid",
+    "PRINC",
+    "PRINTPROCESSOR",
+    "PRINTQ",
+    "processname",
+    "PROCNUM",
+    "procs",
+    "productversion",
+    "progname",
+    "programdata",
+    "PROMPTSTRUCT",
+    "PROTO",
+    "proto",
+    "PROTSEQ",
+    "PROTSEQS",
+    "Proxified",
+    "proxified",
+    "Proxifier",
+    "proxifier",
+    "PSAPI",
+    "psapi",
+    "Pscx",
+    "Psec",
+    "PSECURITY",
+    "PSHORT",
+    "PSIZE",
+    "psobject",
+    "psrepository",
+    "PSSIZE",
+    "PSTR",
+    "pswd",
+    "PTBYTE",
+    "PTCHAR",
+    "PTSTR",
+    "pubkey",
+    "pubkeys",
+    "PUCHAR",
+    "PUHALF",
+    "PUINT",
+    "PULONG",
+    "PULONGLONG",
+    "PUSHORT",
+    "putc",
+    "PUTing",
+    "PVOID",
+    "PWCHAR",
+    "pwdp",
+    "pwent",
+    "PWIN",
+    "PWORD",
+    "PWSTR",
+    "PYTHONUNBUFFERED",
+    "Páll",
+    "qstr",
+    "Qube",
+    "queryformat",
+    "questionmark",
+    "rassoc",
+    "rbag",
+    "rcscript",
+    "rcvar",
+    "RDWR",
+    "readdir",
+    "readlink",
+    "realloc",
+    "realname",
+    "realpath",
+    "Rebooter",
+    "rebooter",
+    "rebootnow",
+    "rebuilddb",
+    "reconfig",
+    "Recurses",
+    "redhatrcd",
+    "REDIR",
+    "redirections",
+    "REDIRECTOR",
+    "redist",
+    "redownloading",
+    "Reenable",
+    "reenable",
+    "reenabled",
+    "reenabling",
+    "refcount",
+    "Referer",
+    "regen",
+    "regexes",
+    "regextype",
+    "REGSAM",
+    "reimplement",
+    "reimplementing",
+    "REINITIALIZATION",
+    "RELOC",
+    "remoteaccess",
+    "remoteip",
+    "remoteport",
+    "remotesigned",
+    "removelock",
+    "REMOVEME",
+    "removerepo",
+    "renaud",
+    "renewall",
+    "REPARSE",
+    "Reparse",
+    "reparse",
+    "reparses",
+    "reparsing",
+    "REPLACESTR",
+    "repocontrols",
+    "repodata",
+    "repoid",
+    "repolist",
+    "repomd",
+    "repos",
+    "repositoryid",
+    "Reregister",
+    "reregister",
+    "reregistered",
+    "Resolv",
+    "resolv",
+    "resourcelist",
+    "restorecon",
+    "resumehandle",
+    "retriable",
+    "rfind",
+    "rhash",
+    "rhosts",
+    "rindex",
+    "rjust",
+    "rmatch",
+    "rmgroup",
+    "RMODE",
+    "rmtree",
+    "rname",
+    "roundrobin",
+    "rpartition",
+    "rpath",
+    "rpmdb",
+    "rpmdep",
+    "rpmds",
+    "rpmvercmp",
+    "rquery",
+    "rsakey",
+    "RTLD",
+    "RSAT",
+    "RUNFULLSCREEN",
+    "runid",
+    "runlock",
+    "runneradmin",
+    "runpid",
+    "runrun",
+    "rvmrc",
+    "RXACT",
+    "rxhash",
+    "rxvlan",
+    "SACL",
+    "Sacl",
+    "sacl",
+    "SAST",
+    "savetime",
+    "SAWANOBORI",
+    "Sbzl",
+    "schtasks",
+    "SCODE",
+    "scopeid",
+    "scpath",
+    "screenrc",
+    "Scriptable",
+    "SCROLLBAR",
+    "SCROLLBARS",
+    "secontext",
+    "secoption",
+    "secopts",
+    "secp",
+    "secretkey",
+    "securestring",
+    "SECURITYPOLICY",
+    "secvalue",
+    "SEGDPL",
+    "SEGLIM",
+    "seinfo",
+    "selinuxenabled",
+    "SELINUXTYPE",
+    "selinuxtype",
+    "semanage",
+    "semodule",
+    "SEPCHARS",
+    "SERENUM",
+    "sertelon",
+    "servername",
+    "SERVERR",
+    "serverurl",
+    "servicecheck",
+    "servicelevel",
+    "SERVICENAME",
+    "SESS",
+    "SESSIONCHANGE",
+    "SESSIONID",
+    "SETCOUNT",
+    "setenforce",
+    "SETFD",
+    "SETFL",
+    "setlocal",
+    "SETLOCALDEFS",
+    "SETMARK",
+    "setobj",
+    "setools",
+    "setprop",
+    "setremotelogin",
+    "setsebool",
+    "setsid",
+    "setsockopt",
+    "settimezone",
+    "SETTINGCHANGE",
+    "setuid",
+    "SETX",
+    "SHARENAME",
+    "SHAs",
+    "shas",
+    "shellcmd",
+    "shellescape",
+    "shelljoin",
+    "shellsplit",
+    "Shellwords",
+    "shellwords",
+    "SHIFTJIS",
+    "shiftwidth",
+    "shopt",
+    "shortname",
+    "Shouldnotexist",
+    "showcerts",
+    "SHOWDEFAULT",
+    "showhold",
+    "SHOWMAXIMIZED",
+    "SHOWMINIMIZED",
+    "SHOWMINNOACTIVE",
+    "SHOWNA",
+    "SHOWNOACTIVATE",
+    "SHOWNORMAL",
+    "showpkg",
+    "SHOWWIN",
+    "sideload",
+    "sierles",
+    "signedheaderauth",
+    "sigpending",
+    "SIGPIPE",
+    "SIGQUIT",
+    "SIGUSR",
+    "silentlycontinue",
+    "SINGLELINE",
+    "singleline",
+    "Singleuser",
+    "SINGLEUSERTS",
+    "sitearchdir",
+    "SITENAME",
+    "skus",
+    "skylerto",
+    "SMALLBUSINESS",
+    "SMARTCARD",
+    "SMARTCARDROOT",
+    "Smokish",
+    "SMTO",
+    "softtabstop",
+    "solv",
+    "somedir",
+    "somefile",
+    "someotherfile",
+    "someuser",
+    "sonarqube",
+    "sourceline",
+    "spawninstance",
+    "specdoc",
+    "splunkserviceapi",
+    "srand",
+    "SRCCHARSET",
+    "SRCCODEPAGE",
+    "SRCFONTSIG",
+    "SRCLOCALE",
+    "srcs",
+    "SSIZE",
+    "sslcacert",
+    "sslclientcert",
+    "sslclientkey",
+    "sslverify",
+    "STACKSEG",
+    "stacktraces",
+    "Stanislav",
+    "STARTF",
+    "startsrc",
+    "STARTSSH",
+    "STARTUPINFO",
+    "stdcall",
+    "Stepable",
+    "stepable",
+    "stopsrc",
+    "strftime",
+    "strptime",
+    "Struct",
+    "struct",
+    "stubabble",
+    "stubbable",
+    "subclassable",
+    "subclassing",
+    "subcollections",
+    "SUBCOMMANDS",
+    "subcommands",
+    "subcontext",
+    "Subdir",
+    "subdir",
+    "subdirs",
+    "subfeatures",
+    "SUBFOLDERS",
+    "SUBKEY",
+    "subkeys",
+    "subklass",
+    "sublicensable",
+    "submodules",
+    "subprocesses",
+    "subrecords",
+    "subresource",
+    "subresources",
+    "subsession",
+    "SUBSTED",
+    "sunsetting",
+    "SUPPRESSMSGBOXES",
+    "svcadm",
+    "svccfg",
+    "svcs",
+    "SWAPERROR",
+    "swapfiles",
+    "swappable",
+    "symlinking",
+    "syntaxcache",
+    "sysadm",
+    "sysconfig",
+    "sysctld",
+    "sysctls",
+    "Sysexits",
+    "sysread",
+    "systemdrive",
+    "systemrestart",
+    "systemsetup",
+    "systemshare",
+    "SYSTEMSTART",
+    "Systemtime",
+    "syswrite",
+    "Taddeo",
+    "TAKAHASHI",
+    "targetmode",
+    "TBYTE",
+    "TCBS",
+    "TCHAR",
+    "tempadmin",
+    "tempcron",
+    "tempdir",
+    "Tempfile",
+    "tempfile",
+    "tempfiles",
+    "Templating",
+    "tempname",
+    "TERMSRV",
+    "testswapfile",
+    "testswapfiledir",
+    "testuser",
+    "texteditor",
+    "tfile",
+    "Theaker",
+    "THRDS",
+    "THREADID",
+    "tilesize",
+    "TIMECHANGE",
+    "timh",
+    "tmap",
+    "tmpdir",
+    "Tmpname",
+    "tnodename",
+    "Tolstov",
+    "toplevel",
+    "totalentries",
+    "traceback",
+    "traceroute",
+    "trainwreck",
+    "triaging",
+    "TRIGGEREVENT",
+    "trivy",
+    "TRIVY",
+    "trixie",
+    "trufflehog",
+    "TRUNC",
+    "TRUSTEDDEVICES",
+    "TRUSTEDPEOPLE",
+    "TRUSTEDPUBLISHER",
+    "TSTDUP",
+    "TSTOVFL",
+    "tuid",
+    "tvfs",
+    "typecode",
+    "ucanhaz",
+    "UCHAR",
+    "uchar",
+    "ucrt",
+    "udiff",
+    "UHALF",
+    "ULONG",
+    "ulong",
+    "ULONGLONG",
+    "UNAVAIL",
+    "uncask",
+    "Uncompressing",
+    "Undock",
+    "unescaping",
+    "UNEXP",
+    "UNEXPORTED",
+    "Unforked",
+    "unforked",
+    "Unformatter",
+    "unformatter",
+    "unhold",
+    "unignored",
+    "unins",
+    "uninst",
+    "unintuitive",
+    "unixy",
+    "Unjoin",
+    "unlazied",
+    "unlazies",
+    "unlazying",
+    "Unmanaged",
+    "unmanaged",
+    "unmerge",
+    "unmergeables",
+    "unmount",
+    "unmounting",
+    "unparsable",
+    "Unprocessable",
+    "unredacted",
+    "Unregister",
+    "unregister",
+    "Unregistering",
+    "unregistering",
+    "Unregisters",
+    "unscoped",
+    "unscrubbed",
+    "unsecure",
+    "Unsets",
+    "UNSPEC",
+    "untaint",
+    "untampered",
+    "untap",
+    "untar",
+    "untarred",
+    "untracked",
+    "Untriaged",
+    "Unversioned",
+    "unversioned",
+    "UNWRITABLE",
+    "uploaded",
+    "Uploader",
+    "uploader",
+    "uploaders",
+    "upsert",
+    "uptodate",
+    "urandom",
+    "urllib",
+    "urlopen",
+    "usag",
+    "usags",
+    "usebackq",
+    "usecount",
+    "USECOUNTCHARS",
+    "USEFILLATTRIBUTE",
+    "USEGLYPHCHARS",
+    "usename",
+    "USEPOSITION",
+    "userdel",
+    "USERDOMAIN",
+    "USEREXIT",
+    "USERINFO",
+    "userinfo",
+    "Usermod",
+    "usermod",
+    "USESHOWWINDOW",
+    "USESIZE",
+    "USESTDHANDLES",
+    "USHORT",
+    "ushort",
+    "usri",
+    "ustring",
+    "utime",
+    "uuidgen",
+    "vaidas",
+    "valclient",
+    "varargs",
+    "vargo",
+    "variablevalue",
+    "Vasiliy",
+    "versioncompare",
+    "versioninfo",
+    "versionlock",
+    "VERYSILENT",
+    "VFSTAB",
+    "vfstab",
+    "VIOKBD",
+    "Virender",
+    "virt",
+    "Vivek",
+    "VMBUS",
+    "voidcmd",
+    "vxfs",
+    "Waddr",
+    "waitfor",
+    "waitpid",
+    "waitsem",
+    "wakeup",
+    "waym",
+    "Wbem",
+    "WBITS",
+    "WCHAR",
+    "wchar",
+    "wchars",
+    "WEBHOSTING",
+    "webroot",
+    "webserver",
+    "WEBTEAM",
+    "webteam",
+    "whatavailable",
+    "whateverd",
+    "Whatif",
+    "whatif",
+    "whatinstalled",
+    "whatprovides",
+    "whereis",
+    "whoami",
+    "willem",
+    "WINAPI",
+    "winbase",
+    "windef",
+    "windir",
+    "windmc",
+    "windowspowershell",
+    "WINDOWSTATION",
+    "windres",
+    "winerror",
+    "winevt",
+    "winget",
+    "winmgmts",
+    "winprog",
+    "WINVER",
+    "WKSTA",
+    "WMIGUID",
+    "woot",
+    "workdir",
+    "WPARAM",
+    "WSCHILD",
+    "wstring",
+    "wtime",
+    "xabcz",
+    "xabier",
+    "xchar",
+    "xdigit",
+    "XEEDS",
+    "XFORM",
+    "XMLHTTP",
+    "yardoc",
+    "yieldparam",
+    "zabbix",
+    "zanetti",
+    "Zapp",
+    "zeproc",
+    "ZEROINIT",
+    "zipfile",
+    "zolo",
+    "zombiejs",
+    "zuazo",
+    "zypp",
+    "Ásgeirsson",
+    "ümlauts",
+    "customfield"
+  ],
+  // flagWords - list of words to be always considered incorrect
+  // This is useful for offensive words and common spelling errors.
+  // For example "hte" should be "the"
+  "flagWords": ["hte"],
+  "ignorePaths": [
+    "CHEF_MVPS.md",
+    "CHANGELOG.md",
+    "CLA_ARCHIVE.md",
+    "**/*.gemspec",
+    "**/Gemfile.lock",
+    "**/Gemfile",
+    ".expeditor/**/*",
+    "**/*.yml",
+    "**/*.toml",
+    "**/Berksfile",
+    "dangerfile.js",
+    "lib/chef/provider/package/yum/simplejson/**/*",
+    "lib/chef/provider/package/yum/simplejson/*",
+    "omnibus/resources/chef/**/*",
+    "kitchen-tests/cookbooks/end_to_end/files/**/*",
+    "spec/**",
+    "knife/spec/**",
+    "docs_site",
+    "cspell.json",
+    ".mailmap",
+    "NOTICE"
+  ],
+  "ignoreRegExpList": [
+    // Ignore "'s" at the end of a word. If "Chef" is an accepted word, so is "Chef's".
+    "/'s\\b/",
+    // Ignore "'d" at the end of a word. If "dup" is an accepted word, so is "dup'd".
+    "/'d\\b/"
+  ]
+}
+
+
+# FILE: RELEASE_NOTES.md
+Chef Infra Client release notes are now located at <https://docs.chef.io/release_notes/client/>
+
+
+# FILE: README.md
+# Chef Infra
+[![Code Climate](https://codeclimate.com/github/chef/chef.svg)](https://codeclimate.com/github/chef/chef)
+[![Build Status](https://badge.buildkite.com/c82093430ceec7d27af05febb9dcafe3aa331fff9d74c0ab9d.svg?branch=main)](https://buildkite.com/chef-oss/chef-chef-main-verify)
+[![Gem Version](https://badge.fury.io/rb/chef.svg)](https://badge.fury.io/rb/chef)
+[![](https://img.shields.io/badge/Release%20Policy-Cadence%20Release-brightgreen.svg)](https://github.com/chef/chef/blob/main/docs/dev/design_documents/client_release_cadence.md)
+
+**Umbrella Project**: [Chef Infra](https://github.com/chef/chef-oss-practices/blob/main/projects/chef-infra.md)
+
+**Project State**: [Active](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md#active)
+
+**Issues [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
+
+**Pull Request [Response Time Maximum](https://github.com/chef/chef-oss-practices/blob/main/repo-management/repo-states.md)**: 14 days
+
+## Getting Started
+
+Chef Infra is a configuration management tool designed to bring automation to your entire infrastructure.
+
+### Want to try Chef Infra?
+
+For Chef Infra usage, please refer to [Learn Chef](https://learn.chef.io/), our self-paced, entirely free learning platform. Learn Chef also includes module-based training for Chef Infra, as well as Chef Automate, Chef Habitat, and Chef InSpec.
+
+Other useful resources for Chef Infra users:
+
+- Documentation: <https://docs.chef.io/>
+- Source: <https://github.com/chef/chef/tree/main>
+- Tickets/Issues: <https://github.com/chef/chef/issues>
+- Slack: [Chef Community Slack](https://community-slack.chef.io/)
+- Mailing list/Forum: <https://discourse.chef.io>
+
+## Reporting Issues
+
+Issues can be reported by using [GitHub Issues](https://github.com/chef/chef/issues).
+
+Note that this repository is primarily for reporting issues in the chef-client itself.  For reporting issues against other Chef projects, please look up the appropriate repository. If you're unsure where to submit an issue, please ask in the #chef-dev channel in [Chef Community Slack](https://community-slack.chef.io/).
+
+## How We Build & Release Chef
+
+For information on how a contribution goes from PR to released package, see [How Chef Infra Is Built](docs/dev/design_documents/how_chef_is_tested_and_built.md)
+
+To learn more about our monthly feature releases and yearly major releases, see [Chef Infra Release and Support Schedule](./docs/dev/policy/release_and_support_schedule.md).
+
+## Getting Involved
+
+We'd love to have your help developing Chef Infra. See our [Contributing Document](./CONTRIBUTING.md) for more information on getting started.
+
+### Community PR Reviews
+Want to raise, review, and help merge a PR with the community and the engineering staff? Please see: [Community Pr Review](./docs/dev/how_to/community_pr_review_checklist.md)
+
+## License
+
+```
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+# Copyright
+See [COPYRIGHT.md](./COPYRIGHT.md).
+
+
+# FILE: LICENSE
+                              Apache License
+                        Version 2.0, January 2004
+                     http://www.apache.org/licenses/
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+1. Definitions.
+
+   "License" shall mean the terms and conditions for use, reproduction,
+   and distribution as defined by Sections 1 through 9 of this document.
+
+   "Licensor" shall mean the copyright owner or entity authorized by
+   the copyright owner that is granting the License.
+
+   "Legal Entity" shall mean the union of the acting entity and all
+   other entities that control, are controlled by, or are under common
+   control with that entity. For the purposes of this definition,
+   "control" means (i) the power, direct or indirect, to cause the
+   direction or management of such entity, whether by contract or
+   otherwise, or (ii) ownership of fifty percent (50%) or more of the
+   outstanding shares, or (iii) beneficial ownership of such entity.
+
+   "You" (or "Your") shall mean an individual or Legal Entity
+   exercising permissions granted by this License.
+
+   "Source" form shall mean the preferred form for making modifications,
+   including but not limited to software source code, documentation
+   source, and configuration files.
+
+   "Object" form shall mean any form resulting from mechanical
+   transformation or translation of a Source form, including but
+   not limited to compiled object code, generated documentation,
+   and conversions to other media types.
+
+   "Work" shall mean the work of authorship, whether in Source or
+   Object form, made available under the License, as indicated by a
+   copyright notice that is included in or attached to the work
+   (an example is provided in the Appendix below).
+
+   "Derivative Works" shall mean any work, whether in Source or Object
+   form, that is based on (or derived from) the Work and for which the
+   editorial revisions, annotations, elaborations, or other modifications
+   represent, as a whole, an original work of authorship. For the purposes
+   of this License, Derivative Works shall not include works that remain
+   separable from, or merely link (or bind by name) to the interfaces of,
+   the Work and Derivative Works thereof.
+
+   "Contribution" shall mean any work of authorship, including
+   the original version of the Work and any modifications or additions
+   to that Work or Derivative Works thereof, that is intentionally
+   submitted to Licensor for inclusion in the Work by the copyright owner
+   or by an individual or Legal Entity authorized to submit on behalf of
+   the copyright owner. For the purposes of this definition, "submitted"
+   means any form of electronic, verbal, or written communication sent
+   to the Licensor or its representatives, including but not limited to
+   communication on electronic mailing lists, source code control systems,
+   and issue tracking systems that are managed by, or on behalf of, the
+   Licensor for the purpose of discussing and improving the Work, but
+   excluding communication that is conspicuously marked or otherwise
+   designated in writing by the copyright owner as "Not a Contribution."
+
+   "Contributor" shall mean Licensor and any individual or Legal Entity
+   on behalf of whom a Contribution has been received by Licensor and
+   subsequently incorporated within the Work.
+
+2. Grant of Copyright License. Subject to the terms and conditions of
+   this License, each Contributor hereby grants to You a perpetual,
+   worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+   copyright license to reproduce, prepare Derivative Works of,
+   publicly display, publicly perform, sublicense, and distribute the
+   Work and such Derivative Works in Source or Object form.
+
+3. Grant of Patent License. Subject to the terms and conditions of
+   this License, each Contributor hereby grants to You a perpetual,
+   worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+   (except as stated in this section) patent license to make, have made,
+   use, offer to sell, sell, import, and otherwise transfer the Work,
+   where such license applies only to those patent claims licensable
+   by such Contributor that are necessarily infringed by their
+   Contribution(s) alone or by combination of their Contribution(s)
+   with the Work to which such Contribution(s) was submitted. If You
+   institute patent litigation against any entity (including a
+   cross-claim or counterclaim in a lawsuit) alleging that the Work
+   or a Contribution incorporated within the Work constitutes direct
+   or contributory patent infringement, then any patent licenses
+   granted to You under this License for that Work shall terminate
+   as of the date such litigation is filed.
+
+4. Redistribution. You may reproduce and distribute copies of the
+   Work or Derivative Works thereof in any medium, with or without
+   modifications, and in Source or Object form, provided that You
+   meet the following conditions:
+
+   (a) You must give any other recipients of the Work or
+       Derivative Works a copy of this License; and
+
+   (b) You must cause any modified files to carry prominent notices
+       stating that You changed the files; and
+
+   (c) You must retain, in the Source form of any Derivative Works
+       that You distribute, all copyright, patent, trademark, and
+       attribution notices from the Source form of the Work,
+       excluding those notices that do not pertain to any part of
+       the Derivative Works; and
+
+   (d) If the Work includes a "NOTICE" text file as part of its
+       distribution, then any Derivative Works that You distribute must
+       include a readable copy of the attribution notices contained
+       within such NOTICE file, excluding those notices that do not
+       pertain to any part of the Derivative Works, in at least one
+       of the following places: within a NOTICE text file distributed
+       as part of the Derivative Works; within the Source form or
+       documentation, if provided along with the Derivative Works; or,
+       within a display generated by the Derivative Works, if and
+       wherever such third-party notices normally appear. The contents
+       of the NOTICE file are for informational purposes only and
+       do not modify the License. You may add Your own attribution
+       notices within Derivative Works that You distribute, alongside
+       or as an addendum to the NOTICE text from the Work, provided
+       that such additional attribution notices cannot be construed
+       as modifying the License.
+
+   You may add Your own copyright statement to Your modifications and
+   may provide additional or different license terms and conditions
+   for use, reproduction, or distribution of Your modifications, or
+   for any such Derivative Works as a whole, provided Your use,
+   reproduction, and distribution of the Work otherwise complies with
+   the conditions stated in this License.
+
+5. Submission of Contributions. Unless You explicitly state otherwise,
+   any Contribution intentionally submitted for inclusion in the Work
+   by You to the Licensor shall be under the terms and conditions of
+   this License, without any additional terms or conditions.
+   Notwithstanding the above, nothing herein shall supersede or modify
+   the terms of any separate license agreement you may have executed
+   with Licensor regarding such Contributions.
+
+6. Trademarks. This License does not grant permission to use the trade
+   names, trademarks, service marks, or product names of the Licensor,
+   except as required for reasonable and customary use in describing the
+   origin of the Work and reproducing the content of the NOTICE file.
+
+7. Disclaimer of Warranty. Unless required by applicable law or
+   agreed to in writing, Licensor provides the Work (and each
+   Contributor provides its Contributions) on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+   implied, including, without limitation, any warranties or conditions
+   of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+   PARTICULAR PURPOSE. You are solely responsible for determining the
+   appropriateness of using or redistributing the Work and assume any
+   risks associated with Your exercise of permissions under this License.
+
+8. Limitation of Liability. In no event and under no legal theory,
+   whether in tort (including negligence), contract, or otherwise,
+   unless required by applicable law (such as deliberate and grossly
+   negligent acts) or agreed to in writing, shall any Contributor be
+   liable to You for damages, including any direct, indirect, special,
+   incidental, or consequential damages of any character arising as a
+   result of this License or out of the use or inability to use the
+   Work (including but not limited to damages for loss of goodwill,
+   work stoppage, computer failure or malfunction, or any and all
+   other commercial damages or losses), even if such Contributor
+   has been advised of the possibility of such damages.
+
+9. Accepting Warranty or Additional Liability. While redistributing
+   the Work or Derivative Works thereof, You may choose to offer,
+   and charge a fee for, acceptance of support, warranty, indemnity,
+   or other liability obligations and/or rights consistent with this
+   License. However, in accepting such obligations, You may act only
+   on Your own behalf and on Your sole responsibility, not on behalf
+   of any other Contributor, and only if You agree to indemnify,
+   defend, and hold each Contributor harmless for any liability
+   incurred by, or claims asserted against, such Contributor by reason
+   of your accepting any such warranty or additional liability.
+
+END OF TERMS AND CONDITIONS
+
+APPENDIX: How to apply the Apache License to your work.
+
+   To apply the Apache License to your work, attach the following
+   boilerplate notice, with the fields enclosed by brackets "[]"
+   replaced with your own identifying information. (Don't include
+   the brackets!)  The text should be enclosed in the appropriate
+   comment syntax for the file format. We also recommend that a
+   file or class name and description of purpose be included on the
+   same "printed page" as the copyright notice for easier
+   identification within third-party archives.
+
+Copyright [yyyy] [name of copyright owner]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+# FILE: Dockerfile
+# About this Dockerfile:
+# When run without any arguments passed, this Docker file will build the latest "stable" release of Chef. The version
+# of that release is specified in the VERSION arg in this file, and is automatically updated as described below.
+#
+# Several processes occur using this file which are kicked off by our Expeditor pipeline tooling:
+#
+# When a build makes it through our internal CI system and is promoted to our "unstable" channel Expeditor will
+# trigger a Docker image build of that version and push it to Docker Hub.
+#
+# When tests of an unstable build pass within our CI system it will be promoted to the "current" channel and
+# Expeditor will tag that image as "current" on Docker Hub.
+#
+# When a build is promoted to our "stable" channel .expeditor/update_dockerfile.sh is run to update the version
+# in this file and also tag that image as "latest" on Docker Hub. Additionally major and minor tags will be
+# applied so 15.0.260 would be tagged as "latest", "stable", "15" and "15.0", as well as "15.0.260".
+
+FROM busybox
+LABEL maintainer="Progress Chef <docker@chef.io>"
+
+#TODO: Change back to stable when 19.x is GA
+ARG CHANNEL=unstable
+ARG VERSION=19.2.12
+ARG ARCH=x86_64
+
+ENV HAB_LICENSE="accept-no-persist"
+
+# Use --mount=type=secret to access HAB_AUTH_TOKEN securely
+RUN --mount=type=secret,id=hab_token \
+    wget -qO /tmp/hab.tar.gz https://packages.chef.io/files/stable/habitat/latest/hab-${ARCH}-linux.tar.gz && \
+    mkdir /tmp/hab && \
+    tar -xzf /tmp/hab.tar.gz -C /tmp/hab && \
+    HAB_DIR=$(find /tmp/hab -type d -name "hab-*") && \
+    $HAB_DIR/hab pkg install --binlink --force --channel "stable" "core/hab" && \
+    rm -rf /tmp/* && \
+    HAB_AUTH_TOKEN=$(cat /run/secrets/hab_token) hab pkg install --binlink --force --auth "$(cat /run/secrets/hab_token)" --channel "${CHANNEL}" "chef/chef-infra-client/${VERSION}" && \
+    rm -rf /hab/cache
+
+VOLUME [ "/hab" ]
+
+
+# FILE: COPYRIGHT.md
+Copyright (c) 2009-2026 Progress Software Corporation and/or its subsidiaries or affiliates. All rights reserved.
+
+
+# FILE: CONTRIBUTING.md
+# Contributing to Chef Projects
+
+We're glad you want to contribute to a Chef project! This document will help answer common questions you may have during your first contribution.
+
+## Submitting Issues
+
+Not every contribution comes in the form of code. Submitting, confirming, and triaging issues is an important task for any project. At Chef we use GitHub to track all project issues.
+
+If you are familiar with Chef and know the component that is causing you a problem, you can file an issue in the corresponding GitHub project. All of our Open Source Software can be found in our [Chef GitHub organization](https://github.com/chef/). All projects include GitHub issue templates to help gather information needed for a thorough review.
+
+We ask you not to submit security concerns via GitHub. For details on submitting potential security issues please see <https://www.chef.io/security/>
+
+In addition to GitHub issues, we also utilize a feedback site that helps our product team track and rank feature requests. If you have a feature request, this is an excellent place to start <https://www.chef.io/feedback/>
+
+## Contribution Process
+
+We have a 3 step process for contributions:
+
+1. Commit changes to a git branch, making sure to sign-off those changes for the [Developer Certificate of Origin](#developer-certification-of-origin-dco).
+2. Create a GitHub Pull Request for your change, following the instructions in the pull request template.
+3. Perform a [Code Review](#code-review-process) with the project maintainers on the pull request.
+
+### Branching
+
+When creating pull requests, you will need to push your branch to your own fork of the repo.
+
+For internal teams:
+* Prefix your initials such as `tp/branch-name` to help delineate at a glance who created the branch.
+* Please include a ticket number for JIRA (e.g., `tp/infc-399-branch-short-desc`) if possible to help JIRA link back to the branch and subsequent PR.
+
+### Pull Request Requirements
+
+Chef Projects are built to last. We strive to ensure high quality throughout the experience. In order to ensure this, we require that all pull requests to Chef projects meet these specifications:
+
+1. **Tests:** To ensure high quality code and protect against future regressions, we require all the code in Chef Projects to have at least unit test coverage. We use [RSpec](http://rspec.info/) for unit testing.
+2. **Green CI Tests:** We use [Buildkite](https://buildkite.com/chef-oss) to test all pull requests. We require these test runs to succeed on every pull request before being merged.
+3. **Rebase** `git rebase {target-branch}` prior to merging. :no_entry: Avoid pulling in the target branch, as mixing and matching with `rebase` can easily make a mess of the commit history :sob:... You will likely need to `git push -f {remote-branch}` after rebasing.
+
+### Code Review Process
+
+Code review takes place in GitHub pull requests. See [this article](https://help.github.com/articles/about-pull-requests/) if you're not familiar with GitHub Pull Requests.
+
+Once you open a pull request, project maintainers will review your code and respond to your pull request with any feedback they might have. The process at this point is as follows:
+
+1. Two or more members of the owners, approvers, or reviewers groups must approve your PR. See the [Chef Infra OSS Project](https://github.com/chef/chef-oss-practices/blob/main/projects/chef-infra.md) for a list of all members.
+2. Your change will be merged into the project's `main` branch
+3. Our Expeditor bot will automatically increment the version and update the project's changelog with your contribution. For projects that ship as a package, Expeditor will kick off a build which will publish the package to the project's `current` channel.
+
+If you would like to learn about when your code will be available in a release of Chef, read more about [Chef Release Cycles](#release-cycles).
+
+### Developer Certification of Origin (DCO)
+
+Licensing is very important to open source projects. It helps ensure the software continues to be available under the terms that the author desired.
+
+Chef uses [the Apache 2.0 license](https://github.com/chef/chef/blob/main/LICENSE) to strike a balance between open contribution and allowing you to use the software however you would like to.
+
+The license tells you what rights you have that are provided by the copyright holder. It is important that the contributor fully understands what rights they are licensing and agrees to them. Sometimes the copyright holder isn't the contributor, such as when the contributor is doing work on behalf of a company.
+
+To make a good faith effort to ensure these criteria are met, Chef requires the Developer Certificate of Origin (DCO) process to be followed.
+
+The DCO is an attestation attached to every contribution made by every developer. In the commit message of the contribution, the developer simply adds a Signed-off-by statement and thereby agrees to the DCO, which you can find below or at <http://developercertificate.org/>.
+
+```
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the
+    best of my knowledge, is covered under an appropriate open
+    source license and I have the right under that license to
+    submit that work with modifications, whether created in whole
+    or in part by me, under the same open source license (unless
+    I am permitted to submit under a different license), as
+    Indicated in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including
+    all personal information I submit with it, including my
+    sign-off) is maintained indefinitely and may be redistributed
+    consistent with this project or the open source license(s)
+    involved.
+```
+
+For more information on the change see the Chef Blog post [Introducing Developer Certificate of Origin](https://blog.chef.io/2016/09/19/introducing-developer-certificate-of-origin/)
+
+#### DCO Sign-Off Methods
+
+The DCO requires a sign-off message in the following format appear on each commit in the pull request:
+
+```
+Signed-off-by: Julia Child <julia.child@progress.com>
+```
+
+The DCO text can either be manually added to your commit body, or you can add either **-s** or **--signoff** to your usual git commit commands. If you are using the GitHub UI to make a change you can add the sign-off message directly to the commit message when creating the pull request. If you forget to add the sign-off you can also amend a previous commit with the sign-off by running **git commit --amend -s**. If you've pushed your changes to GitHub already you'll need to force push your branch after this with **git push -f**.
+
+### Chef Obvious Fix Policy
+
+Small contributions, such as fixing spelling errors, where the content is small enough to not be considered intellectual property, can be submitted without signing the contribution for the DCO.
+
+As a rule of thumb, changes are obvious fixes if they do not introduce any new functionality or creative thinking. Assuming the change does not affect functionality, some common obvious fix examples include the following:
+
+- Spelling / grammar fixes
+- Typo correction, white space and formatting changes
+- Comment clean up
+- Bug fixes that change default return values or error codes stored in constants
+- Adding logging messages or debugging output
+- Changes to 'metadata' files like Gemfile, .gitignore, build scripts, etc.
+- Moving source files from one directory or package to another
+
+**Whenever you invoke the "obvious fix" rule, please say so in your commit message:**
+
+```
+------------------------------------------------------------------------
+commit 370adb3f82d55d912b0cf9c1d1e99b132a8ed3b5
+Author: Julia Child <juliachild@chef.io>
+Date:   Wed Sep 18 11:44:40 2015 -0700
+
+  Fix typo in the README.
+
+  Obvious fix.
+
+------------------------------------------------------------------------
+```
+
+### Gems
+
+When making a PR, if you need to add or remove gems, it should be done using the `--conservative` flag:
+```shell
+gem install [gem_name] --conservative
+gem update [gem_name] --conservative
+```
+
+If your PR includes such an update to `Gemfile.lock`, please include the output of your `gem update` or `gem install` command in the PR.
+
+### Gem Maintenance
+
+At a minimum, once a quarter the maintainers will run a full `bundle update` to update all gems within the limits defined by the `Gemfile`.
+(This should be done preferably **after** minor release for testability)
+
+At least once a year, we will also do a review of the limits in the `Gemfile`.
+
+### Merging
+1. Use `[Squash and Merge]` and edit down the commit history to a clear description of what the changes were with the "TL;DR" bits in the first 60 characters of the commit message. Update the PR title if necessary.
+2. Add the changes to the [Pending Release Notes](https://github.com/chef/chef/wiki) for the appropriate release version.
+
+## Release Cycles
+
+Our primary shipping vehicle is operating system specific packages that includes all the requirements of Chef. The packages are built with our [Habitat](https://github.com/habitat-sh/habitat) packing project.
+
+We also release our software as gems to [Rubygems](https://rubygems.org/) but we strongly recommend using Chef packages since they are the only combination of native libraries & gems required by Chef that we test thoroughly.
+
+Our version numbering roughly follows [Semantic Versioning](http://semver.org/) standard. Our standard version numbers look like X.Y.Z which mean:
+
+- X is a major release, which may not be fully compatible with prior major releases
+- Y is a minor release, which adds both new features and bug fixes
+- Z is a patch release, which adds just bug fixes
+
+After shipping a release of Chef we bump the `Minor` version by one to start development of the next minor release. All merges to `main` trigger an increment of the `Patch` version, and a build through our internal testing pipeline. We do a `Minor` release approximately every month, which consist of shipping one of the already auto-incremented and tested `Patch` versions. For example after shipping 12.10.24, we incremented Chef to 12.11.0\. From there 18 commits where merged bringing the version to 12.11.18, which we shipped as an omnibus package.
+
+Announcements of releases are made to the [chef mailing list](https://discourse.chef.io/c/chef-release) when they are available and are mirrored to the #announcements channel on the [Chef Community Slack](https://community-slack.chef.io/).
+
+## Chef Community
+
+Chef is made possible by a strong community of developers and system administrators. If you have any questions or if you would like to get involved in the Chef community you can check out:
+
+- [Chef Mailing List](https://discourse.chef.io/)
+- [Chef Community Slack](https://community-slack.chef.io/)
+
+Also here are some additional pointers to some awesome Chef content:
+
+- [Chef Docs](https://docs.chef.io/)
+- [Learn Chef](https://learn.chef.io/)
+- [Chef Software Inc. Website](https://www.chef.io/)
+- [Chef Project Website](https://www.chef.sh/)
+
+
+# FILE: CODE_OF_CONDUCT.md
+Please refer to the Chef Community Code of Conduct at https://www.chef.io/code-of-conduct/
+
+
+# FILE: CLA_ARCHIVE.md
+
+# Corporate CLAs
+
+An archive of the signers of Corporate Contributor License Agreements (CCLA).
+Approved employees of these companies were permitted to contribute to Chef
+projects.
+
+## From the Paper CLA Era (Prior to 2014-06-12)
+
+Prior to June 2014, employees were approved by being listed on the schedule A of
+the Corporate CLA.
+
+| **Number:** | **Company:**                           | **Date:** |
+|:------------|:---------------------------------------|:----------|
+|  1          |  Opscode                               |           |
+|  2          |  Engine Yard                           |  1/7/09   |
+|  3          |  Wikia                                 |           |
+|  4          |  Aptana                                |  2/12/09  |
+|  5          |  CleanOffer                            |  3/2/09   |
+|  6          |  37signals                             |  3/4/09   |
+|  7          |  Nomitor                               |  3/9/09   |
+|  8          |  We Go To 12                           |  4/30/09  |
+|  9          |  Plus2 Pty                             |  5/8/09   |
+|  10         |  Phusion                               |  6/22/09  |
+|  11         |  Rightscale                            |  6/30/09  |
+|  12         |  Rubaidh                               |  7/27/09  |
+|  13         |  Peritor GmbH                          |  8/12/09  |
+|  14         |  Heroku                                |  8/13/09  |
+|  15         |  Internet Exchange                     |  9/22/09  |
+|  16         |  Betfair                               |  9/30/09  |
+|  17         |  Sojern                                |  11/2/09  |
+|  18         |  Runa                                  |  12/20/09 |
+|  19         |  MaxMedia                              |  1/11/10  |
+|  20         |  Quantifind                            |  2/11/10  |
+|  21         |  VMware                                |  2/11/10  |
+|  22         |  Rackspace                             |  2/26/10  |
+|  23         |  Leaway Enterprise                     |  3/16/10  |
+|  24         |  Bueda                                 |  3/30/10  |
+|  25         |  Divergent Logic                       |  5/3/10   |
+|  26         |  Basho Technologies                    |  5/4/10   |
+|  27         |  Seven Scale                           |  5/13/10  |
+|  28         |  IglooNET                              |  5/21/10  |
+|  29         |  Freistil Consulting                   |  5/25/10  |
+|  30         |  Promet Solutions                      |  5/25/10  |
+|  31         |  Mint Digital                          |  6/16/10  |
+|  32         |  Picklive                              |  6/16/10  |
+|  33         |  42 Lines                              |  6/27/10  |
+|  34         |  Wildfire Interactiv                   |  7/9/10   |
+|  35         |  Dynamic Network Services              |  7/21/10  |
+|  36         |  PeerPong                              |  8/4/10   |
+|  37         |  domainfactory GmbH                    |  8/16/10  |
+|  38         |  Tecnh                                 |  8/17/10  |
+|  39         |  9Summer                               |  9/9/10   |
+|  40         |  Wixpress                              |  9/13/10  |
+|  41         |  Blue Box Group                        |  9/29/10  |
+|  42         |  FindsYou Limited                      |  10/6/10  |
+|  43         |  Highgroove Studios                    |  10/25/10 |
+|  44         |  ZeStuff                               |  10/28/10 |
+|  45         |  Worlize                               |  10/28/10 |
+|  46         |  Automated Labs                        |  11/3/10  |
+|  47         |  Estately                              |  11/4/10  |
+|  48         |  Kapoq                                 |  11/10/10 |
+|  49         |  Openminds                             |  11/10/10 |
+|  50         |  MobileCause                           |  11/10/10 |
+|  51         |  Atalanta Systems                      |  11/14/10 |
+|  52         |  Menue Americas                        |  11/17/10 |
+|  53         |  Sociable Limited                      |  12/1/10  |
+|  54         |  Nine Summer                           |  12/6/10  |
+|  55         |  Neo Technology                        |  1/27/11  |
+|  56         |  Moriz GmbH                            |  2/2/11   |
+|  57         |  AegisCo                               |  2/14/11  |
+|  58         |  SetJam                                |  2/15/11  |
+|  59         |  Tippr                                 |  2/18/11  |
+|  60         |  Ning                                  |  2/24/11  |
+|  61         |  Workday                               |  3/12/11  |
+|  62         |  7digital                              |  3/3/11   |
+|  63         |  PagerDuty                             |  3/17/11  |
+|  64         |  Gnowsis                               |  3/25/11  |
+|  65         |  Unboxed Consulting                    |  4/1/11   |
+|  66         |  CustomInk                             |  4/8/11   |
+|  67         |  TalentBox                             |  4/25/11  |
+|  68         |  Wavii                                 |  4/29/11  |
+|  69         |  Datadog                               |  5/4/11   |
+|  70         |  Viximo                                |  5/10/11  |
+|  71         |  ZephirWorks                           |  5/11/11  |
+|  72         |  Dell                                  |  5/12/11  |
+|  73         |  Newsweek/Daily Beast Company          |  5/19/11  |
+|  74         |  WordStream                            |  5/19/11  |
+|  75         |  Flagbit                               |  6/14/11  |
+|  76         |  Applications Online                   |  6/17/11  |
+|  77         |  Versapay                              |  7/5/11   |
+|  78         |  DigiTar                               |  7/19/11  |
+|  79         |  DreamHost                             |  7/21/11  |
+|  80         |  Edmunds.com                           |  7/22/11  |
+|  81         |  Every Ware                            |  7/25/11  |
+|  82         |  Ask.com                               |  8/1/11   |
+|  83         |  bring.out doo Sarajevo                |  8/11/11  |
+|  84         |  Kos Media                             |  8/15/11  |
+|  85         |  reallyenglish.com                     |  8/15/11  |
+|  86         |  Fewbytes                              |  8/18/11  |
+|  87         |  Business Intelligence Associates      |  8/19/11  |
+|  88         |  Tacit Knowledge                       |  8/22/11  |
+|  89         |  Zenexity                              |  8/30/11  |
+|  90         |  ClassDo                               |  8/30/11  |
+|  91         |  Myplanet                              |  9/2/11   |
+|  92         |  ihiji                                 |  9/16/11  |
+|  93         |  "Port 80 Productions, LLC"            |  10/28/11 |
+|  94         |  Green Alto                            |  11/2/11  |
+|  95         |  "Heavy Water Software, Inc."          |  11/4/11  |
+|  96         |  Wealthfront Inc.                      |  11/15/11 |
+|  97         |  "Kickstarter, Inc."                   |  11/18/11 |
+|  98         |  Webtrends Inc                         |  11/22/11 |
+|  99         |  "Infochimps, Inc."                    |  11/28/11 |
+|  100        |  "Cycle Computing, LLC"                |  11/29/11 |
+|  101        |  "Ubalo, Inc"                          |  12/8/11  |
+|  102        |  "SweetSpot Diabetes Care, Inc."       |  12/12/11 |
+|  103        |  "RideCharge, Inc."                    |  12/15/11 |
+|  104        |  "Riot Games, Inc."                    |  12/15/11 |
+|  105        |  Fiksu                                 |  12/21/11 |
+|  106        |  WhitePages Inc.                       |  1/3/12   |
+|  107        |  "CX, Inc."                            |  1/12/12  |
+|  108        |  Spoke Software                        |  1/15/12  |
+|  109        |  Xforty Technologies                   |  1/25/12  |
+|  110        |  "Democracy Works, Inc"                |  1/30/12  |
+|  111        |  "Pure Lake Software, Inc."            |  2/10/12  |
+|  112        |  Sveriges Television AB                |  2/14/12  |
+|  113        |  Reaktor Innovations                   |  2/14/12  |
+|  114        |  "Oxygen Cloud, Inc."                  |  2/14/12  |
+|  115        |  Robojar Pty Ltd                       |  2/17/12  |
+|  116        |  Green and Secure IT Limited           |  2/19/12  |
+|  117        |  ModCloth                              |  2/23/12  |
+|  118        |  Joyent                                |  2/29/12  |
+|  119        |  "Wallrazor, Inc."                     |  3/4/12   |
+|  120        |  "Cerner Innovation, Inc."             |  3/8/12   |
+|  121        |  "Numenta, Inc."                       |  3/27/12  |
+|  122        |  Kotiri Software Ltd.                  |  4/3/12   |
+|  123        |  "The Frontside Software, Inc."        |  4/5/12   |
+|  124        |  "Needle, Inc."                        |  4/5/12   |
+|  125        |  "Gap, Inc."                           |  4/10/12  |
+|  126        |  Youscribe                             |  4/11/12  |
+|  127        |  Deutsche Telekom Laboratories         |  4/17/12  |
+|  128        |  "Relevance, Inc."                     |  4/20/12  |
+|  129        |  Truer Sound LLC                       |  4/20/12  |
+|  130        |  Websym Technologies Private Ltd.      |  4/30/12  |
+|  131        |  DreamBox Learning Inc                 |  5/3/12   |
+|  132        |  Simple                                |  5/7/12   |
+|  133        |  "Consumer Club, Inc"                  |  5/10/12  |
+|  134        |  Onddo Labs                            |  5/18/12  |
+|  135        |  CyberAgent Corp.                      |  5/22/12  |
+|  136        |  SourceIndex IT-Services               |  6/7/12   |
+|  137        |  "Scribd, Inc."                        |  6/15/12  |
+|  138        |  Civolution BV                         |  6/18/12  |
+|  139        |  Drillinginfo                          |  6/18/12  |
+|  140        |  NaviNet                               |  6/20/12  |
+|  141        |  "Voxel Dot Net, Inc"                  |  6/26/12  |
+|  142        |  Asbury Theological Seminary           |  6/27/12  |
+|  143        |  The Cloudscaling Group                |  6/27/12  |
+|  144        |  "Creationline, Inc."                  |  6/27/12  |
+|  145        |  "Action Verb, LLC"                    |  7/10/12  |
+|  146        |  Iugu Servicos na Internet LTDA        |  7/11/12  |
+|  147        |  OpeniT                                |  7/18/12  |
+|  148        |  Cloudreach Limited                    |  7/24/12  |
+|  149        |  Bonnier Corporation                   |  7/25/12  |
+|  150        |  "OneHealth Solutions, Inc."           |  7/25/12  |
+|  151        |  Hewlett-Packard                       |  7/26/12  |
+|  152        |  Paydici Corp.                         |  7/26/12  |
+|  153        |  "Novell, Inc."                        |  8/1/12   |
+|  154        |  Schuberg Phillis B.V.                 |  8/3/12   |
+|  155        |  RelatelIQ Inc.                        |  8/3/12   |
+|  156        |  HomeMade Digital Ltd                  |  8/7/12   |
+|  157        |  "PrimeRevenue, Inc"                   |  8/10/12  |
+|  158        |  Calxeda                               |  8/14/12  |
+|  159        |  Big Cartel LLC                        |  8/17/12  |
+|  160        |  Atlassian                             |  8/27/12  |
+|  161        |  One Connect Limited                   |  9/7/12   |
+|  162        |  Sonian Inc                            |  9/8/12   |
+|  163        |  The App Business                      |  9/19/12  |
+|  164        |  "Pat Deegan, PhD & Associates, LLC"   |  9/26/12  |
+|  165        |  OmniTI                                |  9/26/12  |
+|  166        |  "Cloudant, Inc."                      |  10/5/12  |
+|  167        |  ZestFinance                           |  10/8/12  |
+|  168        |  Firebelly Design                      |  10/8/12  |
+|  169        |  Nu Echo                               |  10/16/12 |
+|  170        |  OpenConcept Consulting Inc.           |  10/18/12 |
+|  171        |  Apptentive                            |  10/20/12 |
+|  172        |  "Document Swarm, LLC"                 |  10/20/12 |
+|  173        |  "Tilting @, LLC"                      |  10/29/12 |
+|  174        |  "Sift Science, Inc"                   |  10/31/12 |
+|  175        |  FluxSauce                             |  11/1/12  |
+|  176        |  Rocket Internet GmbH                  |  11/2/12  |
+|  177        |  Coding-Knight LTD                     |  11/6/12  |
+|  178        |  Tapp                                  |  11/13/12 |
+|  179        |  Taqtiqa LLC                           |  11/14/12 |
+|  180        |  "Nordstrom, Inc"                      |  11/15/12 |
+|  181        |  Daptiv Solutions LLC                  |  11/26/12 |
+|  182        |  Lime Pepper Ltd                       |  11/28/12 |
+|  183        |  "Straydog Software, Inc."             |  11/29/12 |
+|  184        |  "Fidelity Technology Group, LLC"      |  12/6/12  |
+|  185        |  "Angelweb, Unipessoal Lda."           |  12/14/12 |
+|  186        |  bcs kommunikationslosungen            |  12/17/12 |
+|  187        |  "North County Tech Center, LLC"       |  12/22/12 |
+|  188        |  Emergent One                          |  1/9/13   |
+|  189        |  Ninefold Pty Limited                  |  1/9/13   |
+|  190        |  DecisionDesk                          |  1/13/13  |
+|  191        |  Belly Inc                             |  1/15/13  |
+|  192        |  cloudbau Gmbh                         |  1/18/13  |
+|  193        |  ActBlue Technical Services            |  1/18/13  |
+|  194        |  HiganWorks LLC                        |  1/22/13  |
+|  195        |  Ontario Systems                       |  1/23/13  |
+|  196        |  "Lytro, Inc."                         |  1/23/13  |
+|  197        |  Grupa Allegro Sp. z o.o.              |  1/31/13  |
+|  198        |  Workday Inc.                          |  2/5/13   |
+|  199        |  "Atlas Digital, LLC"                  |  2/6/13   |
+|  200        |  Intoximeters                          |  2/15/13  |
+|  201        |  Airbnb                                |  2/17/13  |
+|  202        |  Valtech AB                            |  2/20/13  |
+|  203        |  AWeber Communications                 |  2/25/13  |
+|  204        |  adesso mobile solutions GmbH          |  3/4/13   |
+|  205        |  "Banno, LLC"                          |  3/5/13   |
+|  206        |  AboutUs                               |  3/8/13   |
+|  207        |  "Google, Inc"                         |  3/14/13  |
+|  208        |  cloudControl GmbH                     |  3/21/13  |
+|  209        |  Springest                             |  3/25/13  |
+|  210        |  Criteo                                |  3/26/13  |
+|  211        |  "Thinking Phone Networks, Inc."       |  4/8/13   |
+|  212        |  Evolving Web Inc                      |  4/11/13  |
+|  213        |  BinaryBabel OSS                       |  4/17/13  |
+|  214        |  Tout Industries                       |  4/18/13  |
+|  215        |  "Lookout, Inc."                       |  4/22/13  |
+|  216        |  Recorded Future Inc                   |  4/23/13  |
+|  217        |  Irrational Industries                 |  5/1/13   |
+|  218        |  "Socrata, Inc"                        |  5/1/13   |
+|  219        |  "Aspera, Inc"                         |  5/1/13   |
+|  220        |  "Hadapt, Inc"                         |  5/3/13   |
+|  221        |  Moncai                                |  5/7/13   |
+|  222        |  IBM                                   |  5/14/13  |
+|  223        |  Yahoo Inc.                            |  5/14/13  |
+|  224        |  Texas A&M University College of Arch. |  5/20/13  |
+|  225        |  MoPub                                 |  5/21/13  |
+|  226        |  "Onelogin, Inc"                       |  5/24/13  |
+|  227        |  Yola                                  |  5/28/13  |
+|  228        |  CopperEgg                             |  5/28/13  |
+|  229        |  "MeetMe, Inc"                         |  5/30/13  |
+|  230        |  Boadree Innovations Kft.              |  6/17/13  |
+|  231        |  "Bitium, inc"                         |  6/21/13  |
+|  232        |  Heart of Sales LLC DBA Ace of Sales   |  7/4/13   |
+|  233        |  NetSrv Consulting Ltd                 |  7/7/13   |
+|  234        |  "AURIN Project"                       |  7/11/13  |
+|  235        |  Onlife Health Inc                     |  7/17/13  |
+|  236        |  Roblox Inc.                           |  7/17/13  |
+|  237        |  "Taos Mountain, Inc"                  |  7/24/13  |
+|  238        |  CoreMedia AG                          |  7/31/13  |
+|  239        |  "PROS, Inc. a Delaware Corporation"   |  8/14/13  |
+|  240        |  Identive Group                        |  8/21/13  |
+|  241        |  University of Derby                   |  8/22/13  |
+|  242        |  TeamSnap                              |  8/29/13  |
+|  243        |  Social Ally Pty Ltd                   |  8/29/13  |
+|  244        |  Ecodev Sarl                           |  9/9/13   |
+|  245        |  kreuzwerker GmbH                      |  9/18/13  |
+|  246        |  Central Desktop                       |  9/18/13  |
+|  247        |  Siili Solutions                       |  9/19/13  |
+|  248        |  Twiket LTD                            |  9/23/13  |
+|  249        |  Cloudsoft                             |  9/25/13  |
+|  250        |  MYOB NZ Limited                       |  9/26/13  |
+|  251        |  Mollie B.V.                           |  9/30/13  |
+|  252        |  Unbounce                              |  10/1/13  |
+|  253        |  Shutl Ltd.                            |  10/2/13  |
+|  254        |  Rapid7                                |  10/7/13  |
+|  255        |  "Our Film Festival, Inc (dba Fandor)" |  10/7/13  |
+|  256        |  "Ooyala, Inc."                        |  10/9/13  |
+|  257        |  Squaremouth Inc                       |  10/10/13 |
+|  258        |  Optiflows                             |  10/11/13 |
+|  259        |  General Sensing LTD                   |  10/10/13 |
+|  260        |  Deployable LTD                        |  10/22/13 |
+|  261        |  Klarna                                |  10/23/13 |
+|  262        |  "Nike, Inc."                          |  10/25/13 |
+|  263        |  SoundCloud Ltd.                       |  11/5/13  |
+|  264        |  Project Florida                       |  11/5/13  |
+|  265        |  Intuit                                |  11/6/13  |
+|  266        |  ComputeNext                           |  11/6/13  |
+|  267        |  The Weather Companies                 |  11/8/13  |
+|  268        |  PTC Inc                               |  11/13/13 |
+|  269        |  RamTank Inc                           |  11/19/13 |
+|  270        |  GoCardless                            |  11/24/13 |
+|  271        |  ZANOX AG                              |  11/30/13 |
+|  272        |  ARINC                                 |  12/3/13  |
+|  273        |  Lockheed Martin Corporation           |  12/3/13  |
+|  274        |  Brightcove                            |  12/16/13 |
+|  275        |  "Sprint.ly, Inc"                      |  12/27/13 |
+|  276        |  Cramer Development                    |  1/10/14  |
+|  277        |  "BlackBerry, Inc."                    |  1/20/14  |
+|  278        |  Cerner Innovation Inc                 |  2/6/14   |
+|  279        |  Cerner Innovation Inc                 |  2/11/14  |
+|  280        |  Engine Yard                           |  2/12/14  |
+|  281        |  Crux Hosted Services                  |  2/18/14  |
+|  282        |  Blue Spurs                            |  2/24/14  |
+|  283        |  GitLab.com                            |  3/1/14   |
+|  284        |  Yelp                                  |  3/7/14   |
+|  285        |  Workday                               |  3/10/14  |
+|  286        |  BMC Software Inc                      |  3/13/14  |
+|  287        |  Itison                                |  3/14/14  |
+|  288        |  "OnBeep, Inc."                        |  3/19/14  |
+|  289        |  Level 11 Consulting                   |  3/19/14  |
+|  290        |  Linaro Limited                        |  4/4/14   |
+|  291        |  Spanlink Communications               |  4/17/14  |
+|  292        |  "WESEEK, Inc"                         |  4/29/14  |
+|  293        |  "Iniqa UK, Ltd"                       |  6/4/14   |
+|  294        |  Jemstep                               |  6/13/14  |
+
+## From the Supermarket CCLA Era (from 2014-06-12 to 2016-10-03)
+
+Many organizations signed the CCLA again in Supermarket.
+
+| Company:                                     | Date:      |
+|:---------------------------------------------|:-----------|
+| PayPal, Inc.                                 | 2014-06-12 |
+| FullStack                                    | 2014-06-17 |
+| OnBeep, Inc.                                 | 2014-06-17 |
+| Orion Labs, Inc.                             | 2014-06-17 |
+| Ngineered                                    | 2014-06-17 |
+| Brightcove, Inc                              | 2014-06-19 |
+| Belly, Inc.                                  | 2014-06-19 |
+| OneHealth Solutions, Inc.                    | 2014-06-19 |
+| EverTrue, Inc.                               | 2014-06-23 |
+| Central Desktop                              | 2014-06-23 |
+| HiganWorks LLC                               | 2014-06-26 |
+| adesso mobile solutions GmbH                 | 2014-06-27 |
+| Express42                                    | 2014-06-29 |
+| Onddo Labs                                   | 2014-07-01 |
+| Codaptive (Pty) Ltd                          | 2014-07-01 |
+| Sean Porter Consulting                       | 2014-07-02 |
+| Klarna AB                                    | 2014-07-03 |
+| a Committee of Lunatics, LLC                 | 2014-07-03 |
+| Moriz GmbH                                   | 2014-07-08 |
+| TCN Inc                                      | 2014-07-09 |
+| JetThoughts LLC                              | 2014-07-09 |
+| Clodo                                        | 2014-07-10 |
+| Openhood "Halter & Tron" S.E.N.C.            | 2014-07-10 |
+| grincom                                      | 2014-07-10 |
+| Facebook                                     | 2014-07-11 |
+| Bluedog Operations                           | 2014-07-11 |
+| Spanlink Communications                      | 2014-07-11 |
+| Heartland Payment Systems                    | 2014-07-13 |
+| Ooyala                                       | 2014-07-14 |
+| Deveo                                        | 2014-07-14 |
+| Schuberg Philis B.V.                         | 2014-07-14 |
+| Engine Yard, Inc.                            | 2014-07-14 |
+| FancyGuy Technologies                        | 2014-07-15 |
+| Mojo Lingo LLC                               | 2014-07-15 |
+| Bally Technologies                           | 2014-07-16 |
+| Rackspace                                    | 2014-07-16 |
+| Jemstep Inc.                                 | 2014-07-16 |
+| Heavy Water                                  | 2014-07-16 |
+| Rstudio, Inc.                                | 2014-07-17 |
+| BlackBerry Ltd.                              | 2014-07-17 |
+| ffuenf                                       | 2014-07-19 |
+| Grantbow Consulting                          | 2014-07-22 |
+| O'Reilly Media                               | 2014-07-23 |
+| Revinate, Inc.                               | 2014-07-24 |
+| PHutchins                                    | 2014-07-24 |
+| AdREM Systems                                | 2014-07-24 |
+| Deutsche Telekom HBS                         | 2014-07-24 |
+| Ticketmaster                                 | 2014-07-26 |
+| chewbacco                                    | 2014-07-28 |
+| Ontario Systems                              | 2014-07-28 |
+| CoreMedia AG                                 | 2014-07-29 |
+| Democracy Works, Inc.                        | 2014-07-29 |
+| EITA                                         | 2014-07-29 |
+| GitLab B.V.                                  | 2014-07-30 |
+| Bloomberg LP                                 | 2014-07-30 |
+| MTA SZTAKI                                   | 2014-07-31 |
+| Travis Warlick LLC                           | 2014-07-31 |
+| Cerner Corporation                           | 2014-07-31 |
+| Texas A&M University                         | 2014-08-01 |
+| Granicus, Inc.                               | 2014-08-01 |
+| Splunk Inc.                                  | 2014-08-05 |
+| ThirdWave Insights LLC                       | 2014-08-05 |
+| OurTownRentals.com                           | 2014-08-05 |
+| Intoximeters, Inc                            | 2014-08-05 |
+| Seges                                        | 2014-08-07 |
+| Pixl8 Interactive Ltd                        | 2014-08-08 |
+| Gazelle                                      | 2014-08-08 |
+| Takipi                                       | 2014-08-12 |
+| De Marque                                    | 2014-08-14 |
+| Web Man d.o.o.                               | 2014-08-17 |
+| Picabit                                      | 2014-08-26 |
+| Widgit Software                              | 2014-08-26 |
+| Bitcellar, Inc.                              | 2014-08-27 |
+| Yelp Inc                                     | 2014-08-27 |
+| TORCH GmbH                                   | 2014-08-28 |
+| McKesson                                     | 2014-08-28 |
+| pronetics                                    | 2014-09-01 |
+| Numergy                                      | 2014-09-03 |
+| EveryPay AS                                  | 2014-09-09 |
+| Appriss, Inc.                                | 2014-09-09 |
+| Claude Tech                                  | 2014-09-10 |
+| Omise.co                                     | 2014-09-11 |
+| Criteo S.A.                                  | 2014-09-11 |
+| TelVue Corporation                           | 2014-09-11 |
+| Expedia                                      | 2014-09-15 |
+| EBSCO                                        | 2014-09-22 |
+| SAP                                          | 2014-09-26 |
+| inGenerator Ltd                              | 2014-09-29 |
+| WWWH LLC                                     | 2014-09-30 |
+| RapidWorkspace                               | 2014-10-04 |
+| Monomono                                     | 2014-10-08 |
+| Nordstrom                                    | 2014-10-10 |
+| InfoLens, Inc.                               | 2014-10-13 |
+| Webhippie                                    | 2014-10-13 |
+| IBM                                          | 2014-10-13 |
+| Xhost Australia                              | 2014-10-14 |
+| Simulmedia, Inc                              | 2014-10-14 |
+| Mypaulie                                     | 2014-10-15 |
+| SUSE LINUX Products GmbH                     | 2014-10-15 |
+| Yahoo                                        | 2014-10-17 |
+| Juniper Networks, Inc.                       | 2014-10-19 |
+| Bulletproof Networks                         | 2014-10-20 |
+| fd                                           | 2014-10-20 |
+| Norman Joyner                                | 2014-10-21 |
+| TJSoftworks                                  | 2014-10-21 |
+| Sneacho                                      | 2014-10-22 |
+| Ecodev                                       | 2014-10-30 |
+| Stack-up                                     | 2014-11-02 |
+| Scalingo                                     | 2014-11-03 |
+| Covario                                      | 2014-11-12 |
+| Xpanxion                                     | 2014-11-12 |
+| Schrodinger, Inc.                            | 2014-11-14 |
+| SK Planet                                    | 2014-11-18 |
+| jubianchi                                    | 2014-11-18 |
+| Médiamétrie                                  | 2014-11-19 |
+| Terra Firma Engineering, LLC                 | 2014-11-19 |
+| Pantheon                                     | 2014-11-20 |
+| Clogeny Technologies                         | 2014-11-21 |
+| DigiTar Inc.                                 | 2014-11-22 |
+| Second Mind                                  | 2014-11-25 |
+| Localytics                                   | 2014-11-25 |
+| Anerhan                                      | 2014-12-05 |
+| Treasure Data, Inc.                          | 2014-12-06 |
+| Yakara Ltd                                   | 2014-12-09 |
+| CirrusMio                                    | 2014-12-10 |
+| phutchins.com                                | 2014-12-12 |
+| removeme                                     | 2014-12-15 |
+| Sumo Logic                                   | 2014-12-18 |
+| Conjur Inc                                   | 2014-12-31 |
+| PMSIpilot                                    | 2015-01-05 |
+| INSANEWORKS,LLC                              | 2015-01-06 |
+| Mad13 Entertainment                          | 2015-01-06 |
+| Tautt                                        | 2015-01-10 |
+| AddThis                                      | 2015-01-12 |
+| DreamBox Learning, Inc.                      | 2015-01-14 |
+| Intel                                        | 2015-01-15 |
+| OptiShot Golf                                | 2015-01-16 |
+| RightScale                                   | 2015-01-16 |
+| Yahoo Japan                                  | 2015-01-19 |
+| My company                                   | 2015-01-19 |
+| OSC Technologies, LLC                        | 2015-01-21 |
+| Aniessh Sethh                                | 2015-01-28 |
+| Motorcycle Industry Council                  | 2015-01-30 |
+| Icinga                                       | 2015-02-02 |
+| pseudomuto                                   | 2015-02-03 |
+| CloudOps Inc.                                | 2015-02-07 |
+| Magemaven                                    | 2015-02-09 |
+| eVision Industry Software                    | 2015-02-09 |
+| AIRFRANCE / KLM                              | 2015-02-12 |
+| Elyxor, Inc                                  | 2015-02-17 |
+| Coderico                                     | 2015-02-19 |
+| PagerDuty                                    | 2015-02-23 |
+| Stratalux                                    | 2015-02-25 |
+| Barricade Security Systems, Ltd.             | 2015-02-25 |
+| TpT                                          | 2015-02-27 |
+| RevelOps Inc                                 | 2015-03-04 |
+| Standard Edge                                | 2015-03-04 |
+| Qwinix Technologies                          | 2015-03-05 |
+| CREATIONLINE,INC.                            | 2015-03-09 |
+| Google, Inc.                                 | 2015-03-09 |
+| yetu AG                                      | 2015-03-10 |
+| Target                                       | 2015-03-11 |
+| Cisco Systems                                | 2015-03-16 |
+| sshilarnav                                   | 2015-03-16 |
+| Vista Higher Learning, Inc.                  | 2015-03-19 |
+| Dynamic Network Services Inc.                | 2015-03-19 |
+| Cars.com                                     | 2015-03-20 |
+| left-left-lemma Oy                           | 2015-03-22 |
+| Carbonite                                    | 2015-03-23 |
+| Sum Labs, Inc                                | 2015-03-24 |
+| Batch.com                                    | 2015-03-24 |
+| Mindera                                      | 2015-03-30 |
+| ClouDesire                                   | 2015-03-31 |
+| Mudbug Media                                 | 2015-04-02 |
+| Oregon State University Open Source Lab      | 2015-04-03 |
+| SPINEN                                       | 2015-04-08 |
+| Needle, Inc.                                 | 2015-04-10 |
+| Calastone Ltd                                | 2015-04-15 |
+| Pixid Design                                 | 2015-04-17 |
+| Devloft Solutions, Inc.                      | 2015-04-27 |
+| Mingalar SAS                                 | 2015-04-28 |
+| Latta Partners                               | 2015-04-30 |
+| HPE                                          | 2015-05-01 |
+| acquantia.me                                 | 2015-05-01 |
+| ViaSat, Inc.                                 | 2015-05-04 |
+| Light Side                                   | 2015-05-05 |
+| Ingenium Group, LTD                          | 2015-05-11 |
+| Linux-Help.org                               | 2015-05-13 |
+| Alert Logic, Inc.                            | 2015-05-22 |
+| Resivaa Technologies Pvt LTD                 | 2015-05-22 |
+| Gap Inc                                      | 2015-05-22 |
+| PayByPhone Technologies                      | 2015-05-25 |
+| University of Derby                          | 2015-05-27 |
+| Blue Spurs                                   | 2015-06-02 |
+| Citrix Systems, Inc.                         | 2015-06-02 |
+| hevnly                                       | 2015-06-10 |
+| Cvent                                        | 2015-06-10 |
+| Jonathan Serafini                            | 2015-06-16 |
+| ExecOnline                                   | 2015-06-18 |
+| NCR                                          | 2015-06-18 |
+| ServeBox SAS                                 | 2015-06-19 |
+| neowiz games                                 | 2015-06-22 |
+| newsdict                                     | 2015-06-25 |
+| Loom Technology                              | 2015-06-30 |
+| Spanning Cloud Apps                          | 2015-06-30 |
+| DualSpark                                    | 2015-07-01 |
+| MariaDB USA                                  | 2015-07-07 |
+| Shopify Inc                                  | 2015-07-08 |
+| Yola                                         | 2015-07-09 |
+| Divergent Logic                              | 2015-07-11 |
+| Roboheart, Inc.                              | 2015-07-14 |
+| Scoutapp                                     | 2015-07-20 |
+| Continuous S.A.                              | 2015-07-20 |
+| Room 118 Solutions, Inc.                     | 2015-07-21 |
+| Devialab                                     | 2015-07-28 |
+| Asana                                        | 2015-07-29 |
+| CSAA IG                                      | 2015-08-05 |
+| Ed Powell                                    | 2015-08-06 |
+| Expedia Affiliate Network                    | 2015-08-07 |
+| Tacit Knowledge                              | 2015-08-11 |
+| Layer7 Cache                                 | 2015-08-13 |
+| The Buckle, Inc                              | 2015-08-13 |
+| Serveraptor                                  | 2015-08-27 |
+| Imagination Technologies Ltd.                | 2015-08-27 |
+| Ecosia GmbH                                  | 2015-08-28 |
+| Aeode                                        | 2015-08-31 |
+| Forever Oceans Corporation                   | 2015-09-01 |
+| Flugel.it                                    | 2015-09-04 |
+| TechM                                        | 2015-09-08 |
+| Diego                                        | 2015-09-08 |
+| Tarak Blah                                   | 2015-09-10 |
+| CustomInk                                    | 2015-09-15 |
+| LightSpeed Retail                            | 2015-09-20 |
+| Humance AG                                   | 2015-09-21 |
+| Crossroads Foundation Limited                | 2015-09-29 |
+| Cyber Dev Team                               | 2015-10-02 |
+| FCL                                          | 2015-10-02 |
+| Marchex, Inc.                                | 2015-10-06 |
+| S4M                                          | 2015-10-07 |
+| PhishMe                                      | 2015-10-13 |
+| Travis CI GmbH                               | 2015-10-17 |
+| mikeroySoft                                  | 2015-10-23 |
+| NDP, LLC                                     | 2015-10-30 |
+| None                                         | 2015-11-02 |
+| Lodestone Technologies, LLC                  | 2015-11-04 |
+| LimePoint Pty Ltd                            | 2015-11-05 |
+| echohack                                     | 2015-11-12 |
+| AIB                                          | 2015-11-16 |
+| NativeX Holdings LLC                         | 2015-11-17 |
+| Cloudrifles                                  | 2015-11-20 |
+| Secureworks                                  | 2015-11-20 |
+| Taufek                                       | 2015-11-22 |
+| BuyerQuest, Inc.                             | 2015-11-25 |
+| The Weather Companies                        | 2015-12-03 |
+| Monsenso                                     | 2015-12-07 |
+| Formatron                                    | 2015-12-10 |
+| Fidelity Investments                         | 2015-12-10 |
+| DataCite                                     | 2015-12-14 |
+| Parallels                                    | 2015-12-17 |
+| Wavefront, Inc.                              | 2015-12-30 |
+| Trust1Team                                   | 2016-01-01 |
+| Nulogy Corporation                           | 2016-01-07 |
+| Salmon                                       | 2016-01-08 |
+| Flexiant                                     | 2016-01-12 |
+| COSProfessionals, LLC                        | 2016-01-14 |
+| Bellacross Technologies, LLC                 | 2016-01-18 |
+| Relenz                                       | 2016-01-18 |
+| REĀN Cloud Solutions LLC                     | 2016-01-18 |
+| LyraPhase                                    | 2016-01-18 |
+| Tikal Knowledge, SAP                         | 2016-01-19 |
+| CloudPassage                                 | 2016-01-20 |
+| Topota                                       | 2016-01-21 |
+| Sebastian Trebitz - ICT Consultancy Services | 2016-01-21 |
+| AOL                                          | 2016-01-22 |
+| Dennis Vink                                  | 2016-01-22 |
+| Datadog Inc.                                 | 2016-01-26 |
+| Jason Barnett                                | 2016-02-02 |
+| Built by Robots                              | 2016-02-02 |
+| 7digital                                     | 2016-02-05 |
+| NewVoiceMedia Ltd                            | 2016-02-05 |
+| dkd Internet Service GmbH                    | 2016-02-08 |
+| Dylan Ledbetter                              | 2016-02-09 |
+| Mikroways                                    | 2016-02-13 |
+| Grassmuck.co                                 | 2016-02-13 |
+| Postmodern Solutions                         | 2016-02-14 |
+| Rally Health                                 | 2016-02-19 |
+| PolicyStat LLC                               | 2016-02-19 |
+| Pivotal Labs                                 | 2016-02-22 |
+| Code.org                                     | 2016-02-23 |
+| Underground Media Group                      | 2016-02-23 |
+| Rakuten Inc.                                 | 2016-02-26 |
+| ENC4U                                        | 2016-03-01 |
+| Mediarithmics                                | 2016-03-07 |
+| Planalytics                                  | 2016-03-11 |
+| IT Projections Limited                       | 2016-03-14 |
+| ShoreTel Inc.                                | 2016-03-17 |
+| Apparently                                   | 2016-03-18 |
+| TraSec GmbH                                  | 2016-03-21 |
+| B1 Systems GmbH                              | 2016-03-22 |
+| Beyah Solutions, LLC                         | 2016-03-24 |
+| Inetsys SL                                   | 2016-03-30 |
+| Instabug                                     | 2016-04-07 |
+| Anaplan                                      | 2016-04-25 |
+| ForeFlight LLC                               | 2016-04-25 |
+| Hydra Technologies, Inc                      | 2016-04-28 |
+| Gengo                                        | 2016-05-11 |
+| Crifkin Amalgamated LLC                      | 2016-05-11 |
+| Crifkin Amalgamated LLC                      | 2016-05-11 |
+| Vision Critical                              | 2016-05-16 |
+| iJet Technologies                            | 2016-05-17 |
+| SendGrid, Inc.                               | 2016-05-18 |
+| Mulesoft                                     | 2016-05-29 |
+| Shopify                                      | 2016-06-13 |
+| The Regents of the University of Colorado    | 2016-06-28 |
+| Tampere University of Technology             | 2016-07-01 |
+| Altiscale                                    | 2016-07-01 |
+| Atlas Digital                                | 2016-07-05 |
+| Fastly                                       | 2016-07-12 |
+| cloud.ee OÜ                                  | 2016-07-26 |
+| Hostelworld                                  | 2016-07-28 |
+| Wazuh                                        | 2016-07-28 |
+| Arista Networks                              | 2016-08-10 |
+| Totem Power, Inc.                            | 2016-08-13 |
+| Piratenpartei Deutschland                    | 2016-08-20 |
+| Testfabrik AG                                | 2016-09-01 |
+| B7Interactive, LLC                           | 2016-09-06 |
+| PolyHat                                      | 2016-09-07 |
+| Aaron's, Inc.                                | 2016-09-07 |
+| SWB company                                  | 2016-09-09 |
+| Nclouds Inc.                                 | 2016-09-12 |
+| DataMetis                                    | 2016-09-12 |
+| nclouds                                      | 2016-09-13 |
+| Personnal                                    | 2016-09-15 |
+| Soltius NZ                                   | 2016-09-16 |
+| Primar Group                                 | 2016-09-26 |
+| Gannett                                      | 2016-09-26 |
+| etracker GmbH                                | 2016-09-27 |
+| Freelance                                    | 2016-09-28 |
+
+# Allowed Contributors 2009 - 2016-10-93
+
+The list of allowed contributors from 2009 through 3 October, 2016 prior to Chef
+projects [moving to a Developer Certificate of Origin
+process](https://blog.chef.io/2016/09/19/introducing-developer-certificate-of-origin/).
+See [CONTRIBUTING](https://github.com/chef/chef/blob/main/CONTRIBUTING.md) for
+how to contribute to Chef today.
+
+Persons listed as associated with a company may also be individual contributors
+as well.
+
+1.  Adam Jacob 	 Opscode 	
+1.  Andy Delcambre 	 Engineyard 	1/7/09
+1.  Arjuna Christensen 	 	1/7/09
+1.  Artur Bergman 	 Wikia 	
+1.  Benjamin Black 	 Opscode 	1/10/09 	
+1.  Bryan McLellan 	 	1/7/09 	
+1.  Dan Walters 	 	3/7/09
+1.  Edward Muller 	 Engineyard 	1/28/09
+1.  Ezra Zygmuntowicz 	 Engineyard 	1/7/09
+1.  Jason Cook 	 Wikia 	
+1.  Joe Williams 	 	1/17/09
+1.  Kris Rasmussen 	 Aptana 	2/12/09
+1.  Lee Jensen 	 Engineyard 	1/24/09
+1.  Nick Sullivan 	 Wikia 	
+1.  Paul Nasrat 	 	1/19/09
+1.  Pawel Rein 	 Wikia 	
+1.  Przemek Malkowski 	 Wikia 	
+1.  Sean Cribbs 	 	2/5/09
+1.  Steve Berryman 	 	1/20/09
+1.  Steven Parkes 	 Aptana 	2/12/09
+1.  Thom May 	 	1/21/09
+1.  Tim Dysinger 	 	1/28/09
+1.  Michael Hale 	 	2/16/09
+1.  Mathieu Sauve-Frankel 	 	2/22/09
+1.  Matthew Landauer 	 	2/25/09
+1.  John Hampton 	 CleanOffer 	3/2/09
+1.  Nadeem Bitar 	 CleanOffer 	3/2/09
+1.  James Gartrell 	 	2/6/09
+1.  Joshua Sierles 	 37signals 	3/4/09
+1.  Mark Imbriaco 	 37signals 	3/4/09
+1.  Stephen Haynes 	 Nomitor 	3/9/09
+1.  Yun Huang Yong 	 Nomitor 	3/9/09
+1.  David Lee 	 	3/9/09
+1.  Matthew Kent 	 	3/24/09
+1.  Dave Myron 	 	4/3/09
+1.  Miguel Cabeça 	 	8/4/09
+1.  Jason Jackson 	 	4/9/09
+1.  Caleb Tennis 	 	4/10/09
+1.  Michael Lim 	 	4/14/09
+1.  David Balatero 	 	4/28/09
+1.  David Grandinetti 	 We Go To 12 	4/30/09
+1.  Lachlan Cox 	 Plus2 Pty 	5/8/09
+1.  Scott Likens 	 	4/30/09
+1.  Andrew Willis 	 	5/25/09
+1.  Hongli Lai 	 Phusion 	6/22/09
+1.  Ninh Bui 	 Phusion 	6/22/09
+1.  Edmund Haselwanter	cloudbau Gmbh	6/25/09
+1.  Raphael Simon 	 RightScale 	6/30/09
+1.  Tony Spataro 	 RightScale 	6/30/09
+1.  Stéphane Crivisier 	 	6/30/09
+1.  Matthew Todd 	 Highgroove Studios 	7/1/09
+1.  Grant Zanetti 	 	2/1/09
+1.  Peter Woodman 	 	6/22/09
+1.  Daniel DeLeo 	 	7/10/09
+1.  Jeppe Madsen 	 	9/13/09
+1.  Cary Penniman 	 RightScale 	7/20/09
+1.  J. Chris Anderson 	 	8/7/09
+1.  Graeme Mathieson 	 Rubaidh 	8/10/09
+1.  Mark Connell 	 Rubaidh 	8/10/09
+1.  Jonathan Weiss 	 Peritor GmbH 	8/12/09
+1.  Mathias Meyer 	 Peritor GmbH 	8/12/09
+1.  Pedro Belo 	 Heroku 	8/13/09
+1.  Ricardo Chimal Jr. 	 Heroku 	8/13/09
+1.  Adam Wiggins 	 Heroku 	8/13/09
+1.  Ryan Tomayko 	 Heroku 	8/13/09
+1.  Blake Mizerany 	 Heroku 	8/13/09
+1.  Diego Algorta 	 	
+1.  Kevin Hunt 	 	8/14/09 	
+1.  Sidney Burks 	 	8/20/09 	
+1.  Joe Van Dyk 	 	9/1/09 	
+1.  Sig Lange 	 	9/1/09 	
+1.  Alexander van Zoest 	 	9/1/09 	
+1.  Nathan Mueller 	 	9/7/09 	
+1.  Roman Heinrich 	 	9/11/09 	
+1.  Gábor Vészi 	 	9/20/09 	
+1.  Kenneth Kalmer 	 Internet Exchange 	9/22/09 	
+1.  Luca Greco 	 	9/22/09 	
+1.  Charles Cook 	 Betfair 	9/30/09 	
+1.  Mario Giammarco 	 	10/6/09 	
+1.  Matthew King 	 	10/14/09 	
+1.  James Golick 	 	10/27/09 	
+1.  Jörn Berrisch 	 	10/28/09 	
+1.  Peter Crossley 	 	10/30/09 	
+1.  Eric Hankins 	 Sojern 	11/2/09 	
+1.  David McRae 	 Sojern 	11/2/09 	
+1.  Dan Fitch 	 Sojern 	11/2/09 	
+1.  Ian Meyer 	 	11/8/09 	
+1.  John Alberts 	 	11/9/09 	
+1.  Lee Marlow 	 	11/11/09 	
+1.  Tollef Fog Heen 	 	11/12/09 	
+1.  Cuong Chi Nghiem 	 	11/13/09 	
+1.  Gordon Thiesfeld 	 	11/18/09 	
+1.  Dreamcat4 	 	11/21/09 	
+1.  Guy Bolton King 	 	12/3/09 	
+1.  Robert Berger 	 Runa 	12/20/09 	
+1.  Siva Jagadeesan 	 Runa 	12/20/09 	
+1.  Ivan Pirlik 	 	12/22/09 	
+1.  David Abdemoulaie 	 	12/23/09 	
+1.  Alex Soto 	 	12/29/09 	
+1.  Bryan Helmkamp 	 	12/30/09 	
+1.  Jesse Nelson 	 	1/6/10 	
+1.  Seth Chisamore 	 Opscode 	1/11/10 	
+1.  Alfredo Deza 	 MaxMedia 	1/11/10 	
+1.  N. Alan Johnson Jr. 	 	1/15/10 	
+1.  Pavel Valodzka 	 	2/8/10 	
+1.  Kyle Maxwell 	 Quantifind 	2/11/10 	
+1.  Doug MacEachern 	 VMware 	2/11/10 	
+1.  Jan Zimmek 	 	2/14/10 	
+1.  Dan Prince 	 Rackspace 	2/26/10 	
+1.  Gabe Westmaas 	 Rackspace 	2/26/10 	
+1.  Tim Harper 	 	3/8/10 	
+1.  Renaud Chaput 	 	3/10/10 	
+1.  Daniel Peterson 	 	3/11/10 	
+1.  Amit Cohen 	 Leaway Enterprise 	3/16/10 	
+1.  Avishai Ish-Shalom 	 Leaway Enterprise 	3/16/10 	
+1.  Or Cohen 	 Leaway Enterprise 	3/16/10 	
+1.  Jon Swope 	 	3/19/10 	
+1.  Jonathan Tron 	 	3/19/10 	
+1.  Christopher Peplin 	 Bueda 	3/30/10 	
+1.  Trotter Cashion 	 	4/3/10 	
+1.  Benjamin Standefer 	 	4/6/10 	
+1.  P. Barrett Little 	 	4/7/10 	
+1.  John Nixon 	 	4/13/10 	
+1.  Bruce Krysiak 	 	4/13/10 	
+1.  Akzhan Abdulin 	 	4/14/10 	
+1.  Grant Rodgers 	 	4/17/10 	
+1.  Wesley Beary 	 	4/22/10 	
+1.  Farzad Farid 	 	4/23/10 	
+1.  Olivier Raginel 	 	4/26/10 	
+1.  Jacques Crocker 	 	5/3/10 	
+1.  Pierre Baillet 	 	5/3/10 	
+1.  Joel Merrick 	 	5/3/10 	
+1.  James Sanders 	 	5/3/10 	
+1.  John Goulah 	 	5/3/10 	
+1.  Toomas Pelberg 	 	5/3/10 	
+1.  Ceaser Larry 	 Divergent Logic 	5/3/10 	
+1.  Justin Sheehy 	 Basho Technologies 	5/4/10 	
+1.  Andrew Gross 	 Basho Technologies 	5/4/10 	
+1.  Bryan Fink 	 Basho Technologies 	5/4/10 	
+1.  Ben Mabey 	 	5/5/10 	
+1.  Christopher Durtschi 	 Divergent Logic 	5/7/10 	
+1.  Kevin Carter 	 Divergent Logic 	5/7/10 	
+1.  Saimon Moore 	 	5/13/10 	
+1.  Troy Davis 	 Seven Scale 	5/13/10 	 	
+1.  Eric Lindvall 	 Seven Scale 	5/13/10 	
+1.  Alexey Ivanov		5/14/10 	
+1.  Pritesh Mehta 	 	5/19/10 	
+1.  Ondrej Kudlik 	 IglooNET 	5/21/10 	
+1.  Marek Hulan 	 IglooNET 	5/21/10 	
+1.  Chad Woolley 	 	5/22/10 	
+1.  Jochen Lillich 	 Freistil Consulting 	5/25/10 	
+1.  Marius Ducea 	 Promet Solutions 	5/25/10 	
+1.  Eric Butler 	 	5/26/10 	
+1.  Sahil Cooner 	 	6/6/10 	
+1.  Richard Nicholas 	 Betfair 	6/9/10 	
+1.  Dan Slimmon 	 	6/10/10 	
+1.  Craig Webster 	 Picklive 	6/16/10 	
+1.  Dean Strelau 	 Mint Digital 	6/17/10 	
+1.  Kurt Yoder 	 	6/25/10 	
+1.  Jim Browne 	 42 Lines 	6/27/10 	
+1.  Andrey Sibiryov 	 	7/7/10 	
+1.  Anthony Newman 	 Betfair 	7/8/10 	
+1.  Thomas Hoover 	 	7/8/10 	
+1.  Dylan Egan 	 Wildfire Interactive 	7/9/10 	
+1.  Michael Carruthers 	 Wildfire Interactive 	7/11/10 	
+1.  Jon Seaberg 	 RightScale 	7/20/10 	
+1.  Sean O'Meara 	 	7/20/10 	
+1.  Cory von Wallenstein 	 Dynamic Network Services 	7/21/10 	
+1.  Michael Leinartas 	 	7/22/10 	
+1.  Thomas Bishop 	 	7/23/10 	
+1.  Jon Wood 	 	7/29/10 	
+1.  Dmitry Vyal 	 	8/4/10 	
+1.  Gilles Devaux 	 PeerPong 	8/4/10 	
+1.  Chris Pepper 	 	8/5/10 	
+1.  Dennis Klein 	 	8/6/10 	
+1.  Warwick Poole 	 	8/12/10 	
+1.  Ken Ming Ong 	 	8/15/10 	
+1.  Ash Berlin 	 	8/16/10 	
+1.  Jochen Tuchbreiter 	 domainfactory GmbH 	8/16/10 	
+1.  Mat Ellis 	 Tecnh 	8/17/10 	
+1.  Michael MacDonald 	 	8/17/10 	
+1.  Jorge Luiz deBrito Falcão 	 	8/18/10 	
+1.  Jamie Winsor 	 	8/19/10 	
+1.  Darrin Eden 	 	8/19/10 	
+1.  Jonathan Smith 	 	8/19/10 	
+1.  Andrew Fulcher 	 	8/23/10 	
+1.  Matthias Marschall 	 	8/25/10 	
+1.  Peter Struijk 	 	8/25/10 	
+1.  Robert Anthony Postill 	 	8/28/10 	
+1.  Joshua Timberman 	 Opscode 	9/6/10 	
+1.  Benjamin Rockwood 	 	9/6/10 	
+1.  Douglas Knight 	 	9/9/10 	
+1.  Andrew Cole 	 9Summer 	9/9/10 	
+1.  Dimitri Krassovski 	 Wixpress 	9/13/10 	
+1.  Gregory Man 	 Wixpress 	9/13/10 	
+1.  Allan Feid 	 	9/17/10 	
+1.  Ringo De Smet 	 	9/26/10 	
+1.  Tomasz Napierala 	 	9/27/10 	
+1.  Jesse Proudman 	 Blue Box Group 	9/29/10 	
+1.  Ian Parades 	 Blue Box Group 	9/29/10 	
+1.  Lee Huffman 	 Blue Box Group 	9/29/10 	
+1.  Christopher Horton 	 	10/1/10 	
+1.  Jude Sutton 	 FindsYou Limited 	10/6/10 	
+1.  James Le Cuirot 	 FindsYou Limited 	10/6/10 	
+1.  Richard Pelavin 	 	10/7/10 	
+1.  Blake Irvin 	ModCloth	10/8/10 	
+1.  Jim Van Fleet 	 	10/14/10 	
+1.  Laurent Désarmes 	 	10/14/10 	
+1.  Jay T. McCanta 	 	10/15/10 	
+1.  Eric G. Wolfe 	 	10/20/10 	
+1.  Sami Haahtinen 	 	10/21/10 	
+1.  Chris Kelly 	 Highgroove Studios 	10/25/10 	
+1.  Gerald L. Hevener Jr. 	 	10/25/10 	
+1.  Charles Quinn 	 Highgroove Studios 	10/25/10 	
+1.  Jonathan Wallace 	 Highgroove Studios 	10/25/10 	
+1.  Jason Ardell 	 	10/26/10 	
+1.  Sean Carey 	 	10/27/10 	
+1.  Pierre-Luc Brunet 	 ZeStuff 	10/28/10 	
+1.  Sean Walbran 	 	10/28/10 	
+1.  Brian McKelvey 	 Worlize 	10/28/10 	
+1.  Jeffrey Hulten 	 Automated Labs 	11/3/10 	
+1.  Doug Cole 	 Estately 	11/4/10 	
+1.  Ben Bleything 	 Estately 	11/4/10 	
+1.  Sebastian Boehm 	 	11/6/10 	
+1.  Ches Martin 	 	11/8/10 	
+1.  Eric C. Herot 	 	11/8/10 	
+1.  Oliver Hankeln 	 	11/10/10 	
+1.  David Nolan 	 Kapoq 	11/10/10 	
+1.  Frank Louwers 	 Openminds 	11/10/10 	
+1.  Bernard Grymonpon 	 Openminds 	11/10/10 	
+1.  Bram Gillemon 	 Openminds 	11/10/10 	
+1.  Paul Cortens 	 MobileCause 	11/10/10 	
+1.  Austin Schneider 	 MobileCause 	11/10/10 	
+1.  Kevin Ahrens 	 	11/13/10 	
+1.  Stephen Nelson-Smith 	 Atalanta Systems 	11/14/10 	
+1.  Caleb Groom 	 	11/16/10 	
+1.  Michael Ivey 		11/17/10 	
+1.  Wojciech Wnetrzak 	 	11/20/10 	
+1.  Dmitriy Tkachenko 	 	11/22/10 	
+1.  Filip Tepper 	 	11/24/10 	
+1.  Denis Barushev 	 	11/27/10 	
+1.  Pedro F. <<pancho>> Horrillo Guerra	 	11/28/10 	
+1.  James Harton 	 Sociable Limited 	12/1/10 	
+1.  Noah Kantrowitz 	 	12/4/10 	
+1.  Anthony Burton 	 	12/4/10 	
+1.  David Esposito 	 Nine Summer 	12/6/10 	
+1.  Mike Lecza 	 Nine Summer 	12/6/10 	
+1.  Andrew Cole 	 Nine Summer 	12/6/10 	
+1.  Michael Winser 	 Nine Summer 	12/6/10 	
+1.  Cory Burke 	 Nine Summer 	12/6/10 	
+1.  Charles Duffy 	 Tippr 	12/7/10 	
+1.  John Vincent 	 	12/10/10 	
+1.  Dustin Currie 	 	12/14/10 	
+1.  Mark Sonnabaum 	 	12/14/10 	
+1.  Elliot Murphy 	 	12/22/10 	
+1.  Laradji Nacer 	 	12/30/10 	
+1.  Todd Nine 	 	1/3/11 	
+1.  Elijah Wright 	 	1/5/11 	
+1.  Anshul Khandelwal 	 	1/13/11 	
+1.  Michael Carruthers 	 	1/16/11 	
+1.  Vishvananda Ishaya 	 	1/17/11 	
+1.  Scott Frazer 	 	1/17/11 	
+1.  Eric Hodel 	 	1/21/11 	
+1.  Eric Heydrick 	 	1/25/11 	
+1.  Andreas Kollegger 	 Neo Technology 	1/27/11 	
+1.  Steve Lum 	 	1/31/11 	
+1.  Anthony Goddard 	 	2/1/11 	
+1.  Roland Moriz 	 Moriz GmbH 	2/2/11 	
+1.  Emil Sit 	 Hadapt 	2/2/11 	
+1.  Ranjib Dey 	 	2/3/11 	
+1.  Ryan Davis 	 	2/8/11 	
+1.  Eric Coleman 	 	2/8/11 	
+1.  James Casey 	 	2/9/11 	
+1.  Maciej Pasternacki 	 	2/9/11 	
+1.  Grzegorz Marszalek 	 	2/11/11 	
+1.  James Sulinski 	 AegisCo 	2/14/11 	
+1.  Erik Sabowski 	 AegisCo 	2/14/11 	
+1.  Maciej Pasternacki 	 SetJam 	2/15/11 	
+1.  Steven Dossett 	 Ning 	2/17/11 	
+1.  Dane Knecht 	 Tippr 	2/18/11 	
+1.  Mark Imbriaco 	 Heroku 	2/28/11 	
+1.  Jonathan Matthews	7digital	3/3/11 	
+1.  Patrick Collins 	 	3/7/11 	
+1.  Jim Hopp 	 Workday 	3/12/11 	
+1.  Ken Dove 	 Workday 	3/12/11 	
+1.  Philip Reynolds 	 Workday 	3/12/11 	
+1.  Victor Zakharyev 	 Workday 	3/12/11 	
+1.  Greg Fuller 	 Workday 	3/12/11 	
+1.  Michael Callahan 	 Workday 	3/15/11 	
+1.  Don Norton 	 Workday 	3/15/11 	
+1.  Joe Nuspl 	 Workday 	3/15/11 	
+1.  Dan Thom 	 Workday 	3/15/11 	
+1.  Rick Cooper 	 Workday 	3/15/11 	
+1.  Patrick Debois 	 	3/14/11 	
+1.  Michael Guterl 	 	3/15/11 	
+1.  Andrew Miklas 	 PagerDuty 	3/17/11 	
+1.  Tristan Sloughter 	 	3/22/11 	
+1.  Jonathon Ramsey 	 	3/23/11 	
+1.  Jesai Langenbach 	 	3/24/11 	
+1.  Maciej Pasternacki 	 Gnowsis 	3/25/11 	
+1.  Omri Cohen 	 	3/28/11 	
+1.  Joseph Sokol-Margolis 	 	3/31/11 	
+1.  Alex Tomlins 	 Unboxed Consulting 	4/1/11 	
+1.  Holger Just 	 	4/5/11 	
+1.  Jake Vanderdray 	 CustomInk 	4/8/11 	
+1.  Nathen Harvey 	 CustomInk 	4/8/11 	
+1.  Padraig O'Sullivan 	 	4/8/11 	
+1.  Christian Trabold 	 	4/16/11 	
+1.  KC Braunschweig 	Edmunds.com	4/19/11 	
+1.  Josh Pasqualetto 	 	4/21/11 	
+1.  Christopher C. Johnson 	 	4/21/11 	
+1.  Christian Paredes 	 	4/22/11 	
+1.  Viral Shah 	 	4/24/11 	
+1.  Bradley Fritz 	 	4/24/11 	
+1.  Nat Lownes 	 	4/25/11 	
+1.  Jonathan Tron 	 TalentBox 	4/25/11 	
+1.  Joseph Halter 	 TalentBox 	4/25/11 	
+1.  Wilson Felipe Nunes Fernandes Pereira		4/27/11 	
+1.  Michael Grub

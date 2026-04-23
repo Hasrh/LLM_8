@@ -1,0 +1,12 @@
+passed: false
+score: 0.60
+
+checks:
+- structural-completeness: fail (Missing one or more required sections.)
+- evidence-grounding: pass (All findings include evidence.)
+- control-grounding: pass (Control references align with retrieved controls.)
+- consistency: pass (No obvious issue/severity/recommendation inconsistencies.)
+- empty-generic-detection: fail (Report is too short or generic.)
+
+warnings:
+- No findings were parsed from the report.

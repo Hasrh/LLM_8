@@ -1,0 +1,11 @@
+passed: false
+score: 0.75
+
+checks:
+- structural-completeness: pass (All required sections exist.)
+- evidence-grounding: fail (3 finding(s) missing evidence field.)
+- consistency: pass (No obvious issue/severity/recommendation inconsistencies.)
+- empty-generic-detection: pass (Report has sufficient specific content.)
+
+warnings:
+- Some findings are missing evidence.

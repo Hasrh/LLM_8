@@ -1,0 +1,502 @@
+[
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/gitea/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-44-47-405Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/grafana/.golangci.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-45-33-491Z_baseline_.golangci.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/helm/testdata/releases.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-45-59-138Z_baseline_releases.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/httpd/test/pyhttpd/htdocs/test2/alive.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-16-436Z_baseline_alive.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/istio/tools/proto/buf.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-37-519Z_baseline_buf.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kafka/trogdor/src/test/resources/log4j2.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-46-51-798Z_baseline_log4j2.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kubernetes/cluster/log-dump/logexporter-daemonset.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-47-23-519Z_baseline_logexporter-daemonset.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/laravel/composer.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-47-49-484Z_baseline_composer.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/minio/Dockerfile.hotfix",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-48-18-013Z_baseline_Dockerfile.hotfix",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/moby/vendor/resenje.org/singleflight/.golangci.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-115Z/2026-04-06T21-48-39-224Z_baseline_.golangci.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/puppet/ext/hiera/hiera.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-44-37-149Z_baseline_hiera.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rabbitmq-server/docs/compatibility.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-44-53-620Z_baseline_compatibility.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-15-192Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/redis/codecov.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-34-372Z_baseline_codecov.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/salt/.codeclimate.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-45-58-405Z_baseline_.codeclimate.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/spring-boot/documentation/spring-boot-docs/src/test/resources/com/example/myapp/config.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-06-856Z_baseline_config.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/terraform/testing/equivalence-tests/tests/variables_and_outputs/spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-18-848Z_baseline_spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/traefik/webui/tsconfig.node.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-36-571Z_baseline_tsconfig.node.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/trivy/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-46-47-997Z_baseline_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/vault/buf.gen.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-124Z/2026-04-06T21-47-03-968Z_baseline_buf.gen.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cryptography/vectors/cryptography_vectors/HPKE/test-vectors.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-44-36-718Z_baseline_test-vectors.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-00-783Z_baseline_.clang-tidy.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-17-210Z_baseline_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django-rest-framework/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-34-747Z_baseline_mkdocs.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/elasticsearch/x-pack/test/smb-fixture/src/main/resources/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-06-547Z_baseline_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/electron/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-19-417Z_baseline_tsconfig.spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/envoy/tools/dependency/cve.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-43-090Z_baseline_cve.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/express/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-03-227Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/fastapi/docs/zh/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-18-758Z_baseline_mkdocs.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/flask/.readthedocs.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-36-699Z_baseline_.readthedocs.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/ansible/test/units/config/test.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-44-36-531Z_baseline_test.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/apisix/t/pnpm-lock.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-44-55-874Z_baseline_pnpm-lock.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/calico/whisker/components.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-45-10-301Z_baseline_components.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/certbot/letstest/targets/targets.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-45-29-042Z_baseline_targets.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/chef/cspell.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-45-55-830Z_baseline_cspell.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cilium/images/standalone-dns-proxy/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-46-25-566Z_baseline_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cli/script/versioninfo.template.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-46-48-333Z_baseline_versioninfo.template.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/core/codecov.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-47-13-197Z_baseline_codecov.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/coreruleset/renovate.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-47-35-397Z_baseline_renovate.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cosign/test/testdata/test-result.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-158Z/2026-04-06T21-47-46-475Z_baseline_test-result.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/mysql-server/mysql-test/std_data/wl13681.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-44-46-902Z_baseline_wl13681.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nest/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-03-747Z_baseline_tsconfig.spec.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/next.js/vercel.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-19-954Z_baseline_vercel.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nginx/src/stream/ngx_stream_write_filter_module.c",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-21-570Z_baseline_ngx_stream_write_filter_module.c",
+    "score": 0.5,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/node/tsconfig.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-45-48-508Z_baseline_tsconfig.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-46-13-135Z_baseline_.pre-commit-config.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-46-44-748Z_baseline_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/openssl/funding.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-16-126Z_baseline_funding.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/postgres/src/test/modules/test_json_parser/tiny.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-36-139Z_baseline_tiny.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/prometheus/web/ui/react-app/.eslintrc.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-159Z/2026-04-06T21-47-52-826Z_baseline_.eslintrc.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

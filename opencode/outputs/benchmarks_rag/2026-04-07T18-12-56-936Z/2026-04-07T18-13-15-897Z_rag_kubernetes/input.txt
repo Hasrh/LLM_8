@@ -1,0 +1,3268 @@
+
+
+# FILE: code-of-conduct.md
+# Kubernetes Community Code of Conduct
+
+Please refer to our [Kubernetes Community Code of Conduct](https://git.k8s.io/community/code-of-conduct.md)
+
+
+# FILE: SUPPORT.md
+## Support for deploying and using Kubernetes
+
+Welcome to Kubernetes! We use GitHub for tracking bugs and feature requests.
+This isn't the right place to get support for using Kubernetes, but the following
+resources are available below, thanks for understanding.
+
+### Stack Overflow
+
+The Kubernetes Community is active on Stack Overflow, you can post your questions there:
+
+* [Kubernetes on Stack Overflow](https://stackoverflow.com/questions/tagged/kubernetes)
+
+  * Here are some tips for [about how to ask good questions](https://stackoverflow.com/help/how-to-ask).
+  * Don't forget to check to see [what's on topic](https://stackoverflow.com/help/on-topic).
+
+### Documentation
+
+* [User Documentation](https://kubernetes.io/docs/)
+* [Troubleshooting Guide](https://kubernetes.io/docs/tasks/debug/)
+
+### Real-time Chat
+
+* [Slack](https://kubernetes.slack.com) ([registration](https://slack.k8s.io)):
+The `#kubernetes-users` and `#kubernetes-novice` channels are usual places where
+people offer support.
+
+### Forum
+
+* [Kubernetes Official Forum](https://discuss.kubernetes.io)
+
+
+# FILE: README.md
+# Kubernetes (K8s)
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/569/badge)](https://bestpractices.coreinfrastructure.org/projects/569) [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes/kubernetes)](https://goreportcard.com/report/github.com/kubernetes/kubernetes) ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/kubernetes/kubernetes?sort=semver)
+
+<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png" width="100">
+
+----
+
+Kubernetes, also known as K8s, is an open source system for managing [containerized applications]
+across multiple hosts. It provides basic mechanisms for the deployment, maintenance,
+and scaling of applications.
+
+Kubernetes builds upon a decade and a half of experience at Google running
+production workloads at scale using a system called [Borg],
+combined with best-of-breed ideas and practices from the community.
+
+Kubernetes is hosted by the Cloud Native Computing Foundation ([CNCF]).
+If your company wants to help shape the evolution of
+technologies that are container-packaged, dynamically scheduled,
+and microservices-oriented, consider joining the CNCF.
+For details about who's involved and how Kubernetes plays a role,
+read the CNCF [announcement].
+
+----
+
+## To start using K8s
+
+See our documentation on [kubernetes.io].
+
+Take a free course on [Scalable Microservices with Kubernetes].
+
+To use Kubernetes code as a library in other applications, see the [list of published components](https://git.k8s.io/kubernetes/staging/README.md).
+Use of the `k8s.io/kubernetes` module or `k8s.io/kubernetes/...` packages as libraries is not supported.
+
+## To start developing K8s
+
+The [community repository] hosts all information about
+building Kubernetes from source, how to contribute code
+and documentation, who to contact about what, etc.
+
+If you want to build Kubernetes right away there are two options:
+
+##### You have a working [Go environment].
+
+```
+git clone https://github.com/kubernetes/kubernetes
+cd kubernetes
+make
+```
+
+##### You have a working [Docker environment].
+
+```
+git clone https://github.com/kubernetes/kubernetes
+cd kubernetes
+make quick-release
+```
+
+For the full story, head over to the [developer's documentation].
+
+## Support
+
+If you need support, start with the [troubleshooting guide],
+and work your way through the process that we've outlined.
+
+That said, if you have questions, reach out to us
+[one way or another][communication].
+
+[announcement]: https://cncf.io/news/announcement/2015/07/new-cloud-native-computing-foundation-drive-alignment-among-container
+[Borg]: https://research.google.com/pubs/pub43438.html?authuser=1
+[CNCF]: https://www.cncf.io/about
+[communication]: https://git.k8s.io/community/communication
+[community repository]: https://git.k8s.io/community
+[containerized applications]: https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/
+[developer's documentation]: https://git.k8s.io/community/contributors/devel#readme
+[Docker environment]: https://docs.docker.com/engine
+[Go environment]: https://go.dev/doc/install
+[kubernetes.io]: https://kubernetes.io
+[Scalable Microservices with Kubernetes]: https://www.udacity.com/course/scalable-microservices-with-kubernetes--ud615
+[troubleshooting guide]: https://kubernetes.io/docs/tasks/debug/
+
+## Community Meetings 
+
+The [Calendar](https://www.kubernetes.dev/resources/calendar/) has the list of all the meetings in the Kubernetes community in a single location.
+
+## Adopters
+
+The [User Case Studies](https://kubernetes.io/case-studies/) website has real-world use cases of organizations across industries that are deploying/migrating to Kubernetes.
+
+## Governance 
+
+Kubernetes project is governed by a framework of principles, values, policies and processes to help our community and constituents towards our shared goals.
+
+The [Kubernetes Community](https://github.com/kubernetes/community/blob/master/governance.md) is the launching point for learning about how we organize ourselves.
+
+The [Kubernetes Steering community repo](https://github.com/kubernetes/steering) is used by the Kubernetes Steering Committee, which oversees governance of the Kubernetes project.
+
+## Roadmap 
+
+The [Kubernetes Enhancements repo](https://github.com/kubernetes/enhancements) provides information about Kubernetes releases, as well as feature tracking and backlogs.
+
+
+# FILE: Makefile
+# Copyright 2016 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+DBG_MAKEFILE ?=
+ifeq ($(DBG_MAKEFILE),1)
+    $(warning ***** starting Makefile for goal(s) "$(MAKECMDGOALS)")
+    $(warning ***** $(shell date))
+else
+    # If we're not debugging the Makefile, don't echo recipes.
+    MAKEFLAGS += -s
+endif
+
+
+# Old-skool build tools.
+#
+# Commonly used targets (see each target for more information):
+#   all: Build code.
+#   test: Run tests.
+#   clean: Clean up.
+
+# It's necessary to set this because some environments don't link sh -> bash.
+SHELL := /usr/bin/env bash -o errexit -o pipefail -o nounset
+BASH_ENV := ./hack/lib/logging.sh
+
+# Define optional user-input variables so `make --warn-undefined-variables` works.
+# Usage is described below with each target that respects these
+PRINT_HELP ?=
+WHAT ?=
+TESTS ?=
+BRANCH ?=
+
+# We don't need make's built-in rules.
+MAKEFLAGS += --no-builtin-rules
+# Be pedantic about undefined variables.
+MAKEFLAGS += --warn-undefined-variables
+.SUFFIXES:
+
+# Constants used throughout.
+.EXPORT_ALL_VARIABLES:
+OUT_DIR ?= _output
+BIN_DIR := $(OUT_DIR)/bin
+
+ifdef KUBE_GOFLAGS
+$(info KUBE_GOFLAGS is now deprecated. Please use GOFLAGS instead.)
+ifndef GOFLAGS
+GOFLAGS := $(KUBE_GOFLAGS)
+unexport KUBE_GOFLAGS
+else
+$(error Both KUBE_GOFLAGS and GOFLAGS are set. Please use just GOFLAGS)
+endif
+endif
+
+# This controls the verbosity of the build.  Higher numbers mean more output.
+KUBE_VERBOSE ?= 1
+
+define ALL_HELP_INFO
+# Build code.
+#
+# Args:
+#   WHAT: Directory or Go package names to build.  If any of these directories
+#   has a 'main' package, the build will produce executable files under
+#   $(OUT_DIR)/bin.  If not specified, "everything" will be built.
+#     "vendor/<module>/<path>" is accepted as alias for "<module>/<path>".
+#     "ginkgo" is an alias for the ginkgo CLI.
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#   GOLDFLAGS: Extra linking flags passed to 'go' when building.
+#   GOGCFLAGS: Additional go compile flags passed to 'go' when building.
+#   DBG: If set to "1", build with optimizations disabled for easier
+#     debugging.  Any other value is ignored.
+#
+# Example:
+#   make
+#   make all
+#   make all WHAT=cmd/kubelet GOFLAGS=-v
+#   make all DBG=1
+#     Note: Specify DBG=1 for building unstripped binaries, which allows you to
+#     use code debugging tools like delve. When DBG is unspecified, it defaults
+#     to "-s -w" which strips debug information.
+endef
+.PHONY: all
+ifeq ($(PRINT_HELP),y)
+all:
+	echo "$$ALL_HELP_INFO"
+else
+all:
+	hack/make-rules/build.sh $(WHAT)
+endif
+
+define GINKGO_HELP_INFO
+# Build ginkgo
+#
+# Example:
+# make ginkgo
+endef
+.PHONY: ginkgo
+ifeq ($(PRINT_HELP),y)
+ginkgo:
+	echo "$$GINKGO_HELP_INFO"
+else
+ginkgo:
+	hack/make-rules/build.sh github.com/onsi/ginkgo/v2/ginkgo
+endif
+
+define VERIFY_HELP_INFO
+# Runs all the presubmission verifications.
+#
+# Args:
+#   BRANCH: Branch to be passed to verify-vendor.sh script.
+#   WHAT: List of checks to run
+#
+# Example:
+#   make verify
+#   make verify BRANCH=branch_x
+#   make verify WHAT="gofmt typecheck"
+endef
+.PHONY: verify
+ifeq ($(PRINT_HELP),y)
+verify:
+	echo "$$VERIFY_HELP_INFO"
+else ifeq ($(origin KUBE_VERIFY_GIT_BRANCH), undefined)
+verify:
+	KUBE_VERIFY_GIT_BRANCH=$(BRANCH) hack/make-rules/verify.sh
+else
+verify:
+	hack/make-rules/verify.sh
+endif
+
+define QUICK_VERIFY_HELP_INFO
+# Runs only the presubmission verifications that aren't slow.
+#
+# Example:
+#   make quick-verify
+endef
+.PHONY: quick-verify
+ifeq ($(PRINT_HELP),y)
+quick-verify:
+	echo "$$QUICK_VERIFY_HELP_INFO"
+else
+quick-verify:
+	QUICK=true SILENT=false hack/make-rules/verify.sh
+endif
+
+define UPDATE_HELP_INFO
+# Runs all the update scripts.
+#
+# Example:
+# make update
+endef
+.PHONY: update
+ifeq ($(PRINT_HELP),y)
+update:
+	echo "$$UPDATE_HELP_INFO"
+else
+update:
+	hack/make-rules/update.sh
+endif
+
+define CHECK_TEST_HELP_INFO
+# Build and run tests.
+#
+# Args:
+#   WHAT: Directory names to test.  All *_test.go files under these
+#     directories will be run.  If not specified, "everything" will be tested.
+#   TESTS: Same as WHAT.
+#   KUBE_COVER: Whether to run tests with code coverage. Set to 'y' to enable coverage collection.
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#   GOLDFLAGS: Extra linking flags to pass to 'go' when building.
+#   GOGCFLAGS: Additional go compile flags passed to 'go' when building.
+#
+# Example:
+#   make check
+#   make test
+#   make check WHAT=./pkg/kubelet GOFLAGS=-v
+endef
+.PHONY: check test
+ifeq ($(PRINT_HELP),y)
+check test:
+	echo "$$CHECK_TEST_HELP_INFO"
+else
+check test:
+	hack/make-rules/test.sh $(WHAT) $(TESTS)
+endif
+
+define TEST_IT_HELP_INFO
+# Build and run integration tests.
+#
+# Args:
+#   WHAT: Directory names to test.  All *_test.go files under these
+#     directories will be run.  If not specified, "everything" will be tested.
+#   KUBE_TEST_ARGS: Arguments to pass to the resulting go test invocation.
+#
+# Example:
+#   make test-integration
+#   make test-integration WHAT=./test/integration/kubelet GOFLAGS="-v -coverpkg=./pkg/kubelet/..." KUBE_COVER="y"
+#   make test-integration WHAT=./test/integration/pods GOFLAGS="-v" KUBE_TEST_ARGS='-run ^TestPodUpdateActiveDeadlineSeconds$$'
+endef
+.PHONY: test-integration
+ifeq ($(PRINT_HELP),y)
+test-integration:
+	echo "$$TEST_IT_HELP_INFO"
+else
+test-integration:
+	# KUBE_TEST_ARGS is explicitly passed here in order to ensure that we are preserving any dollar signs in the value.
+	KUBE_TEST_ARGS='$(value KUBE_TEST_ARGS)' hack/make-rules/test-integration.sh $(WHAT)
+endif
+
+define TEST_E2E_NODE_HELP_INFO
+# Build and run node end-to-end tests.
+#
+# Args:
+#  FOCUS: Regexp that matches the tests to be run.  Defaults to "".
+#  SKIP: Regexp that matches the tests that needs to be skipped.
+#    Defaults to "\[Flaky\]|\[Slow\]|\[Serial\]" unless LABEL_FILTER is set.
+#    If LABEL_FILTER is set, then no tests are skipped by default.
+#  LABEL_FILTER: Use Ginkgo labels query language to filter the tests to be run. May contain spaces and special characters (exclamation mark, vertical bar, etc.) but not quotation marks.
+#  TEST_ARGS: A space-separated list of arguments to pass to node e2e test.
+#    Defaults to "".
+#  RUN_UNTIL_FAILURE: If true, pass --until-it-fails=true to ginkgo so tests are run
+#    repeatedly until they fail.  Defaults to false.
+#  REMOTE: If true, run the tests on a remote host.  Defaults to false.
+#  REMOTE_MODE: For REMOTE=true only.  Mode for remote execution (eg. gce, ssh).
+#    If set to "gce", an instance can be provisioned or reused from GCE. If set
+#    to "ssh", provided `HOSTS` must be IPs or resolvable.  Defaults to "gce".
+#  ARTIFACTS: Local directory to scp test artifacts into from the remote hosts
+#    for REMOTE=true. Local directory to write juntil xml results into for REMOTE=false.
+#    Defaults to "/tmp/_artifacts/$$(date +%y%m%dT%H%M%S)".
+#  TIMEOUT: For REMOTE=true only. How long (in golang duration format) to wait
+#    for ginkgo tests to complete. Defaults to 45m.
+#  PARALLELISM: The number of ginkgo nodes to run.  Defaults to 8.
+#  CONTAINER_RUNTIME_ENDPOINT: remote container endpoint to connect to.
+#    Defaults to "/run/containerd/containerd.sock".
+#  IMAGE_SERVICE_ENDPOINT: remote image endpoint to connect to, to prepull images.
+#    Defaults to CONTAINER_RUNTIME_ENDPOINT.
+#  IMAGE_CONFIG_FILE: path to a file containing image configuration.
+#  IMAGE_CONFIG_DIR: path to image config files.
+#  SYSTEM_SPEC_NAME: The name of the system spec to be used for validating the
+#    image in the node conformance test. The specs are located at
+#    test/e2e_node/system/specs/. For example, "SYSTEM_SPEC_NAME=gke" will use
+#    the spec at test/e2e_node/system/specs/gke.yaml. If unspecified, the
+#    default built-in spec (system.DefaultSpec) will be used.
+#  IMAGES: For REMOTE=true only.  Comma delimited list of images for creating
+#    remote hosts to run tests against.  Defaults to a recent image.
+#  HOSTS: For REMOTE=true only.  Comma delimited list of running gce hosts to
+#    run tests against.  Defaults to "".
+#  DELETE_INSTANCES: For REMOTE=true only.  Delete any instances created as
+#    part of this test run.  Defaults to false.
+#  PREEMPTIBLE_INSTANCES: For REMOTE=true only.  Mark created gce instances
+#    as preemptible.  Defaults to false.
+#  CLEANUP: For REMOTE=true only.  If false, do not stop processes or delete
+#    test files on remote hosts.  Defaults to true.
+#  IMAGE_PROJECT: For REMOTE=true only.  Project containing images provided to
+#    $$IMAGES.  Defaults to "cos-cloud".
+#  INSTANCE_PREFIX: For REMOTE=true only.  Instances created from images will
+#    have the name "$${INSTANCE_PREFIX}-$${IMAGE_NAME}".  Defaults to "test".
+#  INSTANCE_METADATA: For REMOTE=true and running on GCE only.
+#  GUBERNATOR: For REMOTE=true only. Produce link to Gubernator to view logs.
+#    Defaults to false.
+#  TEST_SUITE: For REMOTE=true only. Test suite to use. Defaults to "default".
+#  SSH_USER: For REMOTE=true only  SSH username to use.
+#  SSH_KEY: For REMOTE=true only. Path to SSH key to use.
+#  SSH_OPTIONS: For REMOTE=true only. SSH options to use.
+#  INSTANCE_TYPE: For REMOTE=true only. Machine type to use.
+#  NODE_ENV: For REMOTE=true only. Additional metadata keys to add the instance.
+#  RUNTIME_CONFIG: The runtime configuration for the API server on the node e2e tests.
+#  E2E_TEST_DEBUG_TOOL: one of dlv/delve/gdb. Runs the test/e2e_node test binary
+#    interactively under the chosen debugger. Only works for REMOTE=false and
+#    in combination with DBG=1.
+#
+# Example:
+#   make test-e2e-node FOCUS=Kubelet SKIP=container
+#   make test-e2e-node REMOTE=true DELETE_INSTANCES=true
+#   make test-e2e-node TEST_ARGS='--kubelet-flags="--cgroups-per-qos=true"'
+# Build and run tests.
+endef
+.PHONY: test-e2e-node
+ifeq ($(PRINT_HELP),y)
+test-e2e-node:
+	echo "$$TEST_E2E_NODE_HELP_INFO"
+else
+test-e2e-node: ginkgo
+	hack/make-rules/test-e2e-node.sh
+endif
+
+define TEST_CMD_HELP_INFO
+# Build and run cmdline tests.
+#
+# Args:
+#   WHAT: List of tests to run, check test/cmd/legacy-script.sh for names.
+#     For example, WHAT=deployment will run run_deployment_tests function.
+# Example:
+#   make test-cmd
+#   make test-cmd WHAT="deployment impersonation"
+endef
+.PHONY: test-cmd
+ifeq ($(PRINT_HELP),y)
+test-cmd:
+	echo "$$TEST_CMD_HELP_INFO"
+else
+test-cmd:
+	hack/make-rules/test-cmd.sh
+endif
+
+define CLEAN_HELP_INFO
+# Remove all build artifacts.
+#
+# Example:
+#   make clean
+endef
+.PHONY: clean
+ifeq ($(PRINT_HELP),y)
+clean:
+	echo "$$CLEAN_HELP_INFO"
+else
+clean:
+	build/make-clean.sh
+	hack/make-rules/clean.sh
+endif
+
+define LINT_HELP_INFO
+# Run golangci-lint
+#
+# Example:
+#   make lint
+endef
+.PHONY: lint
+ifeq ($(PRINT_HELP),y)
+lint:
+	echo "$$LINT_HELP_INFO"
+else
+lint:
+	hack/verify-golangci-lint.sh
+endif
+
+define RELEASE_HELP_INFO
+# Build a release
+# Use the 'release-in-a-container' target to build the release when already in
+# a container vs. creating a new container to build in using the 'release'
+# target.  Useful for running in GCB.
+#
+# Example:
+#   make release
+#   make release-in-a-container
+endef
+.PHONY: release release-in-a-container
+ifeq ($(PRINT_HELP),y)
+release release-in-a-container:
+	echo "$$RELEASE_HELP_INFO"
+else
+release release-in-a-container: KUBE_BUILD_CONFORMANCE = y
+release:
+	build/release.sh
+release-in-a-container:
+	build/release-in-a-container.sh
+endif
+
+define RELEASE_IMAGES_HELP_INFO
+# Build release images
+#
+# Args:
+#   KUBE_BUILD_CONFORMANCE: Whether to build conformance testing image as well. Set to 'n' to skip.
+#   DBG: If set to "1", build with optimizations disabled for easier debugging. Any other value is ignored.
+#
+# Example:
+#   make release-images
+#   make release-images DBG=1
+#     Note: Specify DBG=1 for building unstripped binaries, which allows you to use code debugging
+#           tools like delve. When DBG is unspecified, it defaults to "-s -w" which strips debug
+#           information.
+endef
+.PHONY: release-images
+ifeq ($(PRINT_HELP),y)
+release-images: KUBE_BUILD_CONFORMANCE = y
+release-images:
+	echo "$$RELEASE_IMAGES_HELP_INFO"
+else
+release-images:
+	build/release-images.sh
+endif
+
+define RELEASE_SKIP_TESTS_HELP_INFO
+# Build a release, but skip tests
+#
+# Args:
+#   KUBE_RELEASE_RUN_TESTS: Whether to run tests. Set to 'y' to run tests anyways.
+#   KUBE_FASTBUILD: Whether to cross-compile for other architectures. Set to 'false' to do so.
+#   KUBE_DOCKER_REGISTRY: Registry of released images, default to registry.k8s.io
+#   KUBE_BASE_IMAGE_REGISTRY: Registry of base images for controlplane binaries, default to registry.k8s.io/build-image
+#
+# Example:
+#   make release-skip-tests
+#   make quick-release
+endef
+.PHONY: release-skip-tests quick-release
+ifeq ($(PRINT_HELP),y)
+release-skip-tests quick-release:
+	echo "$$RELEASE_SKIP_TESTS_HELP_INFO"
+else
+release-skip-tests quick-release: KUBE_RELEASE_RUN_TESTS = n
+release-skip-tests quick-release: KUBE_FASTBUILD = true
+release-skip-tests quick-release:
+	build/release.sh
+endif
+
+define QUICK_RELEASE_IMAGES_HELP_INFO
+# Build release images, but only for linux/amd64
+#
+# Args:
+#   KUBE_FASTBUILD: Whether to cross-compile for other architectures. Set to 'false' to do so.
+#   KUBE_BUILD_CONFORMANCE: Whether to build conformance testing image as well. Set to 'y' to do so.
+#   DBG: If set to "1", build with optimizations disabled for easier debugging. Any other value is ignored.
+#
+# Example:
+#   make quick-release-images
+#   make quick-release-images DBG=1
+#     Note: Specify DBG=1 for building unstripped binaries, which allows you to use code debugging
+#           tools like delve. When DBG is unspecified, it defaults to "-s -w" which strips debug
+#           information.
+endef
+.PHONY: quick-release-images
+ifeq ($(PRINT_HELP),y)
+quick-release-images:
+	echo "$$QUICK_RELEASE_IMAGES_HELP_INFO"
+else
+quick-release-images: KUBE_FASTBUILD = true
+quick-release-images:
+	build/release-images.sh
+endif
+
+define PACKAGE_HELP_INFO
+# Package tarballs
+# Use the 'package-tarballs' target to run the final packaging steps of
+# a release.
+#
+# Example:
+#   make package-tarballs
+endef
+.PHONY: package package-tarballs
+ifeq ($(PRINT_HELP),y)
+package package-tarballs:
+	echo "$$PACKAGE_HELP_INFO"
+else
+package-tarballs: KUBE_BUILD_CONFORMANCE = y
+package package-tarballs:
+	build/package-tarballs.sh
+endif
+
+define CROSS_HELP_INFO
+# Cross-compile for all platforms
+# Use the 'cross-in-a-container' target to cross build when already in
+# a container vs. creating a new container to build from (build-image)
+# Useful for running in GCB.
+#
+# Example:
+#   make cross
+#   make cross-in-a-container
+endef
+.PHONY: cross cross-in-a-container
+ifeq ($(PRINT_HELP),y)
+cross cross-in-a-container:
+	echo "$$CROSS_HELP_INFO"
+else
+cross cross-in-a-container: KUBE_BUILD_CONFORMANCE = y
+cross:
+	hack/make-rules/cross.sh
+cross-in-a-container: KUBE_OUTPUT_SUBPATH = $(OUT_DIR)/dockerized
+cross-in-a-container:
+ifeq (,$(wildcard /.dockerenv))
+	echo -e "\nThe 'cross-in-a-container' target can only be used from within a docker container.\n"
+else
+	hack/make-rules/cross.sh
+endif
+endif
+
+define CMD_HELP_INFO
+# Add rules for all directories in cmd/
+#
+# Example:
+#   make kubectl kube-proxy
+endef
+#TODO: make EXCLUDE_TARGET auto-generated when there are other files in cmd/
+EXCLUDE_TARGET=OWNERS
+CMD_TARGET = $(filter-out %$(EXCLUDE_TARGET),$(notdir $(abspath $(wildcard cmd/*/))))
+.PHONY: $(CMD_TARGET)
+ifeq ($(PRINT_HELP),y)
+$(CMD_TARGET):
+	echo "$$CMD_HELP_INFO"
+else
+$(CMD_TARGET):
+	hack/make-rules/build.sh cmd/$@
+endif
+
+define HELP_INFO
+# Print make targets and help info
+#
+# Example:
+# make help
+endef
+.PHONY: help
+ifeq ($(PRINT_HELP),y)
+help:
+	echo "$$HELP_INFO"
+else
+help:
+	hack/make-rules/make-help.sh
+endif
+
+
+# FILE: LICENSE
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: CONTRIBUTING.md
+# Contributing
+
+Welcome to Kubernetes! To learn more about contributing to the [Kubernetes code repo](README.md), check out the [Contributor's Guide](https://git.k8s.io/community/contributors/guide/).
+
+The [Kubernetes community repo](https://github.com/kubernetes/community) contains information about how to get started, how the community organizes, and more.
+
+## Sign the CLA
+
+You must sign the [Contributor License Agreement](https://git.k8s.io/community/contributors/guide/README.md#sign-the-cla) in order to contribute.
+
+
+# FILE: CHANGELOG.md
+# CHANGELOGs
+
+- [CHANGELOG-1.36.md](./CHANGELOG-1.36.md)
+- [CHANGELOG-1.35.md](./CHANGELOG-1.35.md)
+- [CHANGELOG-1.34.md](./CHANGELOG-1.34.md)
+- [CHANGELOG-1.33.md](./CHANGELOG-1.33.md)
+- [CHANGELOG-1.32.md](./CHANGELOG-1.32.md)
+- [CHANGELOG-1.31.md](./CHANGELOG-1.31.md)
+- [CHANGELOG-1.30.md](./CHANGELOG-1.30.md)
+- [CHANGELOG-1.29.md](./CHANGELOG-1.29.md)
+- [CHANGELOG-1.28.md](./CHANGELOG-1.28.md)
+- [CHANGELOG-1.27.md](./CHANGELOG-1.27.md)
+- [CHANGELOG-1.26.md](./CHANGELOG-1.26.md)
+- [CHANGELOG-1.25.md](./CHANGELOG-1.25.md)
+- [CHANGELOG-1.24.md](./CHANGELOG-1.24.md)
+- [CHANGELOG-1.23.md](./CHANGELOG-1.23.md)
+- [CHANGELOG-1.22.md](./CHANGELOG-1.22.md)
+- [CHANGELOG-1.21.md](./CHANGELOG-1.21.md)
+- [CHANGELOG-1.20.md](./CHANGELOG-1.20.md)
+- [CHANGELOG-1.19.md](./CHANGELOG-1.19.md)
+- [CHANGELOG-1.18.md](./CHANGELOG-1.18.md)
+- [CHANGELOG-1.17.md](./CHANGELOG-1.17.md)
+- [CHANGELOG-1.16.md](./CHANGELOG-1.16.md)
+- [CHANGELOG-1.15.md](./CHANGELOG-1.15.md)
+- [CHANGELOG-1.14.md](./CHANGELOG-1.14.md)
+- [CHANGELOG-1.13.md](./CHANGELOG-1.13.md)
+- [CHANGELOG-1.12.md](./CHANGELOG-1.12.md)
+- [CHANGELOG-1.11.md](./CHANGELOG-1.11.md)
+- [CHANGELOG-1.10.md](./CHANGELOG-1.10.md)
+- [CHANGELOG-1.9.md](./CHANGELOG-1.9.md)
+- [CHANGELOG-1.8.md](./CHANGELOG-1.8.md)
+- [CHANGELOG-1.7.md](./CHANGELOG-1.7.md)
+- [CHANGELOG-1.6.md](./CHANGELOG-1.6.md)
+- [CHANGELOG-1.5.md](./CHANGELOG-1.5.md)
+- [CHANGELOG-1.4.md](./CHANGELOG-1.4.md)
+- [CHANGELOG-1.3.md](./CHANGELOG-1.3.md)
+- [CHANGELOG-1.2.md](./CHANGELOG-1.2.md)
+
+
+# FILE: vendor/modules.txt
+## workspace
+# bitbucket.org/bertimus9/systemstat v0.5.0
+## explicit; go 1.17
+bitbucket.org/bertimus9/systemstat
+# cel.dev/expr v0.25.1
+## explicit; go 1.23.0
+cel.dev/expr
+# cyphar.com/go-pathrs v0.2.2
+## explicit; go 1.18
+cyphar.com/go-pathrs
+cyphar.com/go-pathrs/internal/fdutils
+cyphar.com/go-pathrs/internal/libpathrs
+cyphar.com/go-pathrs/procfs
+# github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161
+## explicit; go 1.16
+github.com/Azure/go-ansiterm
+github.com/Azure/go-ansiterm/winterm
+# github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab
+## explicit
+github.com/JeffAshton/win_pdh
+# github.com/MakeNowJust/heredoc v1.0.0
+## explicit; go 1.12
+github.com/MakeNowJust/heredoc
+# github.com/Masterminds/semver/v3 v3.4.0
+## explicit; go 1.21
+github.com/Masterminds/semver/v3
+# github.com/Microsoft/go-winio v0.6.2
+## explicit; go 1.21
+github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/internal/fs
+github.com/Microsoft/go-winio/internal/socket
+github.com/Microsoft/go-winio/internal/stringbuffer
+github.com/Microsoft/go-winio/pkg/guid
+# github.com/Microsoft/hnslib v0.1.2
+## explicit; go 1.22.0
+github.com/Microsoft/hnslib
+github.com/Microsoft/hnslib/hcn
+github.com/Microsoft/hnslib/internal/cni
+github.com/Microsoft/hnslib/internal/hns
+github.com/Microsoft/hnslib/internal/interop
+github.com/Microsoft/hnslib/internal/regstate
+github.com/Microsoft/hnslib/internal/runhcs
+# github.com/NYTimes/gziphandler v1.1.1
+## explicit; go 1.11
+github.com/NYTimes/gziphandler
+# github.com/antlr4-go/antlr/v4 v4.13.0
+## explicit; go 1.20
+github.com/antlr4-go/antlr/v4
+# github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
+## explicit
+github.com/armon/go-socks5
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
+# github.com/blang/semver/v4 v4.0.0
+## explicit; go 1.14
+github.com/blang/semver/v4
+# github.com/cenkalti/backoff/v5 v5.0.3
+## explicit; go 1.23
+github.com/cenkalti/backoff/v5
+# github.com/cespare/xxhash/v2 v2.3.0
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
+# github.com/chai2010/gettext-go v1.0.2
+## explicit; go 1.14
+github.com/chai2010/gettext-go
+github.com/chai2010/gettext-go/mo
+github.com/chai2010/gettext-go/plural
+github.com/chai2010/gettext-go/po
+# github.com/container-storage-interface/spec v1.9.0
+## explicit; go 1.18
+github.com/container-storage-interface/spec/lib/go/csi
+# github.com/containerd/containerd/api v1.10.0
+## explicit; go 1.23.0
+github.com/containerd/containerd/api/services/containers/v1
+github.com/containerd/containerd/api/services/tasks/v1
+github.com/containerd/containerd/api/services/version/v1
+github.com/containerd/containerd/api/types
+github.com/containerd/containerd/api/types/task
+# github.com/containerd/errdefs v1.0.0
+## explicit; go 1.20
+github.com/containerd/errdefs
+# github.com/containerd/errdefs/pkg v0.3.0
+## explicit; go 1.22
+github.com/containerd/errdefs/pkg/errgrpc
+github.com/containerd/errdefs/pkg/internal/cause
+github.com/containerd/errdefs/pkg/internal/types
+# github.com/containerd/log v0.1.0
+## explicit; go 1.20
+github.com/containerd/log
+# github.com/containerd/ttrpc v1.2.7
+## explicit; go 1.19
+github.com/containerd/ttrpc
+# github.com/containerd/typeurl/v2 v2.2.3
+## explicit; go 1.21
+github.com/containerd/typeurl/v2
+# github.com/coredns/caddy v1.1.1
+## explicit; go 1.13
+github.com/coredns/caddy/caddyfile
+# github.com/coredns/corefile-migration v1.0.31
+## explicit; go 1.14
+github.com/coredns/corefile-migration/migration
+github.com/coredns/corefile-migration/migration/corefile
+# github.com/coreos/go-oidc v2.5.0+incompatible
+## explicit
+github.com/coreos/go-oidc
+# github.com/coreos/go-semver v0.3.1
+## explicit; go 1.8
+github.com/coreos/go-semver/semver
+# github.com/coreos/go-systemd/v22 v22.7.0
+## explicit; go 1.23
+github.com/coreos/go-systemd/v22/daemon
+github.com/coreos/go-systemd/v22/dbus
+github.com/coreos/go-systemd/v22/internal/dlopen
+github.com/coreos/go-systemd/v22/journal
+github.com/coreos/go-systemd/v22/util
+# github.com/cpuguy83/go-md2man/v2 v2.0.6
+## explicit; go 1.12
+github.com/cpuguy83/go-md2man/v2/md2man
+# github.com/cyphar/filepath-securejoin v0.6.1
+## explicit; go 1.18
+github.com/cyphar/filepath-securejoin
+github.com/cyphar/filepath-securejoin/internal/consts
+github.com/cyphar/filepath-securejoin/pathrs-lite
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/assert
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/fd
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gocompat
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gopathrs
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/kernelversion
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/linux
+github.com/cyphar/filepath-securejoin/pathrs-lite/internal/procfs
+github.com/cyphar/filepath-securejoin/pathrs-lite/procfs
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/distribution/reference v0.6.0
+## explicit; go 1.20
+github.com/distribution/reference
+# github.com/docker/go-units v0.5.0
+## explicit
+github.com/docker/go-units
+# github.com/dustin/go-humanize v1.0.1
+## explicit; go 1.16
+github.com/dustin/go-humanize
+# github.com/emicklei/go-restful/v3 v3.13.0
+## explicit; go 1.13
+github.com/emicklei/go-restful/v3
+github.com/emicklei/go-restful/v3/log
+# github.com/euank/go-kmsg-parser v2.0.0+incompatible
+## explicit
+github.com/euank/go-kmsg-parser/kmsgparser
+# github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f
+## explicit; go 1.15
+github.com/exponent-io/jsonpath
+# github.com/fatih/camelcase v1.0.0
+## explicit
+github.com/fatih/camelcase
+# github.com/felixge/httpsnoop v1.0.4
+## explicit; go 1.13
+github.com/felixge/httpsnoop
+# github.com/fsnotify/fsnotify v1.9.0
+## explicit; go 1.17
+github.com/fsnotify/fsnotify
+github.com/fsnotify/fsnotify/internal
+# github.com/fxamacker/cbor/v2 v2.9.0
+## explicit; go 1.20
+github.com/fxamacker/cbor/v2
+# github.com/go-errors/errors v1.4.2
+## explicit; go 1.14
+github.com/go-errors/errors
+# github.com/go-logr/logr v1.4.3
+## explicit; go 1.18
+github.com/go-logr/logr
+github.com/go-logr/logr/funcr
+github.com/go-logr/logr/slogr
+# github.com/go-logr/stdr v1.2.2
+## explicit; go 1.16
+github.com/go-logr/stdr
+# github.com/go-logr/zapr v1.3.0
+## explicit; go 1.18
+github.com/go-logr/zapr
+# github.com/go-openapi/jsonpointer v0.21.0
+## explicit; go 1.20
+github.com/go-openapi/jsonpointer
+# github.com/go-openapi/jsonreference v0.20.2
+## explicit; go 1.13
+github.com/go-openapi/jsonreference
+github.com/go-openapi/jsonreference/internal
+# github.com/go-openapi/swag v0.23.0
+## explicit; go 1.20
+github.com/go-openapi/swag
+# github.com/go-task/slim-sprig/v3 v3.0.0
+## explicit; go 1.20
+github.com/go-task/slim-sprig/v3
+# github.com/godbus/dbus/v5 v5.2.2
+## explicit; go 1.20
+github.com/godbus/dbus/v5
+# github.com/gogo/protobuf v1.3.2
+## explicit; go 1.15
+github.com/gogo/protobuf/gogoproto
+github.com/gogo/protobuf/plugin/compare
+github.com/gogo/protobuf/plugin/defaultcheck
+github.com/gogo/protobuf/plugin/description
+github.com/gogo/protobuf/plugin/embedcheck
+github.com/gogo/protobuf/plugin/enumstringer
+github.com/gogo/protobuf/plugin/equal
+github.com/gogo/protobuf/plugin/face
+github.com/gogo/protobuf/plugin/gostring
+github.com/gogo/protobuf/plugin/marshalto
+github.com/gogo/protobuf/plugin/oneofcheck
+github.com/gogo/protobuf/plugin/populate
+github.com/gogo/protobuf/plugin/size
+github.com/gogo/protobuf/plugin/stringer
+github.com/gogo/protobuf/plugin/testgen
+github.com/gogo/protobuf/plugin/union
+github.com/gogo/protobuf/plugin/unmarshal
+github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+github.com/gogo/protobuf/protoc-gen-gogo/generator
+github.com/gogo/protobuf/protoc-gen-gogo/generator/internal/remap
+github.com/gogo/protobuf/protoc-gen-gogo/grpc
+github.com/gogo/protobuf/protoc-gen-gogo/plugin
+github.com/gogo/protobuf/sortkeys
+github.com/gogo/protobuf/vanity
+github.com/gogo/protobuf/vanity/command
+# github.com/golang-jwt/jwt/v5 v5.3.0
+## explicit; go 1.21
+github.com/golang-jwt/jwt/v5
+# github.com/golang/protobuf v1.5.4
+## explicit; go 1.17
+github.com/golang/protobuf/proto
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
+# github.com/google/btree v1.1.3
+## explicit; go 1.18
+github.com/google/btree
+# github.com/google/cadvisor v0.56.2
+## explicit; go 1.24.0
+github.com/google/cadvisor/cache/memory
+github.com/google/cadvisor/client/v2
+github.com/google/cadvisor/collector
+github.com/google/cadvisor/container
+github.com/google/cadvisor/container/common
+github.com/google/cadvisor/container/containerd
+github.com/google/cadvisor/container/containerd/containers
+github.com/google/cadvisor/container/containerd/identifiers
+github.com/google/cadvisor/container/containerd/install
+github.com/google/cadvisor/container/containerd/namespaces
+github.com/google/cadvisor/container/containerd/pkg/dialer
+github.com/google/cadvisor/container/crio
+github.com/google/cadvisor/container/crio/install
+github.com/google/cadvisor/container/libcontainer
+github.com/google/cadvisor/container/raw
+github.com/google/cadvisor/container/systemd
+github.com/google/cadvisor/container/systemd/install
+github.com/google/cadvisor/devicemapper
+github.com/google/cadvisor/events
+github.com/google/cadvisor/fs
+github.com/google/cadvisor/fs/btrfs
+github.com/google/cadvisor/fs/btrfs/install
+github.com/google/cadvisor/fs/devicemapper
+github.com/google/cadvisor/fs/devicemapper/install
+github.com/google/cadvisor/fs/nfs
+github.com/google/cadvisor/fs/nfs/install
+github.com/google/cadvisor/fs/overlay
+github.com/google/cadvisor/fs/overlay/install
+github.com/google/cadvisor/fs/tmpfs
+github.com/google/cadvisor/fs/tmpfs/install
+github.com/google/cadvisor/fs/vfs
+github.com/google/cadvisor/fs/vfs/install
+github.com/google/cadvisor/info/v1
+github.com/google/cadvisor/info/v2
+github.com/google/cadvisor/machine
+github.com/google/cadvisor/manager
+github.com/google/cadvisor/metrics
+github.com/google/cadvisor/nvm
+github.com/google/cadvisor/perf
+github.com/google/cadvisor/resctrl
+github.com/google/cadvisor/stats
+github.com/google/cadvisor/storage
+github.com/google/cadvisor/summary
+github.com/google/cadvisor/utils
+github.com/google/cadvisor/utils/cloudinfo
+github.com/google/cadvisor/utils/cpuload
+github.com/google/cadvisor/utils/cpuload/netlink
+github.com/google/cadvisor/utils/oomparser
+github.com/google/cadvisor/utils/sysfs
+github.com/google/cadvisor/utils/sysinfo
+github.com/google/cadvisor/version
+github.com/google/cadvisor/watcher
+# github.com/google/cel-go v0.26.0
+## explicit; go 1.22.0
+github.com/google/cel-go/cel
+github.com/google/cel-go/checker
+github.com/google/cel-go/checker/decls
+github.com/google/cel-go/common
+github.com/google/cel-go/common/ast
+github.com/google/cel-go/common/containers
+github.com/google/cel-go/common/debug
+github.com/google/cel-go/common/decls
+github.com/google/cel-go/common/env
+github.com/google/cel-go/common/functions
+github.com/google/cel-go/common/operators
+github.com/google/cel-go/common/overloads
+github.com/google/cel-go/common/runes
+github.com/google/cel-go/common/stdlib
+github.com/google/cel-go/common/types
+github.com/google/cel-go/common/types/pb
+github.com/google/cel-go/common/types/ref
+github.com/google/cel-go/common/types/traits
+github.com/google/cel-go/ext
+github.com/google/cel-go/interpreter
+github.com/google/cel-go/interpreter/functions
+github.com/google/cel-go/parser
+github.com/google/cel-go/parser/gen
+# github.com/google/gnostic-models v0.7.0
+## explicit; go 1.22
+github.com/google/gnostic-models/compiler
+github.com/google/gnostic-models/extensions
+github.com/google/gnostic-models/jsonschema
+github.com/google/gnostic-models/openapiv2
+github.com/google/gnostic-models/openapiv3
+# github.com/google/go-cmp v0.7.0
+## explicit; go 1.21
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/cmpopts
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/flags
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
+# github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83
+## explicit; go 1.24.0
+github.com/google/pprof/profile
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
+# github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
+## explicit; go 1.20
+github.com/gorilla/websocket
+# github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
+## explicit; go 1.21
+github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus
+# github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
+## explicit; go 1.23.0
+github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors
+# github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7
+## explicit; go 1.24.0
+github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
+github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options
+github.com/grpc-ecosystem/grpc-gateway/v2/runtime
+github.com/grpc-ecosystem/grpc-gateway/v2/utilities
+# github.com/inconshreveable/mousetrap v1.1.0
+## explicit; go 1.18
+github.com/inconshreveable/mousetrap
+# github.com/ishidawataru/sctp v0.0.0-20250521072954-ae8eb7fa7995
+## explicit; go 1.12
+github.com/ishidawataru/sctp
+# github.com/jonboulle/clockwork v0.5.0
+## explicit; go 1.21
+github.com/jonboulle/clockwork
+# github.com/josharian/intern v1.0.0
+## explicit; go 1.5
+github.com/josharian/intern
+# github.com/json-iterator/go v1.1.12
+## explicit; go 1.12
+github.com/json-iterator/go
+# github.com/kr/pretty v0.3.1
+## explicit; go 1.12
+# github.com/kr/text v0.2.0
+## explicit
+# github.com/kylelemons/godebug v1.1.0
+## explicit; go 1.11
+github.com/kylelemons/godebug/diff
+# github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
+## explicit
+github.com/liggitt/tabwriter
+# github.com/lithammer/dedent v1.1.0
+## explicit
+github.com/lithammer/dedent
+# github.com/mailru/easyjson v0.7.7
+## explicit; go 1.12
+github.com/mailru/easyjson/buffer
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+# github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
+## explicit
+# github.com/mitchellh/go-wordwrap v1.0.1
+## explicit; go 1.14
+github.com/mitchellh/go-wordwrap
+# github.com/moby/ipvs v1.1.0
+## explicit; go 1.17
+github.com/moby/ipvs
+# github.com/moby/spdystream v0.5.0
+## explicit; go 1.13
+github.com/moby/spdystream
+github.com/moby/spdystream/spdy
+# github.com/moby/sys/mountinfo v0.7.2
+## explicit; go 1.17
+github.com/moby/sys/mountinfo
+# github.com/moby/sys/userns v0.1.0
+## explicit; go 1.21
+github.com/moby/sys/userns
+# github.com/moby/term v0.5.0
+## explicit; go 1.18
+github.com/moby/term
+github.com/moby/term/windows
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+## explicit
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
+## explicit; go 1.12
+github.com/modern-go/reflect2
+# github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
+## explicit
+github.com/monochromegane/go-gitignore
+# github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+## explicit
+github.com/munnerz/goautoneg
+# github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+## explicit
+github.com/mxk/go-flowrate/flowrate
+# github.com/onsi/ginkgo/v2 v2.28.1
+## explicit; go 1.24.0
+github.com/onsi/ginkgo/v2
+github.com/onsi/ginkgo/v2/config
+github.com/onsi/ginkgo/v2/formatter
+github.com/onsi/ginkgo/v2/ginkgo
+github.com/onsi/ginkgo/v2/ginkgo/automaxprocs
+github.com/onsi/ginkgo/v2/ginkgo/build
+github.com/onsi/ginkgo/v2/ginkgo/command
+github.com/onsi/ginkgo/v2/ginkgo/generators
+github.com/onsi/ginkgo/v2/ginkgo/internal
+github.com/onsi/ginkgo/v2/ginkgo/labels
+github.com/onsi/ginkgo/v2/ginkgo/outline
+github.com/onsi/ginkgo/v2/ginkgo/run
+github.com/onsi/ginkgo/v2/ginkgo/unfocus
+github.com/onsi/ginkgo/v2/ginkgo/watch
+github.com/onsi/ginkgo/v2/internal
+github.com/onsi/ginkgo/v2/internal/global
+github.com/onsi/ginkgo/v2/internal/interrupt_handler
+github.com/onsi/ginkgo/v2/internal/parallel_support
+github.com/onsi/ginkgo/v2/internal/reporters
+github.com/onsi/ginkgo/v2/internal/testingtproxy
+github.com/onsi/ginkgo/v2/reporters
+github.com/onsi/ginkgo/v2/types
+# github.com/onsi/gomega v1.39.1
+## explicit; go 1.24.0
+github.com/onsi/gomega
+github.com/onsi/gomega/format
+github.com/onsi/gomega/gcustom
+github.com/onsi/gomega/gmeasure
+github.com/onsi/gomega/gmeasure/table
+github.com/onsi/gomega/gstruct
+github.com/onsi/gomega/gstruct/errors
+github.com/onsi/gomega/internal
+github.com/onsi/gomega/internal/gutil
+github.com/onsi/gomega/matchers
+github.com/onsi/gomega/matchers/internal/miter
+github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
+github.com/onsi/gomega/matchers/support/goraph/edge
+github.com/onsi/gomega/matchers/support/goraph/node
+github.com/onsi/gomega/matchers/support/goraph/util
+github.com/onsi/gomega/types
+# github.com/opencontainers/cgroups v0.0.6
+## explicit; go 1.23.0
+github.com/opencontainers/cgroups
+github.com/opencontainers/cgroups/devices/config
+github.com/opencontainers/cgroups/fs
+github.com/opencontainers/cgroups/fs2
+github.com/opencontainers/cgroups/fscommon
+github.com/opencontainers/cgroups/internal/path
+github.com/opencontainers/cgroups/manager
+github.com/opencontainers/cgroups/systemd
+# github.com/opencontainers/go-digest v1.0.0
+## explicit; go 1.13
+github.com/opencontainers/go-digest
+# github.com/opencontainers/image-spec v1.1.1
+## explicit; go 1.18
+github.com/opencontainers/image-spec/specs-go
+github.com/opencontainers/image-spec/specs-go/v1
+# github.com/opencontainers/runtime-spec v1.3.0
+## explicit
+github.com/opencontainers/runtime-spec/specs-go
+# github.com/opencontainers/selinux v1.13.1
+## explicit; go 1.19
+github.com/opencontainers/selinux/go-selinux
+github.com/opencontainers/selinux/go-selinux/label
+github.com/opencontainers/selinux/pkg/pwalkdir
+# github.com/peterbourgon/diskv v2.0.1+incompatible
+## explicit
+github.com/peterbourgon/diskv
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/pquerna/cachecontrol v0.1.0
+## explicit; go 1.16
+github.com/pquerna/cachecontrol
+github.com/pquerna/cachecontrol/cacheobject
+# github.com/prometheus/client_golang v1.23.2
+## explicit; go 1.23.0
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil/header
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/collectors
+github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promhttp
+github.com/prometheus/client_golang/prometheus/promhttp/internal
+github.com/prometheus/client_golang/prometheus/testutil
+github.com/prometheus/client_golang/prometheus/testutil/promlint
+github.com/prometheus/client_golang/prometheus/testutil/promlint/validations
+# github.com/prometheus/client_model v0.6.2
+## explicit; go 1.22.0
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.67.5
+## explicit; go 1.24.0
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/model
+# github.com/prometheus/procfs v0.19.2
+## explicit; go 1.24.0
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/fs
+github.com/prometheus/procfs/internal/util
+# github.com/robfig/cron/v3 v3.0.1
+## explicit; go 1.12
+github.com/robfig/cron/v3
+# github.com/rogpeppe/go-internal v1.14.1
+## explicit; go 1.23
+# github.com/russross/blackfriday/v2 v2.1.0
+## explicit
+github.com/russross/blackfriday/v2
+# github.com/sirupsen/logrus v1.9.3
+## explicit; go 1.13
+github.com/sirupsen/logrus
+# github.com/soheilhy/cmux v0.1.5
+## explicit; go 1.11
+github.com/soheilhy/cmux
+# github.com/spf13/cobra v1.10.2
+## explicit; go 1.15
+github.com/spf13/cobra
+github.com/spf13/cobra/doc
+# github.com/spf13/pflag v1.0.9
+## explicit; go 1.12
+github.com/spf13/pflag
+# github.com/stoewer/go-strcase v1.3.0
+## explicit; go 1.11
+github.com/stoewer/go-strcase
+# github.com/stretchr/objx v0.5.2
+## explicit; go 1.20
+github.com/stretchr/objx
+# github.com/stretchr/testify v1.11.1
+## explicit; go 1.17
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
+github.com/stretchr/testify/mock
+github.com/stretchr/testify/require
+# github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75
+## explicit; go 1.15
+github.com/tmc/grpc-websocket-proxy/wsproxy
+# github.com/vishvananda/netlink v1.3.1
+## explicit; go 1.12
+github.com/vishvananda/netlink
+github.com/vishvananda/netlink/nl
+# github.com/vishvananda/netns v0.0.5
+## explicit; go 1.17
+github.com/vishvananda/netns
+# github.com/x448/float16 v0.8.4
+## explicit; go 1.11
+github.com/x448/float16
+# github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510
+## explicit
+github.com/xiang90/probing
+# github.com/xlab/treeprint v1.2.0
+## explicit; go 1.13
+github.com/xlab/treeprint
+# go.etcd.io/bbolt v1.4.3
+## explicit; go 1.23
+go.etcd.io/bbolt
+go.etcd.io/bbolt/errors
+go.etcd.io/bbolt/internal/common
+go.etcd.io/bbolt/internal/freelist
+# go.etcd.io/etcd/api/v3 v3.6.8
+## explicit; go 1.24.0
+go.etcd.io/etcd/api/v3/authpb
+go.etcd.io/etcd/api/v3/etcdserverpb
+go.etcd.io/etcd/api/v3/etcdserverpb/gw
+go.etcd.io/etcd/api/v3/membershippb
+go.etcd.io/etcd/api/v3/mvccpb
+go.etcd.io/etcd/api/v3/v3rpc/rpctypes
+go.etcd.io/etcd/api/v3/version
+go.etcd.io/etcd/api/v3/versionpb
+# go.etcd.io/etcd/client/pkg/v3 v3.6.8
+## explicit; go 1.24.0
+go.etcd.io/etcd/client/pkg/v3/fileutil
+go.etcd.io/etcd/client/pkg/v3/logutil
+go.etcd.io/etcd/client/pkg/v3/pathutil
+go.etcd.io/etcd/client/pkg/v3/srv
+go.etcd.io/etcd/client/pkg/v3/systemd
+go.etcd.io/etcd/client/pkg/v3/tlsutil
+go.etcd.io/etcd/client/pkg/v3/transport
+go.etcd.io/etcd/client/pkg/v3/types
+go.etcd.io/etcd/client/pkg/v3/verify
+# go.etcd.io/etcd/client/v3 v3.6.8
+## explicit; go 1.24.0
+go.etcd.io/etcd/client/v3
+go.etcd.io/etcd/client/v3/concurrency
+go.etcd.io/etcd/client/v3/credentials
+go.etcd.io/etcd/client/v3/internal/endpoint
+go.etcd.io/etcd/client/v3/internal/resolver
+go.etcd.io/etcd/client/v3/kubernetes
+# go.etcd.io/etcd/pkg/v3 v3.6.8
+## explicit; go 1.24.0
+go.etcd.io/etcd/pkg/v3/adt
+go.etcd.io/etcd/pkg/v3/contention
+go.etcd.io/etcd/pkg/v3/cpuutil
+go.etcd.io/etcd/pkg/v3/crc
+go.etcd.io/etcd/pkg/v3/debugutil
+go.etcd.io/etcd/pkg/v3/featuregate
+go.etcd.io/etcd/pkg/v3/flags
+go.etcd.io/etcd/pkg/v3/httputil
+go.etcd.io/etcd/pkg/v3/idutil
+go.etcd.io/etcd/pkg/v3/ioutil
+go.etcd.io/etcd/pkg/v3/netutil
+go.etcd.io/etcd/pkg/v3/notify
+go.etcd.io/etcd/pkg/v3/pbutil
+go.etcd.io/etcd/pkg/v3/runtime
+go.etcd.io/etcd/pkg/v3/schedule
+go.etcd.io/etcd/pkg/v3/traceutil
+go.etcd.io/etcd/pkg/v3/wait
+# go.etcd.io/etcd/server/v3 v3.6.8
+## explicit; go 1.24.0
+go.etcd.io/etcd/server/v3/auth
+go.etcd.io/etcd/server/v3/config
+go.etcd.io/etcd/server/v3/embed
+go.etcd.io/etcd/server/v3/etcdserver
+go.etcd.io/etcd/server/v3/etcdserver/api
+go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp
+go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types
+go.etcd.io/etcd/server/v3/etcdserver/api/membership
+go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp
+go.etcd.io/etcd/server/v3/etcdserver/api/snap
+go.etcd.io/etcd/server/v3/etcdserver/api/snap/snappb
+go.etcd.io/etcd/server/v3/etcdserver/api/v2discovery
+go.etcd.io/etcd/server/v3/etcdserver/api/v2error
+go.etcd.io/etcd/server/v3/etcdserver/api/v2stats
+go.etcd.io/etcd/server/v3/etcdserver/api/v2store
+go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm
+go.etcd.io/etcd/server/v3/etcdserver/api/v3client
+go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor
+go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb
+go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb/gw
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb
+go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb/gw
+go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc
+go.etcd.io/etcd/server/v3/etcdserver/apply
+go.etcd.io/etcd/server/v3/etcdserver/cindex
+go.etcd.io/etcd/server/v3/etcdserver/errors
+go.etcd.io/etcd/server/v3/etcdserver/txn
+go.etcd.io/etcd/server/v3/etcdserver/version
+go.etcd.io/etcd/server/v3/features
+go.etcd.io/etcd/server/v3/internal/clientv2
+go.etcd.io/etcd/server/v3/lease
+go.etcd.io/etcd/server/v3/lease/leasehttp
+go.etcd.io/etcd/server/v3/lease/leasepb
+go.etcd.io/etcd/server/v3/proxy/grpcproxy/adapter
+go.etcd.io/etcd/server/v3/storage
+go.etcd.io/etcd/server/v3/storage/backend
+go.etcd.io/etcd/server/v3/storage/datadir
+go.etcd.io/etcd/server/v3/storage/mvcc
+go.etcd.io/etcd/server/v3/storage/schema
+go.etcd.io/etcd/server/v3/storage/wal
+go.etcd.io/etcd/server/v3/storage/wal/walpb
+go.etcd.io/etcd/server/v3/verify
+# go.etcd.io/raft/v3 v3.6.0
+## explicit; go 1.23
+go.etcd.io/raft/v3
+go.etcd.io/raft/v3/confchange
+go.etcd.io/raft/v3/quorum
+go.etcd.io/raft/v3/raftpb
+go.etcd.io/raft/v3/tracker
+# go.opentelemetry.io/auto/sdk v1.2.1
+## explicit; go 1.24.0
+go.opentelemetry.io/auto/sdk
+go.opentelemetry.io/auto/sdk/internal/telemetry
+# go.opentelemetry.io/contrib/instrumentation/github.com/emicklei/go-restful/otelrestful v0.65.0
+## explicit; go 1.24.0
+go.opentelemetry.io/contrib/instrumentation/github.com/emicklei/go-restful/otelrestful
+go.opentelemetry.io/contrib/instrumentation/github.com/emicklei/go-restful/otelrestful/internal/semconv
+# go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.65.0
+## explicit; go 1.24.0
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc/internal
+# go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0
+## explicit; go 1.24.0
+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request
+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv
+# go.opentelemetry.io/otel v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel
+go.opentelemetry.io/otel/attribute
+go.opentelemetry.io/otel/attribute/internal
+go.opentelemetry.io/otel/attribute/internal/xxhash
+go.opentelemetry.io/otel/baggage
+go.opentelemetry.io/otel/codes
+go.opentelemetry.io/otel/internal/baggage
+go.opentelemetry.io/otel/internal/global
+go.opentelemetry.io/otel/propagation
+go.opentelemetry.io/otel/semconv/internal
+go.opentelemetry.io/otel/semconv/v1.12.0
+go.opentelemetry.io/otel/semconv/v1.17.0
+go.opentelemetry.io/otel/semconv/v1.37.0
+go.opentelemetry.io/otel/semconv/v1.39.0
+go.opentelemetry.io/otel/semconv/v1.39.0/httpconv
+go.opentelemetry.io/otel/semconv/v1.39.0/otelconv
+go.opentelemetry.io/otel/semconv/v1.39.0/rpcconv
+# go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel/exporters/otlp/otlptrace
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/internal/tracetransform
+# go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/counter
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/envconfig
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/observ
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/otlpconfig
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/retry
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc/internal/x
+# go.opentelemetry.io/otel/metric v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel/metric
+go.opentelemetry.io/otel/metric/embedded
+go.opentelemetry.io/otel/metric/noop
+# go.opentelemetry.io/otel/sdk v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel/sdk
+go.opentelemetry.io/otel/sdk/instrumentation
+go.opentelemetry.io/otel/sdk/internal/x
+go.opentelemetry.io/otel/sdk/resource
+go.opentelemetry.io/otel/sdk/trace
+go.opentelemetry.io/otel/sdk/trace/internal/env
+go.opentelemetry.io/otel/sdk/trace/internal/observ
+go.opentelemetry.io/otel/sdk/trace/tracetest
+# go.opentelemetry.io/otel/sdk/metric v1.40.0
+## explicit; go 1.24.0
+# go.opentelemetry.io/otel/trace v1.40.0
+## explicit; go 1.24.0
+go.opentelemetry.io/otel/trace
+go.opentelemetry.io/otel/trace/embedded
+go.opentelemetry.io/otel/trace/internal/telemetry
+go.opentelemetry.io/otel/trace/noop
+# go.opentelemetry.io/proto/otlp v1.9.0
+## explicit; go 1.23.0
+go.opentelemetry.io/proto/otlp/collector/trace/v1
+go.opentelemetry.io/proto/otlp/common/v1
+go.opentelemetry.io/proto/otlp/resource/v1
+go.opentelemetry.io/proto/otlp/trace/v1
+# go.uber.org/goleak v1.3.0
+## explicit; go 1.20
+go.uber.org/goleak
+go.uber.org/goleak/internal/stack
+# go.uber.org/multierr v1.11.0
+## explicit; go 1.19
+go.uber.org/multierr
+# go.uber.org/zap v1.27.1
+## explicit; go 1.19
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+go.uber.org/zap/internal/pool
+go.uber.org/zap/internal/stacktrace
+go.uber.org/zap/internal/ztest
+go.uber.org/zap/zapcore
+go.uber.org/zap/zapgrpc
+go.uber.org/zap/zaptest
+# go.yaml.in/yaml/v2 v2.4.3
+## explicit; go 1.15
+go.yaml.in/yaml/v2
+# go.yaml.in/yaml/v3 v3.0.4
+## explicit; go 1.16
+go.yaml.in/yaml/v3
+# golang.org/x/crypto v0.47.0
+## explicit; go 1.24.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
+golang.org/x/crypto/chacha20
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/hkdf
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/salsa20/salsa
+golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
+# golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
+## explicit; go 1.24.0
+golang.org/x/exp/slices
+# golang.org/x/mod v0.32.0
+## explicit; go 1.24.0
+golang.org/x/mod/internal/lazyregexp
+golang.org/x/mod/module
+golang.org/x/mod/semver
+# golang.org/x/net v0.49.0
+## explicit; go 1.24.0
+golang.org/x/net/context
+golang.org/x/net/dns/dnsmessage
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/html/charset
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
+golang.org/x/net/internal/socks
+golang.org/x/net/internal/timeseries
+golang.org/x/net/proxy
+golang.org/x/net/trace
+golang.org/x/net/websocket
+# golang.org/x/oauth2 v0.34.0
+## explicit; go 1.24.0
+golang.org/x/oauth2
+golang.org/x/oauth2/internal
+# golang.org/x/sync v0.19.0
+## explicit; go 1.24.0
+golang.org/x/sync/errgroup
+golang.org/x/sync/singleflight
+# golang.org/x/sys v0.40.0
+## explicit; go 1.24.0
+golang.org/x/sys/cpu
+golang.org/x/sys/plan9
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
+golang.org/x/sys/windows/svc
+golang.org/x/sys/windows/svc/mgr
+# golang.org/x/term v0.39.0
+## explicit; go 1.24.0
+golang.org/x/term
+# golang.org/x/text v0.33.0
+## explicit; go 1.24.0
+golang.org/x/text/cases
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/feature/plural
+golang.org/x/text/internal
+golang.org/x/text/internal/catmsg
+golang.org/x/text/internal/format
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/number
+golang.org/x/text/internal/stringset
+golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/message
+golang.org/x/text/message/catalog
+golang.org/x/text/runes
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
+# golang.org/x/time v0.14.0
+## explicit; go 1.24.0
+golang.org/x/time/rate
+# golang.org/x/tools v0.41.0
+## explicit; go 1.24.0
+golang.org/x/tools/benchmark/parse
+golang.org/x/tools/container/intsets
+golang.org/x/tools/cover
+golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/ast/edge
+golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/go/gcexportdata
+golang.org/x/tools/go/packages
+golang.org/x/tools/go/types/objectpath
+golang.org/x/tools/go/types/typeutil
+golang.org/x/tools/imports
+golang.org/x/tools/internal/aliases
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gcimporter
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/modindex
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/pkgbits
+golang.org/x/tools/internal/stdlib
+golang.org/x/tools/internal/typeparams
+golang.org/x/tools/internal/typesinternal
+golang.org/x/tools/internal/versions
+# golang.org/x/tools/go/expect v0.1.1-deprecated
+## explicit; go 1.23.0
+# google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409
+## explicit; go 1.24.0
+google.golang.org/genproto/googleapis/api
+google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/expr/v1alpha1
+google.golang.org/genproto/googleapis/api/httpbody
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409
+## explicit; go 1.24.0
+google.golang.org/genproto/googleapis/rpc/errdetails
+google.golang.org/genproto/googleapis/rpc/status
+# google.golang.org/grpc v1.79.3
+## explicit; go 1.24.0
+google.golang.org/grpc
+google.golang.org/grpc/attributes
+google.golang.org/grpc/backoff
+google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/base
+google.golang.org/grpc/balancer/endpointsharding
+google.golang.org/grpc/balancer/grpclb/state
+google.golang.org/grpc/balancer/pickfirst
+google.golang.org/grpc/balancer/pickfirst/internal
+google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/channelz
+google.golang.org/grpc/codes
+google.golang.org/grpc/connectivity
+google.golang.org/grpc/credentials
+google.golang.org/grpc/credentials/insecure
+google.golang.org/grpc/encoding
+google.golang.org/grpc/encoding/gzip
+google.golang.org/grpc/encoding/internal
+google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/experimental/stats
+google.golang.org/grpc/grpclog
+google.golang.org/grpc/grpclog/internal
+google.golang.org/grpc/health
+google.golang.org/grpc/health/grpc_health_v1
+google.golang.org/grpc/internal
+google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/balancer/gracefulswitch
+google.golang.org/grpc/internal/balancer/weight
+google.golang.org/grpc/internal/balancerload
+google.golang.org/grpc/internal/binarylog
+google.golang.org/grpc/internal/buffer
+google.golang.org/grpc/internal/channelz
+google.golang.org/grpc/internal/credentials
+google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpclog
+google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/grpcutil
+google.golang.org/grpc/internal/idle
+google.golang.org/grpc/internal/metadata
+google.golang.org/grpc/internal/pretty
+google.golang.org/grpc/internal/proxyattributes
+google.golang.org/grpc/internal/resolver
+google.golang.org/grpc/internal/resolver/delegatingresolver
+google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/dns/internal
+google.golang.org/grpc/internal/resolver/passthrough
+google.golang.org/grpc/internal/resolver/unix
+google.golang.org/grpc/internal/serviceconfig
+google.golang.org/grpc/internal/stats
+google.golang.org/grpc/internal/status
+google.golang.org/grpc/internal/syscall
+google.golang.org/grpc/internal/transport
+google.golang.org/grpc/internal/transport/networktype
+google.golang.org/grpc/keepalive
+google.golang.org/grpc/mem
+google.golang.org/grpc/metadata
+google.golang.org/grpc/peer
+google.golang.org/grpc/reflection
+google.golang.org/grpc/reflection/grpc_reflection_v1
+google.golang.org/grpc/reflection/grpc_reflection_v1alpha
+google.golang.org/grpc/reflection/internal
+google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/dns
+google.golang.org/grpc/resolver/manual
+google.golang.org/grpc/serviceconfig
+google.golang.org/grpc/stats
+google.golang.org/grpc/status
+google.golang.org/grpc/tap
+# google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
+## explicit; go 1.23
+google.golang.org/protobuf/encoding/protodelim
+google.golang.org/protobuf/encoding/protojson
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/editiondefaults
+google.golang.org/protobuf/internal/editionssupport
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/json
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genid
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/order
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/protolazy
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/protoadapt
+google.golang.org/protobuf/reflect/protodesc
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/dynamicpb
+google.golang.org/protobuf/types/gofeaturespb
+google.golang.org/protobuf/types/known/anypb
+google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/emptypb
+google.golang.org/protobuf/types/known/fieldmaskpb
+google.golang.org/protobuf/types/known/structpb
+google.golang.org/protobuf/types/known/timestamppb
+google.golang.org/protobuf/types/known/wrapperspb
+# gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+## explicit; go 1.11
+# gopkg.in/evanphx/json-patch.v4 v4.13.0
+## explicit
+gopkg.in/evanphx/json-patch.v4
+# gopkg.in/go-jose/go-jose.v2 v2.6.3
+## explicit
+gopkg.in/go-jose/go-jose.v2
+gopkg.in/go-jose/go-jose.v2/cipher
+gopkg.in/go-jose/go-jose.v2/json
+gopkg.in/go-jose/go-jose.v2/jwt
+# gopkg.in/inf.v0 v0.9.1
+## explicit
+gopkg.in/inf.v0
+# gopkg.in/natefinch/lumberjack.v2 v2.2.1
+## explicit; go 1.13
+gopkg.in/natefinch/lumberjack.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
+# k8s.io/api v0.0.0 => ./staging/src/k8s.io/api
+## explicit; go 1.26.0
+# k8s.io/apiextensions-apiserver v0.0.0 => ./staging/src/k8s.io/apiextensions-apiserver
+## explicit; go 1.26.0
+# k8s.io/apimachinery v0.0.0 => ./staging/src/k8s.io/apimachinery
+## explicit; go 1.26.0
+# k8s.io/apiserver v0.0.0 => ./staging/src/k8s.io/apiserver
+## explicit; go 1.26.0
+# k8s.io/cli-runtime v0.0.0 => ./staging/src/k8s.io/cli-runtime
+## explicit; go 1.26.0
+# k8s.io/client-go v0.0.0 => ./staging/src/k8s.io/client-go
+## explicit; go 1.26.0
+# k8s.io/cloud-provider v0.0.0 => ./staging/src/k8s.io/cloud-provider
+## explicit; go 1.26.0
+# k8s.io/cluster-bootstrap v0.0.0 => ./staging/src/k8s.io/cluster-bootstrap
+## explicit; go 1.26.0
+# k8s.io/code-generator v0.0.0 => ./staging/src/k8s.io/code-generator
+## explicit; go 1.26.0
+# k8s.io/component-base v0.0.0 => ./staging/src/k8s.io/component-base
+## explicit; go 1.26.0
+# k8s.io/component-helpers v0.0.0 => ./staging/src/k8s.io/component-helpers
+## explicit; go 1.26.0
+# k8s.io/controller-manager v0.0.0 => ./staging/src/k8s.io/controller-manager
+## explicit; go 1.26.0
+# k8s.io/cri-api v0.0.0 => ./staging/src/k8s.io/cri-api
+## explicit; go 1.26.0
+# k8s.io/cri-client v0.0.0 => ./staging/src/k8s.io/cri-client
+## explicit; go 1.26.0
+# k8s.io/cri-streaming v0.0.0 => ./staging/src/k8s.io/cri-streaming
+## explicit; go 1.26.0
+# k8s.io/csi-translation-lib v0.0.0 => ./staging/src/k8s.io/csi-translation-lib
+## explicit; go 1.26.0
+# k8s.io/dynamic-resource-allocation v0.0.0 => ./staging/src/k8s.io/dynamic-resource-allocation
+## explicit; go 1.26.0
+# k8s.io/endpointslice v0.0.0 => ./staging/src/k8s.io/endpointslice
+## explicit; go 1.26.0
+# k8s.io/externaljwt v0.0.0 => ./staging/src/k8s.io/externaljwt
+## explicit; go 1.26.0
+# k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b
+## explicit; go 1.23
+k8s.io/gengo/v2
+k8s.io/gengo/v2/codetags
+k8s.io/gengo/v2/generator
+k8s.io/gengo/v2/namer
+k8s.io/gengo/v2/parser
+k8s.io/gengo/v2/parser/tags
+k8s.io/gengo/v2/types
+# k8s.io/klog/v2 v2.140.0
+## explicit; go 1.21
+k8s.io/klog/v2
+k8s.io/klog/v2/internal/buffer
+k8s.io/klog/v2/internal/clock
+k8s.io/klog/v2/internal/dbg
+k8s.io/klog/v2/internal/serialize
+k8s.io/klog/v2/internal/severity
+k8s.io/klog/v2/internal/sloghandler
+k8s.io/klog/v2/internal/verbosity
+k8s.io/klog/v2/ktesting
+k8s.io/klog/v2/ktesting/init
+k8s.io/klog/v2/test
+k8s.io/klog/v2/textlogger
+# k8s.io/kms v0.0.0 => ./staging/src/k8s.io/kms
+## explicit; go 1.26.0
+# k8s.io/kube-aggregator v0.0.0 => ./staging/src/k8s.io/kube-aggregator
+## explicit; go 1.26.0
+# k8s.io/kube-controller-manager v0.0.0 => ./staging/src/k8s.io/kube-controller-manager
+## explicit; go 1.26.0
+# k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
+## explicit; go 1.23.0
+k8s.io/kube-openapi/cmd/openapi-gen
+k8s.io/kube-openapi/cmd/openapi-gen/args
+k8s.io/kube-openapi/pkg/aggregator
+k8s.io/kube-openapi/pkg/builder
+k8s.io/kube-openapi/pkg/builder3
+k8s.io/kube-openapi/pkg/builder3/util
+k8s.io/kube-openapi/pkg/cached
+k8s.io/kube-openapi/pkg/common
+k8s.io/kube-openapi/pkg/common/restfuladapter
+k8s.io/kube-openapi/pkg/generators
+k8s.io/kube-openapi/pkg/generators/rules
+k8s.io/kube-openapi/pkg/handler
+k8s.io/kube-openapi/pkg/handler3
+k8s.io/kube-openapi/pkg/internal
+k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json
+k8s.io/kube-openapi/pkg/internal/third_party/govalidator
+k8s.io/kube-openapi/pkg/openapiconv
+k8s.io/kube-openapi/pkg/schemaconv
+k8s.io/kube-openapi/pkg/schemamutation
+k8s.io/kube-openapi/pkg/spec3
+k8s.io/kube-openapi/pkg/util
+k8s.io/kube-openapi/pkg/util/proto
+k8s.io/kube-openapi/pkg/util/proto/testing
+k8s.io/kube-openapi/pkg/util/proto/validation
+k8s.io/kube-openapi/pkg/util/sets
+k8s.io/kube-openapi/pkg/validation/errors
+k8s.io/kube-openapi/pkg/validation/spec
+k8s.io/kube-openapi/pkg/validation/strfmt
+k8s.io/kube-openapi/pkg/validation/strfmt/bson
+k8s.io/kube-openapi/pkg/validation/validate
+# k8s.io/kube-proxy v0.0.0 => ./staging/src/k8s.io/kube-proxy
+## explicit; go 1.26.0
+# k8s.io/kube-scheduler v0.0.0 => ./staging/src/k8s.io/kube-scheduler
+## explicit; go 1.26.0
+# k8s.io/kubectl v0.0.0 => ./staging/src/k8s.io/kubectl
+## explicit; go 1.26.0
+# k8s.io/kubelet v0.0.0 => ./staging/src/k8s.io/kubelet
+## explicit; go 1.26.0
+# k8s.io/metrics v0.0.0 => ./staging/src/k8s.io/metrics
+## explicit; go 1.26.0
+# k8s.io/mount-utils v0.0.0 => ./staging/src/k8s.io/mount-utils
+## explicit; go 1.26.0
+# k8s.io/pod-security-admission v0.0.0 => ./staging/src/k8s.io/pod-security-admission
+## explicit; go 1.26.0
+# k8s.io/sample-apiserver v0.0.0 => ./staging/src/k8s.io/sample-apiserver
+## explicit; go 1.26.0
+# k8s.io/streaming v0.0.0 => ./staging/src/k8s.io/streaming
+## explicit; go 1.26.0
+# k8s.io/system-validators v1.12.1
+## explicit; go 1.16
+k8s.io/system-validators/validators
+# k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
+## explicit; go 1.23
+k8s.io/utils/buffer
+k8s.io/utils/clock
+k8s.io/utils/clock/testing
+k8s.io/utils/cpuset
+k8s.io/utils/dump
+k8s.io/utils/exec
+k8s.io/utils/exec/testing
+k8s.io/utils/inotify
+k8s.io/utils/integer
+k8s.io/utils/internal/third_party/forked/golang/golang-lru
+k8s.io/utils/internal/third_party/forked/golang/net
+k8s.io/utils/io
+k8s.io/utils/keymutex
+k8s.io/utils/lru
+k8s.io/utils/net
+k8s.io/utils/path
+k8s.io/utils/ptr
+k8s.io/utils/strings
+k8s.io/utils/third_party/forked/golang/btree
+k8s.io/utils/trace
+# sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0
+## explicit; go 1.21
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client/metrics
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/common/metrics
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
+# sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
+## explicit; go 1.23
+sigs.k8s.io/json
+sigs.k8s.io/json/internal/golang/encoding/json
+# sigs.k8s.io/knftables v0.0.21
+## explicit; go 1.20
+sigs.k8s.io/knftables
+# sigs.k8s.io/kustomize/api v0.21.1
+## explicit; go 1.24.0
+sigs.k8s.io/kustomize/api/filters/annotations
+sigs.k8s.io/kustomize/api/filters/fieldspec
+sigs.k8s.io/kustomize/api/filters/filtersutil
+sigs.k8s.io/kustomize/api/filters/fsslice
+sigs.k8s.io/kustomize/api/filters/iampolicygenerator
+sigs.k8s.io/kustomize/api/filters/imagetag
+sigs.k8s.io/kustomize/api/filters/labels
+sigs.k8s.io/kustomize/api/filters/nameref
+sigs.k8s.io/kustomize/api/filters/namespace
+sigs.k8s.io/kustomize/api/filters/patchjson6902
+sigs.k8s.io/kustomize/api/filters/patchstrategicmerge
+sigs.k8s.io/kustomize/api/filters/prefix
+sigs.k8s.io/kustomize/api/filters/refvar
+sigs.k8s.io/kustomize/api/filters/replacement
+sigs.k8s.io/kustomize/api/filters/replicacount
+sigs.k8s.io/kustomize/api/filters/suffix
+sigs.k8s.io/kustomize/api/filters/valueadd
+sigs.k8s.io/kustomize/api/hasher
+sigs.k8s.io/kustomize/api/ifc
+sigs.k8s.io/kustomize/api/internal/accumulator
+sigs.k8s.io/kustomize/api/internal/builtins
+sigs.k8s.io/kustomize/api/internal/generators
+sigs.k8s.io/kustomize/api/internal/git
+sigs.k8s.io/kustomize/api/internal/image
+sigs.k8s.io/kustomize/api/internal/konfig/builtinpluginconsts
+sigs.k8s.io/kustomize/api/internal/kusterr
+sigs.k8s.io/kustomize/api/internal/loader
+sigs.k8s.io/kustomize/api/internal/plugins/builtinconfig
+sigs.k8s.io/kustomize/api/internal/plugins/builtinhelpers
+sigs.k8s.io/kustomize/api/internal/plugins/execplugin
+sigs.k8s.io/kustomize/api/internal/plugins/fnplugin
+sigs.k8s.io/kustomize/api/internal/plugins/loader
+sigs.k8s.io/kustomize/api/internal/plugins/utils
+sigs.k8s.io/kustomize/api/internal/target
+sigs.k8s.io/kustomize/api/internal/utils
+sigs.k8s.io/kustomize/api/internal/validate
+sigs.k8s.io/kustomize/api/konfig
+sigs.k8s.io/kustomize/api/krusty
+sigs.k8s.io/kustomize/api/kv
+sigs.k8s.io/kustomize/api/provenance
+sigs.k8s.io/kustomize/api/provider
+sigs.k8s.io/kustomize/api/resmap
+sigs.k8s.io/kustomize/api/resource
+sigs.k8s.io/kustomize/api/types
+# sigs.k8s.io/kustomize/kustomize/v5 v5.8.1
+## explicit; go 1.24.0
+sigs.k8s.io/kustomize/kustomize/v5/commands/build
+# sigs.k8s.io/kustomize/kyaml v0.21.1
+## explicit; go 1.24.0
+sigs.k8s.io/kustomize/kyaml/comments
+sigs.k8s.io/kustomize/kyaml/errors
+sigs.k8s.io/kustomize/kyaml/ext
+sigs.k8s.io/kustomize/kyaml/fieldmeta
+sigs.k8s.io/kustomize/kyaml/filesys
+sigs.k8s.io/kustomize/kyaml/fn/runtime/container
+sigs.k8s.io/kustomize/kyaml/fn/runtime/exec
+sigs.k8s.io/kustomize/kyaml/fn/runtime/runtimeutil
+sigs.k8s.io/kustomize/kyaml/kio
+sigs.k8s.io/kustomize/kyaml/kio/kioutil
+sigs.k8s.io/kustomize/kyaml/openapi
+sigs.k8s.io/kustomize/kyaml/openapi/kubernetesapi
+sigs.k8s.io/kustomize/kyaml/openapi/kubernetesapi/v1_21_2
+sigs.k8s.io/kustomize/kyaml/openapi/kustomizationapi
+sigs.k8s.io/kustomize/kyaml/order
+sigs.k8s.io/kustomize/kyaml/resid
+sigs.k8s.io/kustomize/kyaml/runfn
+sigs.k8s.io/kustomize/kyaml/sets
+sigs.k8s.io/kustomize/kyaml/sliceutil
+sigs.k8s.io/kustomize/kyaml/utils
+sigs.k8s.io/kustomize/kyaml/yaml
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/labels
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/selection
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/util/errors
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/util/sets
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/util/validation
+sigs.k8s.io/kustomize/kyaml/yaml/internal/k8sgen/pkg/util/validation/field
+sigs.k8s.io/kustomize/kyaml/yaml/merge2
+sigs.k8s.io/kustomize/kyaml/yaml/schema
+sigs.k8s.io/kustomize/kyaml/yaml/walk
+# sigs.k8s.io/randfill v1.0.0
+## explicit; go 1.18
+sigs.k8s.io/randfill
+sigs.k8s.io/randfill/bytesource
+# sigs.k8s.io/structured-merge-diff/v6 v6.3.2
+## explicit; go 1.23
+sigs.k8s.io/structured-merge-diff/v6/fieldpath
+sigs.k8s.io/structured-merge-diff/v6/merge
+sigs.k8s.io/structured-merge-diff/v6/schema
+sigs.k8s.io/structured-merge-diff/v6/typed
+sigs.k8s.io/structured-merge-diff/v6/value
+# sigs.k8s.io/yaml v1.6.0
+## explicit; go 1.22
+sigs.k8s.io/yaml
+sigs.k8s.io/yaml/kyaml
+
+
+# FILE: staging/README.md
+# External Repository Staging Area
+
+This directory is the staging area for packages that have been split to their
+own repository. The content here will be periodically published to respective
+top-level k8s.io repositories.
+
+Repositories currently staged here:
+
+- [`k8s.io/api`](https://github.com/kubernetes/api)
+- [`k8s.io/apiextensions-apiserver`](https://github.com/kubernetes/apiextensions-apiserver)
+- [`k8s.io/apimachinery`](https://github.com/kubernetes/apimachinery)
+- [`k8s.io/apiserver`](https://github.com/kubernetes/apiserver)
+- [`k8s.io/cli-runtime`](https://github.com/kubernetes/cli-runtime)
+- [`k8s.io/client-go`](https://github.com/kubernetes/client-go)
+- [`k8s.io/cloud-provider`](https://github.com/kubernetes/cloud-provider)
+- [`k8s.io/cluster-bootstrap`](https://github.com/kubernetes/cluster-bootstrap)
+- [`k8s.io/code-generator`](https://github.com/kubernetes/code-generator)
+- [`k8s.io/component-base`](https://github.com/kubernetes/component-base)
+- [`k8s.io/component-helpers`](https://github.com/kubernetes/component-helpers)
+- [`k8s.io/controller-manager`](https://github.com/kubernetes/controller-manager)
+- [`k8s.io/cri-api`](https://github.com/kubernetes/cri-api)
+- [`k8s.io/cri-client`](https://github.com/kubernetes/cri-client)
+- [`k8s.io/cri-streaming`](https://github.com/kubernetes/cri-streaming)
+- [`k8s.io/csi-translation-lib`](https://github.com/kubernetes/csi-translation-lib)
+- [`k8s.io/dynamic-resource-allocation`](https://github.com/kubernetes/dynamic-resource-allocation)
+- [`k8s.io/endpointslice`](https://github.com/kubernetes/endpointslice)
+- [`k8s.io/externaljwt`](https://github.com/kubernetes/externaljwt)
+- [`k8s.io/kms`](https://github.com/kubernetes/kms)
+- [`k8s.io/kube-aggregator`](https://github.com/kubernetes/kube-aggregator)
+- [`k8s.io/kube-controller-manager`](https://github.com/kubernetes/kube-controller-manager)
+- [`k8s.io/kube-proxy`](https://github.com/kubernetes/kube-proxy)
+- [`k8s.io/kube-scheduler`](https://github.com/kubernetes/kube-scheduler)
+- [`k8s.io/kubectl`](https://github.com/kubernetes/kubectl)
+- [`k8s.io/kubelet`](https://github.com/kubernetes/kubelet)
+- [`k8s.io/metrics`](https://github.com/kubernetes/metrics)
+- [`k8s.io/mount-utils`](https://github.com/kubernetes/mount-utils)
+- [`k8s.io/pod-security-admission`](https://github.com/kubernetes/pod-security-admission)
+- [`k8s.io/sample-apiserver`](https://github.com/kubernetes/sample-apiserver)
+- [`k8s.io/sample-cli-plugin`](https://github.com/kubernetes/sample-cli-plugin)
+- [`k8s.io/sample-controller`](https://github.com/kubernetes/sample-controller)
+
+The code in the staging/ directory is authoritative, i.e. the only copy of the
+code. You can directly modify such code.
+
+## Using staged repositories from Kubernetes code
+
+Kubernetes code uses the repositories in this directory via a Go workspace and
+module `replace` statements.  For example, when Kubernetes code imports a
+package from the `k8s.io/client-go` repository, that import is resolved to
+`staging/src/k8s.io/client-go` relative to the project root:
+
+```go
+// pkg/example/some_code.go
+package example
+
+import (
+  "k8s.io/client-go/dynamic" // resolves to staging/src/k8s.io/client-go/dynamic
+)
+```
+
+## Creating a new repository in staging
+
+### Adding the staging repository in `kubernetes/kubernetes`:
+
+1. Send an email to the SIG Architecture [mailing
+   list](https://groups.google.com/a/kubernetes.io/g/sig-architecture)
+   and the mailing list of the SIG which would own the repo requesting approval
+   for creating the staging repository.
+
+2. Once approval has been granted, create the new staging repository.
+
+3. Update
+   [`import-restrictions.yaml`](/staging/publishing/import-restrictions.yaml)
+   to add the list of other staging repos that this new repo can import.
+
+4. Add all mandatory template files to the staging repo as mentioned in
+   https://github.com/kubernetes/kubernetes-template-project.
+
+5. Make sure that the `.github/PULL_REQUEST_TEMPLATE.md` and `CONTRIBUTING.md`
+   files mention that PRs are not directly accepted to the repo.
+
+6. Ensure that `docs.go` file is added. Refer to
+   [#kubernetes/kubernetes#91354](https://github.com/kubernetes/kubernetes/blob/release-1.24/staging/src/k8s.io/client-go/doc.go)
+   for reference.
+
+7. NOTE: Do not edit go.mod or go.sum in the new repo (staging/src/k8s.io/<newrepo>/) manually. Run the following instead:
+
+```
+  ./hack/update-vendor.sh
+```
+
+### Creating the published repository
+
+1. Create an [issue](https://github.com/kubernetes/org/issues/new?assignees=&labels=area%2Fgithub-repo&projects=&template=repo-create.yml&title=REQUEST%3A+%3CCreate+or+Migrate%3E+%3Cgithub+repo%3E)
+in the `kubernetes/org` repo to request creation of the respective published
+repository in the Kubernetes org. The published repository **must** have an
+initial empty commit. It also needs specific access rules and branch settings.
+See [#kubernetes/org#58](https://github.com/kubernetes/org/issues/58)
+for an example.
+
+2. Setup branch protection and enable access to the `stage-bots` team
+by adding the repo in
+[`prow/config.yaml`](https://github.com/kubernetes/test-infra/blob/master/config/prow/config.yaml).
+See [#kubernetes/test-infra#9292](https://github.com/kubernetes/test-infra/pull/9292)
+for an example.
+
+3. Once the repository has been created in the Kubernetes org,
+update the publishing-bot to publish the staging repository by updating:
+
+    - [`rules.yaml`](/staging/publishing/rules.yaml):
+    Make sure that the list of dependencies reflects the staging repos in the `Godeps.json` file.
+
+    - [`repos.sh`](https://github.com/kubernetes/publishing-bot/blob/master/hack/repos.sh):
+    Add the staging repo in the list of repos to be published.
+
+4. Add the staging and published repositories as a subproject for the
+SIG that owns the repos in
+[`sigs.yaml`](https://github.com/kubernetes/community/blob/master/sigs.yaml).
+
+5. Add the repo to the list of staging repos in this `README.md` file.
+
+
+# FILE: logo/usage_guidelines.md
+# Kubernetes Branding Guidelines
+
+These guidelines provide you with guidance for using the Kubernetes logo.
+All artwork is made available under the Linux Foundation trademark usage
+[guidelines](https://www.linuxfoundation.org/trademark-usage/). This text from
+those guidelines, and the correct and incorrect usage examples, are particularly
+helpful:
+>Certain marks of The Linux Foundation have been created to enable you to
+>communicate compatibility or interoperability of software or products. In
+>addition to the requirement that any use of a mark to make an assertion of
+>compatibility must, of course, be accurate, the use of these marks must
+>avoid confusion regarding The Linux Foundation’s association with the
+>product. The use of the mark cannot imply that The Linux Foundation or
+>its projects are sponsoring or endorsing the product.
+
+Additionally, permission is granted to modify the Kubernetes mark for non-commercial uses such as t-shirts and stickers.
+
+## Links to logo images
+The Kubernetes logo is available in 2 formats (PNG & SVG), 3 layouts --
+horizontal (also known as landscape format), stacked (which is closer to
+square), and icon (which does not include the name and is square), and 5
+colors (color/black/white/all-blue/white-text) -- so over 20 versions -- in the
+CNCF [artwork](https://github.com/cncf/artwork/tree/master/projects/kubernetes)
+repo.
+
+
+# FILE: logo/name_white.pdf
+kubernetes
+
+-- 1 of 1 --
+
+
+
+# FILE: logo/name_blue.pdf
+kubernetes
+
+-- 1 of 1 --
+
+
+
+# FILE: logo/logo_with_border.pdf
+
+
+-- 1 of 1 --
+
+
+
+# FILE: logo/logo.pdf
+
+
+-- 1 of 1 --
+
+
+
+# FILE: logo/colors.md
+# Official Colors
+
+The kubernetes logo has an official blue color.  When reproducing the logo, please use the official color, when possible.
+
+## Pantone
+
+When possible, the Pantone color is preferred for print material.  The official Pantone color is *285C*.
+
+## RGB
+
+When used digitally, the official RGB color code is *#326CE5*.
+
+
+# FILE: logo/LICENSE
+# The Kubernetes logo files are licensed under a choice of either Apache-2.0 or CC-BY-4.0 (Creative Commons Attribution 4.0 International).
+
+
+# FILE: hack/verify-vendor.sh
+#!/usr/bin/env bash
+
+# Copyright 2015 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether fixing of vendor directory or go.mod is needed or
+# not. We should run `hack/update-vendor.sh` if actually fixes them.
+# Usage: `hack/verify-vendor.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+
+kube::golang::setup_env
+
+# create a nice clean place to put our new vendor tree
+_tmpdir="$(kube::realpath "$(mktemp -d -t "$(basename "$0").XXXXXX")")"
+
+if [[ -z ${KEEP_TMP:-} ]]; then
+    KEEP_TMP=false
+fi
+
+function cleanup {
+  # make go module dirs writeable
+  chmod -R +w "${_tmpdir}"
+  if [ "${KEEP_TMP}" == "true" ]; then
+    echo "Leaving ${_tmpdir} for you to examine or copy. Please delete it manually when finished. (rm -rf ${_tmpdir})"
+  else
+    echo "Removing ${_tmpdir}"
+    rm -rf "${_tmpdir}"
+  fi
+}
+kube::util::trap_add cleanup EXIT
+
+# Copy the contents of the kube directory into the nice clean place (which is NOT shaped like a GOPATH)
+_kubetmp="${_tmpdir}/kubernetes"
+mkdir -p "${_kubetmp}"
+tar --exclude=.git --exclude="./_*" -c . | (cd "${_kubetmp}" && tar xf -)
+
+pushd "${_kubetmp}" > /dev/null 2>&1
+  # Destroy deps in the copy of the kube tree
+  rm -rf ./vendor ./LICENSES
+
+  # Recreate the vendor tree using the nice clean set we just downloaded
+  hack/update-vendor.sh
+popd > /dev/null 2>&1
+
+ret=0
+
+pushd "${KUBE_ROOT}" > /dev/null 2>&1
+  # Test for diffs in go.mod / go.sum / go.work / go.work.sum
+  for file in $(git ls-files -cmo --exclude-standard -- ':!:vendor/*' ':(glob)**/go.mod' ':(glob)**/go.sum' ':(glob)**/go.work' ':(glob)**/go.work.sum'); do
+    if ! _out="$(diff -Naupr "${file}" "${_kubetmp}/${file}")"; then
+      echo "Your ${file} file is different:" >&2
+      echo "${_out}" >&2
+      echo "Vendor Verify failed." >&2
+      echo "If you're seeing this locally, run the below command to fix this:" >&2
+      echo "hack/update-vendor.sh" >&2
+      ret=1
+    fi
+  done
+
+  if ! _out="$(diff -Naupr -x "AUTHORS*" -x "CONTRIBUTORS*" vendor "${_kubetmp}/vendor")"; then
+    echo "Your vendored results are different:" >&2
+    echo "${_out}" >&2
+    echo "Vendor Verify failed." >&2
+    echo "${_out}" > vendordiff.patch
+    echo "If you're seeing this locally, run the below command to fix your directories:" >&2
+    echo "hack/update-vendor.sh" >&2
+    ret=1
+  fi
+
+  # Verify we are pinned to matching levels
+  hack/lint-dependencies.sh >&2
+popd > /dev/null 2>&1
+
+if [[ ${ret} -gt 0 ]]; then
+  exit ${ret}
+fi
+
+# Ensure we can tidy every repo using only its recorded versions
+for repo in $(kube::util::list_staging_repos); do
+  pushd "${_kubetmp}/staging/src/k8s.io/${repo}" >/dev/null 2>&1
+    echo "Tidying k8s.io/${repo}..."
+    GODEBUG=gocacheverify=1 go mod tidy
+  popd >/dev/null 2>&1
+done
+pushd "${_kubetmp}" >/dev/null 2>&1
+  echo "Tidying k8s.io/kubernetes..."
+  GODEBUG=gocacheverify=1 go mod tidy
+popd >/dev/null 2>&1
+
+echo "Vendor Verified."
+# ex: ts=2 sw=2 et filetype=sh
+
+
+# FILE: hack/verify-vendor-licenses.sh
+#!/usr/bin/env bash
+
+# Copyright 2015 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether updating of licenses files is needed
+# or not. We should run `hack/update-vendor-licenses.sh` and commit the results,
+# if actually updates them.
+# Usage: `hack/verify-vendor-licenses.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+source "${KUBE_ROOT}/hack/lib/verify-generated.sh"
+
+kube::verify::generated "Generated files need to be updated" "Please run 'hack/update-vendor-licenses.sh'" hack/update-vendor-licenses.sh "$@"
+
+
+# FILE: hack/verify-typecheck.sh
+#!/usr/bin/env bash
+
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script does a fast type check of kubernetes code for all platforms.
+# Usage: `hack/verify-typecheck.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+cd "${KUBE_ROOT}"
+
+kube::golang::setup_env
+kube::util::require-jq
+
+if [[ $# == 0 ]]; then
+  # Doing it this way is MUCH faster than simply saying "all", and there doesn't
+  # seem to be a simpler way to express "this whole workspace".
+  packages=()
+  kube::util::read-array packages < <(
+      go work edit -json | jq -r '.Use[].DiskPath + "/..."'
+  )
+  set -- "${packages[@]}"
+fi
+
+ret=0
+TYPECHECK_SERIAL="${TYPECHECK_SERIAL:-true}"
+go run ./test/typecheck "--serial=$TYPECHECK_SERIAL" "$@" || ret=$?
+
+if [[ $ret -ne 0 ]]; then
+  echo "!!! Typecheck has failed. This may cause cross platform build failures." >&2
+  echo "!!! Please see https://git.k8s.io/kubernetes/test/typecheck for more information." >&2
+  exit 1
+fi
+
+
+# FILE: hack/verify-testing-import.sh
+#!/usr/bin/env bash
+
+# Copyright 2023 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether the testing.init symbol is present in any
+# of the release binaries and fails if it finds one. This check is needed
+# to avoid including test libraries in production binaries as they often lack
+# rigorous review and sufficient testing.
+# Usage: `hack/verify-test-code.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+cd "${KUBE_ROOT}"
+
+kube::golang::setup_env
+
+RELEASE_BIN_PKGS=(
+  "${KUBE_ROOT}/cmd/cloud-controller-manager"
+  "${KUBE_ROOT}/cmd/kube-apiserver"
+  "${KUBE_ROOT}/cmd/kube-controller-manager"
+  "${KUBE_ROOT}/cmd/kube-proxy"
+  "${KUBE_ROOT}/cmd/kube-scheduler"
+  "${KUBE_ROOT}/cmd/kubectl"
+  "${KUBE_ROOT}/cmd/kubectl-convert"
+  "${KUBE_ROOT}/cmd/kubelet"
+  "${KUBE_ROOT}/cmd/kubeadm"
+)
+
+pkgs_with_testing_import=()
+for file in "${RELEASE_BIN_PKGS[@]}"
+do
+  if [ "$(go list -json "${file}" | jq 'any(.Deps[]; . == "testing")')" == "true" ]
+  then
+    pkgs_with_testing_import+=( "${file}" )
+  fi
+done
+
+if [ ${#pkgs_with_testing_import[@]} -ne 0 ]; then
+  printf "%s\n" "Testing package imported in:"
+  for file in "${pkgs_with_testing_import[@]}"; do
+    printf "\t%s\n" "${file}"
+  done
+  exit 1
+fi
+
+exit 0
+
+
+
+# FILE: hack/verify-test-images.sh
+#!/usr/bin/env bash
+
+# Copyright 2014 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether the latest or untagged  gcr.io image is in
+# `test/e2e/*.go` files.
+# Usage: `hack/verify-test-images.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+cd "${KUBE_ROOT}"
+result=0
+
+# Find mentions of untagged gcr.io images in test/e2e/*.go
+find_e2e_test_untagged_gcr_images() {
+    grep -o -E -e 'gcr.io/[-a-z0-9/_:.]+' test/e2e/*.go | grep -v -E "gcr.io/.*:" | cut -d ":" -f 1 | LC_ALL=C sort -u
+}
+
+
+# Find mentions of latest gcr.io images in test/e2e/*.go
+find_e2e_test_latest_gcr_images() {
+    grep -o -E -e 'gcr.io/.*:latest' test/e2e/*.go | cut -d ":" -f 1 | LC_ALL=C sort -u
+}
+
+if find_e2e_test_latest_gcr_images; then
+  echo "!!! Found :latest gcr.io images in the above files"
+  result=1
+fi
+
+if find_e2e_test_untagged_gcr_images; then
+  echo "!!! Found untagged gcr.io images in the above files"
+  result=1
+fi
+
+exit ${result}
+
+
+# FILE: hack/verify-test-featuregates.sh
+#!/usr/bin/env bash
+
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether mutable global feature gate is invocated correctly
+# in `*_test.go` files.
+# Usage: `hack/verify-test-featuregates.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+
+cd "${KUBE_ROOT}"
+
+rc=0
+
+# find test files accessing the mutable global feature gate or interface
+direct_sets=$(git grep MutableFeatureGate -- '*_test.go') || true
+if [[ -n "${direct_sets}" ]]; then
+  echo "Test files may not access mutable global feature gates directly:" >&2
+  echo "${direct_sets}" >&2
+  echo >&2
+  echo "Use this invocation instead:" >&2
+  echo "  featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.<FeatureName>, <value>)" >&2
+  echo >&2
+  rc=1
+fi
+
+exit $rc
+
+
+# FILE: hack/verify-test-code.sh
+#!/usr/bin/env bash
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether e2e test code which contains `Expect()` but not use
+# the e2e framework exists or not.
+# Usage: `hack/verify-test-code.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+cd "${KUBE_ROOT}"
+
+all_e2e_files=()
+# NOTE: This checks e2e test code without the e2e framework which contains Expect().To(HaveOccurred())
+kube::util::read-array all_e2e_files < <(find test/e2e{,_node,_kubeadm} -name '*.go' | grep -v 'test/e2e/framework/')
+errors_expect_no_error=()
+for file in "${all_e2e_files[@]}"
+do
+    if grep -E "Expect\(.*\)\.(NotTo|ToNot)\(.*HaveOccurred\(\)" "${file}" > /dev/null
+    then
+        errors_expect_no_error+=( "${file}" )
+    fi
+    if grep -E "Expect\(err\)\.To\(gomega\.BeNil\(\)\)" "${file}" > /dev/null
+    then
+        errors_expect_no_error+=( "${file}" )
+    fi
+done
+
+all_e2e_framework_files=()
+kube::util::read-array all_e2e_framework_files < <(find test/e2e/framework/ -name '*.go' | grep -v "_test.go")
+errors_framework_contains_tests=()
+for file in "${all_e2e_framework_files[@]}"
+do
+    if grep -E "(ConformanceIt\(.*, func\(\) {|ginkgo.It\(.*, func\(\) {)" "${file}" > /dev/null
+    then
+        errors_framework_contains_tests+=( "${file}" )
+    fi
+done
+
+if [ ${#errors_expect_no_error[@]} -ne 0 ]; then
+  {
+    echo "Errors:"
+    for err in "${errors_expect_no_error[@]}"; do
+      echo "$err"
+    done
+    echo
+    echo 'The above files need to use framework.ExpectNoError(err) instead of '
+    echo 'Expect(err).NotTo(HaveOccurred()) or gomega.Expect(err).NotTo(gomega.HaveOccurred())'
+    echo
+    echo 'See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-testing/writing-good-e2e-tests.md for more guidance'
+  } >&2
+  exit 1
+fi
+
+if [ ${#errors_framework_contains_tests[@]} -ne 0 ]; then
+  {
+    echo "Errors:"
+    for err in "${errors_framework_contains_tests[@]}"; do
+      echo "$err"
+    done
+    echo
+    echo 'The above e2e framework files should not contain any e2e tests which are implemented '
+    echo 'with framework.ConformanceIt() or ginkgo.It()'
+    echo
+  } >&2
+  exit 1
+fi
+
+echo 'Congratulations!  All e2e test source files are valid.'
+
+
+# FILE: hack/verify-staging-meta-files.sh
+#!/usr/bin/env bash
+
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether the expected metadata files (such as OWNERS and
+# LICENSE) exist under the `staging/src/k8s.io/*` directories.
+# Usage: `hack/verify-staging-meta-files.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+
+expected_filenames=(
+  .github/PULL_REQUEST_TEMPLATE.md
+  code-of-conduct.md
+  LICENSE
+  OWNERS
+  README.md
+  SECURITY_CONTACTS
+)
+
+exceptions=(
+  client-go/README.md # client-go provides its own README
+)
+
+RESULT=0
+for full_repo_path in "${KUBE_ROOT}"/staging/src/k8s.io/*; do
+  repo=$(basename "${full_repo_path}")
+  for filename in "${expected_filenames[@]}"; do
+    if echo " ${exceptions[*]} " | grep -F " ${repo}/${filename} " >/dev/null; then
+      continue
+    elif [ ! -f "${KUBE_ROOT}/staging/src/k8s.io/${repo}/${filename}" ]; then
+      echo "staging/src/k8s.io/${repo}/${filename} does not exist and must be created"
+      RESULT=1
+    fi
+  done
+done
+
+exit $RESULT
+
+
+# FILE: hack/verify-spelling.sh
+#!/usr/bin/env bash
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks commonly misspelled English words in all files in the
+# working directory by client9/misspell package.
+# Usage: `hack/verify-spelling.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+export KUBE_ROOT
+source "${KUBE_ROOT}/hack/lib/init.sh"
+
+kube::golang::setup_env
+
+# Ensure that we find the binaries we build before anything else.
+export GOBIN="${KUBE_OUTPUT_BIN}"
+PATH="${GOBIN}:${PATH}"
+
+# Install tools we need
+GOTOOLCHAIN="$(kube::golang::hack_tools_gotoolchain)" go -C "${KUBE_ROOT}/hack/tools" install github.com/golangci/misspell/cmd/misspell
+
+# Spell checking
+# All the skipping files are defined in hack/.spelling_failures
+skipping_file="${KUBE_ROOT}/hack/.spelling_failures"
+failing_packages=$(sed "s| | -e |g" "${skipping_file}")
+git ls-files | grep -v -e "${failing_packages}" | xargs misspell -i "Creater,creater,ect" -error -o stderr
+
+
+# FILE: hack/verify-shellcheck.sh
+#!/usr/bin/env bash
+
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script lints each shell script by `shellcheck`.
+# Usage: `hack/verify-shellcheck.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd -P)"
+
+# allow overriding docker cli, which should work fine for this script
+DOCKER="${DOCKER:-docker}"
+
+# required version for this script, if not installed on the host we will
+# use the official docker image instead. keep this in sync with SHELLCHECK_IMAGE
+SHELLCHECK_VERSION="0.9.0"
+SHELLCHECK_IMAGE="docker.io/koalaman/shellcheck:v0.9.0@sha256:f35e8987b02760d4e76fc99a68ad5c42cc10bb32f3dd2143a3cf92f1e5446a45"
+
+# disabled lints
+disabled=(
+  # this lint disallows non-constant source, which we use extensively without
+  # any known bugs
+  1090
+  # this lint warns when shellcheck cannot find a sourced file
+  # this wouldn't be a bad idea to warn on, but it fails on lots of path
+  # dependent sourcing, so just disable enforcing it
+  1091
+  # this lint prefers command -v to which, they are not the same
+  2230
+)
+# comma separate for passing to shellcheck
+join_by() {
+  local IFS="$1";
+  shift;
+  echo "$*";
+}
+SHELLCHECK_DISABLED="$(join_by , "${disabled[@]}")"
+readonly SHELLCHECK_DISABLED
+
+# ensure we're linting the k8s source tree
+cd "${KUBE_ROOT}"
+
+scripts_to_check=("$@")
+if [[ "$#" == 0 ]]; then
+  # Find all shell scripts excluding:
+  # - Anything git-ignored - No need to lint untracked files.
+  # - ./_* - No need to lint output directories.
+  # - ./.git/* - Ignore anything in the git object store.
+  # - ./vendor* - Vendored code should be fixed upstream instead.
+  # - ./third_party/*, but re-include ./third_party/forked/*  - only code we
+  #    forked should be linted and fixed.
+  while IFS=$'\n' read -r script;
+    do git check-ignore -q "$script" || scripts_to_check+=("$script");
+  done < <(find . -name "*.sh" \
+    -not \( \
+      -path ./_\*      -o \
+      -path ./.git\*   -o \
+      -path ./vendor\* -o \
+      \( -path ./third_party\* -a -not -path ./third_party/forked\* \) \
+    \))
+fi
+
+# detect if the host machine has the required shellcheck version installed
+# if so, we will use that instead.
+HAVE_SHELLCHECK=false
+if which shellcheck &>/dev/null; then
+  detected_version="$(shellcheck --version | grep 'version: .*')"
+  if [[ "${detected_version}" = "version: ${SHELLCHECK_VERSION}" ]]; then
+    HAVE_SHELLCHECK=true
+  fi
+fi
+
+# if KUBE_JUNIT_REPORT_DIR is set, disable colorized output.
+# Colorized output causes malformed XML in the JUNIT report.
+SHELLCHECK_COLORIZED_OUTPUT="auto"
+if [[ -n "${KUBE_JUNIT_REPORT_DIR:-}" ]]; then
+  SHELLCHECK_COLORIZED_OUTPUT="never"
+fi
+
+# common arguments we'll pass to shellcheck
+SHELLCHECK_OPTIONS=(
+  # allow following sourced files that are not specified in the command,
+  # we need this because we specify one file at a time in order to trivially
+  # detect which files are failing
+  "--external-sources"
+  # include our disabled lints
+  "--exclude=${SHELLCHECK_DISABLED}"
+  # set colorized output
+  "--color=${SHELLCHECK_COLORIZED_OUTPUT}"
+)
+
+# tell the user which we've selected and lint all scripts
+# The shellcheck errors are printed to stdout by default, hence they need to be redirected
+# to stderr in order to be well parsed for Junit representation by juLog function
+res=0
+if ${HAVE_SHELLCHECK}; then
+  echo "Using host shellcheck ${SHELLCHECK_VERSION} binary."
+  shellcheck "${SHELLCHECK_OPTIONS[@]}" "${scripts_to_check[@]}" >&2 || res=$?
+else
+  echo "Using shellcheck ${SHELLCHECK_VERSION} docker image."
+  "${DOCKER}" run \
+    --rm -v "${KUBE_ROOT}:${KUBE_ROOT}" -w "${KUBE_ROOT}" --security-opt label=disable \
+    "${SHELLCHECK_IMAGE}" \
+    "${SHELLCHECK_OPTIONS[@]}" "${scripts_to_check[@]}" >&2 || res=$?
+fi
+
+# print a message based on the result
+if [ $res -eq 0 ]; then
+  echo 'Congratulations! All shell files are passing lint :-)'
+else
+  {
+    echo
+    echo 'Please review the above warnings. You can test via "./hack/verify-shellcheck.sh"'
+    echo 'If the above warnings do not make sense, you can exempt this warning with a comment'
+    echo ' (if your reviewer is okay with it).'
+    echo 'In general please prefer to fix the error, we have already disabled specific lints'
+    echo ' that the project chooses to ignore.'
+    echo 'See: https://github.com/koalaman/shellcheck/wiki/Ignore#ignoring-one-specific-instance-in-a-file'
+    echo
+  } >&2
+fi
+
+# preserve the result
+exit $res
+
+
+# FILE: hack/verify-readonly-packages.sh
+#!/usr/bin/env bash
+
+# Copyright 2017 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether between $KUBE_VERIFY_GIT_BRANCH and HEAD files in
+# readonly directories were modified. A directory is readonly if it contains a
+# .readonly file. Being readonly DOES NOT apply recursively to subdirectories.
+# Usage: `hack/verify-readonly-packages.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+
+readonly branch=${1:-${KUBE_VERIFY_GIT_BRANCH:-master}}
+
+find_files() {
+  find . -not \( \
+      \( \
+        -wholename './_output' \
+        -o -wholename './release' \
+        -o -wholename './target' \
+        -o -wholename '*/third_party/*' \
+        -o -wholename '*/vendor/*' \
+        -o -wholename './staging/src/k8s.io/client-go/pkg/*' \
+      \) -prune \
+    \) -name '.readonly'
+}
+
+conflicts=()
+while IFS=$'\n' read -r dir; do
+    dir=${dir#./}
+    if kube::util::has_changes "${branch}" "^${dir}/[^/]*\$" '/\.readonly$|/zz_generated|/\.generated\.|\.proto$|\.pb\.go$' >/dev/null; then
+        conflicts+=("${dir}")
+    fi
+done < <(find_files | sed 's|/.readonly||')
+
+if [ ${#conflicts[@]} -gt 0 ]; then
+    exec 1>&2
+    for dir in "${conflicts[@]}"; do
+        echo "Found ${dir}/.readonly, but files changed compared to \"${branch}\" branch."
+    done
+    exit 1
+else
+    echo "Readonly packages verified."
+fi
+# ex: ts=2 sw=2 et filetype=sh
+
+
+# FILE: hack/verify-publishing-bot.sh
+#!/usr/bin/env bash
+
+# Copyright 2024 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script checks whether staging/publishing/rules.yaml is correct
+# as per the dependencies in the go.mod of the staging directories
+# Usage: `hack/verify-publishing-bot.sh`.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+
+kube::golang::setup_env
+
+GOTOOLCHAIN="$(kube::golang::hack_tools_gotoolchain)" go -C "${KUBE_ROOT}/hack/tools" install ./publishing-verifier
+
+publishing-verifier "${KUBE_ROOT}"
+
+
+# FILE: hack/verify-prometheus-imports.sh
+#!/usr/bin/env bash
+
+# Copyright 2021 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script validates that only a restricted set of packages are importing
+# github.com/prometheus/*
+
+# NOTE: this is not the same as verify-imports which can only verify
+# that within a particular package the imports made are allowed.
+#
+# This is also not the same thing as verify-import-boss, which is pretty
+# powerful for specifying restricted imports but does not scale to checking
+# the entire source tree well and is only enabled for specific packages.
+#
+# See: https://github.com/kubernetes/kubernetes/issues/99876
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${KUBE_ROOT}/hack/lib/init.sh"
+source "${KUBE_ROOT}/hack/lib/util.sh"
+
+# See: https://github.com/kubernetes/kubernetes/issues/89267
+allowed_prometheus_importers=(
+  ./cluster/images/etcd-version-monitor/etcd-version-monitor.go
+  ./staging/src/k8s.io/component-base/metrics/prometheusextension/timing_histogram.go
+  ./staging/src/k8s.io/component-base/metrics/prometheusextension/timing_histogram_test.go
+  ./staging/src/k8s.io/component-base/metrics/prometheusextension/timing_histogram_vec.go
+  ./staging/src/k8s.io/component-base/metrics/prometheusextension/weighted_histogram.go
+ 

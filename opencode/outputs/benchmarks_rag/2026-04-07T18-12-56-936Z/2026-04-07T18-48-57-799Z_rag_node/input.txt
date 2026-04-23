@@ -1,0 +1,3125 @@
+
+
+# FILE: tsconfig.json
+{
+  "include": ["lib", "doc"],
+  "exclude": ["src", "tools", "out"],
+  "files": [
+    "./typings/globals.d.ts",
+    "./typings/primordials.d.ts"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "module": "CommonJS",
+    "baseUrl": ".",
+    "paths": {
+      "_http_agent": ["./lib/_http_agent.js"],
+      "_http_client": ["./lib/_http_client.js"],
+      "_http_common": ["./lib/_http_common.js"],
+      "_http_incoming": ["./lib/_http_incoming.js"],
+      "_http_outgoing": ["./lib/_http_outgoing.js"],
+      "_http_server": ["./lib/_http_server.js"],
+      "_tls_common": ["./lib/_tls_common.js"],
+      "_tls_wrap": ["./lib/_tls_wrap.js"],
+      "assert": ["./lib/assert.js"],
+      "assert/strict": ["./lib/assert/strict.js"],
+      "async_hooks": ["./lib/async_hooks.js"],
+      "buffer": ["./lib/buffer.js"],
+      "child_process": ["./lib/child_process.js"],
+      "cluster": ["./lib/cluster.js"],
+      "console": ["./lib/console.js"],
+      "constants": ["./lib/constants.js"],
+      "crypto": ["./lib/crypto.js"],
+      "dgram": ["./lib/dgram.js"],
+      "diagnostics_channel": ["./lib/diagnostics_channel.js"],
+      "dns": ["./lib/dns.js"],
+      "dns/promises": ["./lib/dns/promises.js"],
+      "domain": ["./lib/domain.js"],
+      "events": ["./lib/events.js"],
+      "fs": ["./lib/fs.js"],
+      "fs/promises": ["./lib/fs/promises.js"],
+      "http": ["./lib/http.js"],
+      "http2": ["./lib/http2.js"],
+      "https": ["./lib/https.js"],
+      "inspector": ["./lib/inspector.js"],
+      "internal/*": ["./lib/internal/*"],
+      "module": ["./lib/module.js"],
+      "net": ["./lib/net.js"],
+      "os": ["./lib/os.js"],
+      "path": ["./lib/path.js"],
+      "path/posix": ["./lib/path/posix.js"],
+      "path/win32": ["./lib/path/win32.js"],
+      "perf_hooks": ["./lib/perf_hooks.js"],
+      "process": ["./lib/process.js"],
+      "punycode": ["./lib/punycode.js"],
+      "querystring": ["./lib/querystring.js"],
+      "readline": ["./lib/readline.js"],
+      "repl": ["./lib/repl.js"],
+      "stream": ["./lib/stream.js"],
+      "stream/promises": ["./lib/stream/promises.js"],
+      "string_decoder": ["./lib/string_decoder.js"],
+      "sys": ["./lib/sys.js"],
+      "timers": ["./lib/timers.js"],
+      "timers/promises": ["./lib/timers/promises.js"],
+      "tls": ["./lib/tls.js"],
+      "trace_events": ["./lib/trace_events.js"],
+      "tty": ["./lib/tty.js"],
+      "url": ["./lib/url.js"],
+      "util": ["./lib/util.js"],
+      "util/types": ["./lib/util/types.js"],
+      "v8": ["./lib/v8.js"],
+      "vm": ["./lib/vm.js"],
+      "wasi": ["./lib/wasi.js"],
+      "worker_threads": ["./lib/worker_threads.js"],
+      "zlib": ["./lib/zlib.js"]
+    }
+  }
+}
+
+
+# FILE: pyproject.toml
+[tool.ruff]
+exclude = [
+  "deps",
+  "tools/cpplint.py",
+  "tools/gyp",
+  "tools/inspector_protocol",
+  "tools/eslint/node_modules"
+]
+line-length = 172
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "ASYNC",  # flake8-async
+  "C90",    # McCabe cyclomatic complexity
+  "E",      # pycodestyle
+  "F",      # Pyflakes
+  "ICN",    # flake8-import-conventions
+  "INT",    # flake8-gettext
+  "PERF",   # flake8-performance
+  "PLC",    # Pylint conventions
+  "PLE",    # Pylint errors
+  "PLR09",  # Pylint refactoring: max-args, max-branches, max returns, max-statements
+  "PYI",    # flake8-pyi
+  "RSE",    # flake8-raise
+  "RUF",    # Ruff-specific rules
+  "T10",    # flake8-debugger
+  "TCH",    # flake8-type-checking
+  "TID",    # flake8-tidy-imports
+  "W",      # pycodestyle
+  "YTT",    # flake8-2020
+]
+ignore = [
+  "E401",
+  "E402",
+  "E7",
+  "PLC0415",
+  "RUF005",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 100
+
+[tool.ruff.lint.pylint]
+max-args = 12
+max-branches = 110
+max-returns = 12
+max-statements = 289
+
+
+# FILE: onboarding.md
+# Onboarding
+
+This document is an outline of the things we tell new collaborators at their
+onboarding session.
+
+## One week before the onboarding session
+
+* If the new Collaborator is not yet a member of the nodejs GitHub organization,
+  confirm that they are using [two-factor authentication][]. It will not be
+  possible to add them to the organization if they are not using two-factor
+  authentication. Ask them to use secure two-factor methods: authenticator apps,
+  passkeys, security keys, and/or the GitHub mobile app.
+* Suggest the new Collaborator install [`@node-core/utils`][] and
+  [set up the credentials][] for it.
+
+## Fifteen minutes before the onboarding session
+
+* Prior to the onboarding session, add the new Collaborator to
+  [the collaborators team](https://github.com/orgs/nodejs/teams/collaborators).
+* Ask them if they want to join any [subsystem teams](https://github.com/orgs/nodejs/teams/core/teams)
+  and add them accordingly. See [Who to CC in the issue tracker][who-to-cc].
+
+## Onboarding session
+
+* This session will cover:
+  * [local setup](#local-setup)
+  * [project goals and values](#project-goals-and-values)
+  * [managing the issue tracker](#managing-the-issue-tracker)
+  * [reviewing pull requests](#reviewing-pull-requests)
+  * [landing pull requests](#landing-pull-requests)
+
+## Local setup
+
+* git:
+  * Make sure you have whitespace=fix: `git config --global --add
+    apply.whitespace fix`
+  * Always create a branch in your own GitHub fork for pull requests
+    * Branches in the `nodejs/node` repository are only for release lines
+  * Add the canonical nodejs repository as `upstream` remote:
+    * `git remote add upstream git@github.com:nodejs/node.git`
+  * To update from `upstream`:
+    * `git checkout main`
+    * `git fetch upstream HEAD`
+    * `git reset --hard FETCH_HEAD`
+  * Make a new branch for each pull request you submit.
+  * Membership: Consider making your membership in the Node.js GitHub
+    organization public. This makes it easier to identify collaborators.
+    Instructions on how to do that are available at
+    [Publicizing or hiding organization membership][].
+
+* Notifications:
+  * Use <https://github.com/notifications> or
+    set up email
+  * Watching the main repository will flood your inbox (several hundred
+    notifications on typical weekdays), so be prepared
+  * Watching the discussions in the
+    [collaborators repo](https://github.com/nodejs/collaborators) is recommended.
+
+The project has a venue for real-time discussion:
+
+* [`#nodejs-core`](https://openjs-foundation.slack.com/archives/C019Y2T6STH) on
+  the [OpenJS Foundation Slack](https://slack-invite.openjsf.org/)
+
+## Project goals and values
+
+* Collaborators are the collective owners of the project
+  * The project has the goals of its contributors
+
+* There are some higher-level goals and values
+  * Empathy towards users matters (this is in part why we onboard people)
+  * Generally: try to be nice to people!
+  * The best outcome is for people who come to our issue tracker to feel like
+    they can come back again.
+
+* You are expected to follow _and_ hold others accountable to the
+  [Code of Conduct][].
+
+## Managing the issue tracker
+
+* You have (mostly) free rein; don't hesitate to close an issue if you are
+  confident that it should be closed.
+  * Be nice about closing issues! Let people know why, and that issues and pull
+    requests can be reopened if necessary.
+
+* See [Labels][].
+  * There is [a bot](https://github.com/nodejs-github-bot/github-bot) that
+    applies subsystem labels (for example, `doc`, `test`, `assert`, or `buffer`)
+    so that we know what parts of the code base the pull request modifies. It is
+    not perfect, of course. Feel free to apply relevant labels and remove
+    irrelevant labels from pull requests and issues.
+  * `semver-{minor,major}`:
+    * If a change has the remote _chance_ of breaking something, use the
+      `semver-major` label
+    * When adding a `semver-*` label, add a comment explaining why you're adding
+      it. Do it right away so you don't forget!
+  * Please add the [`author-ready`][] label for pull requests, if applicable.
+
+* See [Who to CC in the issue tracker][who-to-cc].
+  * This will come more naturally over time
+  * For many of the teams listed there, you can ask to be added if you are
+    interested
+    * Some are WGs with some process around adding people, others are only there
+      for notifications
+
+* When a discussion gets heated, you can request that other collaborators keep
+  an eye on it by opening an issue at the private
+  [nodejs/moderation](https://github.com/nodejs/moderation) repository. Note
+  that while that repository is not public, it can be accessed by anyone in the
+  nodejs org, so refrain from using it to report individuals (reporting
+  spam/bots there is fine of course).
+  * This is a repository to which all members of the `nodejs` GitHub
+    organization (not just collaborators on Node.js core) have access. Its
+    contents should not be shared externally.
+  * Node.js has a moderation team which you should contact when unsure
+    about taking action in the Node.js org.
+  * You can moderate non-collaborator posts yourself. Please
+    report the moderation action taken in accordance to the moderation
+    policy.
+  * You can always refer to the
+    [full moderation policy](https://github.com/nodejs/admin/blob/main/Moderation-Policy.md).
+  * You can contact someone in the
+    [full list of moderation team members](https://github.com/nodejs/admin/blob/main/Moderation-Policy.md#current-members-of-moderation-team).
+
+## Reviewing pull requests
+
+* The primary goal is for the codebase to improve.
+
+* Secondary (but not far off) is for the person submitting code to succeed. A
+  pull request from a new contributor is an opportunity to grow the community.
+
+* Review a bit at a time. Do not overwhelm new contributors.
+  * It is tempting to micro-optimize. Don't succumb to that temptation. We
+    change V8 often. Techniques that provide improved performance today may be
+    unnecessary in the future.
+
+* Be aware: Your opinion carries a lot of weight!
+
+* Nits (requests for small changes that are not essential) are fine, but try to
+  avoid stalling the pull request.
+  * Identify them as nits when you comment: `Nit: change foo() to bar().`
+  * If they are stalling the pull request, fix them yourself on merge.
+
+* Insofar as possible, issues should be identified by tools rather than human
+  reviewers. If you are leaving comments about issues that could be identified
+  by tools but are not, consider implementing the necessary tooling.
+
+* Minimum wait for comments time
+  * There is a minimum waiting time which we try to respect for non-trivial
+    changes so that people who may have important input in such a distributed
+    project are able to respond.
+  * For non-trivial changes, leave the pull request open for at least 48 hours.
+  * If a pull request is abandoned, check if they'd mind if you took it over
+    (especially if it just has nits left).
+
+* Approving a change
+  * Collaborators indicate that they have reviewed and approve of the changes in
+    a pull request using GitHub's approval interface
+  * Some people like to comment `LGTM` (“Looks Good To Me”)
+  * You have the authority to approve any other collaborator's work.
+  * You cannot approve your own pull requests.
+  * When explicitly using `Changes requested`, show empathy – comments will
+    usually be addressed even if you don't use it.
+    * If you do, it is nice if you are available later to check whether your
+      comments have been addressed
+    * If you see that the requested changes have been made, you can clear
+      another collaborator's `Changes requested` review.
+    * Use `Changes requested` to indicate that you are considering some of your
+      comments to block the pull request from landing.
+
+* What belongs in Node.js:
+  * Opinions vary – it's good to have a broad collaborator base for that reason!
+  * If Node.js itself needs it (due to historical reasons), then it belongs in
+    Node.js.
+    * That is to say, `url` is there because of `http`, `freelist` is there
+      because of `http`, etc.
+  * Things that cannot be done outside of core, or only with significant pain
+    such as `async_hooks`.
+
+* Continuous Integration (CI) Testing:
+  * <https://ci.nodejs.org/>
+    * It is not automatically run. You need to start it manually.
+  * Log in on CI is integrated with GitHub. Try to log in now!
+  * You will be using `node-test-pull-request` most of the time. Go there now!
+    * Consider bookmarking it: <https://ci.nodejs.org/job/node-test-pull-request/>
+  * To get to the form to start a job, click on `Build with Parameters`. (If you
+    don't see it, that probably means you are not logged in!) Click it now!
+  * To start CI testing from this screen, you need to fill in two elements on
+    the form:
+    * The `CERTIFY_SAFE` box should be checked. By checking it, you are
+      indicating that you have reviewed the code you are about to test and you
+      are confident that it does not contain any malicious code. (We don't want
+      people hijacking our CI hosts to attack other hosts on the internet, for
+      example!)
+    * The `PR_ID` box should be filled in with the number identifying the pull
+      request containing the code you wish to test. For example, if the URL for
+      the pull request is `https://github.com/nodejs/node/issues/7006`, then put
+      `7006` in the `PR_ID`.
+    * The remaining elements on the form are typically unchanged.
+  * If you need help with something CI-related:
+    * Use the [Build WG repository](https://github.com/nodejs/build) to file
+      issues for the Build WG members who maintain the CI infrastructure.
+
+## Landing pull requests
+
+See the Collaborator Guide: [Landing pull requests][].
+
+Commits in one pull request that belong to one logical change should
+be squashed. It is rarely the case in onboarding exercises, so this
+needs to be pointed out separately during the onboarding.
+
+<!-- TODO(joyeechueng): provide examples about "one logical change" -->
+
+## Exercise: Make a pull request adding yourself to the README
+
+* Example:
+  <https://github.com/nodejs/node/commit/6669b3857f0f43ee0296eb7ac45086cd907b9e94>
+  * For raw commit message:
+    `git show --format=%B 6669b3857f0f43ee0296eb7ac45086cd907b9e94`
+* Collaborators are in alphabetical order by GitHub username.
+* Optionally, include your personal pronouns.
+* Commit, including a `Fixes: <collaborator-nomination-issue-url>` trailer
+  so that when the commit lands, the nomination issue url will be
+  automatically closed.
+* Run `tools/find-inactive-collaborators.mjs`. If that command outputs your name,
+  amend the commit to include an addition to the [mailmap](.mailmap) file. See
+  [gitmailmap](https://git-scm.com/docs/gitmailmap) for information on the
+  format of the mailmap file.
+* Push the commit to your own fork.
+* Label your pull request with the `doc`, `notable-change`, and `fast-track`
+  labels. The `fast-track` label should cause the Node.js GitHub bot to post a
+  comment in the pull request asking collaborators to approve the pull request
+  by leaving a 👍 reaction on the comment.
+* Optional: Run Jenkins CI on the pull request. Use the [`node-test-pull-request`][]
+  task. As a convenience, you may apply the `request-ci` label to the pull
+  request to have a GitHub Actions workflow start the Jenkins CI task for you.
+* After two Collaborator approvals for the change and two Collaborator approvals
+  for fast-tracking, land the PR. If you have started a full Jenkins CI, cancel it
+  from the Jenkins UI since the PR is a doc-only change and does not need
+  a full CI run, it is just run as an exercise.
+* If there are not enough approvals within a reasonable time, consider the
+  single approval of the onboarding TSC member sufficient, and land the pull
+  request.
+  * Be sure to add the `PR-URL: <full-pr-url>` and appropriate `Reviewed-By:`
+    metadata.
+  * [`@node-core/utils`][] automates the generation of metadata and the landing
+    process. See the documentation of [`git-node`][].
+  * [`core-validate-commit`][] automates the validation of commit messages.
+    This will be run during `git node land --final` of the [`git-node`][]
+    command.
+  * Normally you can just use the `commit-queue` label to have the
+    commit queued for landing by the Node.js GitHub bot. But as exercise it is
+    also useful to learn how to land commits manually in case the bot or the CI
+    is broken.
+* If you are landing the commit manually, to make it appear as "Merged" on GitHub,
+  after you prepare the landed commit on the local `main` branch, run this:
+
+  ```bash
+  git push --force-with-lease your-fork-remote HEAD:your-pr-branch # Update the PR branch in your fork.
+  git push upstream main  # Push the landed commit to the upstream main branch.
+  ```
+
+  GitHub will automatically detect that the PR branch is now identical to the
+  `main` branch and will mark the PR as "Merged".
+
+## Final notes
+
+* Don't worry about making mistakes: everybody makes them, there's a lot to
+  internalize and that takes time (and we recognize that!)
+* Almost any mistake you could make can be fixed or reverted.
+* The existing collaborators trust you and are grateful for your help!
+* Other repositories:
+  * <https://github.com/nodejs/TSC>: Governance discussions and TSC votes
+  * <https://github.com/nodejs/build>: Build infrastructure discussions and CI issues
+  * <https://github.com/nodejs/nodejs.org>: The Node.js website and blog
+  * <https://github.com/nodejs/Release>: Release management and release planning
+  * <https://github.com/nodejs/citgm>: Tool for testing popular packages against Node.js changes
+  * <https://github.com/nodejs/admin>: Administrative issues and requests to changes in the Node.js
+    GitHub organization (e.g. creating new repositories, new teams, adding organization-wide tokens).
+  * <https://github.com/nodejs/moderation>: Requests to moderate comments or block spammers.
+* The OpenJS Foundation hosts regular summits for active contributors to the
+  Node.js project, where we have face-to-face discussions about our work on the
+  project. The Foundation has travel funds to cover [participants' expenses][]
+  including accommodations, transportation, and visa fees (even in case the visa
+  is denied) if needed. Check out the [summit](https://github.com/nodejs/summit)
+  repository for details.
+* If you are interested in helping to fix coverity reports consider requesting
+  access to the projects coverity project as outlined in [static-analysis][].
+* If you are interested in helping out with CI reliability, check out the
+  [reliability repository][] and [guide on how to deal with CI flakes][].
+
+[Code of Conduct]: https://github.com/nodejs/admin/blob/HEAD/CODE_OF_CONDUCT.md
+[Labels]: doc/contributing/collaborator-guide.md#labels
+[Landing pull requests]: doc/contributing/collaborator-guide.md#landing-pull-requests
+[Publicizing or hiding organization membership]: https://help.github.com/articles/publicizing-or-hiding-organization-membership/
+[`@node-core/utils`]: https://github.com/nodejs/node-core-utils
+[`author-ready`]: doc/contributing/collaborator-guide.md#author-ready-pull-requests
+[`core-validate-commit`]: https://github.com/nodejs/core-validate-commit
+[`git-node`]: https://github.com/nodejs/node-core-utils/blob/HEAD/docs/git-node.md
+[`node-test-pull-request`]: https://ci.nodejs.org/job/node-test-pull-request/
+[guide on how to deal with CI flakes]: https://github.com/nodejs/test?tab=readme-ov-file#protocols-in-improving-ci-reliability
+[participants' expenses]: https://github.com/openjs-foundation/cross-project-council/blob/main/community-fund/COMMUNITY_FUND_POLICY.md#community-fund-rules
+[reliability repository]: https://github.com/nodejs/reliability
+[set up the credentials]: https://github.com/nodejs/node-core-utils#setting-up-github-credentials
+[static-analysis]: doc/contributing/static-analysis.md
+[two-factor authentication]: https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
+[who-to-cc]: doc/contributing/collaborator-guide.md#who-to-cc-in-the-issue-tracker
+
+
+# FILE: glossary.md
+# Glossary
+
+This file documents various terms and definitions used throughout the Node.js community.
+
+* **ABI**: [Application Binary Interface][] - Defines the interface between two binary program modules.
+* **AFAICT**: As Far As I Can Tell.
+* **AFAIK**: As Far As I Know.
+* **API**: [Application Programming Interface][] - A set of rules and protocols that allows different software
+  applications to communicate with each other. APIs are used to enable integration between different systems.
+* **ASAP**: As Soon As Possible.
+* **ASLR**: Address Space Layout Randomization. A security technique that randomizes memory addresses
+  to prevent certain attacks.
+* **Backport**: The process of applying a fix or feature from a newer branch to an older supported
+  branch (e.g., applying a security fix to an LTS release).
+* **BE**: Big [Endian][] - A Byte Order where the largest bit comes first. The opposite of **LE**.
+* **Bootstrap**: Early phase in the Node.js process startup - sets up the execution environment and loads internal
+  modules.
+* **CI**: [Continuous Integration][] - Development practice where code changes are frequently merged into a shared
+  repository.
+* **CITGM**: Canary In The Gold Mine - A smoke test that tests the code change with popular npm packages.
+* **CJS**: [CommonJS][] - Standard for JavaScript modules, and in most cases, [CommonJS Modules][].
+* **CLDR**: [Common Locale Data Repository][] - A repository of locale data used in software engineering.
+* **CLI**: [Command Line Interface][] - A way to interact with a computer program using text commands.
+* **Code cache**: Chunk of bytes storing compiled JS code and its metadata.
+* **CVE**: [Common Vulnerabilities and Exposures][] - Database maintaining reported security vulnerabilities.
+* **Deps**: Dependencies - Upstream projects that this project depends on.
+* **DOM**: [Document Object Model][] - A programming interface for web documents. It represents the structure of a
+  document as a tree of objects, allowing programmers to dynamically manipulate the content and structure of a web page.
+* **ECMA**: [Ecma International][] - A nonprofit standards organization that develops and publishes international
+  standards, including **ECMA-262**.
+* **ECMA-262**: **Ecma**'s [specification document for **ECMAScript**][], maintained and updated by the **TC39**.
+* **ECMAScript**: A standard for scripting languages, including **JavaScript**.
+* **EOF**: [End-of-File][] - Indicates the end of a file or stream.
+* **EOL**: [End-of-Life][] (when used within project documents), [End-of-Line][] (when used within a program),
+  End-of-Life is usually how this term is used.
+* **ESM**: [ECMAScript Module][] - The implementation of the **ECMA-262** module system.
+* **ETW**: [Event Tracing for Windows][] - Provides a way to trace events in Windows systems.
+* **FFDC**: First Failure Data Capture - Logs, traces, and dumps produced by default on program error.
+* **FIPS**: [Federal Information Processing Standards][] - Set of standards for use in computer systems by non-military
+  government agencies and government contractors.
+* **FS**: File System.
+* **Godbolt**: [Compiler Explorer][] - Tool for running compilers interactively from a web browser.
+* **HTTP**: [HyperText Transfer Protocol][] - An application protocol for distributed, collaborative, hypermedia
+  information systems. It is the foundation of data communication on the World Wide Web.
+* **ICU**: [International Components for Unicode][] - Library providing support for Unicode.
+* **IDE**: [Integrated Development Environment][] - A software application that provides comprehensive facilities to
+  computer programmers for software development.
+* **IETF**: [Internet Engineering Task Force][] - An international community responsible for developing and promoting
+  Internet standards.
+* **IIRC**: If I Recall Correctly.
+* **IIUC**: If I Understand Correctly.
+* **IMHO**: In My Humble/Honest Opinion.
+* **IMO**: In My Opinion.
+* **IPC**: [Inter-Process Communication][] - Mechanism allowing processes to communicate with each other.
+* **JIT**: [Just In Time][] - Method of executing computer code during runtime.
+* **JS**: [JavaScript][] - A high-level, interpreted programming language that conforms to the **ECMAScript**
+  specification.
+* **JS/C++ boundary**: Boundary between V8's runtime and JS code execution, often crossed when calling JS functions
+  with C++ linkage.
+* **JSON**: [JavaScript Object Notation][] - A lightweight data-interchange format that is easy for humans to read and
+  write and for machines to parse and generate. It is commonly used for transmitting data between a server and a
+  web application.
+* **LE**: Little [Endian][] - A Byte Order where the smallest bit comes first. The opposite of **BE**.
+* **LGTM/SGTM**: Looks/Sounds good to me.
+* **LTS**: [Long Term Support][] - Support provided for a software version for an extended period.
+* **MDN**: [Mozilla Development Network][] - Resource for web developers.
+* **MVC**: [Model-View-Controller][] - A software design pattern commonly used for developing user interfaces. It
+  separates the application into three interconnected components: the model (data), the view (presentation), and the
+  controller (logic).
+* **Native modules/addons**: Modules compiled to native code from a non-JavaScript language,
+  such as C or C++, that expose interfaces callable from JavaScript.
+* **npm**: [npm][] - A package manager and registry widely used for managing dependencies in
+  Node.js projects and for sharing code with others.
+* **OOB**: Out Of Bounds - Used in the context of array access.
+* **OOM**: Out Of Memory - Situation where a computer program exceeds its memory allocation.
+* **OOP**: [Object-Oriented Programming][] - A programming paradigm based on the concept of "objects," which can
+  contain data and code to manipulate that data. OOP languages include features such as encapsulation, inheritance,
+  and polymorphism.
+* **PPC**: [PowerPC][] - A type of microprocessor architecture.
+* **Primordials**: Pristine built-ins in JavaScript that are not affected by prototype pollution.
+* **Prototype Pollution**: Process in which a user mutating object prototypes affects other code.
+* **PTAL**: Please Take A Look.
+* **RAII**: [Resource Acquisition Is Initialization][] - Programming idiom used to manage resources in C++.
+* **REPL**: [Read Evaluate Print Loop][] - Environment for interactive programming.
+* **RFC**: [Request For Comments][] - A Document used in standardization processes.
+* **RSLGTM**: Rubber-Stamp Looks Good To Me - The reviewer approves without a full code review.
+* **RSS**: [Resident Set Size][] - Amount of memory occupied by a process in RAM.
+* **SMP**: [Symmetric Multi-Processor][] - Architecture where multiple processors share the same memory.
+* **Snapshot**: Chunk of bytes containing data serialized from a V8 heap.
+* **TBH**: To Be Honest.
+* **TC39**: [Ecma Technical Committee 39][], governing body over **ECMAScript**.
+* **TSC**: Technical Steering Committee - Governing body within a project.
+* **UI**: [User Interface][] - The point of interaction between a user and a computer program. It includes elements
+  such as buttons, menus, and other graphical elements that allow users to interact with the software.
+* **URL**: [Uniform Resource Locator][] - A reference to a web resource that specifies its location on a computer
+  network and the mechanism for retrieving it, typically using the HTTP or HTTPS protocol.
+* **UTF-8**: [Unicode Transformation Format - 8-bit][] - A variable-width character encoding widely used for
+  representing Unicode characters efficiently in byte-oriented systems.
+* **V8**: [The JavaScript engine][] that powers Node.js and Chrome browser.
+* **Vendoring**: Integrating external software into the project by copying its code source.
+* **VM**: [The Node.js VM module][] - Provides a way of executing code within V8 Virtual Machine contexts.
+* **W3C**: [World Wide Web Consortium][] - An international community that develops standards and guidelines for
+  various aspects of the web ecosystem.
+* **WASI**: [WebAssembly System Interface][] - Interface for WebAssembly.
+* **WASM**: WebAssembly - Binary instruction format for a stack-based virtual machine.
+* **WDYT**: What Do You Think?
+* **WG**: Working Group - Autonomous teams in the project with specific focus areas.
+* **WHATWG**: [Web Hypertext Application Technology Working Group][] - Community developing web standards.
+* **WIP**: Work In Progress - Unfinished work that may be worth an early look.
+* **WPT**: [web-platform-tests][] - Test suite for web platform APIs.
+
+[Application Binary Interface]: https://en.wikipedia.org/wiki/Application_binary_interface
+[Application Programming Interface]: https://en.wikipedia.org/wiki/Application_programming_interface
+[Command Line Interface]: https://en.wikipedia.org/wiki/Command-line_interface
+[Common Locale Data Repository]: https://en.wikipedia.org/wiki/Common_Locale_Data_Repository
+[Common Vulnerabilities and Exposures]: https://cve.org
+[CommonJS]: https://en.wikipedia.org/wiki/CommonJS
+[CommonJS Modules]: https://nodejs.org/api/modules.html#modules-commonjs-modules
+[Compiler Explorer]: https://godbolt.org/
+[Continuous Integration]: https://en.wikipedia.org/wiki/Continuous_integration
+[Document Object Model]: https://en.wikipedia.org/wiki/Document_Object_Model
+[ECMAScript Module]: https://nodejs.org/api/esm.html#modules-ecmascript-modules
+[Ecma International]: https://ecma.org
+[Ecma Technical Committee 39]: https://tc39.es/
+[End-of-File]: https://en.wikipedia.org/wiki/End-of-file
+[End-of-Life]: https://en.wikipedia.org/wiki/End-of-life_product
+[End-of-Line]: https://en.wikipedia.org/wiki/Newline
+[Endian]: https://en.wikipedia.org/wiki/Endianness
+[Event Tracing for Windows]: https://en.wikipedia.org/wiki/Event_Viewer
+[Federal Information Processing Standards]: https://en.wikipedia.org/wiki/Federal_Information_Processing_Standards
+[Hypertext Transfer Protocol]: https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol
+[Integrated Development Environment]: https://en.wikipedia.org/wiki/Integrated_development_environment
+[Inter-Process Communication]: https://en.wikipedia.org/wiki/Inter-process_communication
+[International Components for Unicode]: https://icu.unicode.org/
+[Internet Engineering Task Force]: https://www.ietf.org/
+[JavaScript]: https://developer.mozilla.org/en-US/docs/Web/JavaScript
+[JavaScript Object Notation]: https://www.json.org/
+[Just In Time]: https://en.wikipedia.org/wiki/Just-in-time_compilation
+[Long Term Support]: https://en.wikipedia.org/wiki/Long-term_support
+[Model-View-Controller]: https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller
+[Mozilla Development Network]: https://developer.mozilla.org/en-US
+[NPM]: https://www.npmjs.com/
+[Object-Oriented Programming]: https://en.wikipedia.org/wiki/Object-oriented_programming
+[PowerPC]: https://en.wikipedia.org/wiki/PowerPC
+[Read Evaluate Print Loop]: https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop
+[Request For Comments]: https://en.wikipedia.org/wiki/Request_for_Comments
+[Resident Set Size]: https://en.wikipedia.org/wiki/Resident_set_size
+[Resource Acquisition Is Initialization]: https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization
+[Symmetric Multi-Processor]: https://en.wikipedia.org/wiki/Symmetric_multiprocessing
+[The JavaScript Engine]: https://en.wikipedia.org/wiki/V8_\(JavaScript_engine\)
+[The Node.js VM Module]: https://nodejs.org/api/vm.html
+[Unicode Transformation Format - 8-bit]: https://en.wikipedia.org/wiki/UTF-8
+[Uniform Resource Locator]: https://en.wikipedia.org/wiki/URL
+[User Interface]: https://en.wikipedia.org/wiki/User_interface
+[Web Hypertext Application Technology Working Group]: https://en.wikipedia.org/wiki/WHATWG
+[WebAssembly System Interface]: https://github.com/WebAssembly/WASI
+[World Wide Web Consortium]: https://www.w3.org/
+[specification document for **ECMAScript**]: https://ecma-international.org/publications-and-standards/standards/ecma-262/
+[web-platform-tests]: https://github.com/web-platform-tests/wpt
+
+
+# FILE: eslint.config.mjs
+import { readdirSync } from 'node:fs';
+import Module from 'node:module';
+import { fileURLToPath, URL } from 'node:url';
+
+import benchmarkConfig from './benchmark/eslint.config_partial.mjs';
+import docConfig from './doc/eslint.config_partial.mjs';
+import libConfig from './lib/eslint.config_partial.mjs';
+import testConfig from './test/eslint.config_partial.mjs';
+import toolsConfig from './tools/eslint/eslint.config_partial.mjs';
+import {
+  importEslintTool,
+  noRestrictedSyntaxCommonAll,
+  noRestrictedSyntaxCommonLib,
+  resolveEslintTool,
+} from './tools/eslint/eslint.config_utils.mjs';
+import nodeCore from './tools/eslint/eslint-plugin-node-core.js';
+
+const { globalIgnores } = await importEslintTool('eslint/config');
+const { default: js } = await importEslintTool('@eslint/js');
+const { default: babelEslintParser } = await importEslintTool('@babel/eslint-parser');
+const babelPluginSyntaxImportSource = resolveEslintTool('@babel/plugin-syntax-import-source');
+const { default: jsdoc } = await importEslintTool('eslint-plugin-jsdoc');
+const { default: regexpPlugin } = await importEslintTool('eslint-plugin-regexp');
+const { default: markdown } = await importEslintTool('@eslint/markdown');
+const { default: stylisticJs } = await importEslintTool('@stylistic/eslint-plugin');
+
+nodeCore.RULES_DIR = fileURLToPath(new URL('./tools/eslint-rules', import.meta.url));
+
+function filterFilesInDir(dirpath, filterFn) {
+  return readdirSync(dirpath)
+    .filter(filterFn)
+    .map((f) => `${dirpath}/${f}`);
+}
+
+// The Module._resolveFilename() monkeypatching is to make it so that ESLint is able to
+// dynamically load extra modules that we install with it.
+const ModuleResolveFilename = Module._resolveFilename;
+const hacks = [
+  'eslint-formatter-tap',
+];
+Module._resolveFilename = (request, parent, isMain, options) => {
+  if (hacks.includes(request) && parent.id.endsWith('__placeholder__.js')) {
+    return resolveEslintTool(request);
+  }
+  return ModuleResolveFilename(request, parent, isMain, options);
+};
+
+export default [
+  // #region ignores
+  globalIgnores([
+    '**/node_modules/**',
+    'benchmark/fixtures/**',
+    'benchmark/tmp/**',
+    'doc/changelogs/CHANGELOG_V1*.md',
+    '!doc/changelogs/CHANGELOG_V18.md',
+    'lib/punycode.js',
+    'test/.tmp.*/**',
+    'test/addons/??_*',
+
+    // We want to lint only a few specific fixtures folders
+    'test/fixtures/*',
+    '!test/fixtures/console',
+    '!test/fixtures/errors',
+    '!test/fixtures/eval',
+    '!test/fixtures/source-map',
+    'test/fixtures/source-map/*',
+    '!test/fixtures/source-map/output',
+    ...filterFilesInDir(
+      'test/fixtures/source-map/output',
+      // Filtering tsc output files (i.e. if there a foo.ts, we ignore foo.js):
+      (f, _, files) => f.endsWith('js') && files.includes(f.replace(/(\.[cm]?)js$/, '$1ts')),
+    ),
+    '!test/fixtures/test-runner',
+    'test/fixtures/test-runner/*',
+    '!test/fixtures/test-runner/output',
+    ...filterFilesInDir(
+      'test/fixtures/test-runner/output',
+      // Filtering tsc output files (i.e. if there a foo.ts, we ignore foo.js):
+      (f, _, files) => f.endsWith('js') && files.includes(f.replace(/\.[cm]?js$/, '.ts')),
+    ),
+    '!test/fixtures/v8',
+    '!test/fixtures/vm',
+  ]),
+  // #endregion
+  // #region general config
+  js.configs.recommended,
+  jsdoc.configs['flat/recommended'],
+  regexpPlugin.configs.recommended,
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+    },
+  },
+  {
+    plugins: {
+      jsdoc,
+      '@stylistic/js': stylisticJs,
+      'node-core': nodeCore,
+    },
+    languageOptions: {
+      parser: babelEslintParser,
+      parserOptions: {
+        babelOptions: {
+          plugins: [
+            babelPluginSyntaxImportSource,
+          ],
+        },
+        requireConfigFile: false,
+      },
+    },
+  },
+  // #endregion
+  // #region general globals
+  {
+    languageOptions: {
+      globals: {
+        AsyncDisposableStack: 'readonly',
+        ByteLengthQueuingStrategy: 'readonly',
+        CompressionStream: 'readonly',
+        CountQueuingStrategy: 'readonly',
+        CustomEvent: 'readonly',
+        crypto: 'readonly',
+        Crypto: 'readonly',
+        CryptoKey: 'readonly',
+        DecompressionStream: 'readonly',
+        DisposableStack: 'readonly',
+        EventSource: 'readable',
+        fetch: 'readonly',
+        Float16Array: 'readonly',
+        FormData: 'readonly',
+        navigator: 'readonly',
+        QuotaExceededError: 'readonly',
+        ReadableStream: 'readonly',
+        ReadableStreamDefaultReader: 'readonly',
+        ReadableStreamBYOBReader: 'readonly',
+        ReadableStreamBYOBRequest: 'readonly',
+        ReadableByteStreamController: 'readonly',
+        ReadableStreamDefaultController: 'readonly',
+        Response: 'readonly',
+        TextDecoderStream: 'readonly',
+        TextEncoderStream: 'readonly',
+        TransformStream: 'readonly',
+        TransformStreamDefaultController: 'readonly',
+        ShadowRealm: 'readonly',
+        SubtleCrypto: 'readonly',
+        WritableStream: 'readonly',
+        WritableStreamDefaultWriter: 'readonly',
+        WritableStreamDefaultController: 'readonly',
+        WebSocket: 'readonly',
+      },
+    },
+  },
+  // #endregion
+  // #region general rules
+  {
+    rules: {
+      // ESLint built-in rules
+      // https://eslint.org/docs/latest/rules/
+      'accessor-pairs': 'error',
+      'array-callback-return': 'error',
+      'block-scoped-var': 'error',
+      'capitalized-comments': ['error', 'always', {
+        line: {
+          // Ignore all lines that have less characters than 20 and all lines
+          // that start with something that looks like a variable name or code.
+          ignorePattern: '.{0,20}$|[a-z]+ ?[0-9A-Z_.(/=:[#-]|std|http|ssh|ftp',
+          ignoreInlineComments: true,
+          ignoreConsecutiveComments: true,
+        },
+        block: {
+          ignorePattern: '.*',
+        },
+      }],
+      'logical-assignment-operators': ['error', 'always', { enforceForIfStatements: true }],
+      'default-case-last': 'error',
+      'dot-notation': 'error',
+      'eqeqeq': ['error', 'smart'],
+      'func-name-matching': 'error',
+      'func-style': ['error', 'declaration', { allowArrowFunctions: true }],
+      'no-constant-condition': ['error', { checkLoops: false }],
+      'no-constructor-return': 'error',
+      'no-duplicate-imports': 'error',
+      'no-else-return': 'error',
+      'no-lonely-if': 'error',
+      'no-mixed-requires': 'error',
+      'no-new-require': 'error',
+      'no-path-concat': 'error',
+      'no-proto': 'error',
+      'no-redeclare': ['error', { builtinGlobals: false }],
+      'no-restricted-modules': ['error', 'sys'],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'assert',
+          property: 'deepEqual',
+          message: 'Use `assert.deepStrictEqual()`.',
+        },
+        {
+          object: 'assert',
+          property: 'notDeepEqual',
+          message: 'Use `assert.notDeepStrictEqual()`.',
+        },
+        {
+          object: 'assert',
+          property: 'equal',
+          message: 'Use `assert.strictEqual()` rather than `assert.equal()`.',
+        },
+        {
+          object: 'assert',
+          property: 'notEqual',
+          message: 'Use `assert.notStrictEqual()` rather than `assert.notEqual()`.',
+        },
+        {
+          property: '__defineGetter__',
+          message: '__defineGetter__ is deprecated.',
+        },
+        {
+          property: '__defineSetter__',
+          message: '__defineSetter__ is deprecated.',
+        },
+        {
+          property: 'webcrypto',
+          message: 'Use `globalThis.crypto`.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        ...noRestrictedSyntaxCommonAll,
+        ...noRestrictedSyntaxCommonLib,
+      ],
+      'no-self-compare': 'error',
+      'no-shadow-restricted-names': ['error', { reportGlobalThis: false }],
+      'no-template-curly-in-string': 'error',
+      'no-throw-literal': 'error',
+      'no-undef': ['error', { typeof: true }],
+      'no-undef-init': 'error',
+      'no-unused-expressions': ['error', { allowShortCircuit: true }],
+      'no-unused-vars': ['error', { args: 'none', caughtErrors: 'all' }],
+      'no-use-before-define': ['error', {
+        classes: true,
+        functions: false,
+        variables: false,
+      }],
+      'no-useless-call': 'error',
+      'no-useless-concat': 'error',
+      'no-useless-constructor': 'error',
+      'no-useless-return': 'error',
+      'no-var': 'error',
+      'no-void': 'error',
+      'one-var': ['error', { initialized: 'never' }],
+      'prefer-const': ['error', { ignoreReadBeforeAssign: true }],
+      'prefer-object-has-own': 'error',
+      'strict': ['error', 'global'],
+      'symbol-description': 'error',
+      'unicode-bom': 'error',
+      'valid-typeof': ['error', { requireStringLiterals: true }],
+
+      // ESLint recommended rules that we disable.
+      'no-inner-declarations': 'off',
+      'no-useless-assignment': 'off',
+
+      // JSDoc rules.
+      'jsdoc/require-jsdoc': 'off',
+      'jsdoc/require-param-description': 'off',
+      'jsdoc/require-returns-description': 'off',
+      'jsdoc/valid-types': 'error',
+      'jsdoc/no-defaults': 'error',
+      'jsdoc/no-undefined-types': 'off',
+      'jsdoc/require-param': 'off',
+      'jsdoc/check-tag-names': 'error',
+      'jsdoc/require-returns': 'error',
+      'jsdoc/check-line-alignment': ['error', 'any', {
+        tags: ['param', 'property', 'returns', 'file'],
+        wrapIndent: '  ',
+      }],
+      'jsdoc/check-alignment': 'error',
+      'jsdoc/reject-any-type': 'off',
+      'jsdoc/reject-function-type': 'off',
+
+      // RegExp recommended rules that we disable.
+      // Todo: Investigate which rules should be enabled.
+      'prefer-regex-literals': 'off',
+      'regexp/control-character-escape': 'off',
+      'regexp/match-any': 'off',
+      'regexp/negation': 'off',
+      'regexp/no-contradiction-with-assertion': 'off',
+      'regexp/no-dupe-characters-character-class': 'off',
+      'regexp/no-dupe-disjunctions': 'off',
+      'regexp/no-empty-alternative': 'off',
+      'regexp/no-legacy-features': 'off',
+      'regexp/no-misleading-capturing-group': 'off',
+      'regexp/no-obscure-range': 'off',
+      'regexp/no-potentially-useless-backreference': 'off',
+      'regexp/no-super-linear-backtracking': 'off',
+      'regexp/no-trivially-nested-quantifier': 'off',
+      'regexp/no-unused-capturing-group': 'off',
+      'regexp/no-useless-assertions': 'off',
+      'regexp/no-useless-character-class': 'off',
+      'regexp/no-useless-escape': 'off',
+      'regexp/no-useless-flag': 'off',
+      'regexp/no-useless-lazy': 'off',
+      'regexp/no-useless-non-capturing-group': 'off',
+      'regexp/no-useless-quantifier': 'off',
+      'regexp/no-useless-range': 'off',
+      'regexp/optimal-lookaround-quantifier': 'off',
+      'regexp/optimal-quantifier-concatenation': 'off',
+      'regexp/prefer-character-class': 'off',
+      'regexp/prefer-d': 'off',
+      'regexp/prefer-question-quantifier': 'off',
+      'regexp/prefer-star-quantifier': 'off',
+      'regexp/prefer-w': 'off',
+      'regexp/sort-flags': 'off',
+      'regexp/strict': 'off',
+      'regexp/use-ignore-case': 'off',
+
+      // Stylistic rules.
+      '@stylistic/js/arrow-parens': 'error',
+      '@stylistic/js/arrow-spacing': 'error',
+      '@stylistic/js/block-spacing': 'error',
+      '@stylistic/js/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+      '@stylistic/js/comma-dangle': ['error', 'always-multiline'],
+      '@stylistic/js/comma-spacing': 'error',
+      '@stylistic/js/comma-style': 'error',
+      '@stylistic/js/computed-property-spacing': 'error',
+      '@stylistic/js/dot-location': ['error', 'property'],
+      '@stylistic/js/eol-last': 'error',
+      '@stylistic/js/function-call-spacing': 'error',
+      '@stylistic/js/indent': ['error', 2, {
+        ArrayExpression: 'first',
+        CallExpression: { arguments: 'first' },
+        FunctionDeclaration: { parameters: 'first' },
+        FunctionExpression: { parameters: 'first' },
+        MemberExpression: 'off',
+        ObjectExpression: 'first',
+        SwitchCase: 1,
+        assignmentOperator: 'off',
+      }],
+      '@stylistic/js/key-spacing': 'error',
+      '@stylistic/js/keyword-spacing': 'error',
+      '@stylistic/js/linebreak-style': 'error',
+      '@stylistic/js/max-len': ['error', {
+        code: 120,
+        ignorePattern: '^// Flags:',
+        ignoreRegExpLiterals: true,
+        ignoreTemplateLiterals: true,
+        ignoreUrls: true,
+        tabWidth: 2,
+      }],
+      '@stylistic/js/new-parens': 'error',
+      '@stylistic/js/no-confusing-arrow': 'error',
+      '@stylistic/js/no-extra-parens': ['error', 'functions'],
+      '@stylistic/js/no-multi-spaces': ['error', { ignoreEOLComments: true }],
+      '@stylistic/js/no-multiple-empty-lines': ['error', { max: 2, maxEOF: 0, maxBOF: 0 }],
+      '@stylistic/js/no-tabs': 'error',
+      '@stylistic/js/no-trailing-spaces': 'error',
+      '@stylistic/js/no-whitespace-before-property': 'error',
+      '@stylistic/js/object-curly-newline': 'error',
+      '@stylistic/js/object-curly-spacing': ['error', 'always'],
+      '@stylistic/js/one-var-declaration-per-line': 'error',
+      '@stylistic/js/operator-linebreak': ['error', 'after'],
+      '@stylistic/js/padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: 'function', next: 'function' },
+      ],
+      '@stylistic/js/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: 'always' }],
+      '@stylistic/js/quote-props': ['error', 'consistent'],
+      '@stylistic/js/rest-spread-spacing': 'error',
+      '@stylistic/js/semi': 'error',
+      '@stylistic/js/semi-spacing': 'error',
+      '@stylistic/js/space-before-blocks': ['error', 'always'],
+      '@stylistic/js/space-before-function-paren': ['error', {
+        anonymous: 'never',
+        named: 'never',
+        asyncArrow: 'always',
+      }],
+      '@stylistic/js/space-in-parens': 'error',
+      '@stylistic/js/space-infix-ops': 'error',
+      '@stylistic/js/space-unary-ops': 'error',
+      '@stylistic/js/spaced-comment': ['error', 'always', {
+        'block': { 'balanced': true },
+        'exceptions': ['-'],
+      }],
+      '@stylistic/js/template-curly-spacing': 'error',
+
+      // Custom rules in tools/eslint-rules.
+      'node-core/no-unescaped-regexp-dot': 'error',
+      'node-core/no-duplicate-requires': 'error',
+      'node-core/prefer-proto': 'error',
+      'node-core/prefer-optional-chaining': 'error',
+    },
+  },
+  // #endregion
+  // #region markdown config
+  {
+    files: ['**/*.md'],
+    plugins: {
+      markdown,
+    },
+    processor: 'markdown/markdown',
+  },
+  {
+    files: ['**/*.md/*.{js,cjs}'],
+    languageOptions: {
+      parserOptions: {
+        ecmaFeatures: { impliedStrict: true },
+      },
+    },
+    rules: { strict: 'off' },
+  },
+  {
+    files: [
+      '**/*.md/*.mjs',
+      'doc/api/esm.md/*.js',
+      'doc/api/packages.md/*.js',
+    ],
+    languageOptions: {
+      sourceType: 'module',
+    },
+    rules: { 'no-restricted-globals': [
+      'error',
+      {
+        name: '__filename',
+        message: 'Use import.meta.url instead.',
+      },
+      {
+        name: '__dirname',
+        message: 'Not available in ESM.',
+      },
+      {
+        name: 'exports',
+        message: 'Not available in ESM.',
+      },
+      {
+        name: 'module',
+        message: 'Not available in ESM.',
+      },
+      {
+        name: 'require',
+        message: 'Use import instead.',
+      },
+      {
+        name: 'Buffer',
+        message: "Import 'Buffer' instead of using the global.",
+      },
+      {
+        name: 'process',
+        message: "Import 'process' instead of using the global.",
+      },
+    ] },
+  },
+  // #endregion
+  // #region partials
+  ...benchmarkConfig,
+  ...docConfig,
+  ...libConfig,
+  ...testConfig,
+  ...toolsConfig,
+  // #endregion
+];
+
+
+# FILE: configure.py
+from __future__ import print_function
+
+import json
+import sys
+import errno
+import argparse
+import os
+import pprint
+import re
+import shlex
+import subprocess
+import shutil
+import bz2
+import io
+from pathlib import Path
+
+# If not run from node/, cd to node/.
+os.chdir(Path(__file__).parent)
+
+original_argv = sys.argv[1:]
+
+# gcc and g++ as defaults matches what GYP's Makefile generator does,
+# except on macOS and Windows.
+CC = os.environ.get('CC', 'cc' if sys.platform == 'darwin' else 'clang' if sys.platform == 'win32' else 'gcc')
+CXX = os.environ.get('CXX', 'c++' if sys.platform == 'darwin' else 'clang' if sys.platform == 'win32' else 'g++')
+
+tools_path = Path('tools')
+
+sys.path.insert(0, str(tools_path / 'gyp' / 'pylib'))
+from gyp.common import GetFlavor
+from packaging.version import Version
+
+# imports in tools/configure.d
+sys.path.insert(0, str(tools_path / 'configure.d'))
+import nodedownload
+
+# imports in tools/
+sys.path.insert(0, 'tools')
+import getmoduleversion
+import getnapibuildversion
+from gyp_node import run_gyp
+from utils import SearchFiles
+
+# parse our options
+parser = argparse.ArgumentParser()
+
+valid_os = ('win', 'mac', 'solaris', 'freebsd', 'openbsd', 'linux',
+            'android', 'aix', 'cloudabi', 'os400', 'ios', 'openharmony')
+valid_arch = ('arm', 'arm64', 'ia32', 'mips', 'mipsel', 'mips64el',
+              'ppc64', 'x64', 'x86', 'x86_64', 's390x', 'riscv64', 'loong64')
+valid_arm_float_abi = ('soft', 'softfp', 'hard')
+valid_arm_fpu = ('vfp', 'vfpv3', 'vfpv3-d16', 'neon')
+valid_mips_arch = ('loongson', 'r1', 'r2', 'r6', 'rx')
+valid_mips_fpu = ('fp32', 'fp64', 'fpxx')
+valid_mips_float_abi = ('soft', 'hard')
+valid_intl_modes = ('none', 'small-icu', 'full-icu', 'system-icu')
+icu_versions = json.loads((tools_path / 'icu' / 'icu_versions.json').read_text(encoding='utf-8'))
+maglev_enabled_architectures = ('x64', 'arm', 'arm64', 's390x')
+
+# builtins may be removed later if they have been disabled by options
+shareable_builtins = {'undici/undici': 'deps/undici/undici.js',
+                     'amaro/dist/index': 'deps/amaro/dist/index.js'
+}
+
+# create option groups
+shared_optgroup = parser.add_argument_group("Shared libraries",
+    "Flags that allows you to control whether you want to build against "
+    "built-in dependencies or its shared representations. If necessary, "
+    "provide multiple libraries with comma.")
+static_optgroup = parser.add_argument_group("Static libraries",
+    "Flags that allows you to control whether you want to build against "
+    "additional static libraries.")
+intl_optgroup = parser.add_argument_group("Internationalization",
+    "Flags that lets you enable i18n features in Node.js as well as which "
+    "library you want to build against.")
+http2_optgroup = parser.add_argument_group("HTTP2",
+    "Flags that allows you to control HTTP2 features in Node.js")
+shared_builtin_optgroup = parser.add_argument_group("Shared builtins",
+    "Flags that allows you to control whether you want to build against "
+    "internal builtins or shared files.")
+
+# Options should be in alphabetical order but keep --prefix at the top,
+# that's arguably the one people will be looking for most.
+parser.add_argument('--prefix',
+    action='store',
+    dest='prefix',
+    default='/usr/local',
+    help='select the install prefix [default: %(default)s]')
+
+parser.add_argument('--coverage',
+    action='store_true',
+    dest='coverage',
+    default=None,
+    help='Build node with code coverage enabled')
+
+parser.add_argument('--debug',
+    action='store_true',
+    dest='debug',
+    default=None,
+    help='also build debug build')
+
+parser.add_argument('--debug-node',
+    action='store_true',
+    dest='debug_node',
+    default=None,
+    help='build the Node.js part of the binary with debugging symbols')
+
+parser.add_argument('--debug-symbols',
+    action='store_true',
+    dest='debug_symbols',
+    default=None,
+    help='add debugging symbols to release builds (adds -g without enabling DCHECKs)')
+
+parser.add_argument('--dest-cpu',
+    action='store',
+    dest='dest_cpu',
+    choices=valid_arch,
+    help=f"CPU architecture to build for ({', '.join(valid_arch)})")
+
+parser.add_argument('--cross-compiling',
+    action='store_true',
+    dest='cross_compiling',
+    default=None,
+    help='force build to be considered as cross compiled')
+parser.add_argument('--no-cross-compiling',
+    action='store_false',
+    dest='cross_compiling',
+    default=None,
+    help='force build to be considered as NOT cross compiled')
+
+parser.add_argument('--use-prefix-to-find-headers',
+    action='store_true',
+    dest='use_prefix_to_find_headers',
+    default=None,
+    help='use the prefix to look for pre-installed headers')
+
+parser.add_argument('--use_clang',
+    action='store_true',
+    dest='use_clang',
+    default=None,
+    help='use clang instead of gcc')
+
+parser.add_argument('--dest-os',
+    action='store',
+    dest='dest_os',
+    choices=valid_os,
+    help=f"operating system to build for ({', '.join(valid_os)})")
+
+parser.add_argument('--error-on-warn',
+    action='store_true',
+    dest='error_on_warn',
+    default=None,
+    help='Turn compiler warnings into errors for node core sources.')
+
+parser.add_argument('--suppress-all-error-on-warn',
+    action='store_true',
+    dest='suppress_all_error_on_warn',
+    default=False,
+    help='Suppress cases where compiler warnings are turned into errors by default.')
+
+parser.add_argument('--gdb',
+    action='store_true',
+    dest='gdb',
+    default=None,
+    help='add gdb support')
+
+parser.add_argument('--no-ifaddrs',
+    action='store_true',
+    dest='no_ifaddrs',
+    default=None,
+    help='use on deprecated SunOS systems that do not support ifaddrs.h')
+
+parser.add_argument('--disable-single-executable-application',
+    action='store_true',
+    dest='disable_single_executable_application',
+    default=None,
+    help='Disable Single Executable Application support.')
+
+parser.add_argument("--fully-static",
+    action="store_true",
+    dest="fully_static",
+    default=None,
+    help="Generate an executable without external dynamic libraries. This "
+         "will not work on macOS when using the default compilation environment")
+
+parser.add_argument("--partly-static",
+    action="store_true",
+    dest="partly_static",
+    default=None,
+    help="Generate an executable with libgcc and libstdc++ libraries. This "
+         "will not work on macOS when using the default compilation environment")
+
+parser.add_argument("--enable-vtune-profiling",
+    action="store_true",
+    dest="enable_vtune_profiling",
+    help="Enable profiling support for Intel VTune profiler to profile "
+         "JavaScript code executed in Node.js. This feature is only available "
+         "for x32, x86, and x64 architectures.")
+
+parser.add_argument("--enable-pgo-generate",
+    action="store_true",
+    dest="enable_pgo_generate",
+    default=None,
+    help="Enable profiling with pgo of a binary. This feature is only available "
+         "on linux with gcc and g++ 5.4.1 or newer.")
+
+parser.add_argument("--enable-pgo-use",
+    action="store_true",
+    dest="enable_pgo_use",
+    default=None,
+    help="Enable use of the profile generated with --enable-pgo-generate. This "
+         "feature is only available on linux with gcc and g++ 5.4.1 or newer.")
+
+parser.add_argument("--enable-lto",
+    action="store_true",
+    dest="enable_lto",
+    default=None,
+    help="Enable compiling with lto of a binary. This feature is only available "
+         "with gcc 5.4.1+ or clang 3.9.1+.")
+
+parser.add_argument("--link-module",
+    action="append",
+    dest="linked_module",
+    help="Path to a JS file to be bundled in the binary as a builtin. "
+         "This module will be referenced by path without extension; "
+         "e.g. /root/x/y.js will be referenced via require('root/x/y'). "
+         "Can be used multiple times")
+
+parser.add_argument("--openssl-conf-name",
+    action="store",
+    dest="openssl_conf_name",
+    default='nodejs_conf',
+    help="The OpenSSL config appname (config section name) used by Node.js")
+
+parser.add_argument('--openssl-default-cipher-list',
+    action='store',
+    dest='openssl_default_cipher_list',
+    help='Use the specified cipher list as the default cipher list')
+
+parser.add_argument("--openssl-no-asm",
+    action="store_true",
+    dest="openssl_no_asm",
+    default=None,
+    help="Do not build optimized assembly for OpenSSL")
+
+parser.add_argument('--openssl-is-fips',
+    action='store_true',
+    dest='openssl_is_fips',
+    default=None,
+    help='specifies that the OpenSSL library is FIPS compatible')
+
+parser.add_argument('--openssl-use-def-ca-store',
+    action='store_true',
+    dest='use_openssl_ca_store',
+    default=None,
+    help='Use OpenSSL supplied CA store instead of compiled-in Mozilla CA copy.')
+
+parser.add_argument('--openssl-system-ca-path',
+    action='store',
+    dest='openssl_system_ca_path',
+    help='Use the specified path to system CA (PEM format) in addition to '
+         'the OpenSSL supplied CA store or compiled-in Mozilla CA copy.')
+
+shared_optgroup.add_argument('--shared-gtest',
+    action='store_true',
+    dest='shared_gtest',
+    default=None,
+    help='link to a shared googletest DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-gtest-includes',
+    action='store',
+    dest='shared_gtest_includes',
+    help='directory containing googletest header files')
+
+shared_optgroup.add_argument('--shared-gtest-libname',
+    action='store',
+    dest='shared_gtest_libname',
+    default='gtest',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-gtest-libpath',
+    action='store',
+    dest='shared_gtest_libpath',
+    help='a directory to search for the shared googletest DLL')
+
+shared_optgroup.add_argument('--shared-hdr-histogram',
+    action='store_true',
+    dest='shared_hdr_histogram',
+    default=None,
+    help='link to a shared HdrHistogram DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-hdr-histogram-includes',
+    action='store',
+    dest='shared_hdr_histogram_includes',
+    help='directory containing HdrHistogram header files')
+
+shared_optgroup.add_argument('--shared-hdr-histogram-libname',
+    action='store',
+    dest='shared_hdr_histogram_libname',
+    default='hdr_histogram',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-hdr-histogram-libpath',
+    action='store',
+    dest='shared_hdr_histogram_libpath',
+    help='a directory to search for the shared HdrHistogram DLL')
+
+parser.add_argument('--experimental-http-parser',
+    action='store_true',
+    dest='experimental_http_parser',
+    default=None,
+    help='(no-op)')
+
+shared_optgroup.add_argument('--shared-http-parser',
+    action='store_true',
+    dest='shared_http_parser',
+    default=None,
+    help='link to a shared http_parser DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-http-parser-includes',
+    action='store',
+    dest='shared_http_parser_includes',
+    help='directory containing http_parser header files')
+
+shared_optgroup.add_argument('--shared-http-parser-libname',
+    action='store',
+    dest='shared_http_parser_libname',
+    default='llhttp',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-http-parser-libpath',
+    action='store',
+    dest='shared_http_parser_libpath',
+    help='a directory to search for the shared http_parser DLL')
+
+shared_optgroup.add_argument('--shared-libuv',
+    action='store_true',
+    dest='shared_libuv',
+    default=None,
+    help='link to a shared libuv DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-libuv-includes',
+    action='store',
+    dest='shared_libuv_includes',
+    help='directory containing libuv header files')
+
+shared_optgroup.add_argument('--shared-libuv-libname',
+    action='store',
+    dest='shared_libuv_libname',
+    default='uv',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-libuv-libpath',
+    action='store',
+    dest='shared_libuv_libpath',
+    help='a directory to search for the shared libuv DLL')
+
+shared_optgroup.add_argument('--shared-lief',
+    action='store_true',
+    dest='shared_lief',
+    default=None,
+    help='link to a shared lief DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-lief-includes',
+    action='store',
+    dest='shared_lief_includes',
+    help='directory containing lief header files')
+
+shared_optgroup.add_argument('--shared-lief-libname',
+    action='store',
+    dest='shared_lief_libname',
+    default='LIEF',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-lief-libpath',
+    action='store',
+    dest='shared_lief_libpath',
+    help='a directory to search for the shared lief DLL')
+
+shared_optgroup.add_argument('--shared-nbytes',
+    action='store_true',
+    dest='shared_nbytes',
+    default=None,
+    help='link to a shared nbytes DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-nbytes-includes',
+    action='store',
+    dest='shared_nbytes_includes',
+    help='directory containing nbytes header files')
+
+shared_optgroup.add_argument('--shared-nbytes-libname',
+    action='store',
+    dest='shared_nbytes_libname',
+    default='nbytes',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-nbytes-libpath',
+    action='store',
+    dest='shared_nbytes_libpath',
+    help='a directory to search for the shared nbytes DLL')
+
+shared_optgroup.add_argument('--shared-nghttp2',
+    action='store_true',
+    dest='shared_nghttp2',
+    default=None,
+    help='link to a shared nghttp2 DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-nghttp2-includes',
+    action='store',
+    dest='shared_nghttp2_includes',
+    help='directory containing nghttp2 header files')
+
+shared_optgroup.add_argument('--shared-nghttp2-libname',
+    action='store',
+    dest='shared_nghttp2_libname',
+    default='nghttp2',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-nghttp2-libpath',
+    action='store',
+    dest='shared_nghttp2_libpath',
+    help='a directory to search for the shared nghttp2 DLLs')
+
+shared_optgroup.add_argument('--shared-nghttp3',
+    action='store_true',
+    dest='shared_nghttp3',
+    default=None,
+    help='link to a shared nghttp3 DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-nghttp3-includes',
+    action='store',
+    dest='shared_nghttp3_includes',
+    help='directory containing nghttp3 header files')
+
+shared_optgroup.add_argument('--shared-nghttp3-libname',
+    action='store',
+    dest='shared_nghttp3_libname',
+    default='nghttp3',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-nghttp3-libpath',
+    action='store',
+    dest='shared_nghttp3_libpath',
+    help='a directory to search for the shared nghttp3 DLLs')
+
+shared_optgroup.add_argument('--shared-ngtcp2',
+    action='store_true',
+    dest='shared_ngtcp2',
+    default=None,
+    help='link to a shared ngtcp2 DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-ngtcp2-includes',
+    action='store',
+    dest='shared_ngtcp2_includes',
+    help='directory containing ngtcp2 header files')
+
+shared_optgroup.add_argument('--shared-ngtcp2-libname',
+    action='store',
+    dest='shared_ngtcp2_libname',
+    default='ngtcp2',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-ngtcp2-libpath',
+    action='store',
+    dest='shared_ngtcp2_libpath',
+    help='a directory to search for the shared tcp2 DLLs')
+
+shared_optgroup.add_argument('--shared-openssl',
+    action='store_true',
+    dest='shared_openssl',
+    default=None,
+    help='link to a shared OpenSSl DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-openssl-includes',
+    action='store',
+    dest='shared_openssl_includes',
+    help='directory containing OpenSSL header files')
+
+shared_optgroup.add_argument('--shared-openssl-libname',
+    action='store',
+    dest='shared_openssl_libname',
+    default='crypto,ssl',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-openssl-libpath',
+    action='store',
+    dest='shared_openssl_libpath',
+    help='a directory to search for the shared OpenSSL DLLs')
+
+shared_optgroup.add_argument('--shared-uvwasi',
+    action='store_true',
+    dest='shared_uvwasi',
+    default=None,
+    help='link to a shared uvwasi DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-uvwasi-includes',
+    action='store',
+    dest='shared_uvwasi_includes',
+    help='directory containing uvwasi header files')
+
+shared_optgroup.add_argument('--shared-uvwasi-libname',
+    action='store',
+    dest='shared_uvwasi_libname',
+    default='uvwasi',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-uvwasi-libpath',
+    action='store',
+    dest='shared_uvwasi_libpath',
+    help='a directory to search for the shared uvwasi DLL')
+
+shared_optgroup.add_argument('--shared-zlib',
+    action='store_true',
+    dest='shared_zlib',
+    default=None,
+    help='link to a shared zlib DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-zlib-includes',
+    action='store',
+    dest='shared_zlib_includes',
+    help='directory containing zlib header files')
+
+shared_optgroup.add_argument('--shared-zlib-libname',
+    action='store',
+    dest='shared_zlib_libname',
+    default='z',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-zlib-libpath',
+    action='store',
+    dest='shared_zlib_libpath',
+    help='a directory to search for the shared zlib DLL')
+
+shared_optgroup.add_argument('--shared-simdjson',
+    action='store_true',
+    dest='shared_simdjson',
+    default=None,
+    help='link to a shared simdjson DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-simdjson-includes',
+    action='store',
+    dest='shared_simdjson_includes',
+    help='directory containing simdjson header files')
+
+shared_optgroup.add_argument('--shared-simdjson-libname',
+    action='store',
+    dest='shared_simdjson_libname',
+    default='simdjson',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-simdjson-libpath',
+    action='store',
+    dest='shared_simdjson_libpath',
+    help='a directory to search for the shared simdjson DLL')
+
+
+shared_optgroup.add_argument('--shared-simdutf',
+    action='store_true',
+    dest='shared_simdutf',
+    default=None,
+    help='link to a shared simdutf DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-simdutf-includes',
+    action='store',
+    dest='shared_simdutf_includes',
+    help='directory containing simdutf header files')
+
+shared_optgroup.add_argument('--shared-simdutf-libname',
+    action='store',
+    dest='shared_simdutf_libname',
+    default='simdutf',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-simdutf-libpath',
+    action='store',
+    dest='shared_simdutf_libpath',
+    help='a directory to search for the shared simdutf DLL')
+
+shared_optgroup.add_argument('--shared-ada',
+    action='store_true',
+    dest='shared_ada',
+    default=None,
+    help='link to a shared ada DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-ada-includes',
+    action='store',
+    dest='shared_ada_includes',
+    help='directory containing ada header files')
+
+shared_optgroup.add_argument('--shared-ada-libname',
+    action='store',
+    dest='shared_ada_libname',
+    default='ada',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-ada-libpath',
+    action='store',
+    dest='shared_ada_libpath',
+    help='a directory to search for the shared ada DLL')
+
+shared_optgroup.add_argument('--shared-merve',
+    action='store_true',
+    dest='shared_merve',
+    default=None,
+    help='link to a shared merve DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-merve-includes',
+    action='store',
+    dest='shared_merve_includes',
+    help='directory containing merve header files')
+
+shared_optgroup.add_argument('--shared-merve-libname',
+    action='store',
+    dest='shared_merve_libname',
+    default='merve',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-merve-libpath',
+    action='store',
+    dest='shared_merve_libpath',
+    help='a directory to search for the shared merve DLL')
+
+shared_optgroup.add_argument('--shared-brotli',
+    action='store_true',
+    dest='shared_brotli',
+    default=None,
+    help='link to a shared brotli DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-brotli-includes',
+    action='store',
+    dest='shared_brotli_includes',
+    help='directory containing brotli header files')
+
+shared_optgroup.add_argument('--shared-brotli-libname',
+    action='store',
+    dest='shared_brotli_libname',
+    default='brotlidec,brotlienc',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-brotli-libpath',
+    action='store',
+    dest='shared_brotli_libpath',
+    help='a directory to search for the shared brotli DLL')
+
+shared_optgroup.add_argument('--shared-cares',
+    action='store_true',
+    dest='shared_cares',
+    default=None,
+    help='link to a shared cares DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-cares-includes',
+    action='store',
+    dest='shared_cares_includes',
+    help='directory containing cares header files')
+
+shared_optgroup.add_argument('--shared-cares-libname',
+    action='store',
+    dest='shared_cares_libname',
+    default='cares',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-cares-libpath',
+    action='store',
+    dest='shared_cares_libpath',
+    help='a directory to search for the shared cares DLL')
+
+shared_optgroup.add_argument('--shared-sqlite',
+    action='store_true',
+    dest='shared_sqlite',
+    default=None,
+    help='link to a shared sqlite DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-sqlite-includes',
+    action='store',
+    dest='shared_sqlite_includes',
+    help='directory containing sqlite header files')
+
+shared_optgroup.add_argument('--shared-sqlite-libname',
+    action='store',
+    dest='shared_sqlite_libname',
+    default='sqlite3',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-sqlite-libpath',
+    action='store',
+    dest='shared_sqlite_libpath',
+    help='a directory to search for the shared sqlite DLL')
+
+shared_optgroup.add_argument('--shared-temporal_capi',
+    action='store_true',
+    dest='shared_temporal_capi',
+    default=None,
+    help='link to a shared temporal_capi DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-temporal_capi-includes',
+    action='store',
+    dest='shared_temporal_capi_includes',
+    help='directory containing temporal_capi header files')
+
+shared_optgroup.add_argument('--shared-temporal_capi-libname',
+    action='store',
+    dest='shared_temporal_capi_libname',
+    default='temporal_capi',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-temporal_capi-libpath',
+    action='store',
+    dest='shared_temporal_capi_libpath',
+    help='a directory to search for the shared temporal_capi DLL')
+
+shared_optgroup.add_argument('--shared-zstd',
+    action='store_true',
+    dest='shared_zstd',
+    default=None,
+    help='link to a shared zstd DLL instead of static linking')
+
+shared_optgroup.add_argument('--shared-zstd-includes',
+    action='store',
+    dest='shared_zstd_includes',
+    help='directory containing zstd header files')
+
+shared_optgroup.add_argument('--shared-zstd-libname',
+    action='store',
+    dest='shared_zstd_libname',
+    default='zstd',
+    help='alternative lib name to link to [default: %(default)s]')
+
+shared_optgroup.add_argument('--shared-zstd-libpath',
+    action='store',
+    dest='shared_zstd_libpath',
+    help='a directory to search for the shared zstd DLL')
+
+parser.add_argument_group(shared_optgroup)
+
+for builtin in shareable_builtins:
+  builtin_id = 'shared_builtin_' + builtin + '_path'
+  shared_builtin_optgroup.add_argument('--shared-builtin-' + builtin + '-path',
+    action='store',
+    dest='node_shared_builtin_' + builtin.replace('/', '_') + '_path',
+    help='Path to shared file for ' + builtin + ' builtin. '
+         'Will be used instead of bundled version at runtime')
+
+static_optgroup.add_argument('--static-zoslib-gyp',
+    action='store',
+    dest='static_zoslib_gyp',
+    help='path to zoslib.gyp file for includes and to link to static zoslib library')
+
+parser.add_argument('--tag',
+    action='store',
+    dest='tag',
+    help='custom build tag')
+
+parser.add_argument('--release-urlbase',
+    action='store',
+    dest='release_urlbase',
+    help='Provide a custom URL prefix for the `process.release` properties '
+         '`sourceUrl` and `headersUrl`. When compiling a release build, this '
+         'will default to https://nodejs.org/download/release/')
+
+parser.add_argument('--enable-d8',
+    action='store_true',
+    dest='enable_d8',
+    default=None,
+    help=argparse.SUPPRESS)  # Unsupported, undocumented.
+
+parser.add_argument('--enable-v8windbg',
+    action='store_true',
+    dest='enable_v8windbg',
+    default=None,
+    help=argparse.SUPPRESS)  # Undocumented.
+
+parser.add_argument('--enable-trace-maps',
+    action='store_true',
+    dest='trace_maps',
+    default=None,
+    help='Enable the --trace-maps flag in V8 (use at your own risk)')
+
+parser.add_argument('--experimental-enable-pointer-compression',
+    action='store_true',
+    dest='enable_pointer_compression',
+    default=None,
+    help='[Experimental] Enable V8 pointer compression (limits max heap to 4GB and breaks ABI compatibility)')
+
+parser.add_argument('--experimental-pointer-compression-shared-cage',
+    action='store_true',
+    dest='pointer_compression_shared_cage',
+    default=None,
+    help='[Experimental] Use V8 pointer compression with shared cage (requires --experimental-enable-pointer-compression)')
+
+parser.add_argument('--v8-options',
+    action='store',
+    dest='v8_options',
+    help='v8 options to pass, see `node --v8-options` for examples.')
+
+parser.add_argument('--with-ossfuzz',
+    action='store_true',
+    dest='ossfuzz',
+    default=None,
+    help='Enables building of fuzzers. This command should be run in an OSS-Fuzz Docker image.')
+
+parser.add_argument('--with-arm-float-abi',
+    action='store',
+    dest='arm_float_abi',
+    choices=valid_arm_float_abi,
+    help=f"specifies which floating-point ABI to use ({', '.join(valid_arm_float_abi)}).")
+
+parser.add_argument('--with-arm-fpu',
+    action='store',
+    dest='arm_fpu',
+    choices=valid_arm_fpu,
+    help=f"ARM FPU mode ({', '.join(valid_arm_fpu)}) [default: %(default)s]")
+
+parser.add_argument('--with-mips-arch-variant',
+    action='store',
+    dest='mips_arch_variant',
+    default='r2',
+    choices=valid_mips_arch,
+    help=f"MIPS arch variant ({', '.join(valid_mips_arch)}) [default: %(default)s]")
+
+parser.add_argument('--with-mips-fpu-mode',
+    action='store',
+    dest='mips_fpu_mode',
+    default='fp32',
+    choices=valid_mips_fpu,
+    help=f"MIPS FPU mode ({', '.join(valid_mips_fpu)}) [default: %(default)s]")
+
+parser.add_argument('--with-mips-float-abi',
+    action='store',
+    dest='mips_float_abi',
+    default='hard',
+    choices=valid_mips_float_abi,
+    help=f"MIPS floating-point ABI ({', '.join(valid_mips_float_abi)}) [default: %(default)s]")
+
+parser.add_argument('--use-largepages',
+    action='store_true',
+    dest='node_use_large_pages',
+    default=None,
+    help='This option has no effect. --use-largepages is now a runtime option.')
+
+parser.add_argument('--use-largepages-script-lld',
+    action='store_true',
+    dest='node_use_large_pages_script_lld',
+    default=None,
+    help='This option has no effect. --use-largepages is now a runtime option.')
+
+parser.add_argument('--use-section-ordering-file',
+    action='store',
+    dest='node_section_ordering_info',
+    default='',
+    help='Pass a section ordering file to the linker. This requires that ' +
+         'Node.js be linked using the gold linker. The gold linker must have ' +
+         'version 1.2 or greater.')
+
+intl_optgroup.add_argument('--with-intl',
+    action='store',
+    dest='with_intl',
+    default='full-icu',
+    choices=valid_intl_modes,
+    help=f"Intl mode (valid choices: {', '.join(valid_intl_modes)}) [default: %(default)s]")
+
+intl_optgroup.add_argument('--without-intl',
+    action='store_const',
+    dest='with_intl',
+    const='none',
+    help='Disable Intl, same as --with-intl=none')
+
+intl_optgroup.add_argument('--with-icu-path',
+    action='store',
+    dest='with_icu_path',
+    help='Path to icu.gyp (ICU i18n, Chromium version only.)')
+
+icu_default_locales='root,en'
+
+intl_optgroup.add_argument('--with-icu-locales',
+    action='store',
+    dest='with_icu_locales',
+    default=icu_default_locales,
+    help='Comma-separated list of locales for "small-icu". "root" is assumed. '
+        '[default: %(default)s]')
+
+intl_optgroup.add_argument('--with-icu-source',
+    action='store',
+    dest='with_icu_source',
+    help='Intl mode: optional local path to icu/ dir, or path/URL of '
+        'the icu4c source archive. '
+        f"v{icu_versions['minimum_icu']}.x or later recommended.")
+
+intl_optgroup.add_argument('--with-icu-default-data-dir',
+    action='store',
+    dest='with_icu_default_data_dir',
+    help='Path to the icuXXdt{lb}.dat file. If unspecified, ICU data will '
+         'only be read if the NODE_ICU_DATA environment variable or the '
+         '--icu-data-dir runtime argument is used. This option has effect '
+         'only when Node.js is built with --with-intl=small-icu.')
+
+parser.add_argument('--with-ltcg',
+    action='store_true',
+    dest='with_ltcg',
+    default=None,
+    help='Use Link Time Code Generation. This feature is only available on Windows.')
+
+parser.add_argument('--write-snapshot-as-array-literals',
+    action='store_true',
+    dest='write_snapshot_as_array_literals',
+    default=None,
+    help='Write the snapshot data as array literals for readability.'
+         'By default the snapshot data may be written as string literals on some '
+         'platforms to speed up compilation.')
+
+parser.add_argument('--without-node-snapshot',
+    action='store_true',
+    dest='without_node_snapshot',
+    default=None,
+    help='Turn off V8 snapshot integration. Currently experimental.')
+
+parser.add_argument('--without-node-code-cache',
+    action='store_true',
+    dest='without_node_code_cache',
+    default=None,
+    help='Turn off V8 Code cache integration.')
+
+intl_optgroup.add_argument('--download',
+    action='store',
+    dest='download_list',
+    help=nodedownload.help())
+
+intl_optgroup.add_argument('--download-path',
+    action='store',
+    dest='download_path',
+    default='deps',
+    help='Download directory [default: %(default)s]')
+
+parser.add_argument('--debug-lib',
+    action='store_true',
+    dest='node_debug_lib',
+    default=None,
+    help='build lib with DCHECK macros')
+
+http2_optgroup.add_argument('--debug-nghttp2',
+    action='store_true',
+    dest='debug_nghttp2',
+    default=None,
+    help='build nghttp2 with DEBUGBUILD (default is false)')
+
+parser.add_argument('--without-amaro',
+    action='store_true',
+    dest='without_amaro',
+    default=None,
+    help='do not install the bundled Amaro (TypeScript utils)')
+
+parser.add_argument('--without-lief',
+    action='store_true',
+    dest='without_lief',
+    default=None,
+    help='build without LIEF (Library for instrumenting executable formats)')
+
+parser.add_argument('--without-npm',
+    action='store_true',
+    dest='without_npm',
+    default=None,
+    help='do not install the bundled npm (package manager)')
+
+parser.add_argument('--with-corepack',
+    action='store_true',
+    dest='with_corepack',
+    default=None,
+    help='do install the bundled Corepack (experimental, will be removed without notice)')
+
+parser.add_argument('--control-flow-guard',
+    action='store_true',
+    dest='enable_cfg',
+    default=None,
+    help='enable Control Flow Guard (CFG)')
+
+# Dummy option for backwards compatibility
+parser.add_argument('--without-report',
+    action='store_true',
+    dest='unused_without_report',
+    default=None,
+    help=argparse.SUPPRESS)
+
+parser.add_argument('--with-snapshot',
+    action='store_true',
+    dest='unused_with_snapshot',
+    default=None,
+    help=argparse.SUPPRESS)
+
+parser.add_argument('--without-snapshot',
+    action='store_true',
+    dest='unused_without_snapshot',
+    default=None,
+    help=argparse.SUPPRESS)
+
+parser.add_argument('--without-siphash',
+    action='store_true',
+    dest='without_siphash',
+    default=None,
+    help=argparse.SUPPRESS)
+
+# End dummy list.
+
+parser.add_argument('--without-ssl',
+    action='store_true',
+    dest='without_ssl',
+    default=None,
+    help='build without SSL (disables crypto, https, inspector, etc.)')
+
+parser.add_argument('--without-node-options',
+    action='store_true',
+    dest='without_node_options',
+    default=None,
+    help='build without NODE_OPTIONS support')
+
+parser.add_argument('--without-sqlite',
+    action='store_true',
+    dest='without_sqlite',
+    default=None,
+    help='build without SQLite (disables SQLite and Web Storage API)')
+
+parser.add_argument('--experimental-quic',
+    action='store_true',
+    dest='experimental_quic',
+    default=None,
+    help='build with experimental QUIC support')
+
+parser.add_argument('--ninja',
+    action='store_true',
+    dest='use_ninja',
+    default=None,
+    help='generate build files for use with Ninja')
+
+parser.add_argument('--enable-asan',
+    action='store_true',
+    dest='enable_asan',
+    default=None,
+    help='compile for Address Sanitizer to find memory bugs')
+
+parser.add_argument('--enable-ubsan',
+    action='store_true',
+    dest='enable_ubsan',
+    default=None,
+    help='compile for Undefined Behavior Sanitizer')
+
+parser.add_argument('--enable-static',
+    action='store_true',
+    dest='enable_static',
+    default=None,
+    help='build as static library')
+
+parser.add_argument('--no-browser-globals',
+    action='store_true',
+    dest='no_browser_globals',
+    default=None,
+    help='do not export browser globals like setTimeout, console, etc. ' +
+         '(This mode is deprecated and not officially supported for regular ' +
+         'applications)')
+
+parser.add_argument('--without-inspector',
+    action='store_true',
+    dest='without_inspector',
+    default=None,
+    help='disable the V8 inspector protocol')
+
+parser.add_argument('--shared',
+    action='store_true',
+    dest='shared',
+    default=None,
+    help='compile shared library for embedding node in another project. ' +
+         '(This mode is not officially supported for regular applications)')
+
+parser.add_argument('--libdir',
+    action='store',
+    dest='libdir',
+    default='lib',
+    help='a directory to install the shared library into relative to the '
+         'prefix. This is a no-op if --shared is not specified. ' +
+         '(This mode is not officially supported for regular applications)')
+
+parser.add_argument('--without-v8-platform',
+    action='store_true',
+    dest='without_v8_platform',
+    default=False,
+    help='do not initialize v8 platform during node.js startup. ' +
+         '(This mode is not officially supported for regular applications)')
+
+parser.add_argument('--without-bundled-v8',
+    action='store_true',
+    dest='without_bundled_v8',
+    default=False,
+    help='do not use V8 includes from the bundled deps folder. ' +
+         '(This mode is not officially supported for regular applications)')
+
+parser.add_argument('--verbose',
+    action='store_true',
+    dest='verbose',
+    default=False,
+    help='get more output from this script')
+
+parser.add_argument('--v8-non-optimized-debug',
+    action='store_true',
+    dest='v8_non_optimized_debug',
+    default=False,
+    help='compile V8 with minimal optimizations and with runtime checks')
+
+parser.add_argument('--v8-with-dchecks',
+    action='store_true',
+    dest='v8_with_dchecks',
+    default=False,
+    help='compile V8 with debug checks and runtime debugging features enabled')
+
+parser.add_argument('--v8-lite-mode',
+    action='store_true',
+    dest='v8_lite_mode',
+    default=False,
+    help='compile V8 in lite mode for constrained environments (lowers V8 '+
+         'memory footprint, but also implies no just-in-time compilation ' +
+         'support, thus much slower execution)')
+
+parser.add_argument('--v8-enable-object-print',
+    action='store_true',
+    dest='v8_enable_object_print',
+    default=True,
+    help='compile V8 with auxiliary functions for native debuggers')
+
+parser.add_argument('--v8-disable-object-print',
+    action='store_true',
+    dest='v8_disable_object_print',
+    default=False,
+    help='disable the V8 auxiliary functions for native debuggers')
+
+parser.add_argument('--v8-enable-hugepage',
+    action='store_true',
+    dest='v8_enable_hugepage',
+    default=None,
+    help='Enable V8 transparent hugepage support. This feature is only '+
+         'available on Linux platform.')
+
+maglev_enabled_by_default_help = f"(Maglev is enabled by default on {','.join(maglev_enabled_architectures)})"
+
+parser.add_argument('--v8-disable-maglev',
+    action='store_true',
+    dest='v8_disable_maglev',
+    default=None,
+    help=f"Disable V8's Maglev compiler. {maglev_enabled_by_default_help}")
+
+parser.add_argument('--v8-enable-short-builtin-calls',
+    action='store_true',
+    dest='v8_enable_short_builtin_calls',
+    default=None,
+    help='Enable V8 short builtin calls support. This feature is enabled '+
+         'on x86_64 platform by default.')
+
+parser.add_argument('--v8-enable-snapshot-compression',
+    action='store_true',
+    dest='v8_enable_snapshot_compression',
+    default=None,
+    help='Enable the built-in snapshot compression in V8.')
+
+
+parser.add_argument('--v8-enable-temporal-support',
+    action='store_true',
+    dest='v8_enable_temporal_support',
+    default=None,
+    help='Enable Temporal support in V8.')
+
+parser.add_argument('--node-builtin-modules-path',
+    action='store',
+    dest='node_builtin_modules_path',
+    default=False,
+    help='node will load builtin modules from disk instead of from binary')
+
+parser.add_argument('--node-snapshot-main',
+    action='store',
+    dest='node_snapshot_main',
+    default=None,
+    help='Run a file when building the embedded snapshot. Currently ' +
+         'experimental.')
+
+# Create compile_commands.json in out/Debug and out/Release.
+parser.add_argument('-C',
+    action='store_true',
+    dest='compile_commands_json',
+    default=None,
+    help=argparse.SUPPRESS)
+
+parser.add_argument('--clang-cl',
+    action='store',
+    dest='clang_cl',
+    default=None,
+    help='Configure for clang-cl on Windows. This flag sets the GYP "clang" ' +
+         'variable to 1 and "llvm_version" to the specified value.')
+parser.add_argument('--use-ccache-win',
+    action='store_true',
+    dest='use_ccache_win',
+    default=None,
+    help='Use ccache for compiling on Windows. ')
+
+(options, args) = parser.parse_known_args()
+
+# Expand ~ in the install prefix now, it gets written to multiple files.
+options.prefix = str(Path(options.prefix or '').expanduser())
+
+# set up auto-download list
+auto_downloads = nodedownload.parse(options.download_list)
+
+
+def error(msg):
+  prefix = '\033[1m\033[31mERROR\033[0m' if os.isatty(1) else 'ERROR'
+  print(f'{prefix}: {msg}')
+  sys.exit(1)
+
+def warn(msg):
+  warn.warned = True
+  prefix = '\033[1m\033[93mWARNING\033[0m' if os.isatty(1) else 'WARNING'
+  print(f'{prefix}: {msg}')
+
+# track if warnings occurred
+warn.warned = False
+
+def info(msg):
+  prefix = '\033[1m\033[32mINFO\033[0m' if os.isatty(1) else 'INFO'
+  print(f'{prefix}: {msg}')
+
+def print_verbose(x):
+  if not options.verbose:
+    return
+  if isinstance(x, str):
+    print(x)
+  else:
+    pprint.pprint(x, indent=2)
+
+def b(value):
+  """Returns the string 'true' if value is truthy, 'false' otherwise."""
+  return 'true' if value else 'false'
+
+def B(value):
+  """Returns 1 if value is truthy, 0 otherwise."""
+  return 1 if value else 0
+
+def to_utf8(s):
+  return s if isinstance(s, str) else s.decode("utf-8")
+
+def pkg_config(pkg):
+  """Run pkg-config on the specified package
+  Returns ("-l flags", "-I flags", "-L flags", "version")
+  otherwise (None, None, None, None)"""
+  pkg_config = os.environ.get('PKG_CONFIG', 'pkg-config')
+  args = []  # Print pkg-config warnings on first round.
+  retval = []
+  for flag in ['--libs-only-l', '--cflags-only-I',
+               '--libs-only-L', '--modversion']:
+    args += [flag]
+    if isinstance(pkg, list):
+      args += pkg
+    else:
+      args += [pkg]
+    try:
+      proc = subprocess.Popen(shlex.split(pkg_config) + args,
+                              stdout=subprocess.PIPE)
+      with proc:
+        val = to_utf8(proc.communicate()[0]).strip()
+    except OSError as e:
+      if e.errno != errno.ENOENT:
+        raise e  # Unexpected error.
+      return (None, None, None, None)  # No pkg-config/pkgconf installed.
+    retval.append(val)
+    args = ['--silence-errors']
+  return tuple(retval)
+
+
+def try_check_compiler(cc, lang):
+  try:
+    proc = subprocess.Popen(shlex.split(cc) + ['-E', '-P', '-x', lang, '-'],
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+  except OSError:
+    return (False, False, '', '', False)
+
+  with proc:
+    proc.stdin.write(b'__clang__ __GNUC__ __GNUC_MINOR__ __GNUC_PATCHLEVEL__ '
+                     b'__clang_major__ __clang_minor__ __clang_patchlevel__ '
+                     b'__APPLE__')
+
+    cc_out = proc.communicate()
+    cc_stdout = to_utf8(cc_out[0])
+    if sys.platform == 'zos':
+      values = (cc_stdout.split('\n')[-2].split() + ['0'] * 7)[0:8]
+    else:
+      values = (cc_stdout.split() + ['0'] * 7)[0:8]
+
+  if len(values) < 8:
+    cc_stderr = to_utf8(cc_out[1]) if cc_out[1] else ''
+    raise Exception(f'Could not determine compiler version info. \nstdout:\n{cc_stdout}\nstderr:\n{cc_stderr}')
+
+  is_clang = values[0] == '1'
+  gcc_version = tuple(map(int, values[1:1+3]))
+  clang_version = tuple(map(int, values[4:4+3])) if is_clang else None
+  is_apple = values[7] == '1'
+
+  return (True, is_clang, clang_version, gcc_version, is_apple)
+
+
+#
+# The version of asm compiler is needed for building openssl asm files.
+# See deps/openssl/openssl.gypi for detail.
+# Commands and regular expressions to obtain its version number are taken from
+# https://github.com/openssl/openssl/blob/OpenSSL_1_0_2-stable/crypto/sha/asm/sha512-x86_64.pl#L112-L129
+#
+def get_version_helper(cc, regexp):
+  try:
+    proc = subprocess.Popen(shlex.split(cc) + ['-v'], stdin=subprocess.PIPE,
+                            stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+  except OSError:
+    error('''No acceptable C compiler found!
+
+       Please make sure you have a C compiler installed on your system and/or
+       consider adjusting the CC environment variable if you installed
+       it in a non-standard prefix.''')
+
+  with proc:
+    match = re.search(regexp, to_utf8(proc.communicate()[1]))
+
+  return match.group(2) if match else '0.0'
+
+def get_nasm_version(asm):
+  try:
+    proc = subprocess.Popen(shlex.split(asm) + ['-v'],
+                            stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+  except OSError:
+    warn('''No acceptable ASM compiler found!
+         Please make sure you have installed NASM from https://www.nasm.us
+         and refer BUILDING.md.''')
+    return '0.0'
+
+  with proc:
+    match = re.match(r"NASM version ([2-9]\.[0-9][0-9]+)",
+                     to_utf8(proc.communicate()[0]))
+
+  return match.group(1) if match else '0.0'
+
+def get_llvm_version(cc):
+  return get_version_helper(
+    cc, r"(^(?:.+ )?clang version|based on LLVM) ([0-9]+\.[0-9]+)")
+
+def get_xcode_version(cc):
+  return get_version_helper(
+    cc, r"(^Apple (?:clang|LLVM) version) ([0-9]+\.[0-9]+)")
+
+def get_gas_version(cc):
+  try:
+    custom_env = os.environ.copy()
+    custom_env["LC_ALL"] = "C"
+    proc = subprocess.Popen(shlex.split(cc) + ['-Wa,-v', '-c', '-o',
+                                               '/dev/null', '-x',
+                                               'assembler',  '/dev/null'],
+                            stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE, env=custom_env)
+  except OSError:
+    error('''No acceptable C compiler found!
+
+       Please make sure you have a C compiler installed on your system and/or
+       consider adjusting the CC environment variable if you installed
+       it in a non-standard prefix.''')
+
+  with proc:
+    gas_ret = to_utf8(proc.communicate()[1])
+
+  match = re.match(r"GNU assembler version ([2-9]\.[0-9]+)", gas_ret)
+
+  if match:
+    return match.group(1)
+
+  warn(f'Could not recognize `gas`: {gas_ret}')
+  return '0.0'
+
+def get_openssl_version(o):
+  """Parse OpenSSL version from opensslv.h header file.
+
+  Returns the version as a number matching OPENSSL_VERSION_NUMBER format:
+  0xMNN00PPSL where M=major, NN=minor, PP=patch, S=status(0xf=release,0x0=pre),
+  L denotes as a long type literal
+  """
+
+  try:
+    # Use the C compiler to extract preprocessor macros from opensslv.h
+    args = ['-E', '-dM', '-include', 'openssl/opensslv.h', '-']
+    if not options.shared_openssl:
+      args = ['-I', 'deps/openssl/openssl/include'] + args
+    elif options.shared_openssl_includes:
+      args = ['-I', options.shared_openssl_includes] + args
+    else:
+      for dir in o['include_dirs']:
+        args = ['-I', dir] + args
+
+    proc = subprocess.Popen(
+      shlex.split(CC) + args,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE
+    )
+    with proc:
+      proc.stdin.write(b'\n')
+      out = to_utf8(proc.communicate()[0])
+
+    if proc.returncode != 0:
+      warn('Failed to extract OpenSSL version from opensslv.h header')
+      return 0
+
+    # Parse the macro definitions
+    macros = {}
+    for line in out.split('\n'):
+      if line.startswith('#define OPENSSL_VERSION_'):
+        parts = line.split()
+        if len(parts) >= 3:
+          macro_name = parts[1]
+          macro_value = parts[2]
+          macros[macro_name] = macro_value
+
+    # Extract version components
+    major = int(macros.get('OPENSSL_VERSION_MAJOR', '0'))
+    minor = int(macros.get('OPENSSL_VERSION_MINOR', '0'))
+    patch = int(macros.get('OPENSSL_VERSION_PATCH', '0'))
+
+    # If major, minor and patch are all 0, this is probably OpenSSL < 3.
+    if (major, minor, patch) == (0, 0, 0):
+      version_number = macros.get('OPENSSL_VERSION_NUMBER')
+      # Prior to OpenSSL 3 the value should be in the format 0xMNN00PPSL.
+      # If it is, we need to strip the `L` suffix prior to parsing.
+      if version_number[:2] == "0x" and version_number[-1] == "L":
+        return int(version_number[:-1], 16)
+
+    # Check if it's a pre-release (has non-empty PRE_RELEASE string)
+    pre_release = macros.get('OPENSSL_VERSION_PRE_RELEASE', '""').strip('"')
+    status = 0x0 if pre_release else 0xf
+    # Construct version number: 0xMNN00PPSL
+    version_number = ((major << 28) |
+                     (minor << 20) |
+                     (patch << 4) |
+                     status)
+
+    return version_number
+
+  except (OSError, ValueError, subprocess.SubprocessError) as e:
+    warn(f'Failed to determine OpenSSL version from header: {e}')
+    return 0
+
+def get_cargo_version(cargo):
+  try:
+    proc = subprocess.Popen(shlex.split(cargo) + ['--version'],
+                            stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+  except OSError:
+    error('''No acceptable cargo found!
+
+       Please make sure you have cargo installed on your system and/or
+       consider adjusting the CARGO environment variable if you have installed
+       it in a non-standard prefix.''')
+
+  with proc:
+    cargo_ret = to_utf8(proc.communicate()[0])
+
+  match = re.match(r"cargo ([0-9]+\.[0-9]+\.[0-9]+)", cargo_ret)
+
+  if match:
+    return match.group(1)
+
+  warn(f'Could not recognize `cargo`: {cargo_ret}')
+  return '0.0'
+
+def get_rustc_version(rustc):
+  try:
+    proc = subprocess.Popen(shlex.split(rustc) + ['--version'],
+                            stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdout=subprocess.PIPE)
+  except OSError:
+    error('''No acceptable rustc compiler found!
+
+       Please make sure you have a rust compiler installed on your system and/or
+       consider adjusting the RUSTC environment variable if you have installed
+       it in a non-standard prefix.''')
+
+  with proc:
+    rustc_ret = to_utf8(proc.communicate()[0])
+
+  match = re.match(r"rustc ([0-9]+\.[0-9]+\.[0-9]+)", rustc_ret)
+
+  if match:
+    return match.group(1)
+
+  warn(f'Could not recognize `rustc`: {rustc_ret}')
+  return '0.0'
+
+# Note: Apple clang self-reports as clang 4.2.0 and gcc 4.2.1.  It passes
+# the version check more by accident than anything else but a more rigorous
+# check involves checking the build number against an allowlist.  I'm not
+# quite prepared to go that far yet.
+def check_compiler(o):
+  o['variables']['use_ccache_win'] = 0
+
+  if sys.platform == 'win32':
+    if options.clang_cl:
+      o['variables']['clang'] = 1
+      o['variables']['llvm_version'] = options.clang_cl
+    else:
+      o['variables']['clang'] = 0
+      o['variables']['llvm_version'] = '0.0'
+
+    if options.use_ccache_win:
+      o['variables']['use_ccache_win'] = 1
+
+    if not options.openssl_no_asm and options.dest_cpu in ('x86', 'x64'):
+      nasm_version = get_nasm_version('nasm')
+      o['variables']['nasm_version'] = nasm_version
+      if nasm_version == '0.0':
+        o['variables']['openssl_no_asm'] = 1
+    return
+
+  ok, is_clang, clang_version, gcc_version, is_apple = try_check_compiler(CXX, 'c++')
+  o['variables']['clang'] = B(is_clang)
+  version_str = ".".join(map(str, clang_version if is_clang else gcc_version))
+  print_verbose(f"Detected {'Apple ' if is_apple else ''}{'clang ' if is_clang else ''}C++ compiler (CXX={CXX}) version: {version_str}")
+  if not ok:
+    warn(f'failed to autodetect C++ compiler version (CXX={CXX})')
+  elif ((is_apple and clang_version < (17, 0, 0)) or (not is_apple and clang_version < (19, 1, 0))) if is_clang else gcc_version < (13, 2, 0):
+    warn(f"C++ compiler (CXX={CXX}, {version_str}) too old, need g++ 13.2.0 or clang++ 19.1.0{' or Apple clang++ 17.0.0' if is_apple else ''}")
+
+  ok, is_clang, clang_version, gcc_version, is_apple = try_check_compiler(CC, 'c')
+  version_str = ".".join(map(str, clang_version if is_clang else gcc_version))
+  print_verbose(f"Detected {'Apple ' if is_apple else ''}{'clang ' if is_clang else ''}C compiler (CC={CC}) version: {version_str}")
+  if not ok:
+    warn(f'failed to autodetect C compiler version (CC={CC})')
+  elif not is_clang and gcc_version < (4, 2, 0):
+    # clang 3.2 is a little white lie because any clang version will probably
+    # do for the C bits.  However, we might as well encourage people to upgrade
+    # to a version that is not completely ancient.
+    warn(f'C compiler (CC={CC}, {version_str}) too old, need gcc 4.2 or clang 3.2')
+
+  o['variables']['llvm_version'] = get_llvm_version(CC) if is_clang else '0.0'
+
+  # cargo and rustc are needed for Temporal.
+  if options.v8_enable_temporal_support and not options.shared_temporal_capi:
+    # Minimum cargo and rustc versions should match values in BUILDING.md.
+    min_cargo_ver_tuple = (1, 82)
+    min_rustc_ver_tuple = (1, 82)
+    cargo = os.environ.get('CARGO', 'cargo')
+    cargo_ver = get_cargo_version(cargo)
+    print_verbose(f'Detected cargo (CARGO={cargo}): {cargo_ver}')
+    cargo_ver_tuple = tuple(map(int, cargo_ver.split('.')))
+    if cargo_ver_tuple < min_cargo_ver_tuple:
+      warn(f'cargo {cargo_ver} too old, need cargo {".".join(map(str, min_cargo_ver_tuple))}')
+    # cargo supports RUSTC environment variable to override "rustc".
+    rustc = os.environ.get('RUSTC', 'rustc')
+    rustc_ver = get_rustc_version(rustc)
+    print_verbose(f'Detected rustc (RUSTC={rustc}): {rustc_ver}')
+    rust_ver_tuple = tuple(map(int, rustc_ver.split('.')))
+    if rust_ver_tuple < min_rustc_ver_tuple:
+      warn(f'rustc {rustc_ver} too old, need rustc {".".join(map(str, min_rustc_ver_tuple))}')
+
+  # Need xcode_version or gas_version when openssl asm files are compiled.
+  if options.without_ssl or options.openssl_no_asm or options.shared_openssl:
+    return
+
+  if is_clang:
+    if sys.platform == 'darwin':
+      o['variables']['xcode_version'] = get_xcode_version(CC)
+  else:
+    o['variables']['gas_version'] = get_gas_version(CC)
+
+
+def cc_macros(cc=None):
+  """Checks predefined macros using the C compiler command."""
+
+  try:
+    p = subprocess.Popen(shlex.split(cc or CC) + ['-dM', '-E', '-'],
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+  except OSError:
+    error('''No acceptable C compiler found!
+
+       Please make sure you have a C compiler installed on your system and/or
+       consider adjusting the CC environment variable if you installed
+       it in a non-standard prefix.''')
+
+  with p:
+    p.stdin.write(b'\n')
+    out = to_utf8(p.communicate()[0]).split('\n')
+
+  k = {}
+  for line in out:
+    lst = shlex.split(line)
+    if len(lst) > 2:
+      key = lst[1]
+      val = lst[2]
+      k[key] = val
+  return k
+
+
+def is_arch_armv7():
+  """Check for ARMv7 instructions"""
+  cc_macros_cache = cc_macros()
+  return cc_macros_cache.get('__ARM_ARCH') == '7'
+
+
+def is_arch_armv6():
+  """Check for ARMv6 instructions"""
+  cc_macros_cache = cc_macros()
+  return cc_macros_cache.get('__ARM_ARCH') == '6'
+
+
+def is_arm_hard_float_abi():
+  """Check for hardfloat or softfloat eabi on ARM"""
+  # GCC versions 4.6 and above define __ARM_PCS or __ARM_PCS_VFP to specify
+  # the Floating Point ABI used (PCS stands for Procedure Call Standard).
+  # We use these as well as a couple of other defines to statically determine
+  # what FP ABI used.
+
+  return '__ARM_PCS_VFP' in cc_macros()
+
+
+def host_arch_cc():
+  """Host architecture check using the CC command."""
+
+  if sys.platform.startswith('zos'):
+    return 's390x'
+  k = cc_macros(os.environ.get('CC_host'))
+
+  matchup = {
+    '__aarch64__' : 'arm64',
+    '__arm__'     : 'arm',
+    '__i386__'    : 'ia32',
+    '__MIPSEL__'  : 'mipsel',
+    '__mips__'    : 'mips',
+    '__PPC64__'   : 'ppc64',
+    '__PPC__'     : 'ppc64',
+    '__x86_64__'  : 'x64',
+    '__s390x__'   : 's390x',
+    '__riscv'     : 'riscv',
+    '__loongarch64': 'loong64',
+  }
+
+  rtn = 'ia32' # default
+
+  for key, value in matchup.items():
+    if k.get(key, 0) and k[key] != '0':
+      rtn = value
+      break
+
+  if rtn == 'mipsel' and '_LP64' in k:
+    rtn = 'mips64el'
+
+  if rtn == 'riscv':
+    if k['__riscv_xlen'] == '64':
+      rtn = 'riscv64'
+    else:
+      rtn = 'riscv32'
+
+  return rtn
+
+
+def host_arch_win():
+  """Host architecture check using environ vars (better way to do this?)"""
+
+  observed_arch = os.environ.get('PROCESSOR_ARCHITECTURE', 'AMD64')
+  arch = os.environ.get('PROCESSOR_ARCHITEW6432', observed_arch)
+
+  matchup = {
+    'AMD64'  : 'x64',
+    'arm'    : 'arm',
+    'mips'   : 'mips',
+    'ARM64'  : 'arm64'
+  }
+
+  return matchup.get(arch, 'x64')
+
+def set_configuration_variable(configs, name, release=None, debug=None):
+  configs['Release']['variables'][name] = release
+  configs['Debug']['variables'][name] = debug
+
+def configure_arm(o):
+  if options.arm_float_abi:
+    arm_float_abi = options.arm_float_abi
+  elif is_arm_hard_float_abi():
+    arm_float_abi = 'hard'
+  else:
+    arm_float_abi = 'default'
+
+  arm_fpu = 'vfp'
+
+  if is_arch_armv7():
+    arm_fpu = 'vfpv3'
+    o['variables']['arm_version'] = '7'
+  else:
+    o['variables']['arm_version'] = '6' if is_arch_armv6() else 'default'
+
+  o['variables']['arm_thumb'] = 0      # -marm
+  o['variables']['arm_float_abi'] = arm_float_abi
+
+  if options.dest_os == 'android':
+    arm_fpu = 'vfpv3'
+    o['variables']['arm_version'] = '7'
+
+  o['variables']['arm_fpu'] = options.arm_fpu or arm_fpu
+
+
+def configure_mips(o, target_arch):
+  can_use_fpu_instructions = options.mips_float_abi != 'soft'
+  o['variables']['v8_can_use_fpu_instructions'] = b(can_use_fpu_instructions)
+  o['variables']['v8_use_mips_abi_hardfloat'] = b(can_use_fpu_instructions)
+  o['variables']['mips_arch_variant'] = options.mips_arch_variant
+  o['variables']['mips_fpu_mode'] = options.mips_fpu_mode
+  host_byteorder = 'little' if target_arch in ('mipsel', 'mips64el') else 'big'
+  o['variables']['v8_host_byteorder'] = host_byteorder
+
+def configure_zos(o):
+  o['variables']['node_static_zoslib'] = b(True)
+  if options.static_zoslib_gyp:
+    # Apply to all Node.js components for now
+    o['variables']['zoslib_include_dir'] = Path(options.static_zoslib_gyp).parent / 'include'
+    o['include_dirs'] += [o['variables']['zoslib_include_dir']]
+  else:
+    raise Exception('--static-zoslib-gyp=<path to zoslib.gyp file> is required.')
+
+def clang_version_ge(version_checked):
+  for compiler in [(CC, 'c'), (CXX, 'c++')]:
+    _, is_clang, clang_version, _1, _2 = (
+      try_check_compiler(compiler[0], compiler[1])
+    )
+    if is_clang and clang_version >= version_checked:
+      return True
+  return False
+
+def gcc_version_ge(version_checked):
+  for compiler in [(CC, 'c'), (CXX, 'c++')]:
+    _, is_clang, _1, gcc_version, _2 = (
+      try_check_compiler(compiler[0], compiler[1])
+    )
+    if is_clang or gcc_version < version_checked:
+      return False
+  return True
+
+def configure_node_lib_files(o):
+  o['variables']['node_library_files'] = SearchFiles('lib', 'js')
+
+def configure_node_cctest_sources(o):
+  o['variables']['node_cctest_sources'] = [ 'src/node_snapshot_stub.cc' ] + \
+    SearchFiles('test/cctest', 'cc') + \
+    SearchFiles('test/cctest', 'h')
+
+def configure_node(o):
+  if options.dest_os == 'android':
+    o['variables']['OS'] = 'android'
+  o['variables']['node_prefix'] = options.prefix
+  o['variables']['node_install_npm'] = b(not options.without_npm)
+  o['variables']['node_install_corepack'] = b(options.with_corepack)
+  o['variables']['control_flow_guard'] = b(options.enable_cfg)
+  o['variables']['node_use_amaro'] = b(not options.without_amaro)
+  o['variables']['debug_node'] = b(options.debug_node)
+  o['variables']['debug_symbols'] = b(options.debug_symbols)
+  if options.debug_symbols:
+    o['cflags'] += ['-g']
+  o['variables']['build_type%'] = 'Debug' if options.debug else 'Release'
+  o['default_configuration'] = 'Debug' if options.debug else 'Release'
+  if options.error_on_warn and options.suppress_all_error_on_warn:
+    raise Exception('--error_on_warn is incompatible with --suppress_all_error_on_warn.')
+  o['variables']['error_on_warn'] = b(options.error_on_warn)
+  o['variables']['suppress_all_error_on_warn'] = b(options.suppress_all_error_on_warn)
+  o['variables']['use_prefix_to_find_headers'] = b(options.use_prefix_to_find_headers)
+
+  host_arch = host_arch_win() if os.name == 'nt' else host_arch_cc()
+  target_arch = options.dest_cpu or host_arch
+  # ia32 is preferred by the build tools (GYP) over x86 even if we prefer the latter
+  # the Makefile resets this to x86 afterward
+  if target_arch == 'x86':
+    target_arch = 'ia32'
+  # x86_64 is common across linuxes, allow it as an alias for x64
+  if target_arch == 'x86_64':
+    target_arch = 'x64'
+  o['variables']['host_arch'] = host_arch
+  o['variables']['target_arch'] = target_arch
+  o['variables']['node_byteorder'] = sys.byteorder
+
+  # Allow overriding the compiler - needed by embedders.
+  if options.use_clang:
+    o['variables']['clang'] = 1
+
+  cross_compiling = (options.cross_compiling
+                     if options.cross_compiling is not None
+                     else target_arch != host_arch)
+  if cross_compiling:
+    os.environ['GYP_CROSSCOMPILE'] = "1"
+  if options.unused_without_snapshot:
+    warn('building --without-snapshot is no longer possible')
+
+  o['variables']['want_separate_host_toolset'] = int(cross_compiling)
+
+  if target_arch == 'arm64':
+    o['variables']['arm_fpu'] = options.arm_fpu or 'neon'
+
+  if options.node_snapshot_main is not None:
+    if options.shared:
+      # This should be possible to fix, but we will need to refactor the
+      # libnode target to avoid building it twice.
+      error('--node-snapshot-main is incompatible with --shared')
+    if options.without_node_snapshot:
+      error('--node-snapshot-main is incompatible with ' +
+            '--without-node-snapshot')
+    if cross_compiling:
+      error('--node-snapshot-main is incompatible with cross compilation')
+    o['variables']['node_snapshot_main'] = options.node_snapshot_main
+
+  if options.without_node_snapshot or options.node_builtin_modules_path:
+    o['variables']['node_use_node_snapshot'] = 'false'
+  else:
+    o['variables']['node_use_node_snapshot'] = b(
+      not cross_compiling and not options.shared)
+
+  # Do not use code cache when Node.js is built for collecting coverage of itself, this allows more
+  # precise coverage for the JS built-ins.
+  if options.without_node_code_cache or options.without_node_snapshot or options.node_builtin_modules_path or options.coverage:
+    o['variables']['node_use_node_code_cache'] = 'false'
+  else:
+    # TODO(refack): fix this when implementing embedded code-cache when cross-compiling.
+    o['variables']['node_use_node_code_cache'] = b(
+      not cross_compiling and not options.shared)
+
+  if options.write_snapshot_as_array_literals is not None:
+     o['variables']['node_write_snapshot_as_array_literals'] = b(options.write_snapshot_as_array_literals)
+  else:
+     o['variables']['node_write_snapshot_as_array_literals'] = b(flavor != 'mac' and flavor != 'linux')
+
+  if target_arch == 'arm':
+    configure_arm(o)
+  elif target_arch in ('mips', 'mipsel', 'mips64el'):
+    configure_mips(o, target_arch)
+  elif sys.platform == 'zos':
+    configure_zos(o)
+
+  if flavor in ('aix', 'os400'):
+    o['variables']['node_target_type'] = 'static_library'
+
+  if target_arch in ('x86', 'x64', 'ia32', 'x32'):
+    o['variables']['node_enable_v8_vtunejit'] = b(options.enable_vtune_profiling)
+  elif options.enable_vtune_profiling:
+    raise Exception(
+       'The VTune profiler for JavaScript is only supported on x32, x86, and x64 '
+       'architectures.')
+  else:
+    o['variables']['node_enable_v8_vtunejit'] = 'false'
+
+  if flavor != 'linux' and (options.enable_pgo_generate or options.enable_pgo_use):
+    raise Exception(
+      'The pgo option is supported only on linux.')
+
+  if flavor == 'linux':
+    if options.enable_pgo_generate or options.enable_pgo_use:
+      version_checked = (5, 4, 1)
+      if not gcc_version_ge(version_checked):
+        version_checked_str = ".".join(map(str, version_checked))
+        raise Exception(
+          'The options --enable-pgo-generate and --enable-pgo-use '
+          f'are supported for gcc and gxx {version_checked_str} or newer only.')
+
+    if options.enable_pgo_generate and options.enable_pgo_use:
+      raise Exception(
+        'Only one of the --enable-pgo-generate or --enable-pgo-use options '
+        'can be specified at a time. You would like to use '
+        '--enable-pgo-generate first, profile node, and then recompile '
+        'with --enable-pgo-use')
+
+  o['variables']['enable_pgo_generate'] = b(options.enable_pgo_generate)
+  o['variables']['enable_pgo_use']      = b(options.enable_pgo_use)
+
+  if flavor == 'win' and (options.enable_lto):
+    raise Exception(
+      'Use Link Time Code Generation instead.')
+
+  if options.enable_lto:
+    gcc_version_checked = (5, 4, 1)
+    clang_version_checked = (3, 9, 1)
+    if not gcc_version_ge(gcc_version_checked) and not clang_version_ge(clang_version_checked):
+      gcc_version_checked_str = ".".join(map(str, gcc_version_checked))
+      clang_version_checked_str = ".".join(map(str, clang_version_checked))
+      raise Exception(
+        f'The option --enable-lto is supported for gcc {gcc_version_checked_str}+'
+        f'or clang {clang_version_checked_str}+ only.')
+
+  o['variables']['enable_lto'] = b(options.enable_lto)
+
+  if options.node_use_large_pages or options.node_use_large_pages_script_lld:
+    warn('''The `--use-largepages` and `--use-largepages-script-lld` options
+         have no effect during build time. Support for mapping to large pages is
+         now a runtime option of Node.js. Run `node --use-largepages` or add
+         `--use-largepages` to the `NODE_OPTIONS` environment variable once
+         Node.js is built to enable mapping to large pages.''')
+
+  if options.no_ifaddrs:
+    o['defines'] += ['SUNOS_NO_IFADDRS']
+
+  o['variables']['single_executable_application'] = b(not options.disable_single_executable_application)
+  if options.disable_single_executable_application:
+    o['defines'] += ['DISABLE_SINGLE_EXECUTABLE_APPLICATION']
+    o['variables']['node_use_lief'] = 'false'
+  else:
+    if (options.without_lief is not None):
+      o['variables']['node_use_lief'] = b(not options.without_lief)
+    elif flavor in ('mac', 'linux', 'win'):
+      o['variables']['node_use_lief'] = 'true'
+    else:
+      o['variables']['node_use_lief'] = 'false'
+
+  o['variables']['node_with_ltcg'] = b(options.with_ltcg)
+  if flavor != 'win' and options.with_ltcg:
+    raise Exception('Link Time Code Generation is only supported on Windows.')
+
+  if options.tag:
+    o['variables']['node_tag'] = '-' + options.tag
+  else:
+    o['variables']['node_tag'] = ''
+
+  o['variables']['node_release_urlbase'] = options.release_urlbase or ''
+
+  if options.v8_options:
+    o['variables']['node_v8_options'] = options.v8_options.replace('"', '\\"')
+
+  if options.enable_static:
+    o['variables']['node_target_type'] = 'static_library'
+
+  o['variables']['node_debug_lib'] = b(options.node_debug_lib)
+
+  if options.debug_nghttp2:
+    o['variables']['debug_nghttp2'] = 1
+  else:
+    o['variables']['debug_nghttp2'] = 'false'
+
+  o['variables']['node_no_browser_globals'] = b(options.no_browser_globals)
+
+  o['variables']['node_shared'] = b(options.shared)
+  o['variables']['libdir'] = options.libdir
+  node_module_version = getmoduleversion.get_version()
+
+  if options.dest_os == 'android':
+    shlib_suffix = 'so'
+  elif sys.platform == 'darwin':
+    shlib_suffix = '%s.dylib'
+  elif sys.platform.startswith('aix'):
+    shlib_suffix = '%s.a'
+  elif sys.platform == 'os400':
+    shlib_suffix = '%s.a'
+  elif sys.platform.startswith('zos'):
+    shlib_suffix = '%s.x'
+  else:
+    shlib_suffix = 'so.%s'
+  if '%s' in shlib_suffix:
+    shlib_suffix %= node_module_version
+
+  o['variables']['node_module_version'] = int(node_module_version)
+  o['variables']['shlib_suffix'] = shlib_suffix
+
+  if options.linked_module:
+    o['variables']['linked_module_files'] = options.linked_module
+
+  o['variables']['asan'] = int(options.enable_asan or 0)
+  o['variables']['ubsan'] = int(options.enable_ubsan or 0)
+
+  if options.coverage:
+    o['variables']['coverage'] = 'true'
+  else:
+    o['variables']['coverage'] = 'false'
+
+  if options.shared:
+    o['variables']['node_target_type'] = 'shared_library'
+  elif options.enable_static:
+    o['variables']['node_target_type'] = 'static_library'
+  else:
+    o['variables']['node_target_type'] = 'executable'
+
+  if options.node_builtin_modules_path:
+    print('Warning! Loading builtin modules from disk is for development')
+    o['variables']['node_builtin_modules_path'] = options.node_builtin_modules_path
+
+def configure_napi(output):
+  version = getnapibuildversion.get_napi_version()
+  output['variables']['napi_build_version'] = version
+
+def configure_library(lib, output, pkgname=None):
+  shared_lib = 'shared_' + lib
+  output['variables']['node_' + shared_lib] = b(getattr(options, shared_lib))
+
+  if getattr(options, shared_lib):
+    (pkg_libs, pkg_cflags, pkg_libpath, _) = pkg_config(pkgname or lib)
+
+    if options.__dict__[shared_lib + '_includes']:
+      output['include_dirs'] += [options.__dict__[shared_lib + '_includes']]
+    elif pkg_cflags:
+      stripped_flags = [flag.strip() for flag in pkg_cflags.split('-I')]
+      output['include_dirs'] += [flag for flag in stripped_flags if flag]
+
+    # libpath needs to be provided ahead libraries
+    if options.__dict__[shared_lib + '_libpath']:
+      if flavor == 'win':
+        if 'msvs_settings' not in output:
+          output['msvs_settings'] = { 'VCLinkerTool': { 'AdditionalOptions': [] } }
+        output['msvs_settings']['VCLinkerTool']['AdditionalOptions'] += [
+          f"/LIBPATH:{options.__dict__[shared_lib + '_libpath']}"]
+      else:
+        output['libraries'] += [
+            f"-L{options.__dict__[shared_lib + '_libpath']}"]
+    elif pkg_libpath:
+      output['libraries'] += [pkg_libpath]
+
+    default_libs = getattr(options, shared_lib + '_libname')
+
+    if default_libs:
+      output['libraries'] += [f'-l{l}' for l in default_libs.split(',')]
+    elif pkg_libs:
+      output['libraries'] += pkg_libs.split()
+
+
+def configure_v8(o, configs):
+  set_configuration_variable(configs, 'v8_enable_v8_checks', release=0, debug=1)
+
+  o['variables']['v8_enable_webassembly'] = 0 if options.v8_lite_mode else 1
+  o['variables']['v8_enable_javascript_promise_hooks'] = 1
+  o['variables']['v8_enable_lite_mode'] = 1 if options.v8_lite_mode else 0
+  is_gdbjit_supported_arch = (
+      'x64' in o['variables']['target_arch'] or
+      'ia32' in o['variables']['target_arch'] or
+      'ppc64' in o['variables']['target_arch']
+  )
+  is_linux = flavor == 'linux'
+  if (options.gdb is not None):
+    o['variables']['v8_enable_gdbjit'] = 1 if options.gdb else 0
+  else:
+    o['variables']['v8_enable_gdbjit'] = 1 if is_gdbjit_supported_arch and is_linux else 0
+  o['variables']['v8_optimized_debug'] = 0 if options.v8_non_optimized_debug else 1
+  o['variables']['dcheck_always_on'] = 1 if options.v8_with_dchecks else 0
+  o['variables']['v8_enable_object_print'] = 0 if options.v8_disable_object_print else 1
+  o['variables']['v8_random_seed'] = 0  # Use a random seed for hash tables.
+  o['variables']['v8_promise_internal_field_count'] = 1 # Add internal field to promises for async hooks.
+  o['variables']['v8_use_siphash'] = 0 if options.without_siphash else 1
+  o['variables']['v8_enable_maglev'] = B(not options.v8_disable_maglev and
+                                         flavor != 'zos' and
+                                         o['variables']['target_arch'] in maglev_enabled_architectures)
+  o['variables']['v8_enable_pointer_compression'] = 1 if options.enable_pointer_compression else 0
+  # Using the sandbox requires always allocating array buffer backing stores in the sandbox.
+  # We currently have many backing stores tied to pointers from C++ land that are not
+  # even necessarily dynamic (e.g. in static storage) for fast communication between JS and C++.
+  # Until we manage to get rid of all those, v8_enable_sandbox cannot be used.
+  # Note that enabling pointer compression without enabling sandbox is unsupported by V8,
+  # so this can be broken at any time.
+  o['variables']['v8_enable_sandbox'] = 0
+  # We set v8_enable_pointer_compression_shared_cage to 0 always, even when
+  # pointer compression is enabled so that we don't accidentally enable shared
+  # cage mode when pointer compression is on.
+  o['variables']['v8_enable_pointer_compression_shared_cage'] = 1 if options.point

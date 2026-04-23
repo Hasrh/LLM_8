@@ -1,0 +1,9 @@
+passed: true
+score: 1.00
+
+checks:
+- structural-completeness: pass (All required sections exist.)
+- evidence-grounding: pass (All findings include evidence.)
+- control-grounding: pass (Control references align with retrieved controls.)
+- consistency: pass (No obvious issue/severity/recommendation inconsistencies.)
+- empty-generic-detection: pass (Report has sufficient specific content.)

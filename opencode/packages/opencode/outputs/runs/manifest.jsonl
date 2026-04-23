@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-07T17:40:37.731Z","mode":"direct","input_file":"/home/aggerio/temp/opencode/samples/hello-world","run_dir":"/home/aggerio/temp/opencode/packages/opencode/outputs/runs/2026-04-07T17-40-37-727Z_direct_hello-world"}
+{"timestamp":"2026-04-07T18:06:46.898Z","mode":"rag","input_file":"/home/aggerio/temp/opencode/samples/hello-world","run_dir":"/home/aggerio/temp/opencode/packages/opencode/outputs/runs/2026-04-07T18-06-46-885Z_rag_hello-world"}

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-ISOIEC270012022e-009",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 9",
+    "text": "ose intended for its further maintenance are described in the ISO/IEC Directives, Part 1. In particular, the different approval criteria needed for the different types of document should be noted. This document was drafted in accordance with the editorial rules of the ISO/IEC Directives, Part 2 (see www.iso.org/directives or www.iec.ch/members_experts/refdocs). Attention is drawn to the possibility that some of the elements of this document may be the subject of patent rights. ISO and IEC shall not be held responsible for identifying any or all such patent rights. Details of any patent rights identified during the development of the document will be in the Introduction and/or on the ISO list of patent declarations received (see www.iso.org/patents) or the IEC list of patent declarations received (see https://patents.iec.ch). Any trade name used in this document is information given for the convenience of users and does not constitute an endorsement. For an explanation of the voluntary nature of standards, the meaning of ISO specific terms and expressions related to conformity assessment, as well as information about ISO's adherence to the World Trade Organization (WTO) principles in the Technical Barriers to Trade (TBT) see www.iso.org/iso/foreword.html. In the IEC, see www.iec.ch/understanding-standards. This document was prepared by Joint Technical Committee ISO/IEC JTC 1, In",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.18572337925434113
+  },
+  {
+    "id": "ISO-NQAISO27001Imple-001",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 1",
+    "text": "ISO 27001:2022INFORMATION SECURITY IMPLEMENTATION GUIDE 53,000 GLOBALLY CERTIFICATES 100 TRANSPARENT -- 1 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 2 > ISO 27001:2022 IMPLEMENTATION GUIDE *UK and Ireland only -- 2 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 3 Contents Introduction to the standard P04 Benefits of implementation P05 Key principles and terminology P06 PDCA cycle P07 Risk based thinking / audits P08 Process based thinking / audit P09 Annex SL P10 SECTION 1: Scope P11 SECTION 2: Normative references P12 SECTION 3: Terms and definitions P13 SECTION 4: Context of the organisation P14 SECTION 5: Leadership P16 SECTION 6: Planning P18 SECTION 7: Support P22 SECTION 8: Operation P24 SECTION 9: Performance evaluation P26 SECTION 10: Improvement P28 Get the most from your management P30 Next steps once implemented P31 Information Security Management Training P32 -- 3 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 4 INTRODUCTION TO THE STANDARD ISO 27001:2022 IMPLEMENTATION GUIDE 4 The 27000 Family The 27000 series of standards started life in 1995 as BS 7799 and was written by the UK’s Department of Trade and Industry (DTI). The standards correctly go by the title “ISO/ IEC” because they are developed and maintained jointly by two international standards bodies: ISO (the International Organisation for Standardisation) and the IEC (the International Electrotechnical Commi",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.17525415122509003
+  },
+  {
+    "id": "ISO-NQAISO27001Imple-012",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 12",
+    "text": "and where to improve. The management review process is covered in more depth in Section 9 – Performance Evaluation. A process is the transformation of inputs to outputs, which takes place as a series of steps or activities which result in the planned objective(s). Often the output of one process becomes an input to another subsequent process. Very few processes operate in isolation from any other. “Process: set of interrelated or interacting activities that uses or transforms inputs to deliver a result.” ISO 27001:2022 Fundamentals and Vocabulary £ £ -- 9 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 10 ANNEX SL Prior to the adoption of Annex SL there were many differences between the clause structures, requirements and terms and definitions used across the various management system standards. This made it difficult for organisations to integrate the implementation and management of multiple standards; Environment, Quality, Health and Safety and Information Security being among the most common. ISO 27001 has adopted Annex SL, and this structure is also used for ISO 14001 (Environmental Management System Standard) and ISO 45001 (Health and Safety Management System Standard). High Level Structure Annex SL consists of 10 core clauses: 1. Scope 2. Normative references 3. Terms and definitions 4. Context of the organisation 5. Leadership 6. Planning 7. Support 8. Operation 9. Perfor",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.17324532568454742
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-002",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 2",
+    "text": "-- ISO/IEC 27001:2022(E) Foreword........................................................................................................................................................................................................................................iv Introduction .................................................................................................................................................................................................................................v 1 Scope ................................................................................................................................................................................................................................. 1 2 Normative references ..................................................................................................................................................................................... 1 3 Terms and definitions .................................................................................................................................................................................... 1 4 Context of the organization ...................................................................................................................................................................... 1 4.1 Understanding the organization and its",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.16694682836532593
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-003",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 3",
+    "text": "context ..................................................................................................... 1 4.2 Understanding the needs and expectations of interested parties ........................................................... 1 4.3 Determining the scope of the information security management system ....................................... 2 4.4 Information security management system................................................................................................................... 2 5 Leadership .................................................................................................................................................................................................................. 2 5.1 Leadership and commitment ..................................................................................................................................................... 2 5.2 Policy ............................................................................................................................................................................................................... 3 5.3 Organizational roles, responsibilities and authorities ....................................................................................... 3 6 Planning ................................................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.16330300271511078
+  }
+]

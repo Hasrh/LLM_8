@@ -1,0 +1,2575 @@
+
+
+# FILE: codecov.yml
+coverage:
+  status:
+    patch:
+      default:
+        informational: true
+    project:
+      default:
+        informational: true
+
+comment:
+  require_changes: false
+  require_head: false
+  require_base: false
+  layout: "condensed_header, diff, files"
+  hide_project_coverage: false
+  behavior: default
+
+github_checks:
+  annotations: false
+
+
+# FILE: TLS.md
+TLS Support
+===========
+
+Getting Started
+---------------
+
+### Building
+
+To build with TLS support you'll need OpenSSL development libraries (e.g.
+libssl-dev on Debian/Ubuntu).
+
+To build TLS support as Redis built-in:
+Run `make BUILD_TLS=yes`.
+
+Or to build TLS as Redis module:
+Run `make BUILD_TLS=module`.
+
+Note that sentinel mode does not support TLS module.
+
+### Tests
+
+To run Redis test suite with TLS, you'll need TLS support for TCL (i.e.
+`tcl-tls` package on Debian/Ubuntu).
+
+1. Run `./utils/gen-test-certs.sh` to generate a root CA and a server
+   certificate.
+
+2. Run `./runtest --tls` or `./runtest-cluster --tls` to run Redis and Redis
+   Cluster tests in TLS mode.
+
+3. Run `./runtest --tls-module` or `./runtest-cluster --tls-module` to
+   run Redis and Redis cluster tests in TLS mode with Redis module.
+
+### Running manually
+
+To manually run a Redis server with TLS mode (assuming `gen-test-certs.sh` was
+invoked so sample certificates/keys are available):
+
+For TLS built-in mode:
+    ./src/redis-server --tls-port 6379 --port 0 \
+        --tls-cert-file ./tests/tls/redis.crt \
+        --tls-key-file ./tests/tls/redis.key \
+        --tls-ca-cert-file ./tests/tls/ca.crt
+
+For TLS module mode:
+    ./src/redis-server --tls-port 6379 --port 0 \
+        --tls-cert-file ./tests/tls/redis.crt \
+        --tls-key-file ./tests/tls/redis.key \
+        --tls-ca-cert-file ./tests/tls/ca.crt \
+        --loadmodule src/redis-tls.so
+
+To connect to this Redis server with `redis-cli`:
+
+    ./src/redis-cli --tls \
+        --cert ./tests/tls/redis.crt \
+        --key ./tests/tls/redis.key \
+        --cacert ./tests/tls/ca.crt
+
+This will disable TCP and enable TLS on port 6379. It's also possible to have
+both TCP and TLS available, but you'll need to assign different ports.
+
+To make a Replica connect to the master using TLS, use `--tls-replication yes`,
+and to make Redis Cluster use TLS across nodes use `--tls-cluster yes`.
+
+Connections
+-----------
+
+All socket operations now go through a connection abstraction layer that hides
+I/O and read/write event handling from the caller.
+
+**Multi-threading I/O is not currently supported for TLS**, as a TLS connection
+needs to do its own manipulation of AE events which is not thread safe. The
+solution is probably to manage independent AE loops for I/O threads and longer
+term association of connections with threads. This may potentially improve
+overall performance as well.
+
+Sync IO for TLS is currently implemented in a hackish way, i.e. making the
+socket blocking and configuring socket-level timeout.  This means the timeout
+value may not be so accurate, and there would be a lot of syscall overhead.
+However I believe that getting rid of syncio completely in favor of pure async
+work is probably a better move than trying to fix that. For replication it would
+probably not be so hard. For cluster keys migration it might be more difficult,
+but there are probably other good reasons to improve that part anyway.
+
+To-Do List
+----------
+
+- [ ] redis-benchmark support. The current implementation is a mix of using
+  hiredis for parsing and basic networking (establishing connections), but
+  directly manipulating sockets for most actions. This will need to be cleaned
+  up for proper TLS support. The best approach is probably to migrate to hiredis
+  async mode.
+- [ ] redis-cli `--slave` and `--rdb` support.
+
+Multi-port
+----------
+
+Consider the implications of allowing TLS to be configured on a separate port,
+making Redis listening on multiple ports:
+
+1. Startup banner port notification
+2. Proctitle
+3. How slaves announce themselves
+4. Cluster bus port calculation
+
+
+# FILE: SECURITY.md
+# Security Policy
+
+## Supported Versions
+
+Redis is generally backward compatible with very few exceptions, so we
+recommend users to always use the latest version to experience stability,
+performance and security.
+
+We generally backport security issues to a single previous major version,
+unless this is not possible or feasible with a reasonable effort.
+
+| Version | Supported                                                              |
+|---------|------------------------------------------------------------------------|
+| 8.6.x   | :white_check_mark:                                                     |
+| 8.4.x   | :white_check_mark:                                                     |
+| 8.2.x   | :white_check_mark:                                                     |
+| 8.0.x   | :x:                                                                    |
+| 7.4.x   | :white_check_mark:                                                     |
+| 7.2.x   | :white_check_mark: support extended till 7.4 end of support            |
+| < 7.2.x | :x:                                                                    |
+| 6.2.x   | :white_check_mark: support extended                                    |
+| < 6.2.x | :x:                                                                    |
+
+## Reporting a Vulnerability
+
+If you believe you've discovered a serious vulnerability, please contact the
+Redis core team at redis@redis.io. We will evaluate your report and if
+necessary issue a fix and an advisory. If the issue was previously undisclosed,
+we'll also mention your name in the credits.
+
+## Responsible Disclosure
+
+In some cases, we may apply a responsible disclosure process to reported or
+otherwise discovered vulnerabilities. We will usually do that for a critical
+vulnerability, and only if we have a good reason to believe information about
+it is not yet public.
+
+This process involves providing an early notification about the vulnerability,
+its impact and mitigations to a short list of vendors under a time-limited
+embargo on public disclosure.
+
+If you believe you should be on the list, please contact us and we will
+consider your request based on the above criteria.
+
+## Support across Operating Systems, Architectures, and Compilers
+
+Redis is primarily tested on modern Linux distributions, using contemporary
+Intel and AMD x86_64 CPUs, as well as ARM-based CPUs, and recent versions of
+the GCC compiler.
+Vulnerability reports that rely on unsupported or uncommon environments
+(for example, 32-bit architectures, non-Linux operating systems, or outdated
+toolchains) may be considered out of scope, even if the issue is technically
+valid. Such reports will be evaluated on a case-by-case basis at our discretion.
+
+## License Compatibility
+
+For security vulnerability patches released under Redis Open Source 7.4 and 
+thereafter, Redis permits users of earlier versions (7.2 and prior) to access 
+patches under the BSD3 license noted in REDISCONTRIBUTIONS.txt instead of the 
+full license requirements described in LICENSE.txt. Security fixes are tested 
+only against the specific versions for which they are provided. Applicability 
+or portability to other versions or forks has not been evaluated.
+
+
+# FILE: REDISCONTRIBUTIONS.txt
+Copyright (c) 2006-Present, Redis Ltd. and Contributors
+All rights reserved.
+
+Note: Continued Applicability of the BSD-3-Clause License
+
+Despite the shift to the dual-licensing model with version 7.4 (RSALv2 or SSPLv1) and
+the shift to a tri-license option with version 8.0 (RSALv2/SSPLv1/AGPLv3), portions of
+Redis Open Source remain available subject to the BSD-3-Clause License (BSD).
+See below for the full BSD license:
+
+Redistribution and use in source and binary forms, with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions
+and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+and the following disclaimer in the documentation and/or other materials provided with the
+distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse
+or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+# FILE: README.md
+[![codecov](https://codecov.io/github/redis/redis/graph/badge.svg?token=6bVHb5fRuz)](https://codecov.io/github/redis/redis)
+
+This document serves as both a quick start guide to Redis and a detailed resource for building it from source.
+
+- New to Redis? Start with [What is Redis](#what-is-redis) and [Getting Started](#getting-started)
+- Ready to build from source? Jump to [Build Redis from Source](#build-redis-from-source)
+- Want to contribute? See the [Code contributions](#code-contributions) section
+  and [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Looking for detailed documentation? Navigate to [redis.io/docs](https://redis.io/docs/)
+
+## Table of contents
+
+- [What is Redis?](#what-is-redis)
+  - [Key use cases](#key-use-cases)
+- [Why choose Redis?](#why-choose-redis)
+- [What is Redis Open Source?](#what-is-redis-open-source)
+- [Getting started](#getting-started)
+  - [Redis starter projects](#redis-starter-projects)
+  - [Using Redis with client libraries](#using-redis-with-client-libraries)
+  - [Using Redis with redis-cli](#using-redis-with-redis-cli)
+  - [Using Redis with Redis Insight](#using-redis-with-redis-insight)
+- [Redis data types, processing engines, and capabilities](#redis-data-types-processing-engines-and-capabilities)
+- [Cloud hosted Redis](#cloud-hosted-redis)
+- [Community](#community)
+- [Build Redis from source](#build-redis-from-source)
+  - [Build and run Redis with all data structures - Ubuntu 20.04 (Focal)](#build-and-run-redis-with-all-data-structures---ubuntu-2004-focal)
+  - [Build and run Redis with all data structures - Ubuntu 22.04 (Jammy)](#build-and-run-redis-with-all-data-structures---ubuntu-2204-jammy)
+  - [Build and run Redis with all data structures - Ubuntu 24.04 (Noble)](#build-and-run-redis-with-all-data-structures---ubuntu-2404-noble)
+  - [Build and run Redis with all data structures - Debian 11 (Bullseye) / 12 (Bookworm)](#build-and-run-redis-with-all-data-structures---debian-11-bullseye--12-bookworm)
+  - [Build and run Redis with all data structures - AlmaLinux 8.10 / Rocky Linux 8.10](#build-and-run-redis-with-all-data-structures---almalinux-810--rocky-linux-810)
+  - [Build and run Redis with all data structures - AlmaLinux 9.5 / Rocky Linux 9.5](#build-and-run-redis-with-all-data-structures---almalinux-95--rocky-linux-95)
+  - [Build and run Redis with all data structures - macOS 13 (Ventura) and macOS 14 (Sonoma)](#build-and-run-redis-with-all-data-structures---macos-13-ventura-and-macos-14-sonoma)
+  - [Build and run Redis with all data structures - macOS 15 (Sequoia)](#build-and-run-redis-with-all-data-structures---macos-15-sequoia)
+  - [Building Redis - flags and general notes](#building-redis---flags-and-general-notes)
+  - [Fixing build problems with dependencies or cached build options](#fixing-build-problems-with-dependencies-or-cached-build-options)
+  - [Fixing problems building 32 bit binaries](#fixing-problems-building-32-bit-binaries)
+  - [Allocator](#allocator)
+  - [Monotonic clock](#monotonic-clock)
+  - [Verbose build](#verbose-build)
+  - [Running Redis with TLS](#running-redis-with-tls)
+- [Code contributions](#code-contributions)
+- [Redis Trademarks](#redis-trademarks)
+
+## What is Redis?
+
+For developers, who are building real-time data-driven applications, Redis is the preferred, fastest, and most feature-rich cache, data structure server, and document and vector query engine.
+
+### Key use cases
+
+Redis excels in various applications, including:
+
+- **Caching:** Supports multiple eviction policies, key expiration, and hash-field expiration.
+- **Distributed Session Store:** Offers flexible session data modeling (string, JSON, hash).
+- **Data Structure Server:** Provides low-level data structures (strings, lists, sets, hashes, sorted sets, JSON, etc.) with high-level semantics (counters, queues, leaderboards, rate limiters) and supports transactions & scripting.
+- **NoSQL Data Store:** Key-value, document, and time series data storage.
+- **Search and Query Engine:** Indexing for hash/JSON documents, supporting vector search, full-text search, geospatial queries, ranking, and aggregations via Redis Query Engine.
+- **Event Store & Message Broker:** Implements queues (lists), priority queues (sorted sets), event deduplication (sets), streams, and pub/sub with probabilistic stream processing capabilities.
+- **Vector Store for GenAI:** Integrates with AI applications (e.g. LangGraph, mem0) for short-term memory, long-term memory, LLM response caching (semantic caching), and retrieval augmented generation (RAG).
+- **Real-Time Analytics:** Powers personalization, recommendations, fraud detection, and risk assessment.
+
+## Why choose Redis?
+
+Redis is a popular choice for developers worldwide due to its combination of speed, flexibility, and rich feature set. Here's why people choose Redis for:
+
+- **Performance:** Because Redis keeps data primarily in memory and uses efficient data structures, it achieves extremely low latency (often sub-millisecond) for both read and write operations. This makes it ideal for applications demanding real-time responsiveness.
+- **Flexibility:** Redis isn't just a key-value store, it provides native support for a wide range of data structures and capabilities listed in [What is Redis?](#what-is-redis)
+- **Extensibility:** Redis is not limited to the built-in data structures, it has a [modules API](https://redis.io/docs/latest/develop/reference/modules/) that makes it possible to extend Redis functionality and rapidly implement new Redis commands
+- **Simplicity:** Redis has a simple, text-based protocol and [well-documented command set](https://redis.io/docs/latest/commands/)
+- **Ubiquity:** Redis is battle tested in production workloads at a massive scale. There is a good chance you indirectly interact with Redis several times daily
+- **Versatility**: Redis is the de facto standard for use cases such as:
+  - **Caching:** quickly access frequently used data without needing to query your primary database
+  - **Session management:** read and write user session data without hurting user experience or slowing down every API call
+  - **Querying, sorting, and analytics:** perform deduplication, full text search, and secondary indexing on in-memory data as fast as possible
+  - **Messaging and interservice communication:** job queues, message brokering, pub/sub, and streams for communicating between services
+  - **Vector operations:** Long-term and short-term LLM memory, RAG content retrieval, semantic caching, semantic routing, and vector similarity search
+
+In summary, Redis provides a powerful, fast, and flexible toolkit for solving a wide variety of data management challenges. If you want to know more, here is a list of starting points:
+
+- [**Introduction to Redis data types**](https://redis.io/docs/latest/develop/data-types/)
+- [**The full list of Redis commands**](https://redis.io/commands/)
+- [**Redis for AI**](https://redis.io/docs/latest/develop/ai/)
+- [**Redis documentation**](https://redis.io/documentation/)
+
+## What is Redis Open Source?
+
+Redis Community Edition (Redis CE) was renamed Redis Open Source with the v8.0 release.
+
+Redis Ltd. also offers [Redis Software](https://redis.io/enterprise/), a self-managed software with additional compliance, reliability, and resiliency for enterprise scaling,
+and [Redis Cloud](https://redis.io/cloud/), a fully managed service integrated with Google Cloud, Azure, and AWS for production-ready apps.
+
+Read more about the differences between Redis Open Source and Redis [here](https://redis.io/technology/advantages/).
+
+## Getting started
+
+If you want to get up and running with Redis quickly without needing to build from source, use one of the following methods:
+
+- [**Redis Cloud**](https://cloud.redis.io/)
+- [**Official Redis Docker images (Alpine/Debian)**](https://hub.docker.com/_/redis)
+  ```sh
+  docker run -d -p 6379:6379 redis:latest
+  ```
+- **Redis binary distributions**
+  - [**Snap**](https://github.com/redis/redis-snap)
+  - [**Homebrew**](https://github.com/redis/homebrew-redis)
+  - [**RPM**](https://github.com/redis/redis-rpm)
+  - [**Debian**](https://github.com/redis/redis-debian)
+- [**Redis quick start guides**](https://redis.io/docs/latest/develop/get-started/)
+
+If you prefer to [build Redis from source](#build-redis-from-source) - see instructions below.
+
+### Redis starter projects
+
+To get started as quickly as possible in your language of choice, use one of the following starter projects:
+
+- [**Python (redis-py)**](https://github.com/redis-developer/redis-starter-python)
+- [**C#/.NET (NRedisStack/StackExchange.Redis)**](https://github.com/redis-developer/redis-starter-csharp)
+- [**Go (go-redis)**](https://github.com/redis-developer/redis-starter-go)
+- [**JavaScript (node-redis)**](https://github.com/redis-developer/redis-starter-js)
+- [**Java/Spring (Jedis)**](https://github.com/redis-developer/redis-starter-java)
+
+### Using Redis with client libraries
+
+To connect your application to Redis, you will need a client library. Redis has documented client libraries in most popular languages, with community-supported client libraries in additional languages.
+
+- [**Python (redis-py)**](https://redis.io/docs/latest/develop/clients/redis-py/)
+- [**Python (RedisVL)**](https://redis.io/docs/latest/integrate/redisvl/)
+- [**C#/.NET (NRedisStack/StackExchange.Redis)**](https://redis.io/docs/latest/develop/clients/dotnet/)
+- [**JavaScript (node-redis)**](https://redis.io/docs/latest/develop/clients/nodejs/)
+- [**Java (Jedis)**](https://redis.io/docs/latest/develop/clients/jedis/)
+- [**Java (Lettuce)**](https://redis.io/docs/latest/develop/clients/lettuce/)
+- [**Go (go-redis)**](https://redis.io/docs/latest/develop/clients/go/)
+- [**PHP (Predis)**](https://redis.io/docs/latest/develop/clients/php/)
+- [**C (hiredis)**](https://redis.io/docs/latest/develop/clients/hiredis/)
+- [**Full list of client libraries**](https://redis.io/docs/latest/develop/clients/)
+
+### Using Redis with redis-cli
+
+[`redis-cli`](https://redis.io/docs/latest/develop/tools/cli/) is Redis' command line interface. It is available as part of all the binary distributions and when you build Redis from source.
+
+You can start a redis-server instance, and then, in another terminal try the following:
+
+```sh
+cd src
+./redis-cli
+```
+
+```text
+redis> ping
+PONG
+redis> set foo bar
+OK
+redis> get foo
+"bar"
+redis> incr mycounter
+(integer) 1
+redis> incr mycounter
+(integer) 2
+redis>
+```
+
+### Using Redis with Redis Insight
+
+For a more visual and user-friendly experience, use [Redis Insight](https://redis.io/docs/latest/develop/tools/insight/) - a tool that lets you explore data, design, develop, and optimize your applications while also serving as a platform for Redis education and onboarding. Redis Insight integrates [Redis Copilot](https://redis.io/chat), a natural language AI assistant that improves the experience when working with data and commands.
+
+- [**Redis Insight documentation**](https://redis.io/docs/latest/develop/tools/insight/)
+- [**Redis Insight GitHub repository**](https://github.com/RedisInsight/RedisInsight)
+
+## Redis data types, processing engines, and capabilities
+
+Redis provides a variety of data types, processing engines, and capabilities to support a wide range of use cases:
+
+**Important:** Features marked with an asterisk (\*) require Redis to be compiled with the `BUILD_WITH_MODULES=yes` flag when [building Redis from source](#build-redis-from-source)
+
+- [**String:**](https://redis.io/docs/latest/develop/data-types/strings) Sequences of bytes, including text, serialized objects, and binary arrays used for caching, counters, and bitwise operations.
+- [**JSON:**](https://redis.io/docs/latest/develop/data-types/json/) Nested JSON documents that are indexed and searchable using JSONPath expressions and with [Redis Query Engine](https://redis.io/docs/latest/develop/interact/search-and-query/)
+- [**Hash:**](https://redis.io/docs/latest/develop/data-types/hashes/) Field-value maps used to represent basic objects and store groupings of key-value pairs with support for [hash field expiration (TTL)](https://redis.io/docs/latest/develop/data-types/hashes/#field-expiration)
+- [**Redis Query Engine:**](https://redis.io/docs/latest/develop/interact/search-and-query/) Use Redis as a document database, a vector database, a secondary index, and a search engine. Define indexes for hash and JSON documents and then use a rich query language for vector search, full-text search, geospatial queries, and aggregations.
+- [**List:**](https://redis.io/docs/latest/develop/data-types/lists/) Linked lists of string values used as stacks, queues, and for queue management.
+- [**Set:**](https://redis.io/docs/latest/develop/data-types/sets/) Unordered collection of unique strings used for tracking unique items, relations, and common set operations (intersections, unions, differences).
+- [**Sorted set:**](https://redis.io/docs/latest/develop/data-types/sorted-sets/) Collection of unique strings ordered by an associated score used for leaderboards and rate limiters.
+- [**Vector set (beta):**](https://redis.io/docs/latest/develop/data-types/vector-sets/) Collection of vector embeddings used for semantic similarity search, semantic caching, semantic routing, and Retrieval Augmented Generation (RAG).
+- [**Geospatial indexes:**](https://redis.io/docs/latest/develop/data-types/geospatial/) Coordinates used for finding nearby points within a given radius or bounding box.
+- [**Bitmap:**](https://redis.io/docs/latest/develop/data-types/bitmaps/) A set of bit-oriented operations defined on the string type used for efficient set representations and object permissions.
+- [**Bitfield:**](https://redis.io/docs/latest/develop/data-types/bitfields/) Binary-encoded strings that let you set, increment, and get integer values of arbitrary bit length used for limited-range counters, numeric values, and multi-level object permissions such as role-based access control (RBAC)
+- [**Hyperloglog:**](https://redis.io/docs/latest/develop/data-types/probabilistic/hyperloglogs/) A probabilistic data structure for approximating the cardinality of a set used for analytics such as counting unique visits, form fills, etc.
+- \*[**Bloom filter:**](https://redis.io/docs/latest/develop/data-types/probabilistic/bloom-filter/) A probabilistic data structure to check if a given value is present in a set. Used for fraud detection, ad placement, and unique column (i.e. username/email/slug) checks.
+- \*[**Cuckoo filter:**](https://redis.io/docs/latest/develop/data-types/probabilistic/cuckoo-filter/) A probabilistic data structure for checking if a given value is present in a set while also allowing limited counting and deletions used in targeted advertising and coupon code validation.
+- \*[**t-digest:**](https://redis.io/docs/latest/develop/data-types/probabilistic/t-digest/) A probabilistic data structure used for estimating the percentile of a large dataset without having to store and order all the data points. Used for hardware/software monitoring, online gaming, network traffic monitoring, and predictive maintenance.
+- \*[**Top-k:**](https://redis.io/docs/latest/develop/data-types/probabilistic/top-k/) A probabilistic data structure for finding the most frequent values in a data stream used for trend discovery.
+- \*[**Count-min sketch:**](https://redis.io/docs/latest/develop/data-types/probabilistic/count-min-sketch/) A probabilistic data structure for estimating how many times a given value appears in a data stream used for sales volume calculations.
+- [**Time series:**](https://redis.io/docs/latest/develop/data-types/timeseries/) Data points indexed in time order used for monitoring sensor data, asset
+  tracking, and predictive analytics
+- [**Pub/sub**:](https://redis.io/docs/latest/develop/interact/pubsub/) A lightweight messaging capability. Publishers send messages to a channel, and subscribers receive messages from that channel.
+- [**Stream**:](https://redis.io/docs/latest/develop/data-types/streams/) An append-only log with random access capabilities and complex consumption strategies such as consumer groups. Used for event sourcing, sensor monitoring, and notifications.
+- [**Transaction:**](https://redis.io/docs/latest/develop/interact/transactions/) Allows the execution of a group of commands in a single step. A request sent by another client will never be served in the middle of the execution of a transaction. This guarantees that the commands are executed as a single isolated operation.
+- [**Programmability:**](https://redis.io/docs/latest/develop/interact/programmability/eval-intro/) Upload and execute Lua scripts on the server. Scripts can employ programmatic control structures and use most of the commands while executing to access the database. Because scripts are executed on the server, reading and writing data from scripts is very efficient.
+
+## Cloud hosted Redis
+
+Fully-managed Redis with real-time performance at scale.
+
+[**Redis Cloud**](https://redis.io/cloud/)
+
+## Community
+
+[**Redis Community Resources**](https://redis.io/community/)
+
+## Build Redis from source
+
+This section refers to building Redis from source. If you want to get up and running with Redis quickly without needing to build from source see the [Getting started section](#getting-started).
+
+### Build and run Redis with all data structures - Ubuntu 20.04 (Focal)
+
+Tested with the following Docker image:
+
+- ubuntu:20.04
+
+1. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   apt-get update
+   apt-get install -y sudo
+   sudo apt-get install -y --no-install-recommends ca-certificates wget dpkg-dev gcc g++ libc6-dev libssl-dev make git python3 python3-pip python3-venv python3-dev unzip rsync clang automake autoconf gcc-10 g++-10 libtool
+   ```
+
+2. Use GCC 10 as the default compiler
+
+   Update the system's default compiler to GCC 10:
+
+   ```sh
+   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+   ```
+
+3. Install CMake
+
+   Install CMake using `pip3` and link it for system-wide access:
+
+   ```sh
+   pip3 install cmake==3.31.6
+   sudo ln -sf /usr/local/bin/cmake /usr/bin/cmake
+   cmake --version
+   ```
+
+   Note: CMake version 3.31.6 is the latest supported version. Newer versions cannot be used.
+
+4. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+5. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+6. Build Redis
+
+   Set the necessary environment variables and compile Redis:
+
+   ```sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+7. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - Ubuntu 22.04 (Jammy)
+
+Tested with the following Docker image:
+
+- ubuntu:22.04
+
+1. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   apt-get update
+   apt-get install -y sudo
+   sudo apt-get install -y --no-install-recommends ca-certificates wget dpkg-dev gcc g++ libc6-dev libssl-dev make git cmake python3 python3-pip python3-venv python3-dev unzip rsync clang automake autoconf libtool
+   ```
+
+2. Install CMake
+
+   Install CMake using `pip3` and link it for system-wide access:
+
+   ```sh
+   pip3 install cmake==3.31.6
+   sudo ln -sf /usr/local/bin/cmake /usr/bin/cmake
+   cmake --version
+   ```
+
+   Note: CMake version 3.31.6 is the latest supported version. Newer versions cannot be used.
+
+3. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+4. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+5. Build Redis
+
+   Set the necessary environment variables and build Redis:
+
+   ```sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+6. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - Ubuntu 24.04 (Noble)
+
+Tested with the following Docker image:
+
+- ubuntu:24.04
+
+1. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   apt-get update
+   apt-get install -y sudo
+   sudo apt-get install -y --no-install-recommends ca-certificates wget dpkg-dev gcc g++ libc6-dev libssl-dev make git cmake python3 python3-pip python3-venv python3-dev unzip rsync clang automake autoconf libtool
+   ```
+
+2. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+3. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+4. Build Redis
+
+   Set the necessary environment variables and build Redis:
+
+   ```sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+5. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - Debian 11 (Bullseye) / 12 (Bookworm)
+
+Tested with the following Docker images:
+
+- debian:bullseye
+- debian:bullseye-slim
+- debian:bookworm
+- debian:bookworm-slim
+
+1. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   apt-get update
+   apt-get install -y sudo
+   sudo apt-get install -y --no-install-recommends ca-certificates wget dpkg-dev gcc g++ libc6-dev libssl-dev make git cmake python3 python3-pip python3-venv python3-dev unzip rsync clang automake autoconf libtool
+   ```
+
+2. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+3. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+4. Build Redis
+
+   Set the necessary environment variables and build Redis:
+
+   ```sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+5. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - AlmaLinux 8.10 / Rocky Linux 8.10
+
+Tested with the following Docker images:
+
+- almalinux:8.10
+- almalinux:8.10-minimal
+- rockylinux/rockylinux:8.10
+- rockylinux/rockylinux:8.10-minimal
+
+1. Prepare the system
+
+   For 8.10-minimal, install `sudo` and `dnf` as follows:
+
+   ```sh
+   microdnf install dnf sudo -y
+   ```
+
+   For 8.10 (regular), install sudo as follows:
+
+   ```sh
+   dnf install sudo -y
+   ```
+
+   Clean the package metadata, enable required repositories, and install development tools:
+
+   ```sh
+   sudo dnf clean all
+   sudo tee /etc/yum.repos.d/goreleaser.repo > /dev/null <<EOF
+   [goreleaser]
+   name=GoReleaser
+   baseurl=https://repo.goreleaser.com/yum/
+   enabled=1
+   gpgcheck=0
+   EOF
+   sudo dnf update -y
+   sudo dnf groupinstall "Development Tools" -y
+   sudo dnf config-manager --set-enabled powertools
+   sudo dnf install -y epel-release
+   ```
+
+2. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   sudo dnf install -y --nobest --skip-broken pkg-config wget gcc-toolset-13-gcc gcc-toolset-13-gcc-c++ git make openssl openssl-devel python3.11 python3.11-pip python3.11-devel unzip rsync clang curl libtool automake autoconf jq systemd-devel
+   ```
+
+   Create a Python virtual environment:
+
+   ```sh
+   python3.11 -m venv /opt/venv
+   ```
+
+   Enable the GCC toolset:
+
+   ```sh
+   sudo cp /opt/rh/gcc-toolset-13/enable /etc/profile.d/gcc-toolset-13.sh
+   echo "source /etc/profile.d/gcc-toolset-13.sh" | sudo tee -a /etc/bashrc
+   ```
+
+3. Install CMake
+
+   Install CMake 3.25.1 manually:
+
+   ```sh
+   CMAKE_VERSION=3.25.1
+   ARCH=$(uname -m)
+   if [ "$ARCH" = "x86_64" ]; then
+     CMAKE_FILE=cmake-${CMAKE_VERSION}-linux-x86_64.sh
+   else
+     CMAKE_FILE=cmake-${CMAKE_VERSION}-linux-aarch64.sh
+   fi
+   wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_FILE}
+   chmod +x ${CMAKE_FILE}
+   ./${CMAKE_FILE} --skip-license --prefix=/usr/local --exclude-subdir
+   rm ${CMAKE_FILE}
+   cmake --version
+   ```
+
+4. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+5. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+6. Build Redis
+
+   Enable the GCC toolset, set the necessary environment variables, and build Redis:
+
+   ```sh
+   source /etc/profile.d/gcc-toolset-13.sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+7. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - AlmaLinux 9.5 / Rocky Linux 9.5
+
+Tested with the following Docker images:
+
+- almalinux:9.5
+- almalinux:9.5-minimal
+- rockylinux/rockylinux:9.5
+- rockylinux/rockylinux:9.5-minimal
+
+1. Prepare the system
+
+   For 9.5-minimal, install `sudo` and `dnf` as follows:
+
+   ```sh
+   microdnf install dnf sudo -y
+   ```
+
+   For 9.5 (regular), install sudo as follows:
+
+   ```sh
+   dnf install sudo -y
+   ```
+
+   Clean the package metadata, enable required repositories, and install development tools:
+
+   ```sh
+   sudo tee /etc/yum.repos.d/goreleaser.repo > /dev/null <<EOF
+   [goreleaser]
+   name=GoReleaser
+   baseurl=https://repo.goreleaser.com/yum/
+   enabled=1
+   gpgcheck=0
+   EOF
+   sudo dnf clean all
+   sudo dnf makecache
+   sudo dnf update -y
+   ```
+
+2. Install required dependencies
+
+   Update your package lists and install the necessary development tools and libraries:
+
+   ```sh
+   sudo dnf install -y --nobest --skip-broken pkg-config xz wget which gcc-toolset-13-gcc gcc-toolset-13-gcc-c++ git make openssl openssl-devel python3 python3-pip python3-devel unzip rsync clang curl libtool automake autoconf jq systemd-devel
+   ```
+
+   Create a Python virtual environment:
+
+   ```sh
+   python3 -m venv /opt/venv
+   ```
+
+   Enable the GCC toolset:
+
+   ```sh
+   sudo cp /opt/rh/gcc-toolset-13/enable /etc/profile.d/gcc-toolset-13.sh
+   echo "source /etc/profile.d/gcc-toolset-13.sh" | sudo tee -a /etc/bashrc
+   ```
+
+3. Install CMake
+
+   Install CMake 3.25.1 manually:
+
+   ```sh
+   CMAKE_VERSION=3.25.1
+   ARCH=$(uname -m)
+   if [ "$ARCH" = "x86_64" ]; then
+     CMAKE_FILE=cmake-${CMAKE_VERSION}-linux-x86_64.sh
+   else
+     CMAKE_FILE=cmake-${CMAKE_VERSION}-linux-aarch64.sh
+   fi
+   wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_FILE}
+   chmod +x ${CMAKE_FILE}
+   ./${CMAKE_FILE} --skip-license --prefix=/usr/local --exclude-subdir
+   rm ${CMAKE_FILE}
+   cmake --version
+   ```
+
+4. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd /usr/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+5. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd /usr/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+6. Build Redis
+
+   Enable the GCC toolset, set the necessary environment variables, and build Redis:
+
+   ```sh
+   source /etc/profile.d/gcc-toolset-13.sh
+   cd /usr/src/redis-<version>
+   export BUILD_TLS=yes BUILD_WITH_MODULES=yes INSTALL_RUST_TOOLCHAIN=yes DISABLE_WERRORS=yes
+   make -j "$(nproc)" all
+   ```
+
+7. Run Redis
+
+   ```sh
+   cd /usr/src/redis-<version>
+   ./src/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - macOS 13 (Ventura) and macOS 14 (Sonoma)
+
+1. Install Homebrew
+
+   If Homebrew is not already installed, follow the installation instructions on the [Homebrew home page](https://brew.sh/).
+
+2. Install required packages
+
+   ```sh
+   export HOMEBREW_NO_AUTO_UPDATE=1
+   brew update
+   brew install coreutils
+   brew install make
+   brew install openssl
+   brew install llvm@18
+   brew install cmake
+   brew install gnu-sed
+   brew install automake
+   brew install libtool
+   brew install wget
+   ```
+
+3. Install Rust
+
+   Rust is required to build the JSON package.
+
+   ```sh
+   RUST_INSTALLER=rust-1.80.1-$(if [ "$(uname -m)" = "arm64" ]; then echo "aarch64"; else echo "x86_64"; fi)-apple-darwin
+   wget --quiet -O ${RUST_INSTALLER}.tar.xz https://static.rust-lang.org/dist/${RUST_INSTALLER}.tar.xz
+   tar -xf ${RUST_INSTALLER}.tar.xz
+   (cd ${RUST_INSTALLER} && sudo ./install.sh)
+   ```
+
+4. Download the Redis source
+
+   Download a specific version of the Redis source code archive from GitHub.
+
+   Replace `<version>` with the Redis version, for example: `8.0.0`.
+
+   ```sh
+   cd ~/src
+   wget -O redis-<version>.tar.gz https://github.com/redis/redis/archive/refs/tags/<version>.tar.gz
+   ```
+
+5. Extract the source archive
+
+   Create a directory for the source code and extract the contents into it:
+
+   ```sh
+   cd ~/src
+   tar xvf redis-<version>.tar.gz
+   rm redis-<version>.tar.gz
+   ```
+
+6. Build Redis
+
+   ```sh
+   cd ~/src/redis-<version>
+   export HOMEBREW_PREFIX="$(brew --prefix)"
+   export BUILD_WITH_MODULES=yes
+   export BUILD_TLS=yes
+   export DISABLE_WERRORS=yes
+   PATH="$HOMEBREW_PREFIX/opt/libtool/libexec/gnubin:$HOMEBREW_PREFIX/opt/llvm@18/bin:$HOMEBREW_PREFIX/opt/make/libexec/gnubin:$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin:$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin:$PATH"
+   export LDFLAGS="-L$HOMEBREW_PREFIX/opt/llvm@18/lib"
+   export CPPFLAGS="-I$HOMEBREW_PREFIX/opt/llvm@18/include"
+   mkdir -p build_dir/etc
+   make -C redis-8.0 -j "$(nproc)" all OS=macos
+   make -C redis-8.0 install PREFIX=$(pwd)/build_dir OS=macos
+   ```
+
+7. Run Redis
+
+   ```sh
+   export LC_ALL=en_US.UTF-8
+   export LANG=en_US.UTF-8
+   build_dir/bin/redis-server redis-full.conf
+   ```
+
+### Build and run Redis with all data structures - macOS 15 (Sequoia)
+
+Support and instructions will be provided at a later date.
+
+### Building Redis - flags and general notes
+
+Redis can be compiled and used on Linux, OSX, OpenBSD, NetBSD, FreeBSD.
+We support big endian and little endian architectures, and both 32 bit and 64-bit systems.
+
+It may compile on Solaris derived systems (for instance SmartOS) but our support for this platform is _best effort_ and Redis is not guaranteed to work as well as on Linux, OSX, and \*BSD.
+
+To build Redis with all the data structures (including JSON, time series, Bloom filter, cuckoo filter, count-min sketch, top-k, and t-digest) and with Redis Query Engine, make sure first that all the prerequisites are installed (see build instructions above, per operating system). You need to use the following flag in the make command:
+
+```sh
+make BUILD_WITH_MODULES=yes
+```
+
+Note: `BUILD_WITH_MODULES=yes` is not supported on 32 bit systems.
+
+To build Redis with just the core data structures, use:
+
+```sh
+make
+```
+
+To build with TLS support, you need OpenSSL development libraries (e.g. libssl-dev on Debian/Ubuntu) and the following flag in the make command:
+
+```sh
+make BUILD_TLS=yes
+```
+
+To build with systemd support, you need systemd development libraries (such as libsystemd-dev on Debian/Ubuntu or systemd-devel on CentOS), and the following flag:
+
+```sh
+make USE_SYSTEMD=yes
+```
+
+To append a suffix to Redis program names, add the following flag:
+
+```sh
+make PROG_SUFFIX="-alt"
+```
+
+You can build a 32 bit Redis binary using:
+
+```sh
+make 32bit
+```
+
+After building Redis, it is a good idea to test it using:
+
+```sh
+make test
+```
+
+If TLS is built, running the tests with TLS enabled (you will need `tcl-tls` installed):
+
+```sh
+./utils/gen-test-certs.sh
+./runtest --tls
+```
+
+### Fixing build problems with dependencies or cached build options
+
+Redis has some dependencies which are included in the `deps` directory. `make` does not automatically rebuild dependencies even if something in the source code of dependencies changes.
+
+When you update the source code with `git pull` or when code inside the dependencies tree is modified in any other way, make sure to use the following command in order to really clean everything and rebuild from scratch:
+
+```sh
+make distclean
+```
+
+This will clean: jemalloc, lua, hiredis, linenoise and other dependencies.
+
+Also, if you force certain build options like 32bit target, no C compiler optimizations (for debugging purposes), and other similar build time options, those options are cached indefinitely until you issue a `make distclean`
+command.
+
+### Fixing problems building 32 bit binaries
+
+If after building Redis with a 32 bit target you need to rebuild it
+with a 64 bit target, or the other way around, you need to perform a `make distclean` in the root directory of the Redis distribution.
+
+In case of build errors when trying to build a 32 bit binary of Redis, try the following steps:
+
+- Install the package libc6-dev-i386 (also try g++-multilib).
+- Try using the following command line instead of `make 32bit`:
+  `make CFLAGS="-m32 -march=native" LDFLAGS="-m32"`
+
+### Allocator
+
+Selecting a non-default memory allocator when building Redis is done by setting the `MALLOC` environment variable. Redis is compiled and linked against libc malloc by default, except for jemalloc being the default on Linux systems. This default was picked because jemalloc has proven to have fewer fragmentation problems than libc malloc.
+
+To force compiling against libc malloc, use:
+
+```sh
+make MALLOC=libc
+```
+
+To compile against jemalloc on Mac OS X systems, use:
+
+```sh
+make MALLOC=jemalloc
+```
+
+### Monotonic clock
+
+By default, Redis will build using the POSIX clock_gettime function as the monotonic clock source. On most modern systems, the internal processor clock can be used to improve performance. Cautions can be found here: http://oliveryang.net/2015/09/pitfalls-of-TSC-usage/
+
+On ARM aarch64 systems, the hardware clock is enabled by default because the ARM Generic Timer is architecturally guaranteed to be available and monotonic on all ARMv8-A processors (see the *“The Generic Timer in AArch64 state”* section of the *Arm Architecture Reference Manual for Armv8-A*).
+
+To build with support for the processor's internal instruction clock on other architectures, use:
+
+```sh
+make CFLAGS="-DUSE_PROCESSOR_CLOCK"
+```
+
+### Verbose build
+
+Redis will build with a user-friendly colorized output by default.
+If you want to see a more verbose output, use the following:
+
+```sh
+make V=1
+```
+
+### Running Redis with TLS
+
+Please consult the [TLS.md](TLS.md) file for more information on how to use Redis with TLS.
+
+### Running Redis with the Query Engine and optional proprietary Intel SVS-VAMANA optimisations
+
+**License Disclaimer**
+If you are using Redis Open Source under AGPLv3 or SSPLv1, you cannot use it together with the Intel Optimizations (Leanvec and LVQ binaries). The reason is that the Intel SVS license is not compatible with those licenses.
+The Leanvec and LVQ techniques are closed source and are only available for use with Redis Open Source when distributed under the RSALv2 license.
+For more details, please refer to the information provided by Intel [here](https://github.com/intel/ScalableVectorSearch).
+
+By default, Redis with the Redis Query Engine supports SVS-VAMANA index with global 8-bit quantisation. To compile Redis with the Intel SVS-VAMANA optimisations, LeanVec and LVQ, use the following:
+
+```sh
+make BUILD_INTEL_SVS_OPT=yes
+```
+
+Alternatively, you can export the variable before running the build step for your platform:
+
+```sh
+export BUILD_INTEL_SVS_OPT=yes
+make
+```
+
+
+## Code contributions
+
+By contributing code to the Redis project in any form, including sending a pull request via GitHub, a code fragment or patch via private email or public discussion groups, you agree to release your code under the terms of the Redis Software Grant and Contributor License Agreement. Please see the CONTRIBUTING.md file in this source distribution for more information. For security bugs and vulnerabilities, please see SECURITY.md and the description of the ability of users to backport security patches under Redis Open Source 7.4+ under BSDv3. Open Source Redis releases are subject to the following licenses:
+
+1. Version 7.2.x and prior releases are subject to BSDv3. These contributions to the original Redis core project are owned by their contributors and licensed under the 3BSDv3 license as referenced in the REDISCONTRIBUTIONS.txt file. Any copy of that license in this repository applies only to those contributions;
+
+2. Versions 7.4.x to 7.8.x are subject to your choice of RSALv2 or SSPLv1; and
+
+3. Version 8.0.x and subsequent releases are subject to the tri-license RSALv2/SSPLv1/AGPLv3 at your option as referenced in the LICENSE.txt file.
+
+## Redis Trademarks
+
+The purpose of a trademark is to identify the goods and services of a person or company without causing confusion. As the registered owner of its name and logo, Redis accepts certain limited uses of its trademarks, but it has requirements that must be followed as described in its Trademark Guidelines available at: https://redis.io/legal/trademark-policy/.
+
+
+# FILE: Makefile
+# Top level makefile, the real stuff is at ./src/Makefile and in ./modules/Makefile
+
+SUBDIRS = src
+ifeq ($(BUILD_WITH_MODULES), yes)
+	ifeq ($(MAKECMDGOALS),32bit)
+    	$(error BUILD_WITH_MODULES=yes is not supported on 32 bit systems)
+	endif
+	SUBDIRS += modules
+endif
+
+default: all
+
+.DEFAULT:
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+
+install:
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@; done
+
+.PHONY: install
+
+
+# FILE: LICENSE.txt
+Starting with Redis 8, Redis Open Source is moving to a tri-licensing model with all new Redis code
+contributions governed by the updated Redis Software Grant and Contributor License Agreement.
+After this release, contributions are subject to your choice of: (a) the Redis Source Available License v2
+(RSALv2);or (b) the Server Side Public License v1 (SSPLv1); or (c) the GNU Affero General Public License v3 (AGPLv3).
+Redis Open Source 7.2 and prior releases remain subject to the BSDv3 clause license as referenced
+in the REDISCONTRIBUTIONS.txt file.
+
+The licensing structure for Redis 8.0 and subsequent releases is as follows:
+
+
+1. Redis Source Available License 2.0 (RSALv2) Agreement
+========================================================
+
+Last Update: December 30, 2023
+
+Acceptance
+----------
+
+This Agreement sets forth the terms and conditions on which the Licensor
+makes available the Software. By installing, downloading, accessing,
+Using, or distributing any of the Software, You agree to all of the
+terms and conditions of this Agreement.
+
+If You are receiving the Software on behalf of Your Company, You
+represent and warrant that You have the authority to agree to this
+Agreement on behalf of such entity.
+
+The Licensor reserves the right to update this Agreement from time to
+time.
+
+The terms below have the meanings set forth below for purposes of this
+Agreement:
+
+Definitions
+-----------
+
+Agreement: this Redis Source Available License 2.0 Agreement.
+
+Control: ownership, directly or indirectly, of substantially all the
+assets of an entity, or the power to direct its management and policies
+by vote, contract, or otherwise.
+
+License: the License as described in the License paragraph below.
+
+Licensor: the entity offering these terms, which includes Redis Ltd. on
+behalf of itself and its subsidiaries and affiliates worldwide.
+
+Modify, Modified, or Modification: copy from or adapt all or part of the
+work in a fashion requiring copyright permission other than making an
+exact copy. The resulting work is called a Modified version of the
+earlier work.
+
+Redis: the Redis software as described in redis.com redis.io.
+
+Software: certain Software components designed to work with Redis and
+provided to You under this Agreement.
+
+Trademark: the trademarks, service marks, and any other similar rights.
+
+Use: anything You do with the Software requiring one of Your Licenses.
+
+You: the recipient of the Software, the individual or entity on whose
+behalf You are agreeing to this Agreement.
+
+Your Company: any legal entity, sole proprietorship, or other kind of
+organization that You work for, plus all organizations that have control
+over, are under the control of, or are under common control with that
+organization.
+
+Your Licenses: means all the Licenses granted to You for the Software
+under this Agreement.
+
+License
+-------
+
+The Licensor grants You a non-exclusive, royalty-free, worldwide,
+non-sublicensable, non-transferable license to use, copy, distribute,
+make available, and prepare derivative works of the Software, in each
+case subject to the limitations and conditions below.
+
+Limitations
+-----------
+
+You may not make the functionality of the Software or a Modified version
+available to third parties as a service or distribute the Software or a
+Modified version in a manner that makes the functionality of the
+Software available to third parties.
+
+Making the functionality of the Software or Modified version available
+to third parties includes, without limitation, enabling third parties to
+interact with the functionality of the Software or Modified version in
+distributed form or remotely through a computer network, offering a
+product or service, the value of which entirely or primarily derives
+from the value of the Software or Modified version, or offering a
+product or service that accomplishes for users the primary purpose of
+the Software or Modified version.
+
+You may not alter, remove, or obscure any licensing, copyright, or other
+notices of the Licensor in the Software. Any use of the Licensor's
+Trademarks is subject to applicable law.
+
+Patents
+-------
+
+The Licensor grants You a License, under any patent claims the Licensor
+can License, or becomes able to License, to make, have made, use, sell,
+offer for sale, import and have imported the Software, in each case
+subject to the limitations and conditions in this License. This License
+does not cover any patent claims that You cause to be infringed by
+Modifications or additions to the Software. If You or Your Company make
+any written claim that the Software infringes or contributes to
+infringement of any patent, your patent License for the Software granted
+under this Agreement ends immediately. If Your Company makes such a
+claim, your patent License ends immediately for work on behalf of Your
+Company.
+
+Notices
+-------
+
+You must ensure that anyone who gets a copy of any part of the Software
+from You also gets a copy of the terms and conditions in this Agreement.
+
+If You modify the Software, You must include in any Modified copies of
+the Software prominent notices stating that You have Modified the
+Software.
+
+No Other Rights
+---------------
+
+The terms and conditions of this Agreement do not imply any Licenses
+other than those expressly granted in this Agreement.
+
+Termination
+-----------
+
+If You Use the Software in violation of this Agreement, such Use is not
+Licensed, and Your Licenses will automatically terminate. If the
+Licensor provides You with a notice of your violation, and You cease all
+violations of this License no later than 30 days after You receive that
+notice, Your Licenses will be reinstated retroactively. However, if You
+violate this Agreement after such reinstatement, any additional
+violation of this Agreement will cause your Licenses to terminate
+automatically and permanently.
+
+No Liability
+------------
+
+As far as the law allows, the Software comes as is, without any
+warranty or condition, and the Licensor will not be liable to You for
+any damages arising out of this Agreement or the Use or nature of the
+Software, under any kind of legal claim.
+
+Governing Law and Jurisdiction
+------------------------------
+
+If You are located in Asia, Pacific, Americas, or other jurisdictions
+not listed below, the Agreement will be construed and enforced in all
+respects in accordance with the laws of the State of California, U.S.A.,
+without reference to its choice of law rules. The courts located in the
+County of Santa Clara, California, have exclusive jurisdiction for all
+purposes relating to this Agreement.
+
+If You are located in Israel, the Agreement will be construed and
+enforced in all respects in accordance with the laws of the State of
+Israel without reference to its choice of law rules. The courts located
+in the Central District of the State of Israel have exclusive
+jurisdiction for all purposes relating to this Agreement.
+
+If You are located in Europe, United Kingdom, Middle East or Africa, the
+Agreement will be construed and enforced in all respects in accordance
+with the laws of England and Wales without reference to its choice of
+law rules. The competent courts located in London, England, have
+exclusive jurisdiction for all purposes relating to this Agreement.
+
+
+
+2. Server Side Public License (SSPL)
+====================================
+
+                     Server Side Public License
+                     VERSION 1, OCTOBER 16, 2018
+
+                    Copyright (c) 2018 MongoDB, Inc.
+
+  Everyone is permitted to copy and distribute verbatim copies of this
+  license document, but changing it is not allowed.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to Server Side Public License.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+  works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+  License.  Each licensee is addressed as "you". "Licensees" and
+  "recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work in
+  a fashion requiring copyright permission, other than the making of an
+  exact copy. The resulting work is called a "modified version" of the
+  earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based on
+  the Program.
+
+  To "propagate" a work means to do anything with it that, without
+  permission, would make you directly or secondarily liable for
+  infringement under applicable copyright law, except executing it on a
+  computer or modifying a private copy. Propagation includes copying,
+  distribution (with or without modification), making available to the
+  public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+  parties to make or receive copies. Mere interaction with a user through a
+  computer network, with no transfer of a copy, is not conveying.
+
+  An interactive user interface displays "Appropriate Legal Notices" to the
+  extent that it includes a convenient and prominently visible feature that
+  (1) displays an appropriate copyright notice, and (2) tells the user that
+  there is no warranty for the work (except to the extent that warranties
+  are provided), that licensees may convey the work under this License, and
+  how to view a copy of this License. If the interface presents a list of
+  user commands or options, such as a menu, a prominent item in the list
+  meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work for
+  making modifications to it. "Object code" means any non-source form of a
+  work.
+
+  A "Standard Interface" means an interface that either is an official
+  standard defined by a recognized standards body, or, in the case of
+  interfaces specified for a particular programming language, one that is
+  widely used among developers working in that language.  The "System
+  Libraries" of an executable work include anything, other than the work as
+  a whole, that (a) is included in the normal form of packaging a Major
+  Component, but which is not part of that Major Component, and (b) serves
+  only to enable use of the work with that Major Component, or to implement
+  a Standard Interface for which an implementation is available to the
+  public in source code form. A "Major Component", in this context, means a
+  major essential component (kernel, window system, and so on) of the
+  specific operating system (if any) on which the executable work runs, or
+  a compiler used to produce the work, or an object code interpreter used
+  to run it.
+
+  The "Corresponding Source" for a work in object code form means all the
+  source code needed to generate, install, and (for an executable work) run
+  the object code and to modify the work, including scripts to control
+  those activities. However, it does not include the work's System
+  Libraries, or general-purpose tools or generally available free programs
+  which are used unmodified in performing those activities but which are
+  not part of the work. For example, Corresponding Source includes
+  interface definition files associated with source files for the work, and
+  the source code for shared libraries and dynamically linked subprograms
+  that the work is specifically designed to require, such as by intimate
+  data communication or control flow between those subprograms and other
+  parts of the work.
+
+  The Corresponding Source need not include anything that users can
+  regenerate automatically from other parts of the Corresponding Source.
+
+  The Corresponding Source for a work in source code form is that same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+  copyright on the Program, and are irrevocable provided the stated
+  conditions are met. This License explicitly affirms your unlimited
+  permission to run the unmodified Program, subject to section 13. The
+  output from running a covered work is covered by this License only if the
+  output, given its content, constitutes a covered work. This License
+  acknowledges your rights of fair use or other equivalent, as provided by
+  copyright law.  Subject to section 13, you may make, run and propagate
+  covered works that you do not convey, without conditions so long as your
+  license otherwise remains in force. You may convey covered works to
+  others for the sole purpose of having them make modifications exclusively
+  for you, or provide you with facilities for running those works, provided
+  that you comply with the terms of this License in conveying all
+  material for which you do not control copyright. Those thus making or
+  running the covered works for you must do so exclusively on your
+  behalf, under your direction and control, on terms that prohibit them
+  from making any copies of your copyrighted material outside their
+  relationship with you.
+
+  Conveying under any other circumstances is permitted solely under the
+  conditions stated below. Sublicensing is not allowed; section 10 makes it
+  unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+  No covered work shall be deemed part of an effective technological
+  measure under any applicable law fulfilling obligations under article 11
+  of the WIPO copyright treaty adopted on 20 December 1996, or similar laws
+  prohibiting or restricting circumvention of such measures.
+
+  When you convey a covered work, you waive any legal power to forbid
+  circumvention of technological measures to the extent such circumvention is
+  effected by exercising rights under this License with respect to the
+  covered work, and you disclaim any intention to limit operation or
+  modification of the work as a means of enforcing, against the work's users,
+  your or third parties' legal rights to forbid circumvention of
+  technological measures.
+
+  4. Conveying Verbatim Copies.
+
+  You may convey verbatim copies of the Program's source code as you
+  receive it, in any medium, provided that you conspicuously and
+  appropriately publish on each copy an appropriate copyright notice; keep
+  intact all notices stating that this License and any non-permissive terms
+  added in accord with section 7 apply to the code; keep intact all notices
+  of the absence of any warranty; and give all recipients a copy of this
+  License along with the Program.  You may charge any price or no price for
+  each copy that you convey, and you may offer support or warranty
+  protection for a fee.
+
+  5. Conveying Modified Source Versions.
+
+  You may convey a work based on the Program, or the modifications to
+  produce it from the Program, in the form of source code under the terms
+  of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified it,
+    and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is released
+    under this License and any conditions added under section 7. This
+    requirement modifies the requirement in section 4 to "keep intact all
+    notices".
+
+    c) You must license the entire work, as a whole, under this License to
+    anyone who comes into possession of a copy. This License will therefore
+    apply, along with any applicable section 7 additional terms, to the
+    whole of the work, and all its parts, regardless of how they are
+    packaged. This License gives no permission to license the work in any
+    other way, but it does not invalidate such permission if you have
+    separately received it.
+
+    d) If the work has interactive user interfaces, each must display
+    Appropriate Legal Notices; however, if the Program has interactive
+    interfaces that do not display Appropriate Legal Notices, your work
+    need not make them do so.
+
+  A compilation of a covered work with other separate and independent
+  works, which are not by their nature extensions of the covered work, and
+  which are not combined with it such as to form a larger program, in or on
+  a volume of a storage or distribution medium, is called an "aggregate" if
+  the compilation and its resulting copyright are not used to limit the
+  access or legal rights of the compilation's users beyond what the
+  individual works permit. Inclusion of a covered work in an aggregate does
+  not cause this License to apply to the other parts of the aggregate.
+
+  6. Conveying Non-Source Forms.
+
+  You may convey a covered work in object code form under the terms of
+  sections 4 and 5, provided that you also convey the machine-readable
+  Corresponding Source under the terms of this License, in one of these
+  ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium customarily
+    used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a written
+    offer, valid for at least three years and valid for as long as you
+    offer spare parts or customer support for that product model, to give
+    anyone who possesses the object code either (1) a copy of the
+    Corresponding Source for all the software in the product that is
+    covered by this License, on a durable physical medium customarily used
+    for software interchange, for a price no more than your reasonable cost
+    of physically performing this conveying of source, or (2) access to
+    copy the Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source. This alternative is
+    allowed only occasionally and noncommercially, and only if you received
+    the object code with such an offer, in accord with subsection 6b.
+
+    d) Convey the object code by offering access from a designated place
+    (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge. You need not require recipients to copy the
+    Corresponding Source along with the object code. If the place to copy
+    the object code is a network server, the Corresponding Source may be on
+    a different server (operated by you or a third party) that supports
+    equivalent copying facilities, provided you maintain clear directions
+    next to the object code saying where to find the Corresponding Source.
+    Regardless of what server hosts the Corresponding Source, you remain
+    obligated to ensure that it is available for as long as needed to
+    satisfy these requirements.
+
+    e) Convey the object code using peer-to-peer transmission, provided you
+    inform other peers where the object code and Corresponding Source of
+    the work are being offered to the general public at no charge under
+    subsection 6d.
+
+  A separable portion of the object code, whose source code is excluded
+  from the Corresponding Source as a System Library, need not be included
+  in conveying the object code work.
+
+  A "User Product" is either (1) a "consumer product", which means any
+  tangible personal property which is normally used for personal, family,
+  or household purposes, or (2) anything designed or sold for incorporation
+  into a dwelling. In determining whether a product is a consumer product,
+  doubtful cases shall be resolved in favor of coverage. For a particular
+  product received by a particular user, "normally used" refers to a
+  typical or common use of that class of product, regardless of the status
+  of the particular user or of the way in which the particular user
+  actually uses, or expects or is expected to use, the product. A product
+  is a consumer product regardless of whether the product has substantial
+  commercial, industrial or non-consumer uses, unless such uses represent
+  the only significant mode of use of the product.
+
+  "Installation Information" for a User Product means any methods,
+  procedures, authorization keys, or other information required to install
+  and execute modified versions of a covered work in that User Product from
+  a modified version of its Corresponding Source. The information must
+  suffice to ensure that the continued functioning of the modified object
+  code is in no case prevented or interfered with solely because
+  modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+  specifically for use in, a User Product, and the conveying occurs as part
+  of a transaction in which the right of possession and use of the User
+  Product is transferred to the recipient in perpetuity or for a fixed term
+  (regardless of how the transaction is characterized), the Corresponding
+  Source conveyed under this section must be accompanied by the
+  Installation Information. But this requirement does not apply if neither
+  you nor any third party retains the ability to install modified object
+  code on the User Product (for example, the work has been installed in
+  ROM).
+
+  The requirement to provide Installation Information does not include a
+  requirement to continue to provide support service, warranty, or updates
+  for a work that has been modified or installed by the recipient, or for
+  the User Product in which it has been modified or installed. Access
+  to a network may be denied when the modification itself materially
+  and adversely affects the operation of the network or violates the
+  rules and protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided, in
+  accord with this section must be in a format that is publicly documented
+  (and with an implementation available to the public in source code form),
+  and must require no special password or key for unpacking, reading or
+  copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+  License by making exceptions from one or more of its conditions.
+  Additional permissions that are applicable to the entire Program shall be
+  treated as though they were included in this License, to the extent that
+  they are valid under applicable law. If additional permissions apply only
+  to part of the Program, that part may be used separately under those
+  permissions, but the entire Program remains governed by this License
+  without regard to the additional permissions.  When you convey a copy of
+  a covered work, you may at your option remove any additional permissions
+  from that copy, or from any part of it. (Additional permissions may be
+  written to require their own removal in certain cases when you modify the
+  work.) You may place additional permissions on material, added by you to
+  a covered work, for which you have or can give appropriate copyright
+  permission.
+
+  Notwithstanding any other provision of this License, for material you add
+  to a covered work, you may (if authorized by the copyright holders of
+  that material) supplement the terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the
+    terms of sections 15 and 16 of this License; or
+
+    b) Requiring preservation of specified reasonable legal notices or
+    author attributions in that material or in the Appropriate Legal
+    Notices displayed by works containing it; or
+
+    c) Prohibiting misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version; or
+
+    d) Limiting the use for publicity purposes of names of licensors or
+    authors of the material; or
+
+    e) Declining to grant rights under trademark law for use of some trade
+    names, trademarks, or service marks; or
+
+    f) Requiring indemnification of licensors and authors of that material
+    by anyone who conveys the material (or modified versions of it) with
+    contractual assumptions of liability to the recipient, for any
+    liability that these contractual assumptions directly impose on those
+    licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+  restrictions" within the meaning of section 10. If the Program as you
+  received it, or any part of it, contains a notice stating that it is
+  governed by this License along with a term that is a further restriction,
+  you may remove that term. If a license document contains a further
+  restriction but permits relicensing or conveying under this License, you
+  may add to a covered work material governed by the terms of that license
+  document, provided that the further restriction does not survive such
+  relicensing or conveying.
+
+  If you add terms to a covered work in accord with this section, you must
+  place, in the relevant source files, a statement of the additional terms
+  that apply to those files, or a notice indicating where to find the
+  applicable terms.  Additional terms, permissive or non-permissive, may be
+  stated in the form of a separately written license, or stated as
+  exceptions; the above requirements apply either way.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+  provided under this License. Any attempt otherwise to propagate or modify
+  it is void, and will automatically terminate your rights under this
+  License (including any patent licenses granted under the third paragraph
+  of section 11).
+
+  However, if you cease all violation of this License, then your license
+  from a particular copyright holder is reinstated (a) provisionally,
+  unless and until the copyright holder explicitly and finally terminates
+  your license, and (b) permanently, if the copyright holder fails to
+  notify you of the violation by some reasonable means prior to 60 days
+  after the cessation.
+
+  Moreover, your license from a particular copyright holder is reinstated
+  permanently if the copyright holder notifies you of the violation by some
+  reasonable means, this is the first time you have received notice of
+  violation of this License (for any work) from that copyright holder, and
+  you cure the violation prior to 30 days after your receipt of the notice.
+
+  Termination of your rights under this section does not terminate the
+  licenses of parties who have received copies or rights from you under
+  this License. If your rights have been terminated and not permanently
+  reinstated, you do not qualify to receive new licenses for the same
+  material under section 10.
+
+  9. Acceptance Not Required for Having Copies.
+
+  You are not required to accept this License in order to receive or run a
+  copy of the Program. Ancillary propagation of a covered work occurring
+  solely as a consequence of using peer-to-peer transmission to receive a
+  copy likewise does not require acceptance. However, nothing other than
+  this License grants you permission to propagate or modify any covered
+  work. These actions infringe copyright if you do not accept this License.
+  Therefore, by modifying or propagating a covered work, you indicate your
+  acceptance of this License to do so.
+
+  10. Automatic Licensing of Downstream Recipients.
+
+  Each time you convey a covered work, the recipient automatically receives
+  a license from the original licensors, to run, modify and propagate that
+  work, subject to this License. You are not responsible for enforcing
+  compliance by third parties with this License.
+
+  An "entity transaction" is a transaction transferring control of an
+  organization, or substantially all assets of one, or subdividing an
+  organization, or merging organizations. If propagation of a covered work
+  results from an entity transaction, each party to that transaction who
+  receives a copy of the work also receives whatever licenses to the work
+  the party's predecessor in interest had or could give under the previous
+  paragraph, plus a right to possession of the Corresponding Source of the
+  work from the predecessor in interest, if the predecessor has it or can
+  get it with reasonable efforts.
+
+  You may not impose any further restrictions on the exercise of the rights
+  granted or affirmed under this License. For example, you may not impose a
+  license fee, royalty, or other charge for exercise of rights granted
+  under this License, and you may not initiate litigation (including a
+  cross-claim or counterclaim in a lawsuit) alleging that any patent claim
+  is infringed by making, using, selling, offering for sale, or importing
+  the Program or any portion of it.
+
+  11. Patents.
+
+  A "contributor" is a copyright holder who authorizes use under this
+  License of the Program or a work on which the Program is based. The work
+  thus licensed is called the contributor's "contributor version".
+
+  A contributor's "essential patent claims" are all patent claims owned or
+  controlled by the contributor, whether already acquired or hereafter
+  acquired, that would be infringed by some manner, permitted by this
+  License, of making, using, or selling its contributor version, but do not
+  include claims that would be infringed only as a consequence of further
+  modification of the contributor version. For purposes of this definition,
+  "control" includes the right to grant patent sublicenses in a manner
+  consistent with the requirements of this License.
+
+  Each contributor grants you a non-exclusive, worldwide, royalty-free
+  patent license under the contributor's essential patent claims, to make,
+  use, sell, offer for sale, import and otherwise run, modify and propagate
+  the contents of its contributor version.
+
+  In the following three paragraphs, a "patent license" is any express
+  agreement or commitment, however denominated, not to enforce a patent
+  (such as an express permission to practice a patent or covenant not to
+  sue for patent infringement). To "grant" such a patent license to a party
+  means to make such an agreement or commitment not to enforce a patent
+  against the party.
+
+  If you convey a covered work, knowingly relying on a patent license, and
+  the Corresponding Source of the work is not available for anyone to copy,
+  free of charge and under the terms of this License, through a publicly
+  available network server or other readily accessible means, then you must
+  either (1) cause the Corresponding Source to be so available, or (2)
+  arrange to deprive yourself of the benefit of the patent license for this
+  particular work, or (3) arrange, in a manner consistent with the
+  requirements of this License, to extend the patent license to downstream
+  recipients. "Knowingly relying" means you have actual knowledge that, but
+  for the patent license, your conveying the covered work in a country, or
+  your recipient's use of the covered work in a country, would infringe
+  one or more identifiable patents in that country that you have reason
+  to believe are valid.
+
+  If, pursuant to or in connection with a single transaction or
+  arrangement, you convey, or propagate by procuring conveyance of, a
+  covered work, and grant a patent license to some of the parties receiving
+  the covered work authorizing them to use, propagate, modify or convey a
+  specific copy of the covered work, then the patent license you grant is
+  automatically extended to all recipients of the covered work and works
+  based on it.
+
+  A patent license is "discriminatory" if it does not include within the
+  scope of its coverage, prohibits the exercise of, or is conditioned on
+  the non-exercise of one or more of the rights that are specifically
+  granted under this License. You may not convey a covered work if you are
+  a party to an arrangement with a third party that is in the business of
+  distributing software, under which you make payment to the third party
+  based on the extent of your activity of conveying the work, and under
+  which the third party grants, to any of the parties who would receive the
+  covered work from you, a discriminatory patent license (a) in connection
+  with copies of the covered work conveyed by you (or copies made from
+  those copies), or (b) primarily for and in connection with specific
+  products or compilations that contain the covered work, unless you
+  entered into that arrangement, or that patent license was granted, prior
+  to 28 March 2007.
+
+  Nothing in this License shall be construed as excluding or limiting any
+  implied license or other defenses to infringement that may otherwise be
+  available to you under applicable patent law.
+
+  12. No Surrender of Others' Freedom.
+
+  If conditions are imposed on you (whether by court order, agreement or
+  otherwise) that contradict the conditions of this License, they do not
+  excuse you from the conditions of this License. If you cannot use,
+  propagate or convey a covered work so as to satisfy simultaneously your
+  obligations under this License and any other pertinent obligations, then
+  as a consequence you may not use, propagate or convey it at all. For
+  example, if you agree to terms that obligate you to collect a royalty for
+  further conveying from those to whom you convey the Program, the only way
+  you could satisfy both those terms and this License would be to refrain
+  entirely from conveying the Program.
+
+  13. Offering the Program as a Service.
+
+  If you make the functionality of the Program or a modified version
+  available to third parties as a service, you must make the Service Source
+  Code available via network download to everyone at no charge, under the
+  terms of this License. Making the functionality of the Program or
+  modified version available to third parties as a service includes,
+  without limitation, enabling third parties to interact with the
+  functionality of the Program or modified version remotely through a
+  computer network, offering a service the value of which entirely or
+  primarily derives from the value of the Program or modified version, or
+  offering a service that accomplishes for users the primary purpose of the
+  Program or modified version.
+
+  "Service Source Code" means the Corresponding Source for the Program or
+  the modified version, and the Corresponding Source for all programs that
+  you use to make the Program or modified version available as a service,
+  including, without limitation, management software, user interfaces,
+  application program interfaces, automation software, monitoring software,
+  backup software, storage software and hosting software, all such that a
+  user could run an instance of the service using the Service Source Code
+  you make available.
+
+  14. Revised Versions of this License.
+
+  MongoDB, Inc. may publish revised and/or new versions of the Server Side
+  Public License from time to time. Such new versions will be similar in
+  spirit to the present version, but may differ in detail to address new
+  problems or concerns.
+
+  Each version is given a distinguishing version number. If the Program
+  specifies that a certain numbered version of the Server Side Public
+  License "or any later version" applies to it, you have the option of
+  following the terms and conditions either of that numbered version or of
+  any later version published by MongoDB, Inc. If the Program does not
+  specify a version number of the Server Side Public License, you may
+  choose any version ever published by MongoDB, Inc.
+
+  If the Program specifies that a proxy can decide which future versions of
+  the Server Side Public License can be used, that proxy's public statement
+  of acceptance of a version permanently authorizes you to choose that
+  version for the Program.
+
+  Later license versions may give you additional or different permissions.
+  However, no additional obligations are imposed on any author or copyright
+  holder as a result of your choosing to follow a later version.
+
+  15. Disclaimer of Warranty.
+
+  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+  APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+  HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+  OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+  PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+  IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+  ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+  WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+  THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING
+  ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF
+  THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO
+  LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU
+  OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+  PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGES.
+
+  17. Interpretation of Sections 15 and 16.
+
+  If the disclaimer of warranty and limitation of liability provided above
+  cannot be given local legal effect according to their terms, reviewing
+  courts shall apply local law that most closely approximates an absolute
+  waiver of all civil liability in connection with the Program, unless a
+  warranty or assumption of liability accompanies a copy of the Program in
+  return for a fee.
+
+                        END OF TERMS AND CONDITIONS
+
+
+3. GNU AFFERO GENERAL PUBLIC LICENSE, Version 3, 19 Nov 2007
+========================================================
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU Affero General Public License is a free, copyleft license for
+software and other kinds of works, specifically designed to ensure
+cooperation with the community in the case of network server software.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+our General Public Licenses are intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  Developers that use our General Public Licenses protect your rights
+with two steps: (1) assert copyright on the software, and (2) offer
+you this License which gives you legal permission to copy, distribute
+and/or modify the software.
+
+  A secondary benefit of defending all users' freedom is that
+improvements made in alternate versions of the program, if they
+receive widespread use, become available for other developers to
+incorporate.  Many developers of free software are heartened and
+encouraged by the resulting cooperation.  However, in the case of
+software used on network servers, this result may fail to come about.
+The GNU General Public License permits making a modified version and
+letting the public access it on a server without ever releasing its
+source code to the public.
+
+  The GNU Affero General Public License is designed specifically to
+ensure that, in such cases, the modified source code becomes available
+to the community.  It requires the operator of a network server to
+provide the source code of the modified version running there to the
+users of that server.  Therefore, public use of a modified version, on
+a publicly accessible server, gives the public access to the source
+code of the modified version.
+
+  An older license, called the Affero General Public License and
+published by Affero, was designed to accomplish similar goals.  This is
+a different license, not a version of the Affero GPL, but Affero has
+released a new version of the Affero GPL which permits relicensing under
+this license.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU Affero General Public License.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+License.  Each licensee is addressed as "you".  "Licensees" and
+"recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work
+in a fashion requiring copyright permission, other than the making of an
+exact copy.  The resulting work is called a "modified version" of the
+earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based
+on the Program.
+
+  To "propagate" a work means to do anything with it that, without
+permission, would make you directly or secondarily liable for
+infringement under applicable copyright law, except executing it on a
+computer or modifying a private copy.  Propagation includes copying,
+distribution (with or without modification), making available to the
+public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+parties to make or receive copies.  Mere interaction with a user through
+a computer network, with no transfer of a copy, is not conveying.
+
+  An interactive user interface displays "Appropriate Legal Notices"
+to the extent that it includes a convenient and prominently visible
+feature that (1) displays an appropriate copyright notice, and (2)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+content, constitutes a covered work.  This License acknowledges your
+rights of fair use or other equivalent, as provided by copyright law.
+
+  You may make, run and propagate covered works that you do not
+convey, without conditions so long as your license otherwise remains
+in force.  You may convey covered works to others for the sole purpose
+of having them make modifications exclusively for you, or provide you
+with facilities for running those works, provided that you comply with
+the terms of this License in conveying all material for which you do
+not control copyright.  Those thus making or running the covered works
+for you must do so exclusively on your behalf, under your direction
+and control, on terms that prohibit them from making any copies of
+your copyrighted material outside their relationship with you.
+
+  Conveying under any other circumstances is permitted solely under
+the conditions stated below.  Sublicensing is not allowed; section 10
+makes it unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+  No covered work shall be deemed part of an effective technological
+measure under any applicable law fulfilling obligations under article
+11 of the WIPO copyright treaty adopted on 20 December 1996, or
+similar laws prohibiting or restricting circumvention of such
+measures.
+
+  When you convey a covered work, you waive any legal power to forbid
+circumvention of technological measures to the extent such circumvention
+is effected by exercising rights under this License with respect to
+the covered work, and you disclaim any intention to limit operation or
+modification of the work as a means of enforcing, against the work's
+users, your or third parties' legal rights to forbid circumvention of
+technological measures.
+
+  4. Conveying Verbatim Copies.
+
+  You may convey verbatim copies of the Program's source code as you
+receive it, in any medium, provided that you conspicuously and
+appropriately publish on each copy an appropriate copyright notice;
+keep intact all notices stating that this License and any
+non-permissive terms added in accord with section 7 apply to the code;
+keep intact all notices of the absence of any warranty; and give all
+recipients a copy of this License along with the Program.
+
+  You may charge any price or no price for each copy that you convey,
+and you may offer support or warranty protection for a fee.
+
+  5. Conveying Modified Source Versions.
+
+  You may convey a work based on the Program, or the modifications to
+produce it from the Program, in the form of source code under the
+terms of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified
+    it, and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is
+    released under this License and any conditions added under section
+    7.  This requirement modifies the requirement in section 4 to
+    "keep intact all notices".
+
+    c) You must license the entire work, as a whole, under this
+    License to anyone who comes into possession of a copy.  This
+    License will therefore apply, along with any applicable section 7
+    additional terms, to the whole of the work, and all its parts,
+    regardless of how they are packaged.  This License gives no
+    permission to license the work in any other way, but it does not
+    invalidate such permission if you have separately received it.
+
+    d) If the work has interactive user interfaces, each must display
+    Appropriate Legal Notices; however, if the Program has interactive
+    interfaces that do not display Appropriate Legal Notices, your
+    work need not make them do so.
+
+  A compilation of a covered work with other separate and independent
+works, which are not by their nature extensions of the covered work,
+and which are not combined with it such as to form a larger program,
+in or on a volume of a storage or distribution medium, is called an
+"aggregate" if the compilation and its resulting copyright are not
+used to limit the access or legal rights of the compilation's users
+beyond what the individual works permit.  Inclusion of a covered work
+in an aggregate does not cause this License to apply to the other
+parts of the aggregate.
+
+  6. Conveying Non-Source Forms.
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, provided that you also convey the
+machine-readable Corresponding Source under the terms of this License,
+in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium
+    customarily used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a
+    written offer, valid for at least three years and valid for as
+    long as you offer spare parts or customer support for that product
+    model, to give anyone who possesses the object code either (1) a
+    copy of the Corresponding Source for all the software in the
+    product that is covered by this License, on a durable physical
+    medium customarily used for software interchange, for a price no
+    more than your reasonable cost of physically performing this
+    conveying of source, or (2) access to copy the
+    Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source.  This
+    alternative is allowed only occasionally and noncommercially, and
+    only if you received the object code with such an offer, in accord
+    with subsection 6b.
+
+    d) Convey the object code by offering access from a designated
+    place (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge.  You need not require recipients to copy the
+    Corresponding Source along with the object code.  If the place to
+    copy the object code is a network server, the Corresponding Source
+    may be on a different server (operated by you or a third party)
+    that supports equivalent copying facilities, provided you maintain
+    clear directions next to the object code saying where to find the
+    Corresponding Source.  Regardless of what server hosts the
+    Corresponding Source, you remain obligated to ensure that it is
+    available for as long as needed to satisfy these requirements.
+
+    e) Convey the object code using peer-to-peer transmission, provided
+    you inform other peers where the object code and Corresponding
+    Source of the work are being offered to the general public at no
+    charge under subsection 6d.
+
+  A separable portion of the object code, whose source code is excluded
+from the Corresponding Source as a System Library, need not be
+included in conveying the object code work.
+
+  A "User Product" is either (1) a "consumer product", which means any
+tangible personal property which is normally used for personal, family,
+or household purposes, or (2) anything designed or sold for incorporation
+into a dwelling.  In determining whether a product is a consumer product,
+doubtful cases shall be resolved in favor of coverage.  For a particular
+product received by a particular user, "normally used" refers to a
+typical or common use of that class of product, regardless of the status
+of the particular user or of the way in which the particular user
+actually uses, or expects or is expected to use, the product.  A product
+is a consumer product regardless of whether the product has substantial
+commercial, industrial or non-consumer uses, unless such uses represent
+the only significant mode of use of the product.
+
+  "Installation Information" for a User Product means any methods,
+procedures, authorization keys, or other information required to install
+and execute modified versions of a covered work in that User Product from
+a modified version of its Corresponding Source.  The information must
+suffice to ensure that the continued functioning of the modified object
+code is in no case prevented or interfered with solely because
+modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+specifically for use in, a User Product, and the conveying occurs as
+part of a transaction in which the right of possession and use of the
+User Product is transferred to the recipient in perpetuity or for a
+fixed term (regardless of how the transaction is characterized), the
+Corresponding Source conveyed under this section must be accompanied
+by the Installation Information.  But this requirement does not apply
+if neither you nor any third party retains the ability to install
+modified object code on the User Product (for example, the work has
+been installed in ROM).
+
+  The requirement to provide Installation Information does not include a
+requirement to continue to provide support service, warranty, or updates
+for a work that has been modified or installed by the recipient, or for
+the User Product in which it has been modified or installed.  Access to a
+network may be denied when the modification itself materially and
+adversely affects the operation of the network or violates the rules and
+protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided,
+in accord with this section must be in a format that is publicly
+documented (and with an implementation available to the public in
+source code form), and must require no special password or key for
+unpacking, reading or copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+Additional permissions that are applicable to the entire Program shall
+be treated as though they were included in this License, to the extent
+that they are valid under applicable law.  If additional permissions
+apply only to part of the Program, that part may be used separately
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+it.  (Additional permissions may be written to require their own
+removal in certain cases when you modify the work.)  You may place
+additional permissions on material, added by you to a covered work,
+for which you have or can give appropriate copyright permission.
+
+  Notwithstanding any other provision of this License, for material you
+add to a covered work, you may (if authorized by the copyright holders of
+that material) supplement the terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the
+    terms of sections 15 and 16 of this License; or
+
+    b) Requiring preservation of specified reasonable legal notices or
+    author attributions in that material or in the Appropriate Legal
+    Notices displayed by works containing it; or
+
+    c) Prohibiting misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version; or
+
+    d) Limiting the use for publicity purposes of names of licensors or
+    authors of the material; or
+
+    e) Declining to grant rights under trademark law for use of some
+    trade names, trademarks, or service marks; or
+
+    f) Requiring indemnification of licensors and authors of that
+    material by anyone who conveys the material (or modified versions of
+    it) with contractual assumptions of liability to the recipient, for
+    any liability that these contractual assumptions directly impose on
+    those licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+restrictions" within the meaning of section 10.  If the Program as you
+received it, or any part of it, contains a notice stating that it is
+governed by this License along with a term that is a further
+restriction, you may remove that term.  If a license document contains
+a further restriction but permits relicensing or conveying under this
+License, you may add to a covered work material governed by the terms
+of that license document, provided that the further restriction does
+not survive such relicensing or conveying.
+
+  If you add terms to a covered work in accord with this section, you
+must place, in the relevant source files, a statement of the
+additional terms that apply to those files, or a notice indicating
+where to find the applicable terms.
+
+  Additional terms, permissive or non-permissive, may be stated in the
+form of a separately written license, or stated as exceptions;
+the above requirements apply either way.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+provided under this License.  Any attempt otherwise to propagate or
+modify it is void, and will automatically terminate your rights under
+this License (including any patent licenses granted under the third
+paragraph of section 11).
+
+  However, if you cease all violation of this License, then your
+license from a particular copyright holder is reinstated (a)
+provisionally, unless and until the copyright holder explicitly and
+finally terminates your license, and (b) permanently, if the copyright
+holder fails to notify you of the violation by some reasonable means
+prior to 60 days after the cessation.
+
+  Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+copyright holder, and you cure the violation prior to 30 days after
+your receipt of the notice.
+
+  Termination of your rights under this section does not terminate the
+licenses of parties who have received copies or rights from you under
+this License.  If your rights have been terminated and not permanently
+reinstated, you do not qualify to receive new licenses for the same
+material under section 10.
+
+  9. Acceptance Not Required for Having Copies.
+
+  You are not required to accept this License in order to receive or
+run a copy of the Program.  Ancillary propagation of a covered work
+occurring solely as a consequence of using peer-to-peer transmission
+to receive a copy likewise does not require acceptance.  However,
+nothing other than this License grants you permission to propagate or
+modify any covered work.  These actions infringe copyright if you do
+not accept this License.  Therefore, by modifying or propagating a
+covered work, you indicate your acceptance of this License to do so.
+
+  10. Automatic Licensing of Downstream Recipients.
+
+  Each time you convey a covered work, the recipient automatically
+receives a license from the original licensors, to run, modify and
+propagate that work, subject to this License.  You are not responsible
+for enforcing compliance by third parties with this License.
+
+  An "entity transaction" is a transaction transferring control of an
+organization, or substantially all assets of one, or subdividing an
+organization, or merging organizations.  If propagation of a covered
+work results from an entity transaction, each party to that
+transaction who receives a copy of the work also receives whatever
+licenses to the work the party's predecessor in interest had or could
+give under the previous paragraph, plus a right to possession of the
+Corresponding Source of the work from the predecessor in interest, if
+the predecessor has it or can get it with reasonable efforts.
+
+  You may not impose any further restrictions on the exercise of the
+rights granted or affirmed under this License.  For example, you may
+not impose a license fee, royalty, or other charge for exercise of
+rights granted under this License, and you may not initiate litigation
+(including a cross-claim or counterclaim in a lawsuit) alleging that
+any patent claim is infringed by making, using, selling, offering for
+sale, or importing the Program or any portion of it.
+
+  11. Patents.
+
+  A "contributor" is a copyright holder who authorizes use under this
+License of the Program or a work on which the Program is based.  The
+work thus licensed is called the contributor's "contributor version".
+
+  A contributor's "essential patent claims" are all patent claims
+owned or controlled by the contributor, whether already acquired or
+hereafter acquired, that would be infringed by some manner, permitted
+by this License, of making, using, or selling its contributor version,
+but do not include claims that would be infringed only as a
+consequence of further modification of the contributor version.  For
+purposes of this definition, "control" includes the right to grant
+patent sublicenses in a manner consistent with the requirements of
+this License.
+
+  Each contributor grants you a non-exclusive, worldwide, royalty-free
+patent license under the contributor's essential patent claims, to
+make, use, sell, offer for sale, import and otherwise run, modify and
+propagate the contents of its contributor version.
+
+  In the following three paragraphs, a "patent license" is any express
+agreement or commitment, however denominated, not to enforce a patent
+(such as an express permission to practice a patent or covenant not to
+sue for patent infringement).  To "grant" such a patent license to a
+party means to make such an agreement or commitment not to enforce a
+patent against the party.
+
+  If you convey a covered work, knowingly relying on a patent license,
+and the Corresponding Source of the work is not available for anyone
+to copy, free of charge and under the terms of this License, through a
+publicly available network server or other readily accessible means,
+then you must either (1) cause the Corresponding Source to be so
+available, or (2) arrange to deprive yourself of the benefit of the
+patent license for this particular work, or (3) arrange, in a manner
+consistent with the requirements of this License, to extend the patent
+license to downstream recipients.  "Knowingly relying" means you have
+actual knowledge that, but for the patent license, your conveying the
+covered work in a country, or your recipient's use of the covered work
+in a country, would infringe one or more identifiable patents in that
+country that you have reason to believe are valid.
+
+  If, pursuant to or in connection with a single transaction or
+arrangement, you convey, or propagate by procuring conveyance of, a
+covered work, and grant a patent license to some of the parties
+receiving the covered work authorizing them to use, propagate, modify
+or convey a specific copy of the covered work, then the patent license
+you grant is automatically extended to all recipients of the covered
+work and works based on it.
+
+  A patent license is "discriminatory" if it does not include within
+the scope of its coverage, prohibits the exercise of, or is
+conditioned on the non-exercise of one or more of the rights that are
+specifically granted under this License.  You may not convey a covered
+work if you are a party to an arrangement with a third party that is
+in the business of distributing software, under which you make payment
+to the third party based on the extent of your activity of conveying
+the work, and under which the third party grants, to any of the
+parties who would receive the covered work from you, a discriminatory
+patent license (a) in connection with copies of the covered work
+conveyed by you (or copies made from those copies), or (b) primarily
+for and in connection with specific products or compilations that
+contain the covered work, unless you entered into that arrangement,
+or that patent license was granted, prior to 28 March 2007.
+
+  Nothing in this License shall be construed as excluding or limiting
+any implied license or other defenses to infringement that may
+otherwise be available to you under applicable patent law.
+
+  12. No Surrender of Others' Freedom.
+
+  If conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot convey a
+covered work so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you may
+not convey it at all.  For example, if you agree to terms that obligate you
+to collect a royalty for further conveying from those to whom you convey
+the Program, the only way you could satisfy both those terms and this
+License would be to refrain entirely from conveying the Program.
+
+  13. Remote Network Interaction; Use with the GNU General Public License.
+
+  Notwithstanding any other provision of this License, if you modify the
+Program, your modified version must prominently offer all users
+interacting with it remotely through a computer network (if your version
+supports such interaction) an opportunity to receive the Corresponding
+Source of your version by providing access to the Corresponding Source
+from a network server at no charge, through some standard or customary
+means of facilitating copying of software.  This Corresponding Source
+shall include the Corresponding Source for any work covered by version 3
+of the GNU General Public License that is incorporated pursuant to the
+following paragraph.
+
+  Notwithstanding any other provision of this License, you have
+permission to link or combine any covered work with a work licensed
+under version 3 of the GNU General Public License into a single
+combined work, and to convey the resulting work.  The terms of this
+License will continue to apply to the part which is the covered work,
+but the work with which it is combined will remain governed by version
+3 of the GNU General Public License.
+
+  14. Revised Versions of this License.
+
+  The Free Software Foundation may publish revised and/or new versions of
+the GNU Affero General Public License from time to time.  Such new versions
+will be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+  Each version is given a distinguishing version number.  If the
+Program specifies that a certain numbered version of the GNU Affero General
+Public License "or any later version" applies to it, you have the
+option of following the terms and conditions either of that numbered
+version or of any later version published by the Free Software
+Foundation.  If the Program does not specify a version number of the
+GNU Affero General Public License, you may choose any version ever published
+by the Free Software Foundation.
+
+  If the Program specifies that a proxy can decide which future
+versions of the GNU Affero General Public License can be used, that proxy's
+public statement of acceptance of a version permanently authorizes you
+to choose that version for the Program.
+
+  Later license versions may give you additional or different
+permissions.  However, no additional obligations are imposed on any
+author or copyright holder as a result of your choosing to follow a
+later version.
+
+  15. Disclaimer of Warranty.
+
+  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF
+DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
+PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS),
+EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+  17. Interpretation of Sections 15 and 16.
+
+  If the disclaimer of warranty and limitation of liability provided
+above cannot be given local legal effect according to their terms,
+reviewing courts shall apply local law that most closely approximates
+an absolute waiver of all civil liability in connection with the
+Program, unless a warranty or assumption of liability accompanies a
+copy of the Program in return for a fee.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+state the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABI

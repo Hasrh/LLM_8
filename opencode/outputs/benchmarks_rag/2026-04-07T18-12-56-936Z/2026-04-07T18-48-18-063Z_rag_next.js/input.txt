@@ -1,0 +1,3842 @@
+
+
+# FILE: vercel.json
+{
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  }
+}
+
+
+# FILE: turbo.json
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "globalEnv": ["CI", "NEXT_CI_RUNNER"],
+  "globalPassThroughEnv": ["RUSTC_WRAPPER", "SCCACHE_*"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^dev"],
+      "outputs": ["dist/**"]
+    },
+    "storybook": {},
+    "build-storybook": {
+      "dependsOn": ["^build-storybook"],
+      "outputs": ["storybook-static/**"]
+    },
+    "test-storybook": {
+      "dependsOn": ["^test-storybook"]
+    },
+    "typescript": {},
+    "//#typescript": {},
+    "//#get-test-timings": {
+      "inputs": ["run-tests.js"],
+      "outputs": ["test-timings.json"],
+      "env": ["KV_REST_API_URL", "KV_REST_API_TOKEN"]
+    }
+  },
+  "ui": "tui"
+}
+
+
+# FILE: tsec-exemptions.json
+{
+  "ban-element-innerhtml-assignments": [
+    "packages/next/src/client/head-manager.ts",
+    "packages/next/src/client/script.tsx",
+    "packages/next/src/client/dev/dev-build-watcher.ts",
+    "packages/next/src/client/app-bootstrap.ts",
+    "packages/next/src/client/components/prerender-indicator.ts"
+  ],
+  "ban-element-setattribute": [
+    "packages/next/src/client/head-manager.ts",
+    "packages/next/src/client/script.tsx",
+    "packages/next/src/client/set-attributes-from-props.ts",
+    "packages/next/src/build/webpack/loaders/next-style-loader/runtime/injectStylesIntoLinkTag.ts",
+    "packages/next/src/build/webpack/loaders/next-style-loader/runtime/injectStylesIntoStyleTag.ts",
+    "packages/next/src/client/app-bootstrap.ts",
+    "packages/next/src/client/components/errors/graceful-degrade-boundary.tsx"
+  ],
+  "ban-script-appendchild-calls": [
+    "packages/next/src/next-devtools/dev-overlay.browser.tsx"
+  ],
+  "ban-script-content-assignments": ["packages/next/src/client/script.tsx"],
+  "ban-script-src-assignments": [
+    "packages/next/src/client/script.tsx",
+    "packages/next/src/client/app-bootstrap.ts"
+  ],
+  "ban-trustedtypes-createpolicy": ["packages/next/src/client/trusted-types.ts"]
+}
+
+
+# FILE: tsconfig.json
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": false,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "node",
+    "types": ["react", "jest", "node", "trusted-types", "jest-extended"],
+    "paths": {
+      "development-sandbox": ["./test/lib/development-sandbox"],
+      "next-test-utils": ["./test/lib/next-test-utils"],
+      "next-webdriver": ["./test/lib/next-webdriver"],
+      "e2e-utils": ["./test/lib/e2e-utils"],
+      "e2e-utils/*": ["./test/lib/e2e-utils/*"],
+      "test-data-service/*": ["./test/lib/test-data-service/*"],
+      "test-log": ["./test/lib/test-log"],
+      "router-act": ["./test/lib/router-act"],
+      "@next/playwright": ["./packages/next-playwright/src/index.ts"]
+    }
+  },
+  "include": [
+    "run-tests.js",
+    "test/**/*.test.ts",
+    "test/**/*.test.tsx",
+    "test/**/*.util.ts",
+    "test/e2e/app-dir/use-cache-custom-handler/*.js",
+    "test/lib/**/*.ts",
+    "scripts/**/*.js",
+    "scripts/**/*.cjs",
+    "scripts/**/*.mjs",
+    "scripts/**/*.ts",
+    "turbo/**/*.ts"
+  ],
+  "exclude": ["scripts/minimal-server.js"]
+}
+
+
+# FILE: tsconfig-tsec.json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "tsec",
+        "exemptionConfig": "./tsec-exemptions.json"
+      }
+    ]
+  }
+}
+
+
+# FILE: test-file.txt
+this is used for traverse testing
+
+# FILE: socket.yaml
+# top level version field is required
+version: 2
+
+githubApp:
+  enabled: true
+  pullRequestAlertsEnabled: false
+  dependencyOverviewEnabled: false
+  projectReportsEnabled: true
+
+triggerPaths:
+  - 'packages/*/package.json'
+  - 'package.json'
+  - 'pnpm-lock.yaml'
+  - 'pnpm-workspace.yaml'
+
+projectIgnorePaths:
+  - '.github/'
+  - 'bench/'
+  - 'contributing/'
+  - 'docs/'
+  - 'errors/'
+  - 'examples/'
+  - 'scripts/'
+  - 'test/'
+
+
+# FILE: sgconfig.yml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/project.json
+
+ruleDirs:
+  - .config/ast-grep/rules
+testConfigs:
+  - testDir: .config/ast-grep/rule-tests
+utilDirs:
+  - .config/ast-grep/rule-utils
+
+
+# FILE: rust-toolchain.toml
+# if you update this, also update `.devcontainer/rust/devcontainer-feature.json`
+# if you move the file, also update any turbo.json inputs that references it.
+[toolchain]
+channel = "nightly-2026-04-02"
+components = ["rustfmt", "clippy", "rust-analyzer"]
+profile = "minimal"
+
+
+# FILE: run-tests.js
+//@ts-check
+
+const path = require('path')
+const _glob = require('glob')
+const { existsSync } = require('fs')
+const fsp = require('fs/promises')
+const { createClient } = require('@vercel/kv')
+const { promisify } = require('util')
+const { Sema } = require('async-sema')
+const { spawn, exec: execOrig } = require('child_process')
+const { createNextInstall } = require('./test/lib/create-next-install')
+const glob = promisify(_glob)
+const exec = promisify(execOrig)
+const core = require('@actions/core')
+const { getTestFilter } = require('./test/get-test-filter')
+const { checkBuildFreshness } = require('./test/lib/check-build-freshness')
+
+// Do not rename or format. sync-react script relies on this line.
+// prettier-ignore
+const nextjsReactPeerVersion = "19.2.4";
+
+let argv = require('yargs/yargs')(process.argv.slice(2))
+  .string('type')
+  .string('test-pattern')
+  .boolean('timings')
+  .boolean('write-timings')
+  .number('retries')
+  .boolean('debug')
+  .string('g')
+  .alias('g', 'group')
+  .number('c')
+  .boolean('dry')
+  .boolean('print-tests')
+  .describe('print-tests', 'Prints the test files that will be run')
+  .boolean('require-timings')
+  .describe(
+    'require-timings',
+    'Require test-timings.json from disk; fail if missing instead of falling back to KV or round-robin'
+  )
+  .boolean('local')
+  .alias('c', 'concurrency').argv
+
+function escapeRegexp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * @typedef {{ file: string, excludedCases: string[] }} TestFile
+ */
+
+const GROUP = process.env.CI ? '##[group]' : ''
+const ENDGROUP = process.env.CI ? '##[endgroup]' : ''
+
+const externalTestsFilter = getTestFilter()
+
+const timings = []
+const DEFAULT_NUM_RETRIES = 2
+const DEFAULT_CONCURRENCY = 2
+const RESULTS_EXT = `.results.json`
+const isTestJob = !!process.env.NEXT_TEST_JOB
+const KV_TIMINGS_KEY = 'test-timings'
+
+const kvClient =
+  process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
+    ? createClient({
+        url: process.env.KV_REST_API_URL,
+        token: process.env.KV_REST_API_TOKEN,
+      })
+    : null
+
+/**
+ * Retry a KV operation with exponential backoff
+ * @param {() => Promise<any>} operation - The async operation to retry
+ * @param {string} operationName - Name of the operation for logging
+ * @param {number} maxRetries - Maximum number of retries (default: 3)
+ * @returns {Promise<any>} The result of the operation
+ */
+async function retryKVOperation(operation, operationName, maxRetries = 3) {
+  let lastError
+  let retries = maxRetries
+
+  while (retries > 0) {
+    try {
+      return await operation()
+    } catch (err) {
+      lastError = err
+      retries--
+      if (retries > 0) {
+        const delay = (maxRetries - retries + 1) * 5 // 5s, 10s, 15s backoff
+        console.log(
+          `KV ${operationName} failed, retrying in ${delay}s. Error:`,
+          err.message
+        )
+        await new Promise((resolve) => setTimeout(resolve, delay * 1000))
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to ${operationName} after ${maxRetries} retries: ${lastError?.message}`
+  )
+}
+
+const testFilters = {
+  development: new RegExp('^(test/(development|e2e))'),
+  production: new RegExp('^(test/(production|e2e))'),
+  unit: new RegExp('^(test/unit|packages/.*/src|packages/next-codemod)'),
+  examples: 'examples/',
+  integration: 'test/integration/',
+  e2e: 'test/e2e/',
+}
+
+const mockTrace = () => ({
+  traceAsyncFn: (fn) => fn(mockTrace()),
+  traceFn: (fn) => fn(mockTrace()),
+  traceChild: () => mockTrace(),
+})
+
+// which types we have configured to run separate
+const configuredTestTypes = Object.values(testFilters)
+/** @type {Map<string, { output: string, failedCases: string[] }>} */
+const errorsPerTests = new Map()
+
+async function maybeLogSummary() {
+  if (process.env.CI && errorsPerTests.size > 0) {
+    const outputTemplate = `
+${Array.from(errorsPerTests.entries())
+  .map(([test, { output }]) => {
+    return `
+<details>
+<summary>${test}</summary>
+
+\`\`\`
+${output}
+\`\`\`
+
+</details>
+`
+  })
+  .join('\n')}`
+
+    // Build table rows with one row per failed test case
+    const tableRows = []
+    for (const [test, { failedCases }] of errorsPerTests.entries()) {
+      const testLink = `<a href="https://github.com/vercel/next.js/blob/canary/${test}">${test}</a>`
+      if (failedCases.length === 0) {
+        tableRows.push(['Unknown', testLink])
+      } else {
+        for (const caseName of failedCases) {
+          tableRows.push([caseName, testLink])
+        }
+      }
+    }
+
+    await core.summary
+      .addHeading('Tests failures')
+      .addTable([
+        [
+          { data: 'Test Name', header: true },
+          { data: 'Test Path', header: true },
+        ],
+        ...tableRows,
+      ])
+      .addRaw(outputTemplate)
+      .write()
+  }
+}
+
+let exiting = false
+
+const cleanUpAndExit = async (code) => {
+  if (exiting) {
+    return
+  }
+  exiting = true
+  console.log(`exiting with code ${code}`)
+
+  if (process.env.NEXT_TEST_STARTER) {
+    await fsp.rm(process.env.NEXT_TEST_STARTER, {
+      recursive: true,
+      force: true,
+    })
+  }
+  if (process.env.NEXT_TEST_TEMP_REPO) {
+    await fsp.rm(process.env.NEXT_TEST_TEMP_REPO, {
+      recursive: true,
+      force: true,
+    })
+  }
+  if (process.env.CI) {
+    await maybeLogSummary()
+  }
+  process.exit(code)
+}
+
+const isMatchingPattern = (pattern, file) => {
+  if (pattern instanceof RegExp) {
+    return pattern.test(file)
+  } else {
+    return file.startsWith(pattern)
+  }
+}
+
+async function getTestTimings() {
+  if (!kvClient) {
+    console.warn('KV client not configured, skipping timing fetch')
+    return null
+  }
+
+  const timings = await retryKVOperation(async () => {
+    const data = await kvClient.get(KV_TIMINGS_KEY)
+    if (!data) {
+      console.log('No timing data found in KV store')
+    }
+    return data
+  }, 'fetch timings')
+  return timings || null
+}
+
+async function main() {
+  // Ensure we have the arguments awaited from yargs.
+  argv = await argv
+
+  // Check for stale or missing build
+  await checkBuildFreshness()
+
+  // `.github/workflows/build_reusable.yml` sets this, we should use it unless
+  // it's overridden by an explicit `--concurrency` argument.
+  const envConcurrency =
+    process.env.TEST_CONCURRENCY && parseInt(process.env.TEST_CONCURRENCY, 10)
+
+  const options = {
+    concurrency: argv.concurrency ?? envConcurrency ?? DEFAULT_CONCURRENCY,
+    debug: argv.debug ?? false,
+    timings: argv.timings ?? false,
+    writeTimings: argv.writeTimings ?? false,
+    group: argv.group ?? false,
+    testPattern: argv.testPattern ?? false,
+    type: argv.type ?? false,
+    retries: argv.retries ?? DEFAULT_NUM_RETRIES,
+    requireTimings: argv.requireTimings ?? false,
+    dry: argv.dry ?? false,
+    local: argv.local ?? false,
+    printTests: argv.printTests ?? false,
+  }
+  let numRetries = options.retries
+  const hideOutput = !options.debug && !options.dry
+
+  let filterTestsBy
+
+  switch (options.type) {
+    case 'unit': {
+      numRetries = 0
+      filterTestsBy = testFilters.unit
+      break
+    }
+    case 'all': {
+      filterTestsBy = 'none'
+      break
+    }
+    default: {
+      filterTestsBy = testFilters[options.type]
+      break
+    }
+  }
+
+  console.log(
+    'Running tests with concurrency:',
+    options.concurrency,
+    'in test mode',
+    process.env.NEXT_TEST_MODE
+  )
+
+  // Only fetch/update shared timing data during grouped CI runs to avoid
+  // individual test runs from polluting the timing data
+  const shouldUseSharedTimings = options.timings && options.group
+
+  /** @type TestFile[] */
+  let tests = argv._.filter((arg) =>
+    arg.toString().match(/\.test\.(js|ts|tsx)/)
+  ).map((file) => ({ file: file.toString(), excludedCases: [] }))
+  let prevTimings
+
+  if (tests.length === 0) {
+    /** @type {RegExp | undefined} */
+    let testPatternRegex
+
+    if (options.testPattern && typeof options.testPattern === 'string') {
+      testPatternRegex = new RegExp(options.testPattern)
+    }
+
+    tests = (
+      await glob('**/*.test.{js,ts,tsx}', {
+        nodir: true,
+        cwd: __dirname,
+        ignore: '**/node_modules/**',
+      })
+    )
+      .filter((file) => {
+        if (testPatternRegex) {
+          return testPatternRegex.test(file)
+        }
+        if (filterTestsBy) {
+          // only include the specified type
+          if (filterTestsBy === 'none') {
+            return true
+          }
+          return isMatchingPattern(filterTestsBy, file)
+        }
+        // include all except the separately configured types
+        return !configuredTestTypes.some((type) =>
+          isMatchingPattern(type, file)
+        )
+      })
+      .map((file) => ({
+        file,
+        excludedCases: [],
+      }))
+
+    //
+  }
+
+  if (shouldUseSharedTimings) {
+    console.log('Fetching previous timings data')
+    const timingsFile = path.join(process.cwd(), 'test-timings.json')
+
+    try {
+      prevTimings = JSON.parse(await fsp.readFile(timingsFile, 'utf8'))
+      console.log('Loaded test timings from disk successfully')
+    } catch (_) {
+      if (options.requireTimings) {
+        console.error(
+          'ERROR: --require-timings is set but test-timings.json could not be loaded from disk:',
+          _
+        )
+        await cleanUpAndExit(1)
+        return
+      }
+      console.error(
+        'Failed to load test timings from disk. Proceeding to fetch from KV store. Original error: ',
+        _
+      )
+    }
+
+    if (!prevTimings && !options.requireTimings) {
+      try {
+        prevTimings = await getTestTimings()
+        if (prevTimings) {
+          console.log('Fetched previous timings data successfully from KV')
+        } else {
+          console.log('No previous timings data available')
+        }
+      } catch (kvError) {
+        console.warn(
+          'Failed to fetch timings from KV, continuing without timing data:',
+          kvError.message
+        )
+        prevTimings = null
+      }
+
+      if (options.writeTimings) {
+        if (prevTimings) {
+          await fsp.writeFile(timingsFile, JSON.stringify(prevTimings))
+          console.log('Wrote previous timings data to', timingsFile)
+        } else {
+          console.log('No timings data to write')
+        }
+        await cleanUpAndExit(0)
+      }
+    }
+  }
+
+  // If there are external manifest contains list of tests, apply it to the test lists.
+  if (externalTestsFilter) {
+    tests = externalTestsFilter(tests)
+  }
+
+  let testSet = new Set()
+  tests = tests
+    .map((test) => {
+      test.file = test.file.replace(/\\/g, '/').replace(/\/test$/, '')
+      return test
+    })
+    .filter((test) => {
+      if (testSet.has(test.file)) return false
+      testSet.add(test.file)
+      return true
+    })
+
+  if (options.group && typeof options.group === 'string') {
+    const groupParts = options.group.split('/')
+    const groupPos = parseInt(groupParts[0], 10)
+    const groupTotal = parseInt(groupParts[1], 10)
+
+    if (prevTimings) {
+      /** @type {TestFile[][]} */
+      const groups = [[]]
+      const groupTimes = [0]
+
+      for (const test of tests) {
+        let smallestGroup = groupTimes[0]
+        let smallestGroupIdx = 0
+
+        // get the smallest group time to add current one to
+        for (let i = 1; i < groupTotal; i++) {
+          if (!groups[i]) {
+            groups[i] = []
+            groupTimes[i] = 0
+          }
+
+          const time = groupTimes[i]
+          if (time < smallestGroup) {
+            smallestGroup = time
+            smallestGroupIdx = i
+          }
+        }
+        groups[smallestGroupIdx].push(test)
+        groupTimes[smallestGroupIdx] += prevTimings[test.file] || 1
+      }
+
+      const curGroupIdx = groupPos - 1
+      tests = groups[curGroupIdx]
+
+      console.log(
+        'Current group previous accumulated times:',
+        Math.round(groupTimes[curGroupIdx]) + 's'
+      )
+    } else {
+      if (options.requireTimings) {
+        console.error(
+          'ERROR: --require-timings is set but no timing data is available for sharding. ' +
+            'Ensure test-timings.json is provided.'
+        )
+        await cleanUpAndExit(1)
+        return
+      }
+
+      // assign every nth test "round-robin" to the group, so that similar slow
+      // tests tend not to get clustered together
+      tests = tests.filter((_value, idx) => idx % groupTotal === groupPos - 1)
+      console.log('Splitting without timings')
+
+      // Warn in CI that tests are not optimally distributed
+      if (process.env.GITHUB_ACTIONS) {
+        core.warning(
+          `Test timing data unavailable for group ${options.group}. Tests are being distributed round-robin, which may increase CI time. ` +
+            `Consider checking KV store connectivity if this persists.`
+        )
+      }
+    }
+  }
+
+  if (!tests) {
+    tests = []
+  }
+
+  if (tests.length === 0) {
+    console.log('No tests found for', options.type, 'exiting..')
+  }
+
+  console.log(`${GROUP}Running tests:
+${tests.map((t) => t.file).join('\n')}
+${ENDGROUP}`)
+  console.log(`total: ${tests.length}`)
+
+  if (options.printTests) {
+    await cleanUpAndExit(0)
+  }
+
+  if (
+    !options.dry &&
+    process.env.NEXT_TEST_MODE !== 'deploy' &&
+    ((options.type && options.type !== 'unit') ||
+      tests.some((test) => !testFilters.unit.test(test.file)))
+  ) {
+    // For isolated next tests (e2e, dev, prod) and integration tests we create
+    // a starter Next.js install to re-use to speed up tests to avoid having to
+    // run `pnpm install` each time.
+    console.log(`${GROUP}Creating shared Next.js install`)
+    const reactVersion =
+      process.env.NEXT_TEST_REACT_VERSION || nextjsReactPeerVersion
+    const { installDir, pkgPaths, tmpRepoDir } = await createNextInstall({
+      parentSpan: mockTrace(),
+      dependencies: {
+        react: reactVersion,
+        'react-dom': reactVersion,
+      },
+      keepRepoDir: true,
+    })
+
+    const serializedPkgPaths = []
+
+    for (const key of pkgPaths.keys()) {
+      serializedPkgPaths.push([key, pkgPaths.get(key)])
+    }
+    process.env.NEXT_TEST_PKG_PATHS = JSON.stringify(serializedPkgPaths)
+    process.env.NEXT_TEST_TEMP_REPO = tmpRepoDir
+    process.env.NEXT_TEST_STARTER = installDir
+    console.log(`${ENDGROUP}`)
+  }
+
+  const sema = new Sema(options.concurrency, { capacity: tests.length })
+  const outputSema = new Sema(1, { capacity: tests.length })
+  const children = new Set()
+  const jestPath = path.join(
+    __dirname,
+    'node_modules',
+    '.bin',
+    `jest${process.platform === 'win32' ? '.CMD' : ''}`
+  )
+  let firstError = true
+  let hadFailures = false
+
+  const runTestOnce = (/** @type {TestFile} */ test, isFinalRun, isRetry) =>
+    new Promise((resolve, reject) => {
+      const start = new Date().getTime()
+      let outputChunks = []
+
+      const args = [
+        ...(process.env.CI ? ['--ci'] : []),
+        '--runInBand',
+        '--forceExit',
+        '--no-cache',
+        '--verbose',
+        ...(isTestJob
+          ? ['--json', `--outputFile=${test.file}${RESULTS_EXT}`]
+          : []),
+        test.file,
+        ...(test.excludedCases.length === 0
+          ? []
+          : [
+              '--testNamePattern',
+              `^(?!(?:${test.excludedCases.map(escapeRegexp).join('|')})$).`,
+            ]),
+      ]
+      const deferNextTestWasm = !!process.env.NEXT_TEST_WASM
+      const env = {
+        // run tests in headless mode by default
+        HEADLESS: 'true',
+        NEXT_TELEMETRY_DISABLED: '1',
+        // unset CI env so CI behavior is only explicitly
+        // tested when enabled
+        CI: '',
+        // But some tests need to fork based on machine? CI? behavior differences
+        // Only use this in tests.
+        // For implementation forks, use `process.env.CI` instead
+        NEXT_TEST_CI: process.env.CI,
+
+        ...(options.local
+          ? {}
+          : {
+              IS_RETRY: isRetry ? 'true' : undefined,
+              TRACE_PLAYWRIGHT: 'true',
+              CIRCLECI: '',
+              GITHUB_ACTIONS: '',
+              CONTINUOUS_INTEGRATION: '',
+              RUN_ID: '',
+              BUILD_NUMBER: '',
+              // Format the output of junit report to include the test name
+              // For the debugging purpose to compare actual run list to the generated reports
+              // [NOTE]: This won't affect if junit reporter is not enabled
+              JEST_JUNIT_OUTPUT_NAME: test.file.replaceAll('/', '_'),
+              // Specify suite name for the test to avoid unexpected merging across different env / grouped tests
+              // This is not individual suites name (corresponding 'describe'), top level suite name which have redundant names by default
+              // [NOTE]: This won't affect if junit reporter is not enabled
+              JEST_SUITE_NAME: [
+                `${process.env.NEXT_TEST_MODE ?? 'default'}`,
+                options.group,
+                options.type,
+                test.file,
+              ]
+                .filter(Boolean)
+                .join(':'),
+            }),
+        ...(deferNextTestWasm
+          ? {
+              // Let Next/Jest initialize native SWC for the transformer first.
+              NEXT_TEST_WASM: undefined,
+              NEXT_TEST_WASM_AFTER_JEST: process.env.NEXT_TEST_WASM,
+            }
+          : {}),
+        ...(isFinalRun
+          ? {
+              // Events can be finicky in CI. This switches to a more
+              // reliable polling method.
+              // CHOKIDAR_USEPOLLING: 'true',
+              // CHOKIDAR_INTERVAL: 500,
+              // WATCHPACK_POLLING: 500,
+            }
+          : {}),
+      }
+
+      const handleOutput = (type) => (chunk) => {
+        if (hideOutput) {
+          outputChunks.push({ type, chunk })
+        } else {
+          process.stdout.write(chunk)
+        }
+      }
+      const stdout = handleOutput('stdout')
+      stdout(
+        [
+          ...Object.entries(env).map((e) => `${e[0]}=${e[1]}`),
+          jestPath,
+          ...args.map((a) => `'${a}'`),
+        ].join(' ') + '\n'
+      )
+
+      // Don't execute tests when in dry run mode
+      if (options.dry) {
+        return resolve(new Date().getTime() - start)
+      }
+
+      const child = spawn(jestPath, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          ...env,
+        },
+        // See: https://nodejs.org/en/blog/vulnerability/april-2024-security-releases-2
+        shell: process.platform === 'win32',
+      })
+      child.stdout.on('data', stdout)
+      child.stderr.on('data', handleOutput('stderr'))
+
+      children.add(child)
+
+      child.on('exit', async (code, signal) => {
+        children.delete(child)
+        const isChildExitWithNonZero = code !== 0 || signal !== null
+        if (isChildExitWithNonZero) {
+          if (hideOutput) {
+            await outputSema.acquire()
+            const isExpanded = firstError
+            if (isExpanded) {
+              firstError = false
+              process.stdout.write(`❌ ${test.file} output:\n`)
+            } else {
+              process.stdout.write(`${GROUP}❌ ${test.file} output\n`)
+            }
+
+            let output = ''
+            // limit out to last 64kb so that we don't
+            // run out of log room in CI
+            for (const { chunk } of outputChunks) {
+              process.stdout.write(chunk)
+              output += chunk.toString()
+            }
+
+            if (process.env.CI) {
+              errorsPerTests.set(test.file, { output, failedCases: [] })
+            }
+
+            if (isExpanded) {
+              process.stdout.write(`end of ${test.file} output\n`)
+            } else {
+              process.stdout.write(`end of ${test.file} output\n${ENDGROUP}\n`)
+            }
+            outputSema.release()
+          }
+          const err = new Error(
+            code ? `failed with code: ${code}` : `failed with signal: ${signal}`
+          )
+          // @ts-expect-error
+          err.output = outputChunks
+            .map(({ chunk }) => chunk.toString())
+            .join('')
+
+          return reject(err)
+        }
+
+        // If environment is CI and if this test execution is failed after retry, preserve test traces
+        // to upload into github actions artifacts for debugging purpose
+        const shouldPreserveTracesOutput =
+          (process.env.CI && isRetry && isChildExitWithNonZero) ||
+          process.env.PRESERVE_TRACES_OUTPUT
+        if (!shouldPreserveTracesOutput) {
+          await fsp
+            .rm(
+              path.join(
+                __dirname,
+                'test/traces',
+                path
+                  .relative(path.join(__dirname, 'test'), test.file)
+                  .replace(/\//g, '-')
+              ),
+              { recursive: true, force: true }
+            )
+            .catch(() => {})
+        }
+
+        resolve(new Date().getTime() - start)
+      })
+    })
+
+  const runTest = async (/** @type {TestFile} */ test) => {
+    let passed = false
+
+    for (let i = 0; i < numRetries + 1; i++) {
+      try {
+        console.log(`Starting ${test.file} retry ${i}/${numRetries}`)
+        const time = await runTestOnce(test, i === numRetries, i > 0)
+        timings.push({
+          file: test.file,
+          time,
+        })
+        passed = true
+        console.log(
+          `${test.file} finished on retry ${i}/${numRetries} in ${time / 1000}s`
+        )
+        break
+      } catch (err) {
+        if (i < numRetries) {
+          try {
+            let testDir = path.dirname(path.join(__dirname, test.file))
+
+            // if test is nested in a test folder traverse up a dir to ensure
+            // we clean up relevant test files
+            if (testDir.endsWith('/test') || testDir.endsWith('\\test')) {
+              testDir = path.join(testDir, '..')
+            }
+            console.log('Cleaning test files at', testDir)
+            await exec(`git clean -fdx "${testDir}"`)
+            await exec(`git checkout "${testDir}"`)
+          } catch (err) {}
+        } else {
+          console.error(`${test.file} failed due to ${err}`)
+        }
+      }
+    }
+
+    if (!passed) {
+      hadFailures = true
+      // "failed to pass within" is a keyword parsed by next-pr-webhook
+      console.error(`${test.file} failed to pass within ${numRetries} retries`)
+    }
+
+    // Emit test output, parsed by the commenter webhook to notify about failing tests.
+    // Also emit for all tests when NEXT_TEST_EMIT_ALL_OUTPUT is set (for manifest generation).
+    if ((!passed || process.env.NEXT_TEST_EMIT_ALL_OUTPUT) && isTestJob) {
+      try {
+        const testsOutput = await fsp.readFile(
+          `${test.file}${RESULTS_EXT}`,
+          'utf8'
+        )
+        const obj = JSON.parse(testsOutput)
+
+        // Extract failed test case names from Jest JSON output
+        if (!passed && process.env.CI) {
+          const failedCases = []
+          for (const testResult of obj.testResults || []) {
+            for (const assertion of testResult.assertionResults || []) {
+              if (assertion.status === 'failed') {
+                const caseName = [
+                  ...(assertion.ancestorTitles || []),
+                  assertion.title,
+                ].join(' > ')
+                failedCases.push(caseName)
+              }
+            }
+          }
+          // Update errorsPerTests with failed case names
+          const existing = errorsPerTests.get(test.file)
+          if (existing) {
+            existing.failedCases = failedCases
+          }
+        }
+
+        obj.processEnv = {
+          NEXT_TEST_MODE: process.env.NEXT_TEST_MODE,
+          HEADLESS: process.env.HEADLESS,
+        }
+        await outputSema.acquire()
+        if (GROUP) console.log(`${GROUP}Result as JSON for tooling`)
+        console.log(
+          `--test output start--`,
+          JSON.stringify(obj),
+          `--test output end--`
+        )
+        if (ENDGROUP) console.log(ENDGROUP)
+        outputSema.release()
+      } catch (err) {
+        console.log(`Failed to load test output`, err)
+      }
+    }
+  }
+
+  const directorySemas = new Map()
+
+  const results = await Promise.allSettled(
+    tests.map(async (test) => {
+      const dirName = path.dirname(test.file)
+      let dirSema = directorySemas.get(dirName)
+
+      // we only restrict 1 test per directory for
+      // legacy integration tests
+      if (/^test[/\\]integration/.test(test.file) && dirSema === undefined) {
+        directorySemas.set(dirName, (dirSema = new Sema(1)))
+      }
+      // TODO: Use explicit resource managment instead of this acquire/release pattern
+      // once CI runs with Node.js 24+.
+      if (dirSema) await dirSema.acquire()
+      await sema.acquire()
+
+      try {
+        await runTest(test)
+      } finally {
+        sema.release()
+        if (dirSema) dirSema.release()
+      }
+    })
+  )
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      hadFailures = true
+      console.error(result.reason)
+    }
+  }
+
+  if (options.timings) {
+    const curTimings = {}
+    // let junitData = `<testsuites name="jest tests">`
+    /*
+      <testsuite name="/__tests__/bar.test.js" tests="1" errors="0" failures="0" skipped="0" timestamp="2017-10-10T21:56:49" time="0.323">
+        <testcase classname="bar-should be bar" name="bar-should be bar" time="0.004">
+        </testcase>
+      </testsuite>
+    */
+
+    for (const timing of timings) {
+      const timeInSeconds = timing.time / 1000
+      curTimings[timing.file] = timeInSeconds
+
+      // junitData += `
+      //   <testsuite name="${timing.file}" file="${
+      //   timing.file
+      // }" tests="1" errors="0" failures="0" skipped="0" timestamp="${new Date().toJSON()}" time="${timeInSeconds}">
+      //     <testcase classname="tests suite should pass" name="${
+      //       timing.file
+      //     }" time="${timeInSeconds}"></testcase>
+      //   </testsuite>
+      // `
+    }
+    // junitData += `</testsuites>`
+    // console.log('output timing data to junit.xml')
+
+    if (shouldUseSharedTimings) {
+      if (kvClient) {
+        try {
+          // Fetch existing timings and merge with new ones
+          const existingTimings = (await getTestTimings()) || {}
+          const newTimings = {
+            ...existingTimings,
+            ...curTimings,
+          }
+
+          // Clean up stale timings for deleted tests
+          for (const test of Object.keys(newTimings)) {
+            if (!existsSync(path.join(__dirname, test))) {
+              console.log('removing stale timing', test)
+              delete newTimings[test]
+            }
+          }
+
+          // Update KV store with retries
+          await retryKVOperation(async () => {
+            await kvClient.set(KV_TIMINGS_KEY, newTimings)
+            console.log('Successfully updated test timings in KV store')
+          }, 'update timings')
+        } catch (err) {
+          console.log('Failed to update timings data', err)
+        }
+      } else {
+        console.warn('KV client not configured, skipping timing update')
+      }
+    }
+  }
+
+  return hadFailures
+}
+
+main().then(
+  (hadFailures) => {
+    if (hadFailures) {
+      console.error('Some tests failed')
+      return cleanUpAndExit(1)
+    } else {
+      return cleanUpAndExit(0)
+    }
+  },
+  (reason) => {
+    console.error(reason)
+    return cleanUpAndExit(1)
+  }
+)
+
+
+# FILE: run-evals.js
+#!/usr/bin/env node
+// @ts-check
+/**
+ * Pack the locally-built `next` package and run agent evals against it.
+ *
+ *   pnpm eval <eval-name>             run one eval, both variants (baseline + AGENTS.md)
+ *   pnpm eval <eval-name> --dry       preview without executing
+ *   pnpm eval --all                   run every eval (slow — normally only CI does this)
+ *   NEXT_SKIP_PACK=1 pnpm eval ...    reuse tarball from last run
+ *
+ * Mirrors run-tests.js: pack once, hand paths to child via env, forward args.
+ *
+ * We only pack `next`, not the whole workspace. The sandbox is remote Linux:
+ *   - @next/swc: local darwin binary wouldn't run there; the sandbox downloads
+ *     the right one at runtime (packages/next/src/build/swc/index.ts).
+ *   - @next/env etc: resolved from npm at the pinned canary version.
+ *
+ * The experiments/ dir is generated fresh on every run and gitignored. This
+ * keeps the two variants (baseline vs. AGENTS.md) in one place instead of
+ * maintaining N committed experiment files that only differ by one line.
+ */
+const path = require('path')
+const fs = require('fs')
+const { execFileSync, spawnSync } = require('child_process')
+
+const ROOT = __dirname
+
+const EVALS_DIR = path.join(ROOT, 'evals')
+const FIXTURES_DIR = path.join(EVALS_DIR, 'evals')
+const EXPERIMENTS_DIR = path.join(EVALS_DIR, 'experiments')
+const TARBALL_DIR = path.join(EVALS_DIR, '.tarballs')
+const TARBALL = path.join(TARBALL_DIR, 'next.tgz')
+
+// The two variants we always compare. Order matters for output readability:
+// baseline first so a contributor sees "does the agent fail without docs?"
+// before "does it pass with docs?".
+const VARIANTS = [
+  {
+    suffix: 'baseline',
+    imports: `import { installNextJs } from '../lib/setup.js'`,
+    setup: `await installNextJs(sandbox)`,
+  },
+  {
+    suffix: 'agents-md',
+    imports: `import { installNextJs, writeAgentsMd } from '../lib/setup.js'`,
+    setup: `await installNextJs(sandbox)\n    await writeAgentsMd(sandbox)`,
+  },
+]
+
+function pack() {
+  fs.mkdirSync(TARBALL_DIR, { recursive: true })
+  const out = execFileSync(
+    'pnpm',
+    ['pack', '--pack-destination', TARBALL_DIR],
+    { cwd: path.join(ROOT, 'packages/next'), encoding: 'utf8' }
+  )
+  const produced = out.trim().split('\n').pop()
+  const src = path.isAbsolute(produced)
+    ? produced
+    : path.join(TARBALL_DIR, produced)
+  fs.renameSync(src, TARBALL)
+}
+
+/** @param {string | null} evalName  null means all evals */
+function writeExperiments(evalName) {
+  fs.rmSync(EXPERIMENTS_DIR, { recursive: true, force: true })
+  fs.mkdirSync(EXPERIMENTS_DIR, { recursive: true })
+
+  const evalsField = evalName ? `\n  evals: '${evalName}',` : ''
+  for (const v of VARIANTS) {
+    const body = `import type { ExperimentConfig } from '@vercel/agent-eval'
+${v.imports}
+
+const config: ExperimentConfig = {
+  agent: 'claude-code',
+  model: 'claude-opus-4-6',${evalsField}
+  scripts: ['build'],
+  runs: 1,
+  earlyExit: true,
+  timeout: 720,
+  sandbox: 'auto',
+  setup: async (sandbox) => {
+    ${v.setup}
+  },
+}
+
+export default config
+`
+    fs.writeFileSync(path.join(EXPERIMENTS_DIR, `${v.suffix}.ts`), body)
+  }
+}
+
+function listEvals() {
+  return fs
+    .readdirSync(FIXTURES_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+}
+
+function main() {
+  const argv = require('yargs/yargs')(process.argv.slice(2))
+    .command(
+      '$0 [eval-name]',
+      'Run an eval (baseline + agents-md variants)',
+      (y) =>
+        y.positional('eval-name', {
+          type: 'string',
+          describe: 'Fixture directory name',
+        })
+    )
+    .boolean('all')
+    .describe('all', 'Run every eval (slow — normally only CI does this)')
+    .boolean('dry')
+    .describe('dry', 'Preview without executing')
+    .conflicts('all', 'eval-name')
+    .check((argv) => {
+      if (!argv.all && !argv.evalName) {
+        throw new Error(
+          `Missing <eval-name>.\n\nAvailable evals:\n${listEvals()
+            .map((n) => `  ${n}`)
+            .join('\n')}`
+        )
+      }
+      if (
+        argv.evalName &&
+        !fs.existsSync(path.join(FIXTURES_DIR, argv.evalName))
+      ) {
+        throw new Error(
+          `Unknown eval: ${argv.evalName}\n(looked in ${FIXTURES_DIR})`
+        )
+      }
+      return true
+    })
+    .strict()
+    .help().argv
+
+  /** @type {string | null} */
+  const evalName = argv.all ? null : /** @type {string} */ (argv.evalName)
+  // Flags not consumed here are forwarded to agent-eval.
+  const forward = argv.dry ? ['--dry'] : []
+
+  if (!fs.existsSync(path.join(ROOT, 'packages/next/dist'))) {
+    console.error(
+      'packages/next/dist not found. Run `pnpm --filter=next build` first.'
+    )
+    process.exit(1)
+  }
+
+  if (process.env.NEXT_SKIP_PACK && fs.existsSync(TARBALL)) {
+    console.log('> Reusing existing tarball (NEXT_SKIP_PACK=1)')
+  } else {
+    console.log('> Packing next...')
+    pack()
+    const mb = (fs.statSync(TARBALL).size / 1024 / 1024).toFixed(1)
+    console.log(`  ${TARBALL} (${mb} MB)`)
+  }
+
+  // agent-eval loads .env / .env.local from its own cwd (evals/). `vc env pull`
+  // writes to the repo root, so symlink them into evals/ for agent-eval to find.
+  for (const envFile of ['.env', '.env.local']) {
+    const src = path.join(ROOT, envFile)
+    const dest = path.join(EVALS_DIR, envFile)
+    try {
+      // Remove stale symlink or file before creating a fresh one.
+      fs.rmSync(dest, { force: true })
+      if (fs.existsSync(src)) {
+        fs.symlinkSync(src, dest)
+      }
+    } catch {}
+  }
+
+  writeExperiments(evalName)
+  console.log(
+    evalName
+      ? `> Running ${evalName} (baseline + agents-md)`
+      : '> Running all evals (baseline + agents-md)'
+  )
+
+  // Same handoff pattern as run-tests.js with NEXT_TEST_PKG_PATHS. We invoke
+  // the bin directly rather than via `pnpm exec` because pnpm resets cwd to
+  // the workspace root, but agent-eval resolves experiments/ from process.cwd().
+  const bin = path.join(ROOT, 'node_modules/.bin/agent-eval')
+  const result = spawnSync(bin, ['run-all', '--force', ...forward], {
+    cwd: EVALS_DIR,
+    stdio: 'inherit',
+    env: { ...process.env, NEXT_EVAL_TARBALL: TARBALL },
+  })
+  if (result.error) {
+    // ENOENT (missing bin), EACCES, etc. — spawnSync returns status: null
+    // without printing anything, so surface it.
+    console.error(`Failed to run ${bin}: ${result.error.message}`)
+    if (/** @type {NodeJS.ErrnoException} */ (result.error).code === 'ENOENT') {
+      console.error('Did you run `pnpm install`?')
+    }
+    process.exit(1)
+  }
+  process.exit(result.status ?? 1)
+}
+
+main()
+
+
+# FILE: release.js
+// section -> label
+const sectionLabelMap = {
+  'Core Changes': 'type: next',
+  'Documentation Changes': 'documentation',
+  'Example Changes': 'examples',
+}
+
+const fallbackSection = 'Misc Changes'
+
+// --------------------------------------------------
+
+const prNumberRegex = /\(#([-0-9]+)\)$/
+
+const getCommitPullRequest = async (commit, github) => {
+  const match = prNumberRegex.exec(commit.title)
+
+  if (!match) {
+    return null
+  }
+
+  const number = parseInt(match[1], 10)
+
+  if (!number) {
+    return null
+  }
+
+  const { data } = await github.connection.pullRequests.get({
+    owner: github.repoDetails.user,
+    repo: github.repoDetails.repo,
+    number,
+  })
+
+  return data
+}
+
+const getSectionForPullRequest = (pullRequest) => {
+  const { labels } = pullRequest
+
+  // sections defined first will take priority
+  for (const [section, label] of Object.entries(sectionLabelMap)) {
+    if (labels.some((prLabel) => prLabel.name === label)) {
+      return section
+    }
+  }
+
+  return null
+}
+
+const groupByLabels = async (commits, github) => {
+  // Initialize the sections object with empty arrays
+  const sections = Object.keys(sectionLabelMap).reduce((sections, section) => {
+    sections[section] = []
+    return sections
+  }, {})
+  sections.__fallback = []
+
+  for (const commit of commits) {
+    const pullRequest = await getCommitPullRequest(commit, github)
+
+    if (pullRequest) {
+      const section = getSectionForPullRequest(pullRequest)
+
+      if (section) {
+        // Add the change to the respective section
+        sections[section].push({
+          title: pullRequest.title,
+          number: pullRequest.number,
+        })
+
+        continue
+      }
+
+      // No section found, add it to the fallback section
+      sections.__fallback.push({
+        title: pullRequest.title,
+        number: pullRequest.number,
+      })
+
+      continue
+    }
+
+    // No Pull Request found, add it to the fallback section but without the number
+    sections.__fallback.push({
+      title: commit.title,
+    })
+  }
+
+  return sections
+}
+
+function cleanupPRTitle(title) {
+  if (title.startsWith('[Docs] ')) {
+    return title.replace('[Docs] ', '')
+  }
+
+  return title
+}
+
+const buildChangelog = (sections, authors) => {
+  let text = ''
+
+  for (const section in sections) {
+    const changes = sections[section]
+
+    // No changes in this section? Don't render it
+    if (changes.length === 0) {
+      continue
+    }
+
+    const title = section === '__fallback' ? fallbackSection : section
+    text += `### ${title}\n\n`
+
+    for (const change of changes) {
+      const numberText = change.number != null ? `: #${change.number}` : ''
+
+      text += `- ${cleanupPRTitle(change.title)}${numberText}\n`
+    }
+
+    text += '\n'
+  }
+
+  if (authors.size > 0) {
+    text += '### Credits \n\n'
+    text += 'Huge thanks to '
+
+    let index = 1
+    authors.forEach((author) => {
+      // GitHub links usernames if prefixed with @
+      text += `@${author}`
+
+      const penultimate = index === authors.size - 1
+      const notLast = index !== authors.size
+
+      if (penultimate) {
+        // Oxford comma is applied when list is bigger than 2 names
+        if (authors.size > 2) {
+          text += ','
+        }
+
+        text += ' and '
+      } else if (notLast) {
+        text += ', '
+      }
+
+      index += 1
+    })
+
+    text += ' for helping!'
+    text += '\n'
+  }
+
+  return text
+}
+
+module.exports = async (markdown, metadata) => {
+  const { commits, authors, githubConnection, repoDetails } = metadata
+
+  const github = { connection: githubConnection, repoDetails }
+
+  const sections = await groupByLabels(commits.all, github)
+  const changelog = buildChangelog(sections, authors)
+
+  return changelog
+}
+
+
+# FILE: readme.md
+<div align="center">
+  <a href="https://nextjs.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_dark_background.png">
+      <img alt="Next.js logo" src="https://assets.vercel.com/image/upload/v1662130559/nextjs/Icon_light_background.png" height="128">
+    </picture>
+  </a>
+  <h1>Next.js</h1>
+
+<a href="https://vercel.com"><img alt="Vercel logo" src="https://img.shields.io/badge/MADE%20BY%20Vercel-000000.svg?style=for-the-badge&logo=Vercel&labelColor=000"></a>
+<a href="https://www.npmjs.com/package/next"><img alt="NPM version" src="https://img.shields.io/npm/v/next.svg?style=for-the-badge&labelColor=000000"></a>
+<a href="https://github.com/vercel/next.js/blob/canary/license.md"><img alt="License" src="https://img.shields.io/npm/l/next.svg?style=for-the-badge&labelColor=000000"></a>
+<a href="https://github.com/vercel/next.js/discussions"><img alt="Join the community on GitHub" src="https://img.shields.io/badge/Join%20the%20community-blueviolet.svg?style=for-the-badge&logo=Next.js&labelColor=000000&logoWidth=20"></a>
+
+</div>
+
+## Getting Started
+
+Used by some of the world's largest companies, Next.js enables you to create full-stack web applications by extending the latest React features, and integrating powerful Rust-based JavaScript tooling for the fastest builds.
+
+- Visit our [Learn Next.js](https://nextjs.org/learn) course to get started with Next.js.
+- Visit the [Next.js Showcase](https://nextjs.org/showcase) to see more sites built with Next.js.
+
+## Documentation
+
+Visit [https://nextjs.org/docs](https://nextjs.org/docs) to view the full documentation.
+
+## Community
+
+The Next.js community can be found on [GitHub Discussions](https://github.com/vercel/next.js/discussions) where you can ask questions, voice ideas, and share your projects with other people.
+
+To chat with other community members you can join the Next.js [Discord](https://nextjs.org/discord) server.
+
+Do note that our [Code of Conduct](https://github.com/vercel/next.js/blob/canary/CODE_OF_CONDUCT.md) applies to all Next.js community channels. Users are **highly encouraged** to read and adhere to it to avoid repercussions.
+
+## Contributing
+
+Contributions to Next.js are welcome and highly appreciated. However, before you jump right into it, we would like you to review our [Contribution Guidelines](/contributing.md) to make sure you have a smooth experience contributing to Next.js.
+
+### Good First Issues:
+
+We have a list of **[good first issues](https://github.com/vercel/next.js/labels/good%20first%20issue)** that contain bugs that have a relatively limited scope. This is a great place for newcomers and beginners alike to get started, gain experience, and get familiar with our contribution process.
+
+---
+## Security
+
+If you believe you have found a security vulnerability in Next.js, we encourage you to **_responsibly disclose this and NOT open a public issue_**.
+
+To participate in our Open Source Software Bug Bounty program, please email [responsible.disclosure@vercel.com](mailto:responsible.disclosure@vercel.com). We will add you to the program and provide further instructions for submitting your report.
+
+
+# FILE: pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'bench/*'
+  - 'crates/*/js'
+  - 'turbopack/crates/*/js'
+  - 'turbopack/crates/turbopack-tests/tests/execution'
+  - 'turbopack/packages/*'
+updateNotifier: false
+
+
+# FILE: pnpm-lock.yaml
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+overrides:
+  webpack: 5.98.0
+  browserslist: 4.28.1
+  caniuse-lite: 1.0.30001746
+  '@types/node': 20.17.6
+  '@babel/core': 7.26.10
+  '@babel/parser': 7.27.0
+  '@babel/types': 7.27.0
+  '@babel/traverse': 7.27.0
+  '@types/react': 19.2.10
+  '@types/react-dom': 19.2.3
+  '@types/retry': 0.12.0
+  jest-snapshot: 30.0.0-alpha.6
+  react: npm:react@19.3.0-canary-74568e86-20260328
+  react-dom: npm:react-dom@19.3.0-canary-74568e86-20260328
+  react-is: npm:react-is@19.3.0-canary-74568e86-20260328
+  scheduler: npm:scheduler@0.28.0-canary-74568e86-20260328
+
+packageExtensionsChecksum: 2c0398c5f3e8ad5816061c5823d227e9
+
+patchedDependencies:
+  '@types/node@20.17.6':
+    hash: rvl3vkomen3tospgr67bzubfyu
+    path: patches/@types__node@20.17.6.patch
+  http-proxy@1.18.1:
+    hash: eyqcxg3pntyhqyqr5zytxa7pbi
+    path: patches/http-proxy@1.18.1.patch
+  minizlib@3.1.0:
+    hash: o4nv5mg6kfnuzlknbdln3azhvu
+    path: patches/minizlib@3.1.0.patch
+  stacktrace-parser@0.1.10:
+    hash: x5tdcojc7b5m2b5ojepbcdl36a
+    path: patches/stacktrace-parser@0.1.10.patch
+  taskr@1.1.0:
+    hash: utitb3olraq7egc3hk7waltisu
+    path: patches/taskr@1.1.0.patch
+  webpack-sources@3.2.3:
+    hash: jbynf5dc46ambamq3wuyho6hkq
+    path: patches/webpack-sources@3.2.3.patch
+
+importers:
+
+  .:
+    devDependencies:
+      '@actions/core':
+        specifier: 1.10.1
+        version: 1.10.1
+      '@ast-grep/cli':
+        specifier: 0.31.0
+        version: 0.31.0
+      '@babel/core':
+        specifier: 7.26.10
+        version: 7.26.10
+      '@babel/eslint-parser':
+        specifier: 7.24.6
+        version: 7.24.6(@babel/core@7.26.10)(eslint@9.37.0(jiti@2.6.1))
+      '@babel/generator':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@babel/parser':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@babel/plugin-syntax-explicit-resource-management':
+        specifier: 7.25.7
+        version: 7.25.7(@babel/core@7.26.10)
+      '@babel/plugin-transform-object-rest-spread':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/preset-react':
+        specifier: 7.26.3
+        version: 7.26.3(@babel/core@7.26.10)
+      '@edge-runtime/jest-environment':
+        specifier: 4.0.0
+        version: 4.0.0
+      '@emotion/cache':
+        specifier: 11.11.0
+        version: 11.11.0
+      '@emotion/react':
+        specifier: 11.11.1
+        version: 11.11.1(@types/react@19.2.10)(react@19.3.0-canary-74568e86-20260328)
+      '@eslint/compat':
+        specifier: 1.4.0
+        version: 1.4.0(eslint@9.37.0(jiti@2.6.1))
+      '@eslint/eslintrc':
+        specifier: ^3
+        version: 3.3.1
+      '@eslint/js':
+        specifier: 9.37.0
+        version: 9.37.0
+      '@fullhuman/postcss-purgecss':
+        specifier: 1.3.0
+        version: 1.3.0
+      '@jest/expect-utils':
+        specifier: 29.7.0
+        version: 29.7.0
+      '@mdx-js/loader':
+        specifier: 2.2.1
+        version: 2.2.1(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
+      '@mdx-js/react':
+        specifier: 2.2.1
+        version: 2.2.1(react@19.3.0-canary-74568e86-20260328)
+      '@next/bundle-analyzer':
+        specifier: workspace:*
+        version: link:packages/next-bundle-analyzer
+      '@next/env':
+        specifier: workspace:*
+        version: link:packages/next-env
+      '@next/eslint-plugin-next':
+        specifier: workspace:*
+        version: link:packages/eslint-plugin-next
+      '@next/font':
+        specifier: workspace:*
+        version: link:packages/font
+      '@next/mdx':
+        specifier: workspace:*
+        version: link:packages/next-mdx
+      '@next/playwright':
+        specifier: workspace:*
+        version: link:packages/next-playwright
+      '@next/plugin-storybook':
+        specifier: workspace:*
+        version: link:packages/next-plugin-storybook
+      '@next/polyfill-module':
+        specifier: workspace:*
+        version: link:packages/next-polyfill-module
+      '@next/polyfill-nomodule':
+        specifier: workspace:*
+        version: link:packages/next-polyfill-nomodule
+      '@next/swc':
+        specifier: workspace:*
+        version: link:packages/next-swc
+      '@next/third-parties':
+        specifier: workspace:*
+        version: link:packages/third-parties
+      '@opentelemetry/api':
+        specifier: 1.4.1
+        version: 1.4.1
+      '@picocss/pico':
+        specifier: 1.5.10
+        version: 1.5.10
+      '@rspack/core':
+        specifier: 1.6.7
+        version: 1.6.7(@swc/helpers@0.5.15)
+      '@slack/web-api':
+        specifier: 7.9.1
+        version: 7.9.1
+      '@swc/cli':
+        specifier: 0.1.55
+        version: 0.1.55(@swc/core@1.11.24(@swc/helpers@0.5.15))(chokidar@3.6.0)
+      '@swc/core':
+        specifier: 1.11.24
+        version: 1.11.24(@swc/helpers@0.5.15)
+      '@swc/helpers':
+        specifier: 0.5.15
+        version: 0.5.15
+      '@swc/types':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@taskr/esnext':
+        specifier: 1.1.0
+        version: 1.1.0
+      '@testing-library/jest-dom':
+        specifier: 6.1.2
+        version: 6.1.2(@jest/globals@29.7.0)(@types/jest@29.5.5)(jest@29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0))
+      '@testing-library/react':
+        specifier: ^15.0.5
+        version: 15.0.7(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@types/busboy':
+        specifier: 1.5.3
+        version: 1.5.3
+      '@types/cheerio':
+        specifier: 0.22.16
+        version: 0.22.16
+      '@types/cookie':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@types/cross-spawn':
+        specifier: 6.0.0
+        version: 6.0.0
+      '@types/fs-extra':
+        specifier: 8.1.0
+        version: 8.1.0
+      '@types/glob':
+        specifier: 7.1.1
+        version: 7.1.1
+      '@types/html-validator':
+        specifier: 5.0.3
+        version: 5.0.3
+      '@types/http-proxy':
+        specifier: 1.17.17
+        version: 1.17.17
+      '@types/jest':
+        specifier: 29.5.5
+        version: 29.5.5
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+      '@types/node-fetch':
+        specifier: 2.6.1
+        version: 2.6.1
+      '@types/react':
+        specifier: 19.2.10
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.10)
+      '@types/relay-runtime':
+        specifier: 14.1.13
+        version: 14.1.13
+      '@types/shell-quote':
+        specifier: 1.7.1
+        version: 1.7.1
+      '@types/string-hash':
+        specifier: 1.1.1
+        version: 1.1.1
+      '@types/trusted-types':
+        specifier: 2.0.3
+        version: 2.0.3
+      '@types/yargs':
+        specifier: 16.0.11
+        version: 16.0.11
+      '@vercel/agent-eval':
+        specifier: 0.9.5
+        version: 0.9.5
+      '@vercel/devlow-bench':
+        specifier: workspace:*
+        version: link:turbopack/packages/devlow-bench
+      '@vercel/kv':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@vercel/og':
+        specifier: 0.11.1
+        version: 0.11.1
+      abort-controller:
+        specifier: 3.0.0
+        version: 3.0.0
+      alex:
+        specifier: 9.1.0
+        version: 9.1.0
+      async-sema:
+        specifier: 3.0.1
+        version: 3.0.1
+      babel-plugin-react-compiler:
+        specifier: 0.0.0-experimental-1371fcb-20260227
+        version: 0.0.0-experimental-1371fcb-20260227
+      browserslist:
+        specifier: 4.28.1
+        version: 4.28.1
+      buffer:
+        specifier: 5.6.0
+        version: 5.6.0
+      cheerio:
+        specifier: 0.22.0
+        version: 0.22.0
+      cookie:
+        specifier: 0.4.1
+        version: 0.4.1
+      cors:
+        specifier: 2.8.5
+        version: 2.8.5
+      coveralls:
+        specifier: 3.0.3
+        version: 3.0.3
+      create-next-app:
+        specifier: workspace:*
+        version: link:packages/create-next-app
+      critters:
+        specifier: 0.0.6
+        version: 0.0.6
+      cross-env:
+        specifier: 6.0.3
+        version: 6.0.3
+      cross-spawn:
+        specifier: 6.0.5
+        version: 6.0.5
+      dd-trace:
+        specifier: 4.12.0
+        version: 4.12.0
+      es5-ext:
+        specifier: 0.10.53
+        version: 0.10.53
+      escape-string-regexp:
+        specifier: 2.0.0
+        version: 2.0.0
+      eslint:
+        specifier: 9.37.0
+        version: 9.37.0(jiti@2.6.1)
+      eslint-config-next:
+        specifier: workspace:*
+        version: link:packages/eslint-config-next
+      eslint-formatter-codeframe:
+        specifier: 7.32.1
+        version: 7.32.1
+      eslint-plugin-eslint-plugin:
+        specifier: 5.2.1
+        version: 5.2.1(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import:
+        specifier: 2.31.0
+        version: 2.31.0(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-jest:
+        specifier: 27.6.3
+        version: 27.6.3(eslint@9.37.0(jiti@2.6.1))(jest@29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0))(typescript@5.9.2)
+      eslint-plugin-jsdoc:
+        specifier: 48.0.4
+        version: 48.0.4(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-mdx:
+        specifier: 3.1.5
+        version: 3.1.5(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-react:
+        specifier: 7.37.0
+        version: 7.37.0(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-react-hooks:
+        specifier: 0.0.0-experimental-ab18f33d-20260220
+        version: 0.0.0-experimental-ab18f33d-20260220(eslint@9.37.0(jiti@2.6.1))
+      event-stream:
+        specifier: 4.0.1
+        version: 4.0.1
+      execa:
+        specifier: 2.0.3
+        version: 2.0.3
+      expect:
+        specifier: 29.7.0
+        version: 29.7.0
+      expect-type:
+        specifier: 0.14.2
+        version: 0.14.2
+      express:
+        specifier: 4.17.0
+        version: 4.17.0
+      faker:
+        specifier: 5.5.3
+        version: 5.5.3
+      faunadb:
+        specifier: 2.6.1
+        version: 2.6.1
+      find-up:
+        specifier: 4.1.0
+        version: 4.1.0
+      firebase:
+        specifier: 7.14.5
+        version: 7.14.5
+      flat:
+        specifier: 5.0.2
+        version: 5.0.2
+      fs-extra:
+        specifier: 9.0.0
+        version: 9.0.0
+      get-port:
+        specifier: 5.1.1
+        version: 5.1.1
+      get-port-please:
+        specifier: 3.1.1
+        version: 3.1.1
+      glob:
+        specifier: 7.1.6
+        version: 7.1.6
+      globals:
+        specifier: 16.4.0
+        version: 16.4.0
+      gzip-size:
+        specifier: 5.1.1
+        version: 5.1.1
+      html-validator:
+        specifier: 5.1.18
+        version: 5.1.18
+      http-proxy:
+        specifier: 1.18.1
+        version: 1.18.1(patch_hash=eyqcxg3pntyhqyqr5zytxa7pbi)
+      husky:
+        specifier: 9.0.11
+        version: 9.0.11
+      image-size:
+        specifier: 1.2.1
+        version: 1.2.1
+      is-animated:
+        specifier: 2.0.2
+        version: 2.0.2
+      isomorphic-unfetch:
+        specifier: 3.0.0
+        version: 3.0.0(encoding@0.1.13)
+      jest:
+        specifier: 29.7.0
+        version: 29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0)
+      jest-diff:
+        specifier: 29.7.0
+        version: 29.7.0
+      jest-environment-jsdom:
+        specifier: 29.7.0
+        version: 29.7.0
+      jest-extended:
+        specifier: 4.0.2
+        version: 4.0.2(jest@29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0))
+      jest-junit:
+        specifier: 16.0.0
+        version: 16.0.0
+      jest-snapshot:
+        specifier: 30.0.0-alpha.6
+        version: 30.0.0-alpha.6
+      json5:
+        specifier: 2.2.3
+        version: 2.2.3
+      kleur:
+        specifier: ^4.1.0
+        version: 4.1.3
+      ky:
+        specifier: 0.19.1
+        version: 0.19.1
+      ky-universal:
+        specifier: 0.6.0
+        version: 0.6.0(encoding@0.1.13)(ky@0.19.1)
+      lerna:
+        specifier: 9.0.3
+        version: 9.0.3(@swc/core@1.11.24(@swc/helpers@0.5.15))(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0)
+      lint-staged:
+        specifier: 15.2.2
+        version: 15.2.2
+      lodash:
+        specifier: 4.17.23
+        version: 4.17.23
+      lost:
+        specifier: 8.3.1
+        version: 8.3.1
+      minimatch:
+        specifier: 3.0.4
+        version: 3.0.4
+      moment:
+        specifier: ^2.24.0
+        version: 2.24.0
+      nanoid:
+        specifier: 3.1.30
+        version: 3.1.30
+      next:
+        specifier: workspace:*
+        version: link:packages/next
+      node-fetch:
+        specifier: 2.6.7
+        version: 2.6.7(encoding@0.1.13)
+      node-plop:
+        specifier: 0.31.1
+        version: 0.31.1
+      npm-run-all:
+        specifier: 4.1.5
+        version: 4.1.5
+      nprogress:
+        specifier: 0.2.0
+        version: 0.2.0
+      octokit:
+        specifier: 3.1.0
+        version: 3.1.0
+      outdent:
+        specifier: 0.8.0
+        version: 0.8.0
+      pixrem:
+        specifier: 5.0.0
+        version: 5.0.0
+      playwright:
+        specifier: 1.58.2
+        version: 1.58.2
+      playwright-chromium:
+        specifier: 1.58.2
+        version: 1.58.2
+      postcss:
+        specifier: 8.4.31
+        version: 8.4.31
+      postcss-nested:
+        specifier: 4.2.1
+        version: 4.2.1
+      postcss-pseudoelements:
+        specifier: 5.0.0
+        version: 5.0.0
+      postcss-short-size:
+        specifier: 4.0.0
+        version: 4.0.0
+      postcss-trolling:
+        specifier: 0.1.7
+        version: 0.1.7
+      prettier:
+        specifier: 3.6.2
+        version: 3.6.2
+      pretty-bytes:
+        specifier: 5.3.0
+        version: 5.3.0
+      pretty-ms:
+        specifier: 7.0.0
+        version: 7.0.0
+      random-seed:
+        specifier: 0.3.0
+        version: 0.3.0
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      react-builtin:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: react@19.3.0-canary-74568e86-20260328
+      react-dom:
+        specifier: npm:react-dom@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+      react-dom-builtin:
+        specifier: npm:react-dom@19.3.0-canary-74568e86-20260328
+        version: react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+      react-dom-experimental-builtin:
+        specifier: npm:react-dom@0.0.0-experimental-74568e86-20260328
+        version: react-dom@0.0.0-experimental-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+      react-experimental-builtin:
+        specifier: npm:react@0.0.0-experimental-74568e86-20260328
+        version: react@0.0.0-experimental-74568e86-20260328
+      react-is-builtin:
+        specifier: npm:react-is@19.3.0-canary-74568e86-20260328
+        version: react-is@19.3.0-canary-74568e86-20260328
+      react-server-dom-turbopack:
+        specifier: npm:react-server-dom-turbopack@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      react-server-dom-turbopack-experimental:
+        specifier: npm:react-server-dom-turbopack@0.0.0-experimental-74568e86-20260328
+        version: react-server-dom-turbopack@0.0.0-experimental-74568e86-20260328(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      react-server-dom-webpack:
+        specifier: npm:react-server-dom-webpack@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
+      react-server-dom-webpack-experimental:
+        specifier: npm:react-server-dom-webpack@0.0.0-experimental-74568e86-20260328
+        version: react-server-dom-webpack@0.0.0-experimental-74568e86-20260328(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
+      react-ssr-prepass:
+        specifier: 1.0.8
+        version: 1.0.8(react-is@19.3.0-canary-74568e86-20260328)(react@19.3.0-canary-74568e86-20260328)
+      react-virtualized:
+        specifier: 9.22.3
+        version: 9.22.3(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      relay-compiler:
+        specifier: 13.0.2
+        version: 13.0.2
+      relay-runtime:
+        specifier: 13.0.2
+        version: 13.0.2
+      release:
+        specifier: 6.3.1
+        version: 6.3.1(encoding@0.1.13)
+      request-promise-core:
+        specifier: 1.1.2
+        version: 1.1.2(request@2.88.2)
+      resolve-from:
+        specifier: 5.0.0
+        version: 5.0.0
+      sass:
+        specifier: 1.54.0
+        version: 1.54.0
+      satori:
+        specifier: 0.25.0
+        version: 0.25.0
+      scheduler-builtin:
+        specifier: npm:scheduler@0.28.0-canary-74568e86-20260328
+        version: scheduler@0.28.0-canary-74568e86-20260328
+      scheduler-experimental-builtin:
+        specifier: npm:scheduler@0.0.0-experimental-74568e86-20260328
+        version: scheduler@0.0.0-experimental-74568e86-20260328
+      seedrandom:
+        specifier: 3.0.5
+        version: 3.0.5
+      semver:
+        specifier: 7.3.7
+        version: 7.3.7
+      serve-handler:
+        specifier: 6.1.6
+        version: 6.1.6
+      shell-quote:
+        specifier: 1.7.3
+        version: 1.7.3
+      strip-ansi:
+        specifier: 6.0.0
+        version: 6.0.0
+      styled-jsx:
+        specifier: 5.1.6
+        version: 5.1.6(@babel/core@7.26.10)(babel-plugin-macros@3.1.0)(react@19.3.0-canary-74568e86-20260328)
+      styled-jsx-plugin-postcss:
+        specifier: 3.0.2
+        version: 3.0.2
+      swr:
+        specifier: ^2.2.4
+        version: 2.2.4(react@19.3.0-canary-74568e86-20260328)
+      tailwindcss:
+        specifier: 3.2.7
+        version: 3.2.7(postcss@8.4.31)
+      taskr:
+        specifier: 1.1.0
+        version: 1.1.0(patch_hash=utitb3olraq7egc3hk7waltisu)
+      tree-kill:
+        specifier: 1.2.2
+        version: 1.2.2
+      tsec:
+        specifier: 0.2.1
+        version: 0.2.1(@bazel/bazelisk@1.19.0)(typescript@5.9.2)
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      turbo:
+        specifier: 2.8.11
+        version: 2.8.11
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      typescript-eslint:
+        specifier: 8.46.0
+        version: 8.46.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2)
+      unfetch:
+        specifier: 4.2.0
+        version: 4.2.0
+      wait-port:
+        specifier: 0.2.2
+        version: 0.2.2
+      webpack:
+        specifier: 5.98.0
+        version: 5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))
+      webpack-bundle-analyzer:
+        specifier: 4.7.0
+        version: 4.7.0
+      webpack-dev-server:
+        specifier: 5.2.0
+        version: 5.2.0(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
+      whatwg-fetch:
+        specifier: 3.0.0
+        version: 3.0.0
+      ws:
+        specifier: 8.2.3
+        version: 8.2.3
+      yargs:
+        specifier: 16.2.0
+        version: 16.2.0
+
+  apps/bundle-analyzer:
+    dependencies:
+      '@radix-ui/react-dialog':
+        specifier: 1.1.4
+        version: 1.1.4(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@radix-ui/react-popover':
+        specifier: 1.1.4
+        version: 1.1.4(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@radix-ui/react-select':
+        specifier: 2.2.6
+        version: 2.2.6(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@radix-ui/react-slot':
+        specifier: 1.1.1
+        version: 1.1.1(@types/react@19.2.10)(react@19.3.0-canary-74568e86-20260328)
+      '@radix-ui/react-toggle-group':
+        specifier: 1.1.1
+        version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@radix-ui/react-tooltip':
+        specifier: 1.1.4
+        version: 1.1.4(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.4.21(postcss@8.5.3)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      cmdk:
+        specifier: 1.0.4
+        version: 1.0.4(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      lucide-react:
+        specifier: ^0.554.0
+        version: 0.554.0(react@19.3.0-canary-74568e86-20260328)
+      next:
+        specifier: 16.0.8
+        version: 16.0.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      polished:
+        specifier: ^4.3.1
+        version: 4.3.1
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      react-dom:
+        specifier: npm:react-dom@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+      swr:
+        specifier: ^2.2.4
+        version: 2.2.4(react@19.3.0-canary-74568e86-20260328)
+      tailwind-merge:
+        specifier: ^2.5.5
+        version: 2.6.0
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@4.1.13)
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.1.9
+        version: 4.1.13
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+      '@types/react':
+        specifier: 19.2.10
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.10)
+      cross-env:
+        specifier: 10.1.0
+        version: 10.1.0
+      inliner:
+        specifier: 1.13.1
+        version: 1.13.1
+      postcss:
+        specifier: ^8.5
+        version: 8.5.3
+      tailwindcss:
+        specifier: ^4.1.9
+        version: 4.1.13
+      tw-animate-css:
+        specifier: 1.3.3
+        version: 1.3.3
+      typescript:
+        specifier: ^5
+        version: 5.9.2
+
+  apps/docs:
+    dependencies:
+      fumadocs-core:
+        specifier: 15.7.12
+        version: 15.7.12(@types/react@19.2.10)(next@15.5.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8))(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      fumadocs-mdx:
+        specifier: 11.10.0
+        version: 11.10.0(fumadocs-core@15.7.12(@types/react@19.2.10)(next@15.5.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8))(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328))(next@15.5.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8))(react@19.3.0-canary-74568e86-20260328)
+      fumadocs-ui:
+        specifier: 15.7.12
+        version: 15.7.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(next@15.5.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8))(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(tailwindcss@4.1.13)
+      next:
+        specifier: 15.5.8
+        version: 15.5.8(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@0.0.0-experimental-1371fcb-20260227)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(sass@1.77.8)
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      react-dom:
+        specifier: npm:react-dom@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+    devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3
+        version: 3.3.1
+      '@tailwindcss/postcss':
+        specifier: 4.1.13
+        version: 4.1.13
+      '@types/mdx':
+        specifier: 2.0.13
+        version: 2.0.13
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+      '@types/react':
+        specifier: 19.2.10
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.10)
+      eslint:
+        specifier: 9.37.0
+        version: 9.37.0(jiti@2.6.1)
+      eslint-config-next:
+        specifier: canary
+        version: 16.2.0-canary.91(eslint-plugin-import-x@4.3.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2))(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2)
+      tailwindcss:
+        specifier: 4.1.13
+        version: 4.1.13
+      typescript:
+        specifier: ^5
+        version: 5.9.2
+
+  bench/app-router-server:
+    dependencies:
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      next-minimal-server:
+        specifier: workspace:*
+        version: link:../next-minimal-server
+      webpack-bundle-analyzer:
+        specifier: ^4.6.1
+        version: 4.7.0
+      webpack-stats-plugin:
+        specifier: ^1.1.0
+        version: 1.1.0
+
+  bench/fuzzponent:
+    dependencies:
+      '@babel/generator':
+        specifier: 7.18.0
+        version: 7.18.0
+      '@babel/types':
+        specifier: 7.27.0
+        version: 7.27.0
+      random-seed:
+        specifier: 0.3.0
+        version: 0.3.0
+      yargs:
+        specifier: 16.2.0
+        version: 16.2.0
+
+  bench/heavy-npm-deps:
+    dependencies:
+      '@mantine/core':
+        specifier: ^7.10.1
+        version: 7.10.1(@mantine/hooks@7.11.2(react@19.3.0-canary-74568e86-20260328))(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
+      lucide-react:
+        specifier: ^0.383.0
+        version: 0.383.0(react@19.3.0-canary-74568e86-20260328)
+      mermaid:
+        specifier: ^10.9.1
+        version: 10.9.1
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      tailwindcss:
+        specifier: 3.2.7
+        version: 3.2.7(postcss@8.5.3)
+
+  bench/module-cost:
+    devDependencies:
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      playwright:
+        specifier: 1.58.2
+        version: 1.58.2
+      rimraf:
+        specifier: 6.0.1
+        version: 6.0.1
+
+  bench/nested-deps:
+    devDependencies:
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      fuzzponent:
+        specifier: workspace:*
+        version: link:../fuzzponent
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      pretty-ms:
+        specifier: ^7.0.1
+        version: 7.0.1
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
+
+  bench/nested-deps-app-router:
+    devDependencies:
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      fuzzponent:
+        specifier: workspace:*
+        version: link:../fuzzponent
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      pretty-ms:
+        specifier: ^7.0.1
+        version: 7.0.1
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
+
+  bench/nested-deps-app-router-many-pages:
+    devDependencies:
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      fuzzponent:
+        specifier: workspace:*
+        version: link:../fuzzponent
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      pretty-ms:
+        specifier: ^7.0.1
+        version: 7.0.1
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
+
+  bench/next-minimal-server:
+    dependencies:
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+
+  bench/recursive-delete:
+    devDependencies:
+      fuzzponent:
+        specifier: workspace:*
+        version: link:../fuzzponent
+      next:
+        specifier: workspace:*
+        version: link:../../packages/next
+      rimraf:
+        specifier: 6.0.1
+        version: 6.0.1
+
+  bench/rendering:
+    dependencies:
+      fs-extra:
+        specifier: 10.0.0
+        version: 10.0.0
+      recursive-copy:
+        specifier: 2.0.11
+        version: 2.0.11
+
+  bench/vercel:
+    dependencies:
+      '@szmarczak/http-timer':
+        specifier: 5.0.1
+        version: 5.0.1
+      asciichart:
+        specifier: 1.5.25
+        version: 1.5.25
+      commander:
+        specifier: 2.20.0
+        version: 2.20.0
+      dotenv:
+        specifier: 10.0.0
+        version: 10.0.0
+      downsample-lttb:
+        specifier: 0.0.1
+        version: 0.0.1
+      listr2:
+        specifier: 5.0.8
+        version: 5.0.8(enquirer@2.4.1)
+      p-queue:
+        specifier: 7.3.0
+        version: 7.3.0
+      term-size:
+        specifier: 3.0.2
+        version: 3.0.2
+      webpack-bundle-analyzer:
+        specifier: ^4.6.1
+        version: 4.6.1
+      webpack-stats-plugin:
+        specifier: ^1.1.0
+        version: 1.1.0
+
+  crates/next-core/js:
+    dependencies:
+      next:
+        specifier: workspace:*
+        version: link:../../../packages/next
+
+  packages/create-next-app:
+    devDependencies:
+      '@types/async-retry':
+        specifier: 1.4.2
+        version: 1.4.2
+      '@types/cross-spawn':
+        specifier: 6.0.0
+        version: 6.0.0
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+      '@types/prompts':
+        specifier: 2.4.2
+        version: 2.4.2
+      '@types/validate-npm-package-name':
+        specifier: 4.0.2
+        version: 4.0.2
+      '@vercel/ncc':
+        specifier: 0.38.1
+        version: 0.38.1
+      async-retry:
+        specifier: 1.3.1
+        version: 1.3.1
+      ci-info:
+        specifier: 4.0.0
+        version: 4.0.0
+      commander:
+        specifier: 12.1.0
+        version: 12.1.0
+      conf:
+        specifier: 13.0.1
+        version: 13.0.1
+      cross-spawn:
+        specifier: 7.0.3
+        version: 7.0.3
+      fast-glob:
+        specifier: 3.3.1
+        version: 3.3.1
+      picocolors:
+        specifier: 1.1.1
+        version: 1.1.1
+      prettier-plugin-tailwindcss:
+        specifier: 0.6.2
+        version: 0.6.2(prettier@3.6.2)
+      prompts:
+        specifier: 2.4.2
+        version: 2.4.2
+      tar:
+        specifier: 7.5.7
+        version: 7.5.7
+      update-check:
+        specifier: 1.5.4
+        version: 1.5.4
+      validate-npm-package-name:
+        specifier: 5.0.1
+        version: 5.0.1
+
+  packages/eslint-config-next:
+    dependencies:
+      '@next/eslint-plugin-next':
+        specifier: 16.2.1-canary.22
+        version: link:../eslint-plugin-next
+      eslint:
+        specifier: '>=9.0.0'
+        version: 9.37.0(jiti@2.6.1)
+      eslint-import-resolver-node:
+        specifier: ^0.3.6
+        version: 0.3.9
+      eslint-import-resolver-typescript:
+        specifier: ^3.5.2
+        version: 3.10.1(eslint-plugin-import-x@4.3.1(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2))(eslint-plugin-import@2.32.0)(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-import:
+        specifier: ^2.32.0
+        version: 2.32.0(@typescript-eslint/parser@8.46.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2))(eslint-import-resolver-typescript@3.10.1)(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-jsx-a11y:
+        specifier: ^6.10.0
+        version: 6.10.2(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-react:
+        specifier: ^7.37.0
+        version: 7.37.5(eslint@9.37.0(jiti@2.6.1))
+      eslint-plugin-react-hooks:
+        specifier: ^7.0.0
+        version: 7.0.0(eslint@9.37.0(jiti@2.6.1))
+      globals:
+        specifier: 16.4.0
+        version: 16.4.0
+      typescript-eslint:
+        specifier: ^8.46.0
+        version: 8.46.0(eslint@9.37.0(jiti@2.6.1))(typescript@5.9.2)
+    devDependencies:
+      '@types/eslint':
+        specifier: 9.6.1
+        version: 9.6.1
+      '@types/eslint-plugin-jsx-a11y':
+        specifier: 6.10.1
+        version: 6.10.1(jiti@2.6.1)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/eslint-plugin-internal:
+    devDependencies:
+      eslint:
+        specifier: 9.37.0
+        version: 9.37.0(jiti@2.6.1)
+
+  packages/eslint-plugin-next:
+    dependencies:
+      fast-glob:
+        specifier: 3.3.1
+        version: 3.3.1
+    devDependencies:
+      '@types/eslint':
+        specifier: 9.6.1
+        version: 9.6.1
+      eslint:
+        specifier: 9.37.0
+        version: 9.37.0(jiti@2.6.1)
+
+  packages/font:
+    devDependencies:
+      '@types/fontkit':
+        specifier: 2.0.0
+        version: 2.0.0
+      '@vercel/ncc':
+        specifier: 0.34.0
+        version: 0.34.0
+      fontkit:
+        specifier: 2.0.2
+        version: 2.0.2
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/next:
+    dependencies:
+      '@next/env':
+        specifier: 16.2.1-canary.22
+        version: link:../next-env
+      '@swc/helpers':
+        specifier: 0.5.15
+        version: 0.5.15
+      baseline-browser-mapping:
+        specifier: ^2.9.19
+        version: 2.9.19
+      caniuse-lite:
+        specifier: 1.0.30001746
+        version: 1.0.30001746
+      postcss:
+        specifier: 8.4.31
+        version: 8.4.31
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      react-dom:
+        specifier: npm:react-dom@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328)
+      sass:
+        specifier: ^1.3.0
+        version: 1.77.8
+      styled-jsx:
+        specifier: 5.1.6
+        version: 5.1.6(@babel/core@7.26.10)(babel-plugin-macros@3.1.0)(react@19.3.0-canary-74568e86-20260328)
+    optionalDependencies:
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
+    devDependencies:
+      '@babel/core':
+        specifier: 7.26.10
+        version: 7.26.10
+      '@babel/eslint-parser':
+        specifier: 7.24.6
+        version: 7.24.6(@babel/core@7.26.10)(eslint@9.37.0(jiti@2.6.1))
+      '@babel/generator':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@babel/plugin-syntax-bigint':
+        specifier: 7.8.3
+        version: 7.8.3(@babel/core@7.26.10)
+      '@babel/plugin-syntax-dynamic-import':
+        specifier: 7.8.3
+        version: 7.8.3(@babel/core@7.26.10)
+      '@babel/plugin-syntax-import-attributes':
+        specifier: 7.26.0
+        version: 7.26.0(@babel/core@7.26.10)
+      '@babel/plugin-syntax-jsx':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/plugin-syntax-typescript':
+        specifier: 7.25.4
+        version: 7.25.4(@babel/core@7.26.10)
+      '@babel/plugin-transform-class-properties':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/plugin-transform-export-namespace-from':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/plugin-transform-modules-commonjs':
+        specifier: 7.26.3
+        version: 7.26.3(@babel/core@7.26.10)
+      '@babel/plugin-transform-numeric-separator':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/plugin-transform-object-rest-spread':
+        specifier: 7.25.9
+        version: 7.25.9(@babel/core@7.26.10)
+      '@babel/plugin-transform-runtime':
+        specifier: 7.26.10
+        version: 7.26.10(@babel/core@7.26.10)
+      '@babel/preset-env':
+        specifier: 7.26.9
+        version: 7.26.9(@babel/core@7.26.10)
+      '@babel/preset-react':
+        specifier: 7.26.3
+        version: 7.26.3(@babel/core@7.26.10)
+      '@babel/preset-typescript':
+        specifier: 7.27.0
+        version: 7.27.0(@babel/core@7.26.10)
+      '@babel/runtime':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@babel/traverse':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@babel/types':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@base-ui-components/react':
+        specifier: 1.0.0-beta.2
+        version: 1.0.0-beta.2(@types/react@19.2.10)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)
+      '@capsizecss/metrics':
+        specifier: 3.4.0
+        version: 3.4.0
+      '@edge-runtime/cookies':
+        specifier: 6.0.0
+        version: 6.0.0
+      '@edge-runtime/ponyfill':
+        specifier: 4.0.0
+        version: 4.0.0
+      '@edge-runtime/primitives':
+        specifier: 6.0.0
+        version: 6.0.0
+      '@hapi/accept':
+        specifier: 5.0.2
+        version: 5.0.2
+      '@jest/transform':
+        specifier: 29.5.0
+        version: 29.5.0
+      '@jest/types':
+        specifier: 29.5.0
+        version: 29.5.0
+      '@modelcontextprotocol/sdk':
+        specifier: 1.18.1
+        version: 1.18.1
+      '@mswjs/interceptors':
+        specifier: 0.23.0
+        version: 0.23.0
+      '@napi-rs/triples':
+        specifier: 1.2.0
+        version: 1.2.0
+      '@next/font':
+        specifier: 16.2.1-canary.22
+        version: link:../font
+      '@next/polyfill-module':
+        specifier: 16.2.1-canary.22
+        version: link:../next-polyfill-module
+      '@next/polyfill-nomodule':
+        specifier: 16.2.1-canary.22
+        version: link:../next-polyfill-nomodule
+      '@next/react-refresh-utils':
+        specifier: 16.2.1-canary.22
+        version: link:../react-refresh-utils
+      '@next/swc':
+        specifier: 16.2.1-canary.22
+        version: link:../next-swc
+      '@opentelemetry/api':
+        specifier: 1.6.0
+        version: 1.6.0
+      '@playwright/test':
+        specifier: 1.58.2
+        version: 1.58.2
+      '@rspack/core':
+        specifier: 1.6.7
+        version: 1.6.7(@swc/helpers@0.5.15)
+      '@storybook/addon-a11y':
+        specifier: 8.6.0
+        version: 8.6.0(storybook@8.6.0(prettier@3.6.2))
+      '@storybook/addon-essentials':
+        specifier: 8.6.0
+        version: 8.6.0(@types/react@19.2.10)(storybook@8.6.0(prettier@3.6.2))
+      '@storybook/addon-interactions':
+        specifier: 8.6.0
+        version: 8.6.0(storybook@8.6.0(prettier@3.6.2))
+      '@storybook/addon-webpack5-compiler-swc':
+        specifier: 3.0.0
+        version: 3.0.0(@swc/helpers@0.5.15)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      '@storybook/blocks':
+        specifier: 8.6.0
+        version: 8.6.0(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(storybook@8.6.0(prettier@3.6.2))
+      '@storybook/react':
+        specifier: 8.6.0
+        version: 8.6.0(@storybook/test@8.6.0(storybook@8.6.0(prettier@3.6.2)))(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(storybook@8.6.0(prettier@3.6.2))(typescript@5.9.2)
+      '@storybook/react-webpack5':
+        specifier: 8.6.0
+        version: 8.6.0(@rspack/core@1.6.7(@swc/helpers@0.5.15))(@storybook/test@8.6.0(storybook@8.6.0(prettier@3.6.2)))(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9)(react-dom@19.3.0-canary-74568e86-20260328(react@19.3.0-canary-74568e86-20260328))(react@19.3.0-canary-74568e86-20260328)(storybook@8.6.0(prettier@3.6.2))(typescript@5.9.2)
+      '@storybook/test':
+        specifier: 8.6.0
+        version: 8.6.0(storybook@8.6.0(prettier@3.6.2))
+      '@storybook/test-runner':
+        specifier: 0.21.0
+        version: 0.21.0(@swc/helpers@0.5.15)(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0)(debug@4.1.1)(storybook@8.6.0(prettier@3.6.2))
+      '@swc/core':
+        specifier: 1.11.24
+        version: 1.11.24(@swc/helpers@0.5.15)
+      '@swc/types':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@taskr/clear':
+        specifier: 1.1.0
+        version: 1.1.0
+      '@taskr/esnext':
+        specifier: 1.1.0
+        version: 1.1.0
+      '@types/babel__code-frame':
+        specifier: 7.0.6
+        version: 7.0.6
+      '@types/babel__core':
+        specifier: 7.20.5
+        version: 7.20.5
+      '@types/babel__generator':
+        specifier: 7.27.0
+        version: 7.27.0
+      '@types/babel__template':
+        specifier: 7.4.4
+        version: 7.4.4
+      '@types/babel__traverse':
+        specifier: 7.20.7
+        version: 7.20.7
+      '@types/bytes':
+        specifier: 3.1.1
+        version: 3.1.1
+      '@types/ci-info':
+        specifier: 2.0.0
+        version: 2.0.0
+      '@types/compression':
+        specifier: 0.0.36
+        version: 0.0.36
+      '@types/content-disposition':
+        specifier: 0.5.4
+        version: 0.5.4
+      '@types/content-type':
+        specifier: 1.1.3
+        version: 1.1.3
+      '@types/cookie':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@types/cross-spawn':
+        specifier: 6.0.0
+        version: 6.0.0
+      '@types/debug':
+        specifier: 4.1.5
+        version: 4.1.5
+      '@types/express-serve-static-core':
+        specifier: 4.17.33
+        version: 4.17.33
+      '@types/fresh':
+        specifier: 0.5.0
+        version: 0.5.0
+      '@types/glob':
+        specifier: 7.1.1
+        version: 7.1.1
+      '@types/jsonwebtoken':
+        specifier: 9.0.0
+        version: 9.0.0
+      '@types/lodash':
+        specifier: 4.14.198
+        version: 4.14.198
+      '@types/lodash.curry':
+        specifier: 4.1.6
+        version: 4.1.6
+      '@types/path-to-regexp':
+        specifier: 1.7.0
+        version: 1.7.0
+      '@types/picomatch':
+        specifier: 2.3.3
+        version: 2.3.3
+      '@types/platform':
+        specifier: 1.3.4
+        version: 1.3.4
+      '@types/react':
+        specifier: 19.2.10
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.10)
+      '@types/react-is':
+        specifier: 18.2.4
+        version: 18.2.4
+      '@types/semver':
+        specifier: 7.3.1
+        version: 7.3.1
+      '@types/send':
+        specifier: 0.14.4
+        version: 0.14.4
+      '@types/serve-handler':
+        specifier: 6.1.4
+        version: 6.1.4
+      '@types/shell-quote':
+        specifier: 1.7.1
+        version: 1.7.1
+      '@types/text-table':
+        specifier: 0.2.1
+        version: 0.2.1
+      '@types/ua-parser-js':
+        specifier: 0.7.36
+        version: 0.7.36
+      '@types/webpack-sources1':
+        specifier: npm:@types/webpack-sources@0.1.5
+        version: '@types/webpack-sources@0.1.5'
+      '@types/ws':
+        specifier: 8.2.0
+        version: 8.2.0
+      '@vercel/ncc':
+        specifier: 0.34.0
+        version: 0.34.0
+      '@vercel/nft':
+        specifier: 0.27.1
+        version: 0.27.1(encoding@0.1.13)
+      '@vercel/routing-utils':
+        specifier: 5.2.0
+        version: 5.2.0
+      '@vercel/turbopack-ecmascript-runtime':
+        specifier: '*'
+        version: link:../../turbopack/crates/turbopack-ecmascript-runtime/js
+      acorn:
+        specifier: 8.14.0
+        version: 8.14.0
+      anser:
+        specifier: 1.4.9
+        version: 1.4.9
+      arg:
+        specifier: 4.1.0
+        version: 4.1.0
+      assert:
+        specifier: 2.0.0
+        version: 2.0.0
+      async-retry:
+        specifier: 1.2.3
+        version: 1.2.3
+      async-sema:
+        specifier: 3.0.0
+        version: 3.0.0
+      axe-playwright:
+        specifier: 2.0.3
+        version: 2.0.3(playwright@1.58.2)
+      babel-loader:
+        specifier: 10.0.0
+        version: 10.0.0(@babel/core@7.26.10)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      babel-plugin-react-compiler:
+        specifier: 0.0.0-experimental-1371fcb-20260227
+        version: 0.0.0-experimental-1371fcb-20260227
+      babel-plugin-transform-define:
+        specifier: 2.0.0
+        version: 2.0.0
+      babel-plugin-transform-react-remove-prop-types:
+        specifier: 0.4.24
+        version: 0.4.24
+      browserify-zlib:
+        specifier: 0.2.0
+        version: 0.2.0
+      browserslist:
+        specifier: 4.28.1
+        version: 4.28.1
+      buffer:
+        specifier: 5.6.0
+        version: 5.6.0
+      busboy:
+        specifier: 1.6.0
+        version: 1.6.0
+      bytes:
+        specifier: 3.1.1
+        version: 3.1.1
+      ci-info:
+        specifier: watson/ci-info#f43f6a1cefff47fb361c88cf4b943fdbcaafe540
+        version: https://codeload.github.com/watson/ci-info/tar.gz/f43f6a1cefff47fb361c88cf4b943fdbcaafe540
+      cli-select:
+        specifier: 1.1.2
+        version: 1.1.2
+      client-only:
+        specifier: 0.0.1
+        version: 0.0.1
+      commander:
+        specifier: 12.1.0
+        version: 12.1.0
+      comment-json:
+        specifier: 3.0.3
+        version: 3.0.3
+      compression:
+        specifier: 1.7.4
+        version: 1.7.4
+      conf:
+        specifier: 5.0.0
+        version: 5.0.0
+      constants-browserify:
+        specifier: 1.0.0
+        version: 1.0.0
+      content-disposition:
+        specifier: 0.5.3
+        version: 0.5.3
+      content-type:
+        specifier: 1.0.4
+        version: 1.0.4
+      cookie:
+        specifier: 0.4.1
+        version: 0.4.1
+      cross-env:
+        specifier: 6.0.3
+        version: 6.0.3
+      cross-spawn:
+        specifier: 7.0.3
+        version: 7.0.3
+      crypto-browserify:
+        specifier: 3.12.0
+        version: 3.12.0
+      css-loader:
+        specifier: 7.1.2
+        version: 7.1.2(@rspack/core@1.6.7(@swc/helpers@0.5.15))(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      css.escape:
+        specifier: 1.5.1
+        version: 1.5.1
+      cssnano-preset-default:
+        specifier: 7.0.6
+        version: 7.0.6(postcss@8.4.31)
+      data-uri-to-buffer:
+        specifier: 3.0.1
+        version: 3.0.1
+      debug:
+        specifier: 4.1.1
+        version: 4.1.1
+      devalue:
+        specifier: 2.0.1
+        version: 2.0.1
+      domain-browser:
+        specifier: 4.19.0
+        version: 4.19.0
+      edge-runtime:
+        specifier: 4.0.1
+        version: 4.0.1
+      events:
+        specifier: 3.3.0
+        version: 3.3.0
+      find-up:
+        specifier: 4.1.0
+        version: 4.1.0
+      fresh:
+        specifier: 0.5.2
+        version: 0.5.2
+      glob:
+        specifier: 7.1.7
+        version: 7.1.7
+      gzip-size:
+        specifier: 5.1.1
+        version: 5.1.1
+      http-proxy:
+        specifier: 1.18.1
+        version: 1.18.1(patch_hash=eyqcxg3pntyhqyqr5zytxa7pbi)
+      http-proxy-agent:
+        specifier: 5.0.0
+        version: 5.0.0
+      https-browserify:
+        specifier: 1.0.0
+        version: 1.0.0
+      https-proxy-agent:
+        specifier: 5.0.1
+        version: 5.0.1
+      icss-utils:
+        specifier: 5.1.0
+        version: 5.1.0(postcss@8.4.31)
+      ignore-loader:
+        specifier: 0.1.2
+        version: 0.1.2
+      image-size:
+        specifier: 1.2.1
+        version: 1.2.1
+      ipaddr.js:
+        specifier: 2.2.0
+        version: 2.2.0
+      is-docker:
+        specifier: 2.0.0
+        version: 2.0.0
+      is-wsl:
+        specifier: 2.2.0
+        version: 2.2.0
+      jest-worker:
+        specifier: 27.5.1
+        version: 27.5.1
+      json5:
+        specifier: 2.2.3
+        version: 2.2.3
+      jsonwebtoken:
+        specifier: 9.0.0
+        version: 9.0.0
+      loader-runner:
+        specifier: 4.3.0
+        version: 4.3.0
+      loader-utils2:
+        specifier: npm:loader-utils@2.0.4
+        version: loader-utils@2.0.4
+      loader-utils3:
+        specifier: npm:loader-utils@3.1.3
+        version: loader-utils@3.1.3
+      lodash.curry:
+        specifier: 4.1.1
+        version: 4.1.1
+      mini-css-extract-plugin:
+        specifier: 2.4.4
+        version: 2.4.4(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      msw:
+        specifier: 2.3.0
+        version: 2.3.0(typescript@5.9.2)
+      nanoid:
+        specifier: 3.1.32
+        version: 3.1.32
+      native-url:
+        specifier: 0.3.4
+        version: 0.3.4
+      neo-async:
+        specifier: 2.6.1
+        version: 2.6.1
+      node-html-parser:
+        specifier: 5.3.3
+        version: 5.3.3
+      ora:
+        specifier: 4.0.4
+        version: 4.0.4
+      os-browserify:
+        specifier: 0.3.0
+        version: 0.3.0
+      p-limit:
+        specifier: 3.1.0
+        version: 3.1.0
+      p-queue:
+        specifier: 6.6.2
+        version: 6.6.2
+      path-browserify:
+        specifier: 1.0.1
+        version: 1.0.1
+      path-to-regexp:
+        specifier: 6.3.0
+        version: 6.3.0
+      picomatch:
+        specifier: 4.0.1
+        version: 4.0.1
+      postcss-flexbugs-fixes:
+        specifier: 5.0.2
+        version: 5.0.2(postcss@8.4.31)
+      postcss-modules-extract-imports:
+        specifier: 3.0.0
+        version: 3.0.0(postcss@8.4.31)
+      postcss-modules-local-by-default:
+        specifier: 4.2.0
+        version: 4.2.0(postcss@8.4.31)
+      postcss-modules-scope:
+        specifier: 3.0.0
+        version: 3.0.0(postcss@8.4.31)
+      postcss-modules-values:
+        specifier: 4.0.0
+        version: 4.0.0(postcss@8.4.31)
+      postcss-preset-env:
+        specifier: 7.4.3
+        version: 7.4.3(postcss@8.4.31)
+      postcss-safe-parser:
+        specifier: 6.0.0
+        version: 6.0.0(postcss@8.4.31)
+      postcss-scss:
+        specifier: 4.0.3
+        version: 4.0.3(postcss@8.4.31)
+      postcss-value-parser:
+        specifier: 4.2.0
+        version: 4.2.0
+      process:
+        specifier: 0.11.10
+        version: 0.11.10
+      punycode:
+        specifier: 2.1.1
+        version: 2.1.1
+      querystring-es3:
+        specifier: 0.2.1
+        version: 0.2.1
+      raw-body:
+        specifier: 2.4.1
+        version: 2.4.1
+      react-refresh:
+        specifier: 0.12.0
+        version: 0.12.0
+      recast:
+        specifier: 0.23.11
+        version: 0.23.11
+      regenerator-runtime:
+        specifier: 0.13.4
+        version: 0.13.4
+      safe-stable-stringify:
+        specifier: 2.5.0
+        version: 2.5.0
+      sass-loader:
+        specifier: 16.0.5
+        version: 16.0.5(@rspack/core@1.6.7(@swc/helpers@0.5.15))(sass@1.77.8)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      schema-utils2:
+        specifier: npm:schema-utils@2.7.1
+        version: schema-utils@2.7.1
+      schema-utils3:
+        specifier: npm:schema-utils@3.0.0
+        version: schema-utils@3.0.0
+      semver:
+        specifier: 7.3.2
+        version: 7.3.2
+      send:
+        specifier: 0.18.0
+        version: 0.18.0
+      serve-handler:
+        specifier: 6.1.6
+        version: 6.1.6
+      server-only:
+        specifier: 0.0.1
+        version: 0.0.1
+      setimmediate:
+        specifier: 1.0.5
+        version: 1.0.5
+      shell-quote:
+        specifier: 1.7.3
+        version: 1.7.3
+      source-map:
+        specifier: 0.6.1
+        version: 0.6.1
+      source-map-loader:
+        specifier: 5.0.0
+        version: 5.0.0(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      source-map08:
+        specifier: npm:source-map@0.8.0-beta.0
+        version: source-map@0.8.0-beta.0
+      stacktrace-parser:
+        specifier: 0.1.10
+        version: 0.1.10(patch_hash=x5tdcojc7b5m2b5ojepbcdl36a)
+      storybook:
+        specifier: 8.6.0
+        version: 8.6.0(prettier@3.6.2)
+      stream-browserify:
+        specifier: 3.0.0
+        version: 3.0.0
+      stream-http:
+        specifier: 3.1.1
+        version: 3.1.1
+      strict-event-emitter:
+        specifier: 0.5.0
+        version: 0.5.0
+      string-hash:
+        specifier: 1.1.3
+        version: 1.1.3
+      string_decoder:
+        specifier: 1.3.0
+        version: 1.3.0
+      strip-ansi:
+        specifier: 6.0.0
+        version: 6.0.0
+      style-loader:
+        specifier: 4.0.0
+        version: 4.0.0(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      superstruct:
+        specifier: 1.0.3
+        version: 1.0.3
+      tar:
+        specifier: 7.5.11
+        version: 7.5.11
+      taskr:
+        specifier: 1.1.0
+        version: 1.1.0(patch_hash=utitb3olraq7egc3hk7waltisu)
+      terser:
+        specifier: 5.27.0
+        version: 5.27.0
+      terser-webpack-plugin:
+        specifier: 5.3.9
+        version: 5.3.9(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9)(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9))
+      text-table:
+        specifier: 0.2.0
+        version: 0.2.0
+      timers-browserify:
+        specifier: 2.0.12
+        version: 2.0.12
+      tty-browserify:
+        specifier: 0.0.1
+        version: 0.0.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+      ua-parser-js:
+        specifier: 1.0.35
+        version: 1.0.35
+      unistore:
+        specifier: 3.4.1
+        version: 3.4.1(react@19.3.0-canary-74568e86-20260328)
+      util:
+        specifier: 0.12.4
+        version: 0.12.4
+      vm-browserify:
+        specifier: 1.1.2
+        version: 1.1.2
+      watchpack:
+        specifier: 2.4.0
+        version: 2.4.0
+      web-vitals:
+        specifier: 4.2.1
+        version: 4.2.1
+      webpack:
+        specifier: 5.98.0
+        version: 5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))(esbuild@0.25.9)
+      webpack-sources1:
+        specifier: npm:webpack-sources@1.4.3
+        version: webpack-sources@1.4.3
+      webpack-sources3:
+        specifier: npm:webpack-sources@3.2.3
+        version: webpack-sources@3.2.3(patch_hash=jbynf5dc46ambamq3wuyho6hkq)
+      ws:
+        specifier: 8.2.3
+        version: 8.2.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+      zod-validation-error:
+        specifier: 3.4.0
+        version: 3.4.0(zod@3.25.76)
+
+  packages/next-bundle-analyzer:
+    dependencies:
+      webpack-bundle-analyzer:
+        specifier: 4.10.1
+        version: 4.10.1
+
+  packages/next-codemod:
+    dependencies:
+      cheerio:
+        specifier: 1.0.0-rc.9
+        version: 1.0.0-rc.9
+      commander:
+        specifier: 12.1.0
+        version: 12.1.0
+      execa:
+        specifier: 4.0.3
+        version: 4.0.3
+      find-up:
+        specifier: 4.1.0
+        version: 4.1.0
+      globby:
+        specifier: 11.0.1
+        version: 11.0.1
+      is-git-clean:
+        specifier: 1.1.0
+        version: 1.1.0
+      jscodeshift:
+        specifier: 17.0.0
+        version: 17.0.0(@babel/preset-env@7.26.9(@babel/core@7.26.10))
+      picocolors:
+        specifier: 1.0.0
+        version: 1.0.0
+      prompts:
+        specifier: 2.4.2
+        version: 2.4.2
+      semver:
+        specifier: 7.6.3
+        version: 7.6.3
+      strip-ansi:
+        specifier: 6.0.0
+        version: 6.0.0
+    devDependencies:
+      '@types/find-up':
+        specifier: 4.0.0
+        version: 4.0.0
+      '@types/jscodeshift':
+        specifier: 0.11.0
+        version: 0.11.0
+      '@types/prompts':
+        specifier: 2.4.2
+        version: 2.4.2
+      '@types/semver':
+        specifier: 7.3.1
+        version: 7.3.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/next-env:
+    devDependencies:
+      '@vercel/ncc':
+        specifier: 0.34.0
+        version: 0.34.0
+      dotenv:
+        specifier: 16.3.1
+        version: 16.3.1
+      dotenv-expand:
+        specifier: 10.0.0
+        version: 10.0.0
+
+  packages/next-mdx:
+    dependencies:
+      '@mdx-js/loader':
+        specifier: '>=0.15.0'
+        version: 2.2.1(webpack@5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15)))
+      '@mdx-js/react':
+        specifier: '>=0.15.0'
+        version: 2.2.1(react@19.3.0-canary-74568e86-20260328)
+      source-map:
+        specifier: ^0.7.0
+        version: 0.7.3
+
+  packages/next-playwright:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.58.2
+        version: 1.58.2
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  packages/next-plugin-storybook: {}
+
+  packages/next-polyfill-module:
+    devDependencies:
+      microbundle:
+        specifier: 0.15.0
+        version: 0.15.0(@types/babel__core@7.20.5)
+
+  packages/next-polyfill-nomodule:
+    devDependencies:
+      core-js:
+        specifier: 3.38.1
+        version: 3.38.1
+      microbundle:
+        specifier: 0.15.0
+        version: 0.15.0(@types/babel__core@7.20.5)
+      object-assign:
+        specifier: 4.1.1
+        version: 4.1.1
+      whatwg-fetch:
+        specifier: 3.0.0
+        version: 3.0.0
+
+  packages/next-routing:
+    devDependencies:
+      '@types/jest':
+        specifier: ^29.5.0
+        version: 29.5.5
+      '@vercel/ncc':
+        specifier: 0.34.0
+        version: 0.34.0
+      jest:
+        specifier: ^29.5.0
+        version: 29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0)
+      ts-jest:
+        specifier: ^29.1.0
+        version: 29.4.5(@babel/core@7.26.10)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.26.10))(jest-util@29.7.0)(jest@29.7.0(@types/node@20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu))(babel-plugin-macros@3.1.0))(typescript@5.9.2)
+
+  packages/next-rspack:
+    dependencies:
+      '@next/rspack-core':
+        specifier: 1.0.2
+        version: 1.0.2(@swc/helpers@0.5.15)
+
+  packages/next-swc:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: 2.18.4
+        version: 2.18.4
+      cross-env:
+        specifier: 6.0.3
+        version: 6.0.3
+      wasm-pack:
+        specifier: 0.13.1
+        version: 0.13.1
+
+  packages/react-refresh-utils:
+    devDependencies:
+      react-refresh:
+        specifier: 0.12.0
+        version: 0.12.0
+      webpack:
+        specifier: 5.98.0
+        version: 5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))
+
+  packages/third-parties:
+    dependencies:
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      third-party-capital:
+        specifier: 1.0.20
+        version: 1.0.20
+    devDependencies:
+      next:
+        specifier: 16.2.1-canary.22
+        version: link:../next
+      outdent:
+        specifier: 0.8.0
+        version: 0.8.0
+      prettier:
+        specifier: 2.5.1
+        version: 2.5.1
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
+  turbopack/crates/turbopack-cli/js:
+    dependencies:
+      '@vercel/turbopack-ecmascript-runtime':
+        specifier: '*'
+        version: link:../../turbopack-ecmascript-runtime/js
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+
+  turbopack/crates/turbopack-ecmascript-runtime/js:
+    dependencies:
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+    devDependencies:
+      '@next/react-refresh-utils':
+        specifier: workspace:*
+        version: link:../../../../packages/react-refresh-utils
+      npm-run-all:
+        specifier: ^4.1.5
+        version: 4.1.5
+
+  turbopack/crates/turbopack-node/js:
+    dependencies:
+      loader-runner:
+        specifier: ^4.3.0
+        version: 4.3.0
+    devDependencies:
+      '@types/loader-runner':
+        specifier: ^2.2.4
+        version: 2.2.8
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+
+  turbopack/crates/turbopack-tests/tests/execution:
+    dependencies:
+      expect:
+        specifier: 29.5.0
+        version: 29.5.0
+      jest-circus:
+        specifier: 29.5.0
+        version: 29.5.0
+      react:
+        specifier: npm:react@19.3.0-canary-74568e86-20260328
+        version: 19.3.0-canary-74568e86-20260328
+      react-test-renderer:
+        specifier: 18.2.0
+        version: 18.2.0(react@19.3.0-canary-74568e86-20260328)
+      styled-jsx:
+        specifier: ^5.1.2
+        version: 5.1.6(@babel/core@7.26.10)(babel-plugin-macros@3.1.0)(react@19.3.0-canary-74568e86-20260328)
+
+  turbopack/packages/devlow-bench:
+    dependencies:
+      '@datadog/datadog-api-client':
+        specifier: ^1.13.0
+        version: 1.25.0(encoding@0.1.13)
+      inquirer:
+        specifier: ^9.2.7
+        version: 9.2.23
+      minimist:
+        specifier: ^1.2.8
+        version: 1.2.8
+      picocolors:
+        specifier: 1.0.1
+        version: 1.0.1
+      pidusage-tree:
+        specifier: ^2.0.5
+        version: 2.0.5
+      playwright-chromium:
+        specifier: 1.58.2
+        version: 1.58.2
+      split2:
+        specifier: ^4.2.0
+        version: 4.2.0
+      tree-kill:
+        specifier: ^1.2.2
+        version: 1.2.2
+    devDependencies:
+      '@types/inquirer':
+        specifier: ^9.0.3
+        version: 9.0.7
+      '@types/minimist':
+        specifier: ^1.2.2
+        version: 1.2.5
+      '@types/node':
+        specifier: 20.17.6
+        version: 20.17.6(patch_hash=rvl3vkomen3tospgr67bzubfyu)
+      '@types/split2':
+        specifier: ^4.2.0
+        version: 4.2.3
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+
+  turbopack/packages/node-module-trace: {}
+
+  turbopack/packages/turbo-tracing-next-plugin:
+    dependencies:
+      '@vercel/webpack-nft':
+        specifier: workspace:*
+        version: link:../webpack-nmt
+    devDependencies:
+      next:
+        specifier: workspace:*
+        version: link:../../../packages/next
+
+  turbopack/packages/webpack-nmt:
+    dependencies:
+      '@vercel/experimental-nft':
+        specifier: workspace:*
+        version: link:../node-module-trace
+    devDependencies:
+      '@types/webpack':
+        specifier: ^5.28.0
+        version: 5.28.5(@swc/core@1.11.24(@swc/helpers@0.5.15))
+      webpack:
+        specifier: 5.98.0
+        version: 5.98.0(@swc/core@1.11.24(@swc/helpers@0.5.15))
+
+packages:
+
+  '@actions/core@1.10.1':
+    resolution: {integrity: sha512-3lBR9EDAY+iYIpTnTIXmWcNbX3T2kCkAEQGIQx4NVQ0575nk2k3GRZDTPQG+vVtS2izSLmINlxXf0uLtnrTP+g==}
+
+  '@actions/http-client@2.2.0':
+    resolution: {integrity: sha512-q+epW0trjVUUHboliPb4UF9g2msf+w61b32tAkFEwL/IwP0DQWgbCMM0Hbe3e3WXSKz5VcUXbzJQgy8Hkra/Lg==}
+
+  '@adobe/css-tools@4.4.1':
+    resolution: {integrity: sha512-12WGKBQzjUAI4ayyF4IAtfw2QR/IDoqk6jTddXDhtYTJF9ASmoE1zst7cVtP0aL/F1jUJL5r+JxKXKEgHNbEUQ==}
+
+  '@ai-sdk/anthropic@1.2.12':
+    resolution: {integrity: sha512-YSzjlko7JvuiyQFmI9RN1tNZdEiZxc+6xld/0tq/VkJaHpEzGAb1yiNxxvmYVcjvfu/PcvCxAAYXmTYQQ63IHQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+
+  '@ai-sdk/gateway@2.0.50':
+    resolution: {integrity: sha512-JCnGV2CvdcjArmxYtVmZwOKWntEvj/MMr7XVfpAHkPpeRP1eu5GWStXPjskIF9Wxtgu2fao0CMwptEbV9JbMgg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@2.2.8':
+    resolution: {integrity: sha512-fqhG+4sCVv8x7nFzYnFo19ryhAa3w096Kmc3hWxMQfW/TubPOmt3A6tYZhl4mUfQWWQMsuSkLrtjlWuXBVSGQA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.23.8
+
+  '@ai-sdk/provider-utils@3.0.21':
+    resolution: {integrity: sha512-veuMwTLxsgh31Jjn0SnBABnM1f7ebHhRWcV2ZuY3hP3iJDCZ8VXBaYqcHXoOQDqUXTCas08sKQcHyWK+zl882Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@1.1.3':
+    resolution: {integrity: sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/provider@2.0.1':
+    resolution: {integrity: sha512-KCUwswvsC5VsW2PWFqF8eJgSCu5Ysj7m1TxiHTVA6g7k360bk0RNQENT8KTMAYEs+8fWPD3Uu4dEmzGHc+jGng==}
+    engines: {node: '>=18'}
+
+  '@alloc/quick-lru@5.2.0':
+    resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
+    engines: {node: '>=10'}
+
+  '@ampproject/remapping@2.2.1':
+    resolution: {integrity: sha512-lFMjJTrFL3j7L9yBxwYfCq2k6qqwHyzuUl/XBnif78PWTJYyL/dfowQHWE3sp6U6ZzqWiiIZnpTMO96zhkjwtg==}
+    engines: {node: '>=6.0.0'}
+
+  '@ast-grep/cli-darwin-arm64@0.31.0':
+    resolution: {integrity: sha512-6hQjv3JNMwECcbOEqn3dRAFOf0gsM4Q1/UzBW9mLfQVae935+zw+DIgBKjzKHQPdxr4XO+KJr8GcfeEhOLMbJw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@ast-grep/cli-darwin-x64@0.31.0':
+    resolution: {integrity: sha512-3HXzzgrcm4UA3iE+LpZ0jyODW2FBFligH6cuA5au087W8IYOGg9jeaBIt4rDpiLqVvmukr4EciYBPFi7k07Gww==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@ast-grep/cli-linux-arm64-gnu@0.31.0':
+    resolution: {integrity: sha512-gXNEG4iN0xG9quisvIOyl35kFnuYxaJxYG6+QoP+jsxlqKK6arbOomNJvczS2RSXDbr9iIgOixuWPoTC4jP/Kw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@ast-grep/cli-linux-x64-gnu@0.31.0':
+    resolution: {integrity: sha512-LqJpwTrEfOrV1+zMkBvYNmDTcMVAt4xZI5aIOVw4bau78jYTnu7gbwZnofx67ZdLKInnxlE2+oKKLVO/seNbgw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@ast-grep/cli-win32-arm64-msvc@0.31.0':
+    resolution: {integrity: sha512-rQWWEvpOMp11VoCyJIJgyB8xc/QbOXnJ+8bqHmOKdpK2gfwHevgQbwlPEMGDCah1rYyzt/2X8MSw0DtcRIrzvw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@ast-grep/cli-win32-ia32-msvc@0.31.0':
+    resolution: {integrity: sha512-CffVTpU+fS5crqEPjyUrMLoq7S4SzfO1K8HWWk/tFtOxNeF1M/ad+TbWkicLqDy9mQOYovP0iTP0Ywp/60TzUw==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@ast-grep/cli-win32-x64-msvc@0.31.0':
+    resolution: {integrity: sha512-WoG3JxVLygR16EM0/rBdNn6Y/qWyTvE+uhUocO2KszkuuvRZKJ9o2zEN4pURbPnW4TMKaEJ0w+8FyBFEvHiLUA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@ast-grep/cli@0.31.0':
+    resolution: {integrity: sha512-I/vUDVFiU4uFK8hyxlc1ssFReDRFTSjXrZbXCtt9EgvM83x+VuoejGJtLK7R3QA85/tHjiRerW+6XFJTQS7RXw==}
+    engines: {node: '>= 12.0.0'}
+    hasBin: true
+
+  '@babel/code-frame@7.12.11':
+    resolution: {integrity: sha512-Zt1yodBx1UcyiePMSkWnU4hPqhwq7hGi2nFL1LeA3EUl+q2LQx16MISgJ0+z7dnmgvP9QtIleuETGOiOH1RcIw==}
+
+  '@babel/code-frame@7.26.2':
+    resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/compat-data@7.26.8':
+    resolution: {integrity: sha512-oH5UPLMWR3L2wEFLnFJ1TZXqHufiTKAiLfqw5zkhS4dKXLJ10yVztfil/twG8EDTA4F/tvVNw9nOl4ZMslB8rQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/core@7.26.10':
+    resolution: {integrity: sha512-vMqyb7XCDMPvJFFOaT9kxtiRh42GwlZEg1/uIgtZshS5a/8OaduUfCi7kynKgc3Tw/6Uo2D+db9qBttghhmxwQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/eslint-parser@7.24.6':
+    resolution: {integrity: sha512-Q1BfQX42zXHx732PLW0w4+Y3wJjoZKEMaatFUEAmQ7Z+jCXxinzeqX9bvv2Q8xNPes/H6F0I23oGkcgjaItmLw==}
+    engines: {node: ^10.13.0 || ^12.13.0 || >=14.0.0}
+    peerDependencies:
+      '@babel/core': 7.26.10
+      eslint: ^7.5.0 || ^8.0.0 || ^9.0.0
+
+  '@babel/generator@7.18.0':
+    resolution: {integrity: sha512-81YO9gGx6voPXlvYdZBliFXAZU8vZ9AZ6z+CjlmcnaeOcYSFbMTpdeDUO9xD9dh/68Vq03I8ZspfUTPfitcDHg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/generator@7.27.0':
+    resolution: {integrity: sha512-VybsKvpiN1gU1sdMZIp7FcqphVVKEwcuj02x73uvcHE0PTihx1nlBcowYWhDwjpoAXRv43+gDzyggGnn1XZhVw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-annotate-as-pure@7.16.7':
+    resolution: {integrity: sha512-s6t2w/IPQVTAET1HitoowRGXooX8mCgtuP5195wD/QJPV6wYjpujCGF7JuMODVX2ZAJOf1GT6DT9MHEZvLOFSw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-annotate-as-pure@7.25.9':
+    resolution: {integrity: sha512-gv7320KBUFJz1RnylIg5WWYPRXKZ884AGkYpgpWW02TH66Dl+HaC1t1CKd0z3R4b6hdYEcmrNZHUmfCP+1u3/g==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-compilation-targets@7.27.0':
+    resolution: {integrity: sha512-LVk7fbXml0H2xH34dFzKQ7TDZ2G4/rVTOrq9V+icbbadjbVxxeFeDsNHv2SrZeWoA+6ZiTyWYWtScEIW07EAcA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-create-class-features-plugin@7.27.0':
+    resolution: {integrity: sha512-vSGCvMecvFCd/BdpGlhpXYNhhC4ccxyvQWpbGL4CWbvfEoLFWUZuSuf7s9Aw70flgQF+6vptvgK2IfOnKlRmBg==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-create-regexp-features-plugin@7.27.0':
+    resolution: {integrity: sha512-fO8l08T76v48BhpNRW/nQ0MxfnSdoSKUJBMjubOAYffsVuGG5qOfMq7N6Es7UJvi7Y8goXXo07EfcHZXDPuELQ==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-define-polyfill-provider@0.6.4':
+    resolution: {integrity: sha512-jljfR1rGnXXNWnmQg2K3+bvhkxB51Rl32QRaOTuwwjviGrHzIbSc8+x9CpraDtbT7mfyjXObULP4w/adunNwAw==}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-member-expression-to-functions@7.25.9':
+    resolution: {integrity: sha512-wbfdZ9w5vk0C0oyHqAJbc62+vet5prjj01jjJ8sKn3j9h3MQQlflEdXYvuqRWjHnM12coDEqiC1IRCi0U/EKwQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-module-imports@7.25.9':
+    resolution: {integrity: sha512-tnUA4RsrmflIM6W6RFTLFSXITtl0wKjgpnLgXyowocVPrbYrLUXSBXDgTs8BlbmIzIdlBySRQjINYs2BAkiLtw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-module-transforms@7.26.0':
+    resolution: {integrity: sha512-xO+xu6B5K2czEnQye6BHA7DolFFmS3LB7stHZFaOLb1pAwO1HWLS8fXA+eh0A2yIvltPVmx3eNNDBJA2SLHXFw==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-optimise-call-expression@7.25.9':
+    resolution: {integrity: sha512-FIpuNaz5ow8VyrYcnXQTDRGvV6tTjkNtCK/RYNDXGSLlUD6cBuQTSw43CShGxjvfBTfcUA/r6UhUCbtYqkhcuQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-plugin-utils@7.19.0':
+    resolution: {integrity: sha512-40Ryx7I8mT+0gaNxm8JGTZFUITNqdLAgdg0hXzeVZxVD6nFsdhQvip6v8dqkRHzsz1VFpFAaOCHNn0vKBL7Czw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-plugin-utils@7.24.8':
+    resolution: {integrity: sha512-FFWx5142D8h2Mgr/iPVGH5G7w6jDn4jUSpZTyDnQO0Yn7Ks2Kuz6Pci8H6MPCoUJegd/UZQ3tAvfLCxQSnWWwg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-plugin-utils@7.25.7':
+    resolution: {integrity: sha512-eaPZai0PiqCi09pPs3pAFfl/zYgGaE6IdXtYvmf0qlcDTd3WCtO7JWCcRd64e0EQrcYgiHibEZnOGsSY4QSgaw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-plugin-utils@7.26.5':
+    resolution: {integrity: sha512-RS+jZcRdZdRFzMyr+wcsaqOmld1/EqTghfaBGQQd/WnRdzdlvSZ//kF7U8VQTxf1ynZ4cjUcYgjVGx13ewNPMg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-remap-async-to-generator@7.25.9':
+    resolution: {integrity: sha512-IZtukuUeBbhgOcaW2s06OXTzVNJR0ybm4W5xC1opWFFJMZbwRj5LCk+ByYH7WdZPZTt8KnFwA8pvjN2yqcPlgw==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-replace-supers@7.26.5':
+    resolution: {integrity: sha512-bJ6iIVdYX1YooY2X7w1q6VITt+LnUILtNk7zT78ykuwStx8BauCzxvFqFaHjOpW1bVnSUM1PN1f0p5P21wHxvg==}
+    engines: {node: '>=6.9.0'}
+    peerDependencies:
+      '@babel/core': 7.26.10
+
+  '@babel/helper-skip-transparent-expression-wrappers@7.24.7':
+    resolution: {integrity: sha512-IO+DLT3LQUElMbpzlatRASEyQtfhSE0+m465v++3jyyXeBTBUjtVZg28/gHeV5mrTJqvEKhKroBGAvhW+qPHiQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-skip-transparent-expression-wrappers@7.25.9':
+    resolution: {integrity: sha512-K4Du3BFa3gvyhzgPcntrkDgZzQaq6uozzcpGbOO1OEJaI+EJdqWIMTLgFgQf6lrfiDFo5FU+BxKepI9RmZqahA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-string-parser@7.25.9':
+    resolution: {integrity: sha512-4A/SCr/2KLd5jrtOMFzaKjVtAei3+2r/NChoBNoZ3EyP/+GlhoaEGoWOZUmFmoITP7zOJyHIMm+DYRd8o3PvHA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-identifier@7.25.9':
+    resolution: {integrity: sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-option@7.25.9':
+    resolution: {integrity: sha512-e/zv1co8pp55dNdEcCynfj9X7nyUKUXoUEwfXqaZt0omVOmDe9oOTdKStH4GmAw6zxMFs50ZayuMfHDKlO7Tfw==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-wrap-function@7.25.9':
+    resolution: {integrity: sha512-ETzz9UTjQSTmw39GboatdymDq4XIQbR8ySgVrylRhPOFpsd+JrKHIuF0de7GCWmem+T4uC5z7EZguod7Wj4A4g==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helpers@7.27.0':
+    resolution: {integrity: sha512-U5eyP/CTFPuNE3qk+WZMxFkp/4zUzdceQlfzf7DdGdhp+Fezd7HD+i8Y24ZuTMKX3wQBld449jijbGq6OdGNQg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/highlight@7.22.20':
+    resolution: {integrity: sha512-dkdMCN3py0+ksCgYmGG8jKeGA/8Tk+gJwSYYlFGxG5lmhfKNoAy004YpLxpS1W2J8m/EK2Ew+yOs9pVRwO89mg==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/parser@7.27.0':
+    resolution: {integrity: sha512-iaepho73/2Pz7w2eMS0Q

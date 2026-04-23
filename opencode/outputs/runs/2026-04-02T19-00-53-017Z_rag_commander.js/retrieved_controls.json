@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-NQAISO27001Imple-014",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 14",
+    "text": "wn as Clauses. As with most other ISO management system standards, the requirements of ISO 27001 that need to be satisfied are specified in Clauses 4.0 – 10.0. Unlike most other ISO management system standards, an organisation must comply with all of the requirements in Clauses 4.0 – 10.0. They cannot declare one or more clauses as being not applicable to them. In ISO 27001, in addition to Clauses 4.0 - 10.0, there is a further set of requirements detailed in a section called Annex A, which is referenced in Clause 6.0. Annex A contains 93 information security controls. Each of these 93 controls need to be considered. To be compliant with ISO 27001, the organisation must implement these controls, or an acceptable justification must be given for not implementing a particular control. The following parts of this guide provide an overview of each clause, highlight the evidence an auditor would expect to see to confirm that you comply, and give tips on effective ways to comply with the requirements. THE 10 CLAUSES OF ISO 27001:2022 CONTROLS CONTINUAL IMPROVEMENT MONITOR INTERESTED PARTIES THREATS CONTROL ACCESS ASSETS VULNERABILITIES RISKS INFORMATION CONFIDENTIALITY INTEGRITY AVAILABILITY USE REGULATE VALUE -- 11 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 12 SECTION 2: NORMATIVE REFERENCES Some of the terms and requirements detailed in ISO 27001 are explained further in ISO 27000",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.16963818669319153
+  },
+  {
+    "id": "ISO-ISO27001pdf-004",
+    "title": "ISO27001.pdf snippet 4",
+    "text": "curité — Code de pratique pour la gestion de sécurité d'information -- 4 of 128 -- ISO/IEC FDIS 17799:2005(E) iv © ISO/IEC 2005 – All rights reserved Contents Page FOREWORD ................................................................................................................................................... VIII 0 INTRODUCTION ........................................................................................................................................ IX 0.1 W HAT IS INFORMATION SECURITY? .........................................................................................................IX 0.2 W HY INFORMATION SECURITY IS NEEDED? ............................................................................................ IX 0.3 H OW TO ESTABLISH SECURITY REQUIREMENTS ....................................................................................... X 0.4 A SSESSING SECURITY RISKS .................................................................................................................... X 0.5 S ELECTING CONTROLS ............................................................................................................................. X 0.6 I NFORMATION SECURITY STARTING POINT ............................................................................................... X 0.7 CRITICAL SUCCESS FACTORS ....................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1638099104166031
+  },
+  {
+    "id": "ISO-ISO27001pdf-018",
+    "title": "ISO27001.pdf snippet 18",
+    "text": ".......... 68 11.4.7 Network routing control ............................................................................................................... 69 11.5 O PERATING SYSTEM ACCESS CONTROL .................................................................................................. 69 11.5.1 Secure log-on procedures ............................................................................................................. 69 11.5.2 User identification and authentication ......................................................................................... 70 11.5.3 Password management system...................................................................................................... 71 11.5.4 Use of system utilities ................................................................................................................... 72 11.5.5 Session time-out............................................................................................................................ 72 11.5.6 Limitation of connection time ....................................................................................................... 72 11.6 A PPLICATION AND INFORMATION ACCESS CONTROL ............................................................................. 73 11.6.1 Information access restriction ................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.14713779091835022
+  },
+  {
+    "id": "ISO-ISO27001pdf-005",
+    "title": "ISO27001.pdf snippet 5",
+    "text": ".............................................................................. XI 0.8 D EVELOPING YOUR OWN GUIDELINES .................................................................................................. XII 1 SCOPE .............................................................................................................................................................. 1 2 TERMS AND DEFINITIONS ........................................................................................................................ 1 3 STRUCTURE OF THIS STANDARD........................................................................................................... 4 3.1 CLAUSES ................................................................................................................................................. 4 3.2 MAIN SECURITY CATEGORIES .................................................................................................................. 4 4 RISK ASSESSMENT AND TREATMENT .................................................................................................. 5 4.1 A SSESSING SECURITY RISKS .................................................................................................................... 5 4.2 TREATING SECURITY RISKS .............................................................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.14280030131340027
+  },
+  {
+    "id": "ISO-NQAISO27001Imple-017",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 17",
+    "text": "rms that are used in ISO 27001. -- 13 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 14 SECTION 4: CONTEXT OF THE ORGANISATIONS Internal Context The following are examples of the areas that can be considered when assessing the internal issues that may have a bearing on the ISMS risks: • Maturity: Are you an agile start-up with a blank canvas to work on, or a 30+ year old institution with well-established processes and security controls? • Organisation culture: Is your organisation relaxed about how, when and where people work, or extremely regimented? Might the culture resist the implementation of Information Security controls? • Management: Are there clear communication channels and processes from the organisation’s key decision makers through to the rest of the organisation? • Resource size: Are you working with an Information Security Team, or is one person doing it all? • Resource maturity: Are the available resources (employees/ contractors) knowledgeable, fully trained, dependable and consistent, or are personnel inexperienced and constantly changing? • Information asset formats: Are your information assets mainly stored in hard-copy (paper) format, or are they stored electronically on a server on-site, or in remote cloud-based systems? • Information asset sensitivity/value: Does your organisation have to manage highly valuable or particularly sensitive information assets?",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1405935138463974
+  }
+]

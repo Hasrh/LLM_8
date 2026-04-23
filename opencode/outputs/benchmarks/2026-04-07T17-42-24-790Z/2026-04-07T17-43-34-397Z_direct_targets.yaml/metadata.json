@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:43:34.397Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296f574cdffenN2LjHkkL4eXKK",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/certbot/letstest/targets/targets.yaml",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/certbot/letstest/targets/targets.yaml\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\n# These images are located in us-east-1.\n#\n# All machines must currently use x86_64 since Pebble does not currently\n# publish images for other architectures.\n\ntargets:\n  #-----------------------------------------------------------------------------\n  # Ubuntu\n  # These AMI were found on https://cloud-images.ubuntu.com/locator/ec2/.\n  - ami: ami-045a47a3b15302634\n    name: ubuntu24.04\n    type: ubuntu\n    virt: hvm\n    user: ubuntu\n  - ami: ami-0fc5d935ebf8bc3bc\n    name: ubuntu22.04\n    type: ubuntu\n    virt: hvm\n    user: ubuntu\n  #-----------------------------------------------------------------------------\n  # Debian\n  # These AMI were found on https://wiki.debian.org/Cloud/AmazonEC2Image.\n  - ami: ami-0f238cd7c96d866ad\n    name: debian12\n    type: ubuntu\n    virt: hvm\n    user: admin\n  #-----------------------------------------------------------------------------\n  # CentOS\n  # These AMI were found on https://centos.org/download/aws-images/.\n  - ami: ami-013db6d0c7167e046\n    name: centos9stream\n    type: centos\n    virt: hvm\n    user: ec2-user\n\n```"
+}

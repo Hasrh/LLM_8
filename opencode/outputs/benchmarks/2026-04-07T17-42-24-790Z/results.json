@@ -1,0 +1,502 @@
+[
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/ansible/test/units/config/test.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-42-32-836Z_direct_test.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/apisix/t/pnpm-lock.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-43-00-525Z_direct_pnpm-lock.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/calico/whisker/components.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-43-11-920Z_direct_components.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/certbot/letstest/targets/targets.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-43-34-397Z_direct_targets.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/chef/cspell.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-43-59-482Z_direct_cspell.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cilium/images/standalone-dns-proxy/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-44-19-228Z_direct_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cli/script/versioninfo.template.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-44-32-218Z_direct_versioninfo.template.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/core/codecov.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-44-50-104Z_direct_codecov.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/coreruleset/renovate.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-45-07-828Z_direct_renovate.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cosign/test/testdata/test-result.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-45-17-654Z_direct_test-result.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cryptography/vectors/cryptography_vectors/HPKE/test-vectors.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-45-48-453Z_direct_test-vectors.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-45-59-563Z_direct_.clang-tidy.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-46-09-986Z_direct_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django-rest-framework/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-46-20-308Z_direct_mkdocs.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/elasticsearch/x-pack/test/smb-fixture/src/main/resources/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-46-43-062Z_direct_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/electron/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-46-51-915Z_direct_tsconfig.spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/envoy/tools/dependency/cve.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-47-22-257Z_direct_cve.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/express/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-47-34-634Z_direct_package.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/fastapi/docs/zh/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-47-39-519Z_direct_mkdocs.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/flask/.readthedocs.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-47-46-596Z_direct_.readthedocs.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/gitea/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-02-525Z_direct_package.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/grafana/.golangci.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-23-646Z_direct_.golangci.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/helm/testdata/releases.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-27-915Z_direct_releases.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/httpd/test/pyhttpd/htdocs/test2/alive.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-36-992Z_direct_alive.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/istio/tools/proto/buf.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-47-820Z_direct_buf.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kafka/trogdor/src/test/resources/log4j2.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-48-57-177Z_direct_log4j2.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/kubernetes/cluster/log-dump/logexporter-daemonset.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-49-25-215Z_direct_logexporter-daemonset.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/laravel/composer.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-49-58-039Z_direct_composer.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/minio/Dockerfile.hotfix",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-50-23-551Z_direct_Dockerfile.hotfix",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/moby/vendor/resenje.org/singleflight/.golangci.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-50-33-252Z_direct_.golangci.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/mysql-server/mysql-test/std_data/wl13681.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-50-43-389Z_direct_wl13681.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nest/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-50-55-951Z_direct_tsconfig.spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/next.js/vercel.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-51-20-139Z_direct_vercel.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/nginx/src/stream/ngx_stream_write_filter_module.c",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-51-52-540Z_direct_ngx_stream_write_filter_module.c",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/node/tsconfig.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-52-10-463Z_direct_tsconfig.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/oauth2-proxy/.pre-commit-config.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-52-25-332Z_direct_.pre-commit-config.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-52-37-307Z_direct_Dockerfile",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/openssl/funding.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-52-59-198Z_direct_funding.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/postgres/src/test/modules/test_json_parser/tiny.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-53-11-506Z_direct_tiny.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/prometheus/web/ui/react-app/.eslintrc.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-53-20-101Z_direct_.eslintrc.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/puppet/ext/hiera/hiera.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-53-35-071Z_direct_hiera.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rabbitmq-server/docs/compatibility.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-53-51-486Z_direct_compatibility.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-54-14-537Z_direct_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/redis/codecov.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-54-33-743Z_direct_codecov.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/salt/.codeclimate.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-54-58-943Z_direct_.codeclimate.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/spring-boot/documentation/spring-boot-docs/src/test/resources/com/example/myapp/config.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-55-08-734Z_direct_config.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/terraform/testing/equivalence-tests/tests/variables_and_outputs/spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-55-20-088Z_direct_spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/traefik/webui/tsconfig.node.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-55-24-909Z_direct_tsconfig.node.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/trivy/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-55-35-004Z_direct_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/vault/buf.gen.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-07T17-42-24-790Z/2026-04-07T17-55-41-839Z_direct_buf.gen.yaml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "openai",
+    "model_id": "gpt-5.4-mini"
+  }
+]

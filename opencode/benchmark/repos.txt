@@ -1,0 +1,6 @@
+# One local repository path per line.
+# Lines starting with # are ignored.
+#
+# Example:
+# /home/aggerio/temp/benchmarks/repo-a
+# /home/aggerio/temp/benchmarks/repo-b

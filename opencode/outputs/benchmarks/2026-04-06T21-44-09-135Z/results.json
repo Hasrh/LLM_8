@@ -1,0 +1,162 @@
+[
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cryptography/vectors/cryptography_vectors/HPKE/test-vectors.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/cryptography/vectors/cryptography_vectors/HPKE/test-vectors.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-44-36-718Z_baseline_test-vectors.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-00-783Z_baseline_.clang-tidy.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django/zizmor.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django/zizmor.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-17-210Z_baseline_zizmor.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django-rest-framework/mkdocs.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/django-rest-framework/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-45-34-747Z_baseline_mkdocs.yml",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/elasticsearch/x-pack/test/smb-fixture/src/main/resources/Dockerfile",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/elasticsearch/x-pack/test/smb-fixture/src/main/resources/Dockerfile",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-06-547Z_baseline_Dockerfile",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/electron/tsconfig.spec.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/electron/tsconfig.spec.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-19-417Z_baseline_tsconfig.spec.json",
+    "score": 1,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/envoy/tools/dependency/cve.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/envoy/tools/dependency/cve.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-46-43-090Z_baseline_cve.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/express/package.json",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/express/package.json",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-03-227Z_baseline_package.json",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/fastapi/docs/zh/mkdocs.yml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/fastapi/docs/zh/mkdocs.yml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-18-758Z_baseline_mkdocs.yml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "gpt",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/flask/.readthedocs.yaml",
+    "ok": false,
+    "error": "No output generated. Check the stream for errors."
+  },
+  {
+    "suite": "opencode",
+    "target": "/home/aggerio/temp/opencode/samples/bench50/flask/.readthedocs.yaml",
+    "ok": true,
+    "run_dir": "/home/aggerio/temp/opencode/outputs/benchmarks/2026-04-06T21-44-09-135Z/2026-04-06T21-47-36-699Z_baseline_.readthedocs.yaml",
+    "score": 0.75,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  }
+]

@@ -1,0 +1,3555 @@
+
+
+# FILE: package.json
+{
+  "private": true,
+  "workspaces": [
+    "actioncable",
+    "actiontext",
+    "activestorage"
+  ]
+}
+
+
+# FILE: eslint.config.mjs
+import importPlugin from "eslint-plugin-import";
+import globals from "globals";
+import pluginJs from "@eslint/js";
+
+export default [
+  pluginJs.configs.recommended,
+  importPlugin.flatConfigs.recommended,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+
+      ecmaVersion: 6,
+      sourceType: "module",
+    },
+  },
+
+  {
+    rules: {
+      semi: ["error", "never"],
+      quotes: ["error", "double"],
+      "no-unused-vars": [
+        "error",
+        {
+          vars: "all",
+          args: "none",
+        },
+      ],
+      "import/order": [
+        "error",
+        {
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
+          groups: [["builtin", "external", "internal"]],
+        },
+      ],
+    },
+  },
+  {
+    files: ["actioncable/**"],
+    rules: {
+      "no-console": "off",
+    },
+  },
+  {
+    files: [
+      "activestorage/app/javascript/activestorage/direct_upload.js",
+      "activestorage/app/javascript/activestorage/index.js",
+    ],
+    rules: {
+      "import/order": [
+        "error",
+        {
+          groups: [["builtin", "external", "internal"]],
+        },
+      ],
+    },
+  },
+];
+
+
+# FILE: RELEASING_RAILS.md
+# Releasing Rails
+
+In this document, we'll cover the steps necessary to release Rails. Each
+section contains steps to take during that time before the release. The times
+suggested in each header are just that: suggestions. However, they should
+really be considered as minimums.
+
+## 10 Days before release
+
+Today is mostly coordination tasks. Here are the things you must do today:
+
+### Is the CI green? If not, make it green. (See "Fixing the CI")
+
+Do not release with a Red CI. You can find the CI status here:
+
+```
+https://buildkite.com/rails/rails
+```
+
+### Do we have any Git dependencies? If so, contact those authors.
+
+Having Git dependencies indicates that we depend on unreleased code.
+Obviously Rails cannot be released when it depends on unreleased code.
+Contact the authors of those particular gems and work out a release date that
+suits them.
+
+### Announce your plans to the rest of the team on Basecamp
+
+Let them know of your plans to release.
+
+### Update each CHANGELOG.
+
+Many times commits are made without the CHANGELOG being updated. You should
+review the commits since the last release, and fill in any missing information
+for each CHANGELOG.
+
+You can review the commits for the 3.0.10 release like this:
+
+```
+[aaron@higgins rails (3-0-10)]$ git log v3.0.9..
+```
+
+If you're doing a stable branch release, you should also ensure that all of
+the CHANGELOG entries in the stable branch are also synced to the main
+branch.
+
+## Day of release
+
+If making multiple releases. Publish them in order from oldest to newest, to
+ensure that the "greatest" version also shows up in npm and GitHub Releases as
+"latest".
+
+### Put the new version in the RAILS_VERSION file.
+
+Include an RC number if appropriate, e.g. `6.0.0.rc1`.
+
+### Build and test the gem.
+
+Run `rake install` to generate the gems and install them locally. You can now
+use the version installed locally to generate a new app and check if everything
+is working as expected.
+
+This will stop you from looking silly when you push an RC to rubygems.org and
+then realize it is broken.
+
+### Check credentials for GitHub
+
+For GitHub run `gh auth status` to check that you are logged in (run `gh login` if not).
+
+The release task will sign the release tag. If you haven't got commit signing
+set up, use https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work as a
+guide. You can generate keys with the GPG suite from here: https://gpgtools.org.
+
+Run `rake prep_release` to prepare the release. This will populate the gemspecs and
+npm package.json with the current RAILS_VERSION, add the header to the CHANGELOGs,
+build the gems, and check if bundler can resolve the dependencies.
+
+You can now inspect the results in the diff and see if you are happy with the
+changes.
+
+To release, Run `rake release`. This will commit the changes, tag it, and create a GitHub
+release with the proper release notes in draft mode.
+
+Open the corresponding GitHub release draft and check that the release notes
+are correct. If everything is fine, publish the release.
+
+### Publish the gems
+
+To publish the gems approve the [Release workflow in GitHub Actions](https://github.com/rails/rails/actions/workflows/release.yml),
+that was created after the release was published.
+
+### Send Rails release announcements
+
+Write a release announcement that includes the version, changes, and links to
+GitHub where people can find the specific commit list. Here are the mailing
+lists where you should announce:
+
+* [rubyonrails-core](https://discuss.rubyonrails.org/c/rubyonrails-core)
+* [rubyonrails-talk](https://discuss.rubyonrails.org/c/rubyonrails-talk)
+
+Use Markdown format for your announcement. Remember to ask people to report
+issues with the release candidate to the rubyonrails-core forum.
+
+NOTE: For patch releases, there's a `rake announce` task to generate the release
+post. It supports multiple patch releases too:
+
+```
+VERSIONS="5.0.5.rc1,5.1.3.rc1" rake announce
+```
+
+IMPORTANT: If any users experience regressions when using the release
+candidate, you *must* postpone the release. Bugfix releases *should not*
+break existing applications.
+
+### Post the announcement to the Rails blog.
+
+The blog at https://rubyonrails.org/blog is built from
+https://github.com/rails/website.
+
+Create a file named like
+`_posts/$(date +'%F')-Rails-<versions>-have-been-released.markdown`
+
+Add YAML frontmatter
+```
+---
+layout: post
+title: 'Rails <VERSIONS> have been released!'
+categories: releases
+author: <your handle>
+published: true
+date: <YYYY-MM-DD or `date +%F`>
+---
+```
+
+Use the markdown generated by `rake announce` earlier as a base for the post.
+Add some context for users as to the purpose of this release (bugfix/security).
+
+If this is a part of the latest release series, update `_data/version.yml` so
+that the homepage points to the latest version.
+
+### Post the announcement to the Rails X account.
+
+## Security releases
+
+### Emailing the Rails security announce list
+
+Email the security announce list once for each vulnerability fixed.
+
+You can do this, or ask the security team to do it.
+
+Email the security reports to:
+
+* rubyonrails-security@googlegroups.com
+* oss-security@lists.openwall.com
+
+Be sure to note the security fixes in your announcement along with CVE numbers
+and links to each patch. Some people may not be able to upgrade right away,
+so we need to give them the security fixes in patch form.
+
+* Blog announcements
+* X announcements
+* Merge the release branch to the stable branch
+* Drink beer (or other cocktail)
+
+## Misc
+
+### Fixing the CI
+
+There are two simple steps for fixing the CI:
+
+1. Identify the problem
+2. Fix it
+
+Repeat these steps until the CI is green.
+
+
+# FILE: README.md
+# Welcome to Rails
+
+## What's Rails?
+
+Rails is a web application framework that includes everything needed to
+create database-backed web applications according to the
+[Model-View-Controller (MVC)](https://en.wikipedia.org/wiki/Model-view-controller)
+pattern.
+
+Understanding the MVC pattern is key to understanding Rails. MVC divides your
+application into three layers: Model, View, and Controller, each with a specific responsibility.
+
+## Model layer
+
+The _**Model layer**_ represents the domain model (such as Account, Product,
+Person, Post, etc.) and encapsulates the business logic specific to
+your application. In Rails, database-backed model classes are derived from
+`ActiveRecord::Base`. [Active Record](activerecord/README.rdoc) allows you to present the data from
+database rows as objects and embellish these data objects with business logic
+methods.
+Although most Rails models are backed by a database, models can also be ordinary
+Ruby classes, or Ruby classes that implement a set of interfaces as provided by
+the [Active Model](activemodel/README.rdoc) module.
+
+## View layer
+
+The _**View layer**_ is composed of "templates" that are responsible for providing
+appropriate representations of your application's resources. Templates can
+come in a variety of formats, but most view templates are HTML with embedded
+Ruby code (ERB files). Views are typically rendered to generate a controller response
+or to generate the body of an email. In Rails, View generation is handled by [Action View](actionview/README.rdoc).
+
+## Controller layer
+
+The _**Controller layer**_ is responsible for handling incoming HTTP requests and
+providing a suitable response. Usually, this means returning HTML, but Rails controllers
+can also generate XML, JSON, PDFs, mobile-specific views, and more. Controllers load and
+manipulate models, and render view templates in order to generate the appropriate HTTP response.
+In Rails, incoming requests are routed by Action Dispatch to an appropriate controller, and
+controller classes are derived from `ActionController::Base`. Action Dispatch and Action Controller
+are bundled together in [Action Pack](actionpack/README.rdoc).
+
+## Frameworks and libraries
+
+[Active Record](activerecord/README.rdoc), [Active Model](activemodel/README.rdoc), [Action Pack](actionpack/README.rdoc), and [Action View](actionview/README.rdoc) can each be used independently outside Rails.
+
+In addition to that, Rails also comes with:
+
+- [Action Mailer](actionmailer/README.rdoc), a library to generate and send emails
+- [Action Mailbox](actionmailbox/README.md), a library to receive emails within a Rails application
+- [Active Job](activejob/README.md), a framework for declaring jobs and making them run on a variety of queuing backends
+- [Action Cable](actioncable/README.md), a framework to integrate WebSockets with a Rails application
+- [Active Storage](activestorage/README.md), a library to attach cloud and local files to Rails applications
+- [Action Text](actiontext/README.md), a library to handle rich text content
+- [Active Support](activesupport/README.rdoc), a collection of utility classes and standard library extensions that are useful for Rails, and may also be used independently outside Rails
+
+## Getting Started
+
+1. Install Rails at the command prompt if you haven't yet:
+
+	```bash
+	$ gem install rails
+	```
+
+2. At the command prompt, create a new Rails application:
+
+	```bash
+	$ rails new myapp
+	```
+
+   where "myapp" is the application name.
+
+3. Change directory to `myapp` and start the web server:
+
+	```bash
+	$ cd myapp
+	$ bin/rails server
+	```
+   Run with `--help` or `-h` for options.
+
+4. Go to `http://localhost:3000` and you'll see the Rails bootscreen with your Rails and Ruby versions.
+
+5. Follow the guidelines to start developing your application. You may find
+   the following resources handy:
+    * [Getting Started with Rails](https://guides.rubyonrails.org/getting_started.html)
+    * [Ruby on Rails Guides](https://guides.rubyonrails.org)
+    * [The API Documentation](https://api.rubyonrails.org)
+
+## Contributing
+
+We encourage you to contribute to Ruby on Rails! Please check out the
+[Contributing to Ruby on Rails guide](https://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html) for guidelines about how to proceed. [Join us!](https://contributors.rubyonrails.org)
+
+Trying to report a possible security vulnerability in Rails? Please
+check out our [security policy](https://rubyonrails.org/security) for
+guidelines about how to proceed.
+
+Everyone interacting in Rails and its sub-projects' codebases, issue trackers, chat rooms, and mailing lists is expected to follow the Rails [code of conduct](https://rubyonrails.org/conduct).
+
+## License
+
+Ruby on Rails is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+# FILE: CONTRIBUTING.md
+[![Build Status](https://badge.buildkite.com/ab1152b6a1f6a61d3ea4ec5b3eece8d4c2b830998459c75352.svg?branch=main)](https://buildkite.com/rails/rails)
+[![Code Triage Badge](https://www.codetriage.com/rails/rails/badges/users.svg)](https://www.codetriage.com/rails/rails)
+[![Version](https://img.shields.io/gem/v/rails)](https://rubygems.org/gems/rails)
+[![License](https://img.shields.io/github/license/rails/rails)](https://github.com/rails/rails)
+
+## How to contribute to Ruby on Rails
+
+#### **Did you find a bug?**
+
+* **Do not open up a GitHub issue if the bug is a security vulnerability
+  in Rails**, and instead to refer to our [security policy](https://rubyonrails.org/security).
+
+* **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/rails/rails/issues).
+
+* If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/rails/rails/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
+
+* If possible, use the relevant bug report templates to create the issue. Simply copy the content of the appropriate template into a .rb file, make the necessary changes to demonstrate the issue, and **paste the content into the issue description**:
+  * [**Active Record** (models, encryption, database) issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/active_record.rb)
+  * [**Active Record Migrations** issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/active_record_migrations.rb)
+  * [**Action View** (views, helpers) issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/action_view.rb)
+  * [**Active Job** issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/active_job.rb)
+  * [**Active Storage** issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/active_storage.rb)
+  * [**Action Mailer** issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/action_mailer.rb)
+  * [**Action Mailbox** issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/action_mailbox.rb)
+  * [**Action Pack** (controllers, routing) issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/action_controller.rb)
+  * [**Generic template** for other issues](https://github.com/rails/rails/blob/main/guides/bug_report_templates/generic.rb)
+
+* For more detailed information on submitting a bug report and creating an issue, visit our [reporting guidelines](https://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html#reporting-an-issue).
+
+#### **Did you write a patch that fixes a bug?**
+
+* Open a new GitHub pull request with the patch.
+
+* Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
+
+* Before submitting, please read the [Contributing to Ruby on Rails](https://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html) guide to know more about coding conventions and benchmarks.
+
+#### **Did you fix whitespace, format code, or make a purely cosmetic patch?**
+
+Changes that are cosmetic in nature and do not add anything substantial to the stability, functionality, or testability of Rails will generally not be accepted (read more about [our rationales behind this decision](https://github.com/rails/rails/pull/13771#issuecomment-32746700)).
+
+#### **Do you intend to add a new feature or change an existing one?**
+
+* Suggest your change in the [rubyonrails-core forum](https://discuss.rubyonrails.org/c/rubyonrails-core) and start writing code.
+
+* Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes.
+
+* We generally reject changes to Active Support core extensions. Those change should be proposed in the [Ruby issue tracker instead](https://bugs.ruby-lang.org/issues), as we don't want to conflict with future versions of Ruby.
+
+#### **Do you have questions about the source code?**
+
+* Ask any question about how to use Ruby on Rails in the [rubyonrails-talk mailing list](https://discuss.rubyonrails.org/c/rubyonrails-talk).
+
+#### **Do you want to contribute to the Rails documentation?**
+
+* Please read [Contributing to the Rails Documentation](https://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html#contributing-to-the-rails-documentation).
+
+Ruby on Rails is a volunteer effort. We encourage you to pitch in and join [the team](https://contributors.rubyonrails.org)!
+
+Thanks! :heart: :heart: :heart:
+
+Rails Team
+
+
+# FILE: CODE_OF_CONDUCT.md
+# Contributor Code of Conduct
+
+The Rails team is committed to fostering a welcoming community.
+
+**Our Code of Conduct can be found here**:
+
+https://rubyonrails.org/conduct
+
+For a history of updates, see the page history here:
+
+https://github.com/rails/website/commits/main/_pages/conduct.html
+
+
+# FILE: AGENTS.md
+# Ruby on Rails Codebase Guide for AI Coding Agents
+
+This is the code base of the Ruby on Rails web framework.
+
+## Architecture Overview
+
+Rails is a **monorepo containing 10+ independent components** that can work standalone or together.
+
+Each component lives in its own directory at the root level:
+
+- **Active Record** (`activerecord/`) - ORM and database abstraction
+- **Action Pack** (`actionpack/`) - Controllers and routing (contains Action Controller and Action Dispatch)
+- **Action View** (`actionview/`) - View templates and helpers (extracted from Action Pack in Rails 3)
+- **Active Model** (`activemodel/`) - Model interfaces without database dependency
+- **Active Support** (`activesupport/`) - Core extensions and utilities used across all Rails components
+- **Action Mailer** (`actionmailer/`), **Action Mailbox** (`actionmailbox/`) - Email sending/receiving
+- **Active Job** (`activejob/`) - Background job abstraction
+- **Action Cable** (`actioncable/`) - WebSocket integration
+- **Active Storage** (`activestorage/`) - File uploads and cloud storage
+- **Action Text** (`actiontext/`) - Rich text content
+- **Railties** (`railties/`) - Rails CLI, generators, and framework glue
+
+**Key architectural principle**: Rails components are loosely coupled. Changes to one of them should not break others unless there's an explicit dependency.
+
+## Testing Commands
+
+### Running Tests in a Component
+
+From within the component directory (preferred method):
+
+```bash
+cd actionview && bin/test                    # Run all tests
+cd actionview && bin/test test/template/form_helper_test.rb
+cd actionview && bin/test -n "/test_name/"   # Filter by test name pattern
+```
+
+How to run specific test method:
+
+```bash
+cd actionview && bin/test test/template/form_helper_test.rb::FormHelperTest#test_hidden_field
+```
+
+### Running Tests from Root
+
+Run all tests for a given component:
+
+```bash
+rake actionview:test
+```
+
+Run tests across all components:
+
+```bash
+rake test          # Run all non-isolated tests
+rake test:isolated # Run isolated tests
+rake smoke         # Quick smoke test
+```
+
+### Active Record Testing (Multiple Database Adapters)
+
+How to test individual database adapters in Active Record:
+
+```bash
+cd activerecord
+bundle exec rake test:sqlite3 # Default
+bundle exec rake test:postgresql
+bundle exec rake test:mysql2
+bundle exec rake test:trilogy
+```
+
+**Important**: Tests run in parallel using multiple processes. The `bin/test` script wraps Rails' custom test runner (`tools/test.rb`) which uses `Rails::TestUnit::Runner`.
+
+## Configuration Testing Patterns
+
+When testing configuration options, use `Object#with` (from Active Support) to temporarily modify class attributes:
+
+```ruby
+# Correct: Use Object#with for temporary config changes
+ActionView::Base.with(remove_hidden_field_autocomplete: true) do
+  # Test code here
+end
+
+# Avoid: Manual set/restore patterns
+old = ActionView::Base.remove_hidden_field_autocomplete
+ActionView::Base.remove_hidden_field_autocomplete = true
+# ... test code
+ActionView::Base.remove_hidden_field_autocomplete = old
+```
+
+This pattern is used throughout the test suite, especially for:
+
+- `ActionView::Base.with(config_option: value)`
+- `ActionController::Base.with(config_option: value)`
+- Other framework configuration testing
+
+**Requires**: `require "active_support/core_ext/object/with"` at the top of test files.
+
+## Code Conventions
+
+### Configuration Flags
+
+Configuration options follow a consistent pattern across components:
+
+1. **Define the attribute** in the base class (e.g., `ActionView::Base`):
+   ```ruby
+   cattr_accessor :remove_hidden_field_autocomplete, default: false
+   ```
+
+2. **Check the flag** before applying behavior:
+   ```ruby
+   @options.reverse_merge!(autocomplete: "off") unless ActionView::Base.remove_hidden_field_autocomplete
+   ```
+
+3. **Enable by default** in new Rails versions via `load_defaults`:
+   ```ruby
+   # In railties/lib/rails/application/configuration.rb
+   case target_version.to_s
+   when "8.1"
+     action_view.remove_hidden_field_autocomplete = true
+   end
+   ```
+
+### Changelog Updates
+
+When fixing bugs or adding features:
+
+- Add an entry to the top of `<component>/CHANGELOG.md`
+- Format: Brief description, then `*Your Name*` on new line
+- See existing entries for style
+
+### Test Naming
+
+- Use descriptive names: `test_hidden_field_omits_autocomplete_when_remove_hidden_field_autocomplete_is_true`
+- Group related tests together in the file
+- Test both default behavior AND explicit overrides
+
+### Code Style
+
+- Run RuboCop: `bundle exec rubocop` (there's a project-wide `.rubocop.yml`)
+- Prefer `assert_not` over `assert !` (`Rails/AssertNot` cop)
+- Prefer `assert_dom_equal` for HTML comparisons in view tests
+- Use `# frozen_string_literal: true` at top of all files
+
+## Common Development Workflows
+
+### Making a Fix Across Multiple Components
+
+Example: Issue #55984 required changes to:
+
+1. Helper class: `actionview/lib/action_view/helpers/tags/hidden_field.rb`
+2. Tests: `actionview/test/template/form_helper_test.rb`
+3. Reference: Similar fixes were in `tags/check_box.rb`, `tags/file_field.rb`, `form_tag_helper.rb`, `url_helper.rb`
+
+**Pattern**: When fixing a configuration flag, grep for similar patterns in other helpers:
+
+```bash
+grep -r "unless ActionView::Base.remove_hidden_field_autocomplete" actionview/lib/
+```
+
+### Finding Related Code
+
+- **Similar functionality**: Look in the same `lib/*/helpers/` or `lib/*/tags/` directory
+- **Tests for a helper**: Check `test/template/<helper_name>_test.rb`
+- **Configuration setup**: Check `railties/lib/rails/application/configuration.rb`
+- **Default values**: Look for `load_defaults` version blocks
+
+### Working with Forms and Helpers
+
+Action View helpers follow this structure:
+
+- **Tag helpers** (`lib/action_view/helpers/tags/`) - Individual form elements
+- **Form helpers** (`lib/action_view/helpers/form_helper.rb`) - Form builders
+- **Form tag helpers** (`lib/action_view/helpers/form_tag_helper.rb`) - Standalone tags
+
+When modifying form behavior, check ALL three locations for consistency.
+
+## Issue References and Pull Requests
+
+- Always reference issue numbers in commits: `Fix #12345: Description`
+- Check for previous related PRs/issues when fixing bugs
+- Look at PR #55336 pattern when working on similar autocomplete-related fixes
+- Bug report templates live in `guides/bug_report_templates/`
+
+## File Organization Principles
+
+- `lib/` - Production code
+- `test/` - Test files (NOT `spec/` - Rails uses Minitest, not RSpec)
+- `bin/` - Executable scripts (e.g., `bin/test`)
+- Each framework is self-contained with its own Gemfile and dependencies
+- Shared tools live in `tools/` (e.g., `tools/test.rb`, `tools/release.rb`)
+
+## Documentation
+
+- API docs use YARD/RDoc format
+- Guides source in `guides/source/` (Markdown)
+- Generate docs: `rake rdoc` (from framework directory)
+- Configuration options documented in `guides/source/configuring.md`
+
+
+# FILE: tools/test_common.rb
+# frozen_string_literal: true
+
+require_relative "support/leak_checker"
+
+ActiveSupport::TestCase.alias_method :force_skip, :skip
+
+ENV["RAILS_TEST_EXECUTABLE"] = "bin/test"
+
+if ENV["BUILDKITE"]
+  ENV.delete("CI") # CI has affect on the applications, and we don't want it applied to the apps.
+  module DisableSkipping # :nodoc:
+    private
+      def skip(message = nil, *)
+        flunk "Skipping tests is not allowed in this environment (#{message})\n" \
+          "Tests should only be skipped when the environment is missing a required dependency.\n" \
+          "This should never happen on CI."
+      end
+  end
+  ActiveSupport::TestCase.include(DisableSkipping)
+end
+
+ActiveSupport::TestCase.prepend(LeakChecker)
+
+
+# FILE: tools/test.rb
+# frozen_string_literal: true
+
+$: << File.expand_path("test", COMPONENT_ROOT)
+
+require "bundler/setup"
+
+require "rails/test_unit/runner"
+require "rails/test_unit/reporter"
+require "rails/test_unit/line_filtering"
+require "active_support"
+require "active_support/test_case"
+
+ActiveSupport::TestCase.extend Rails::LineFiltering
+Rails::TestUnitReporter.app_root ||= COMPONENT_ROOT
+Rails::TestUnitReporter.executable = "bin/test"
+
+Rails::TestUnit::Runner.parse_options(ARGV)
+Rails::TestUnit::Runner.run(ARGV)
+
+
+# FILE: tools/strict_warnings.rb
+# frozen_string_literal: true
+
+$VERBOSE = true
+Warning[:deprecated] = true
+
+module RailsStrictWarnings # :nodoc:
+  class WarningError < StandardError; end
+
+  PROJECT_ROOT = File.expand_path("../", __dir__)
+  ALLOWED_WARNINGS = Regexp.union(
+    /circular require considered harmful.*delayed_job/, # Bug in delayed job.
+    /circular require considered harmful.*backburner/, # Bug in delayed job.
+
+    # Expected non-verbose warning emitted by Rails.
+    /Ignoring .*\.yml because it has expired/,
+    /Failed to validate the schema cache because/,
+  )
+
+  SUPPRESSED_WARNINGS = Regexp.union(
+    # TODO: remove if https://github.com/mikel/mail/pull/1557 or similar fix
+    %r{/lib/mail/parsers/.*statement not reached},
+    %r{/lib/mail/parsers/.*assigned but unused variable - disp_type_s},
+    %r{/lib/mail/parsers/.*assigned but unused variable - testEof},
+
+    # Emitted by zlib
+    /attempt to close unfinished zstream/,
+  )
+
+  def warn(message, ...)
+    return if SUPPRESSED_WARNINGS.match?(message)
+
+    super
+
+    testpath = message[/test\/.*\.rb/]&.chomp || message
+    return unless message.include?(PROJECT_ROOT) || Pathname.new(testpath).exist?
+    return if ALLOWED_WARNINGS.match?(message)
+    return unless ENV["RAILS_STRICT_WARNINGS"] || ENV["BUILDKITE"]
+
+    raise WarningError.new(message)
+  end
+end
+
+Warning.singleton_class.prepend(RailsStrictWarnings)
+
+
+# FILE: tools/preview_docs.rb
+# frozen_string_literal: true
+
+require "active_support/core_ext/string/output_safety"
+
+# How to test:
+#
+#   export BUILDKITE_COMMIT="c8b601a225"
+#   export BUILDKITE_BUILD_CREATOR="zzak"
+#   export BUILDKITE_REPO="https://github.com/rails/rails.git"
+#   export BUILDKITE_BUILD_NUMBER="60"
+#   export BUILDKITE_BUILD_URL="https://buildkite.com/rails/docs-preview/builds/60"
+#   export BUILDKITE_BRANCH="preview_docs"
+#   export BUILDKITE_MESSAGE="commit message"
+#   export BUILDKITE_PULL_REQUEST="42"
+#   bundle exec rake preview_docs
+#   open preview/index.html
+class PreviewDocs
+  attr_reader :commit, :author, :build, :repo, :branch
+
+  def initialize
+    @commit = link_to(EnvVars.sha[0, 7], "#{EnvVars.repo}/commit/#{EnvVars.sha}")
+    @author = EnvVars.actor
+    @build = link_to(EnvVars.build_number, EnvVars.build_url)
+    @repo = link_to(EnvVars.repo_slug, "#{EnvVars.repo}")
+    @branch = link_to(EnvVars.branch, "#{EnvVars.repo}/tree/#{EnvVars.branch}")
+    @message = EnvVars.message || "n/a"
+    @pull_request = EnvVars.pull_request ? link_to("##{EnvVars.pull_request}", "#{EnvVars.repo}/pull/#{EnvVars.pull_request}") : "n/a"
+  end
+
+  def render(outdir)
+    template = File.open("tools/preview_docs/index.html.erb").read
+    result = ERB.new(template).result(binding)
+    File.open("#{outdir}/index.html", "w") do |f|
+      f.write result
+    end
+  end
+
+  def link_to(name, url)
+    "<a href=\"#{escape(url)}\">#{escape(name)}</a>"
+  end
+
+  private
+    def escape(str)
+      ERB::Util.html_escape(str)
+    end
+end
+
+module EnvVars
+  def self.sha
+    fetch "BUILDKITE_COMMIT"
+  end
+
+  def self.actor
+    fetch "BUILDKITE_BUILD_CREATOR"
+  end
+
+  def self.repo
+    fetch("BUILDKITE_REPO").gsub(".git", "")
+  end
+
+  def self.repo_slug
+    repo.slice(/\w+\/\w+\Z/)
+  end
+
+  def self.build_number
+    fetch "BUILDKITE_BUILD_NUMBER"
+  end
+
+  def self.build_url
+    fetch "BUILDKITE_BUILD_URL"
+  end
+
+  def self.branch
+    fetch "BUILDKITE_BRANCH"
+  end
+
+  def self.message
+    ENV.fetch "BUILDKITE_MESSAGE"
+  end
+
+  def self.pull_request
+    pr = ENV.fetch("BUILDKITE_PULL_REQUEST")
+    pr == "false" ? false : pr
+  end
+
+  private
+    def self.fetch(env)
+      ENV.fetch(env) { raise "#{env} env var undefined!" }
+    end
+end
+
+
+# FILE: tools/cve_announcement.rb
+# frozen_string_literal: true
+
+require "net/http"
+require "json"
+require "uri"
+
+def versions_section(advisory)
+  desc = +""
+  advisory[:vulnerabilities].each do |vuln|
+    package = vuln[:package][:name]
+    bad_versions = vuln[:vulnerable_version_range]
+    patched_versions = vuln[:patched_versions]
+    desc << "* #{package} #{bad_versions}"
+    desc << " (patched in #{patched_versions})" unless patched_versions.empty?
+    desc << "\n"
+  end
+  ["Versions affected", desc]
+end
+
+def patches_section(advisory)
+  desc = +""
+  advisory[:vulnerabilities].each do |vuln|
+    patched_versions = vuln[:patched_versions]
+    commit = IO.popen(%W[git log --format=format:%H --grep=#{advisory[:cve_id]} v#{patched_versions}], &:read)
+    raise "git log failed" unless $?.success?
+    branch = patched_versions[/^\d+\.\d+/]
+    desc << "* #{branch} - https://github.com/rails/rails/commit/#{commit}.patch\n"
+  end
+  ["Patches", desc]
+end
+
+def format_advisory(advisory)
+  text = advisory[:description].dup
+  text.gsub!("\r\n", "\n") # yuck
+
+  sections = text.split(/(?=\n[A-Z].+\n---+\n)/)
+  header = sections.shift.strip
+  header = <<EOS
+#{header}
+
+* #{advisory[:cve_id]}
+* #{advisory[:ghsa_id]}
+
+EOS
+
+  sections.map! do |section|
+    section.split(/^---+$/, 2).map(&:strip)
+  end
+
+  sections.unshift(versions_section(advisory))
+  sections.push(patches_section(advisory))
+
+  ([header.strip] + sections.map do |section|
+    title, body = section
+    "#{title}\n#{"-" * title.size}\n#{body.strip}"
+  end).join("\n\n")
+end
+
+uri = URI("https://api.github.com/repos/rails/rails/security-advisories")
+json = Net::HTTP.get(uri)
+advisories = JSON.parse(json, symbolize_names: true)
+
+should_open = ARGV.delete("--open")
+cves = ARGV
+unless cves.any? && cves.all? { |s| s.match?(/\ACVE-\d\d\d\d-\d+\z/) }
+  puts "Usage: #$0 CVE-YYYY-XXXXX..."
+  puts
+  puts "recent CVEs:"
+  advisories[0, 10].each do |advisory|
+    puts "  #{advisory[:cve_id]} - #{advisory[:summary]}"
+  end
+  exit 1
+end
+
+cves.map do |cve|
+  advisory = advisories.detect { |x| x[:cve_id] == cve }
+  raise "Can't find #{cve}" unless advisory
+  if should_open
+    format = format_advisory(advisory)
+    query = {
+      title: "[#{advisory[:cve_id]}] #{advisory[:summary]}",
+      body: format,
+      category: "security-announcements",
+      tags: "announcement,security"
+    }
+    url = "https://discuss.rubyonrails.org/new-topic?#{URI.encode_www_form(query)}"
+    system(ENV.fetch("BROWSER", "open"), url)
+  else
+    puts "# #{advisory[:summary]}"
+    puts
+    puts format_advisory(advisory)
+  end
+end
+
+
+# FILE: tools/README.md
+# Rails dev tools
+
+This is a collection of utilities used for Rails internal development.
+They aren't used by Rails apps directly.
+
+  * `console` drops you in irb and loads local Rails repos
+  * `railspect` provides commands to run internal linters
+  * `line_statistics` provides CodeTools module and LineStatistics class to count lines
+  * `test` is loaded by every major component of Rails to simplify testing, for example:
+    `cd ./actioncable; bin/test ./path/to/actioncable_test_with_line_number.rb:5`
+
+
+# FILE: tasks/release.rb
+# frozen_string_literal: true
+
+require "releaser"
+
+root    = File.expand_path("..", __dir__)
+version = File.read("#{root}/RAILS_VERSION").strip
+releaser = Releaser.new(root, version)
+
+module Announcement
+  class Version
+    def initialize(version)
+      @version, @gem_version = version, Gem::Version.new(version)
+    end
+
+    def to_s
+      @version
+    end
+
+    def previous
+      @gem_version.segments[0, 3].tap { |v| v[2] -= 1 }.join(".")
+    end
+
+    def major_or_security?
+      @gem_version.segments[2].zero? || @gem_version.segments[3].is_a?(Integer)
+    end
+
+    def rc?
+      @version.include?("rc")
+    end
+  end
+end
+
+task :announce do
+  Dir.chdir("pkg/") do
+    versions = ENV["VERSIONS"] ? ENV["VERSIONS"].split(",") : [ releaser.version ]
+    versions = versions.sort.map { |v| Announcement::Version.new(v) }
+
+    raise "Only valid for patch releases" if versions.any?(&:major_or_security?)
+
+    if versions.any?(&:rc?)
+      require "date"
+      future_date = Date.today + 5
+      future_date += 1 while future_date.saturday? || future_date.sunday?
+
+      github_user = `git config github.user`.chomp
+    end
+
+    require "erb"
+    template = File.read("../tasks/release_announcement_draft.erb")
+
+    puts ERB.new(template, trim_mode: "<>").result(binding)
+  end
+end
+
+
+# FILE: activerecord/CHANGELOG.md
+*   Deprecate the `schema_order` option in PostgreSQL database configurations.
+
+    Use `schema_search_path` instead. The `schema_order` alias will be
+    removed in Rails 8.3.
+
+    *Eileen M. Uchitelle*
+
+*   Deprecate the `strict` option in MySQL database configurations.
+
+    The `strict` option for MySQL will be removed in Rails 8.3 because it is the default behavior.
+
+    To change the default behavior of `strict`, use `variables: { sql_mode: "..." }` to configure `sql_mode` directly.
+
+
+    `strict: false` can be replaced with `variables: { sql_mode: "" }`, and `strict: :default` can be replaced with `variables: { sql_mode: :default }`.
+
+    *Eileen M. Uchitelle*
+
+*   Allow configuring `SET` queriers for the PostgreSQL and MySQL adapters.
+
+    Individual settings can be skipped by setting them to `false` in
+    `database.yml`, which is useful when connecting through a load balancer or
+    proxy that handles configuration:
+
+    PostgreSQL example:
+
+    ```yaml
+    production:
+      adapter: postgresql
+      standard_conforming_strings: false
+      intervalstyle: false
+      min_messages: false
+      schema_search_path: false
+    ```
+
+    MySQL example:
+
+    ```yaml
+    production:
+      adapter: mysql2
+      wait_timeout: false
+      variables:
+        sql_mode: false
+    ```
+
+    Also deprecates `set_standard_conforming_strings` — it is now handled
+    automatically through the consolidated settings hash.
+
+    *Eileen M. Uchitelle*, *Matthew Draper*
+
+*   MySQL error 1046 (`ER_NO_DB_ERROR: No database selected`) is now retryable as a `ConnectionFailed` exception
+
+    *Clay Harmon*
+
+*   Batch SQL statements when creating tables to improve performance.
+
+    *Andrew Novoselac*
+
+*   Support PostgreSQL `RESET` on readonly queries.
+
+    ```ruby
+    ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
+      ActiveRecord::Base.with_connection do |c|
+        c.execute("SET statement_timeout = '7s'")
+        # some queries
+        c.execute("RESET statement_timeout")
+        # => no longer raises ActiveRecord::ReadOnlyError
+      end
+    end
+    ```
+
+    *Francesco Rodriguez*
+
+*   Add MySQL `lock:` option for `add_index`, `remove_index`, and ALTER TABLE
+    column operations (`add_column`, `remove_column`, `change_column`, `rename_column`).
+
+    Also extend `algorithm:` option support to ALTER TABLE column operations on MySQL.
+
+    MySQL supports `ALGORITHM = {DEFAULT|COPY|INPLACE|INSTANT}` and
+    `LOCK = {DEFAULT|NONE|SHARED|EXCLUSIVE}` to control how DDL operations
+    are performed, enabling online schema changes without blocking reads or writes.
+
+    ```ruby
+    add_index :users, :email, algorithm: :inplace, lock: :none
+    remove_index :users, :email, algorithm: :inplace, lock: :none
+    add_column :users, :name, :string, algorithm: :instant, lock: :none
+    change_column :users, :name, :string, null: false, algorithm: :inplace, lock: :none
+    remove_column :users, :name, algorithm: :inplace, lock: :none
+    rename_column :users, :name, :full_name, algorithm: :inplace, lock: :none
+    ```
+
+    *Dominik Darnel*
+
+*   Avoid issuing a `ROLLBACK` statement following `TransactionRollbackError` during `COMMIT`.
+
+    This prevents the unnecessary "WARNING: there is no transaction in progress" log spilled to stderr directly from libpq.
+
+    *Sorah Fukumori*
+
+*   Add `implicit_persistence_transaction` hook for customizing transaction behavior.
+
+    A new protected method `implicit_persistence_transaction` has been added that wraps
+    persistence operations (`save`, `destroy`, `touch`) in a transaction. This method can be
+    overridden in models to customize transaction behavior, such as setting a specific isolation
+    level or skipping transaction creation when one is already open.
+
+    Example skipping transaction creation if one is already open:
+
+    ```ruby
+    class Account < ApplicationRecord
+      private
+        def implicit_persistence_transaction(connection, &block)
+          if connection.transaction_open?
+            yield
+          else
+            super
+          end
+        end
+    end
+    ```
+
+    *Israel P Valverde*
+
+*   Pass sql query to query log tags.
+
+    ```ruby
+    config.active_record.query_log_tags = [
+      sql_length: ->(context) { context[:sql].length }
+    ]
+    ```
+
+    *fatkodima*
+
+*   Speedup `ActiveRecord::Migration.maintain_test_schema!` when using multiple databases.
+
+    Previously, Active Record would inefficiently connect twice to each database, now it only
+    connects once per database to reverify the schema.
+
+    *Iliana Hadzhiatanasova*
+
+*   Add `unique_by` option to `insert_all!`.
+
+    *Chedli Bourguiba*
+
+*   Fix PostgreSQL schema dumping to handle schema-qualified table names in foreign_key references that span different schemas.
+
+        # before
+        add_foreign_key "hst.event_log_attributes", "hst.event_logs" # emits correctly because they're in the same schema (hst)
+        add_foreign_key "hst.event_log_attributes", "hst.usr.user_profiles", column: "created_by_id" # emits hst.user.* when user.* is expected
+
+        # after
+        add_foreign_key "hst.event_log_attributes", "hst.event_logs"
+        add_foreign_key "hst.event_log_attributes", "usr.user_profiles", column: "created_by_id"
+
+    *Chiperific*
+
+*   Add `PostgreSQLAdapter.register_type_mapping` for custom SQL type registration.
+
+    Third-party gems can now register custom type mappings without prepending
+    internal methods:
+
+        ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.register_type_mapping do |type_map|
+          type_map.register_type("geometry") do |oid, fmod, sql_type|
+            MyGeometryType.new(sql_type)
+          end
+        end
+
+    Callbacks execute in registration order.
+
+    *Abdelkader Boudih*
+
+*   Yield the transaction object to the block when using `with_lock`.
+
+    *Ngan Pham*
+
+*   Fix bug when `current_transaction.isolation` would not have been reset in test env.
+
+    Additionally, extending the change in [#55549](https://github.com/rails/rails/pull/55549)
+    to handle `requires_new: true`.
+
+    *Kir Shatrov*
+
+*   Allow `schema_dump` configuration to be an absolute path.
+
+    Previously, the `schema_dump` configuration was always joined with the
+    `db_dir` path. Now, if an absolute path is provided, it will be used as-is.
+
+    *Mike Dalessio*
+
+*   Decode PostgreSQL bytea and money columns when they appear in direct
+    query results.
+
+    bytea columns are now decoded to binary-encoded Strings, and money columns
+    are decoded to BigDecimal instead of String.
+
+    ```ruby
+    ActiveRecord::Base.connection
+         .select_value("select '\\x48656c6c6f'::bytea").encoding #=> Encoding::BINARY
+
+    ActiveRecord::Base.connection
+         .select_value("select '12.34'::money").class #=> BigDecimal
+    ```
+
+    *Matthew Draper*
+
+*   Add support for configuring migration strategy on a per-adapter basis.
+
+    `migration_strategy` can now be set on individual adapter classes, overriding
+    the global `ActiveRecord.migration_strategy`. This allows individual databases to
+    customize migration execution logic:
+
+    ```ruby
+    class CustomPostgresStrategy < ActiveRecord::Migration::DefaultStrategy
+      def drop_table(*)
+        # Custom logic specific to PostgreSQL
+      end
+    end
+
+    ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.migration_strategy = CustomPostgresStrategy
+    ```
+
+    *Adrianna Chang*
+
+*   Allow either explain format syntax for EXPLAIN queries.
+
+    MySQL uses FORMAT=JSON whereas Postgres uses FORMAT JSON. We should be
+    able to accept both formats as options.
+
+    *Gannon McGibbon*
+
+*   On MySQL parallel test database table reset to use `DELETE` instead of `TRUNCATE`.
+
+    Truncating on MySQL is very slow even on empty or nearly empty tables.
+
+    As a result of this change auto increment counters are now no longer reset between test
+    runs on MySQL and the `SKIP_TEST_DATABASE_TRUNCATE` environment variable no longer has
+    any effect.
+
+    *Donal McBreen*
+
+*   Fix inconsistency in PostgreSQL handling of unbounded time range types
+
+    Use `-infinity` rather than `NULL` for the lower value of PostgreSQL time
+    ranges when saving records with a Ruby range that begins with `nil`.
+
+    ```ruby
+    create_table :products do |t|
+      t.tsrange :period
+    end
+    class Product < ActiveRecord::Base; end
+
+    t = Time.utc(2000)
+
+    Product.create(period: t...nil)
+    Product.create(period: nil...t)
+    ```
+
+    Previously this would create two records using different values to represent
+    lower-unbounded and upper-unbounded ranges.
+
+    ```
+    ["2000-01-01 00:00:00",infinity)
+    (NULL,"2000-01-01 00:00:00")
+    ```
+
+    Now both will use `-infinity`/`infinity` which are handled differently than
+    `NULL` by some PostgreSQL range operators (e.g., `lower_inf`) and support
+    both exclusive and inclusive bounds.
+
+    ```
+    ["2000-01-01 00:00:00",infinity)
+    [-infinity,"2000-01-01 00:00:00")
+    ```
+
+    *Martin-Alexander*
+
+*   Database-specific shard swap prohibition
+
+    In #43485 (v7.0.0), shard swapping prohibition was introduced as a global
+    switch that applied to all databases.
+
+    For the use case of a multi-database application, the global prohibition is
+    overly broad, and so with this change the method `prohibit_shard_swapping`
+    will scope the prohibition to the same connection class (i.e.,
+    `connection_specification_name`). This allows an application to prohibit
+    shard swapping on a specific database while allowing it on all others.
+
+    *Mike Dalessio*
+
+*   Fix upsert_all when using repeated timestamp attributes.
+
+    *Gannon McGibbon*
+
+*   PostgreSQL enable drop database FORCE option.
+
+    One of the benefits of developing with MySQL is that it allows dropping the
+    current database without first disconnecting clients. As a result developers
+    can use `bin/rails db:reset` and similar, without first shutting down
+    instances of the app, Rails consoles, background workers, etc. By default
+    PostgreSQL fails to drop a database when clients are connected and displays
+    the following error:
+
+      > PG::ObjectInUse: ERROR:  database "xyz" is being accessed by other users (PG::ObjectInUse)
+
+    This is frustrating when working in development where the database may be
+    dropped frequently.
+
+    PostgreSQL 13 added the `FORCE` option to the `DROP DATABASE` statement
+    ([PostgreSQL docs](https://www.postgresql.org/docs/current/sql-dropdatabase.html))
+    which automatically disconnects clients before dropping the database.
+    This option is automatically enabled for supported PostgreSQL versions.
+
+    *Steven Webb*
+
+*   Raise specific exception when a prohibited shard change is attempted.
+
+    The new `ShardSwapProhibitedError` exception allows applications and
+    connection-related libraries to more easily recover from this specific
+    scenario. Previously an `ArgumentError` was raised, so the new exception
+    subclasses `ArgumentError` for backwards compatibility.
+
+    *Mike Dalessio*
+
+*   Fix SQLite3 data loss during table alterations with CASCADE foreign keys.
+
+    When altering a table in SQLite3 that is referenced by child tables with
+    `ON DELETE CASCADE` foreign keys, ActiveRecord would silently delete all
+    data from the child tables. This occurred because SQLite requires table
+    recreation for schema changes, and during this process the original table
+    is temporarily dropped, triggering CASCADE deletes on child tables.
+
+    The root cause was incorrect ordering of operations. The original code
+    wrapped `disable_referential_integrity` inside a transaction, but
+    `PRAGMA foreign_keys` cannot be modified inside a transaction in SQLite -
+    attempting to do so simply has no effect. This meant foreign keys remained
+    enabled during table recreation, causing CASCADE deletes to fire.
+
+    The fix reverses the order to follow the official SQLite 12-step ALTER TABLE
+    procedure: `disable_referential_integrity` now wraps the transaction instead
+    of being wrapped by it. This ensures foreign keys are properly disabled
+    before the transaction starts and re-enabled after it commits, preventing
+    CASCADE deletes while maintaining data integrity through atomic transactions.
+
+    *Ruy Rocha*
+
+*   Fix negative scopes for enums to include records with `nil` values.
+
+    *fatkodima*
+
+*   Improve support for SQLite database URIs.
+
+    The `db:create` and `db:drop` tasks now correctly handle SQLite database URIs, and the
+    SQLite3Adapter will create the parent directory if it does not exist.
+
+    *Mike Dalessio*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/activerecord/CHANGELOG.md) for previous changes.
+
+
+# FILE: activesupport/CHANGELOG.md
+*   Add `prepend: true` option to `ActiveSupport::Notifications.subscribe`.
+
+      When `prepend: true` is passed, the subscriber is added to the front of
+      the subscriber list for the given event, ensuring it runs before any
+      previously registered subscribers. This allows mutating the event payload
+      before other subscribers process it.
+
+      ```ruby
+      ActiveSupport::Notifications.subscribe("sql.active_record", prepend: true) do |event|
+        event.payload[:name] = "[IDC] #{event.payload[:name]}"
+      end
+      ```
+
+      *Jean Boussier*, *Federico Carrocera*
+
+*   Deprecate `require_dependency`.
+
+    `require_dependency` is deprecated without replacement and will be removed in Rails 9.
+
+    - Recommendations for applications:
+
+        - If the call is an old one written in the days of the classic
+          autoloader to ensure a certain constant is loaded for constant lookup
+          to work as expected, you can simply remove it.
+
+        - In order to preload classes when the application boots, which may be
+          necessary for things like STIs or Kafka consumers, please check the
+          autoloading guide for modern approaches.
+
+    - Recommendations for engines that depend on Rails >= 7.0:
+
+      Same recommendations as for applications, since the classic autoloader is
+      no longer available starting with Rails 7.0.
+
+    - Recommendations for engines that support Rails < 7.0:
+
+      Guard the call with a version check just in case the parent application is
+      using the classic autoloader:
+
+      ```ruby
+      require_dependency "some_file" if Rails::VERSION::MAJOR < 7
+      ```
+
+    *Xavier Noria*
+
+*   Add `group` method to `ActiveSupport::ContinuousIntegration` for parallel step execution.
+
+    Groups collect steps and run them concurrently using a thread pool, reducing CI times
+    by running independent checks in parallel. Sub-groups run sequentially within a single
+    parallel slot allowing dependent steps to be grouped together.
+
+    ```ruby
+    CI.run do
+      step "Setup", "bin/setup --skip-server"
+
+      group "Checks", parallel: 2 do
+        step "Style: Ruby", "bin/rubocop"
+        step "Security: Brakeman", "bin/brakeman --quiet"
+        step "Security: Gem audit", "bin/bundler-audit"
+
+        group "Tests" do
+          step "Tests: Rails", "bin/rails test"
+          step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
+        end
+      end
+    end
+    ```
+
+    *Donal McBreen*
+
+*   Introduce `this_week?`, `this_month?`, and `this_year?` methods to Date/Time
+
+    Similar to `today?`, `tomorrow?`, and `yesterday?`, these methods are useful to
+    query time instances against the current period.
+
+    ```ruby
+    unless post.created_at.this_week?
+      link_to "See week recap", week_recap_path(date)
+    end
+    ```
+
+    *Matheus Richard*
+
+*   Removed the deprecated `ActiveSupport::Multibyte::Chars` class.
+
+    As well as `String#mb_chars`
+
+    *Jean Boussier*
+
+*   Changed `ActiveSupport::EventReporter#subscribe` to only provide the event name during filtering.
+
+    Otherwise the event reporter would need to always build the expensive payload even when there is
+    no active subscriber, which is very wasteful.
+
+    *Jean Boussier*
+
+*   Fix inflections to better handle overlapping acronyms.
+
+    ```ruby
+    ActiveSupport::Inflector.inflections(:en) do |inflect|
+      inflect.acronym "USD"
+      inflect.acronym "USDC"
+    end
+
+    "USDC".underscore # => "usdc"
+    ```
+
+    *Said Kaldybaev*
+
+*   Add `ActiveSupport::CombinedConfiguration` to offer interchangeable access to configuration provided by
+    either ENV or encrypted credentials. Used by Rails to first look at ENV, then look in encrypted credentials,
+    but can be configured separately with any number of API-compatible backends in a first-look order.
+
+    The object is inspect safe and will only show keys, not values.
+
+    *DHH*, *Emmanuel Hayford*
+
+*   Add `ActiveSupport::EnvConfiguration` to provide access to ENV variables in a way that's compatible with
+    `ActiveSupport::EncryptedConfiguration` and therefore can be used by `ActiveSupport::CombinedConfiguration`.
+
+    The object is inspect safe and will only show keys, not values.
+
+    Examples:
+
+    ```ruby
+    conf = ActiveSupport::EnvConfiguration.new
+    conf.require(:db_host) # ENV.fetch("DB_HOST")
+    conf.require(:aws, :access_key_id) # ENV.fetch("AWS__ACCESS_KEY_ID")
+    conf.option(:cache_host) # ENV["CACHE_HOST"]
+    conf.option(:cache_host, default: "cache-host-1") # ENV["CACHE_HOST"] || "cache-host-1"
+    conf.option(:cache_host, default: -> { "cache-host-1" }) # ENV["CACHE_HOST"] || "cache-host-1"
+    ```
+
+    *DHH*, *Emmanuel Hayford*
+
+*   Make flaky parallel tests easier to diagnose by deterministically assigning
+    tests to workers.
+
+    Rails assigns tests to workers in round-robin order so the same `--seed`
+    and worker count will result in the same sequence of tests running on each
+    worker (whether processes or threads) increasing the odds of reproducing
+    test failures caused by test interdependence.
+
+    This can make test runtime slower and spikier when one worker gets most of
+    the slow tests. Enable `work_stealing: true` to allow idle workers to steal
+    tests from busy workers in deterministic order, smoothing out runtime at the
+    cost of less reproducible flaky-test failures.
+
+    *Jeremy Daer*
+
+*   Make `ActiveSupport::EventReporter#debug_mode?` true by default to emit debug events
+    outside of Rails application contexts.
+
+    *Gannon McGibbon*
+
+*   Add `SecureRandom.base32` for generating case-insensitive keys that are unambiguous to humans.
+
+    *Stanko Krtalic Rusendic & Miha Rekar*
+
+*   Add a fast failure mode to `ActiveSupport::ContinuousIntegration` that stops the rest of
+    the run after a step fails. Invoke by running `bin/ci --fail-fast` or `bin/ci -f`.
+
+    *Dennis Paagman*
+
+*   Implement LocalCache strategy on `ActiveSupport::Cache::MemoryStore`. The memory store
+    needs to respond to the same interface as other cache stores (e.g. `ActiveSupport::NullStore`).
+
+    *Mikey Gough*
+
+*   Add a detailed failure summary to `ActiveSupport::ContinuousIntegration`.
+
+    *Mike Dalessio*
+
+*   Introduce `ActiveSupport::EventReporter::LogSubscriber` structured event logging.
+
+    ```ruby
+    class MyLogSubscriber < ActiveSupport::EventReporter::LogSubscriber
+      self.namespace = "test"
+
+      def something(event)
+        info { "Event #{event[:name]} emitted." }
+      end
+    end
+    ```
+
+    *Gannon McGibbon*
+
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/activesupport/CHANGELOG.md) for previous changes.
+
+
+# FILE: guides/w3c_validator.rb
+# frozen_string_literal: true
+
+# ---------------------------------------------------------------------------
+#
+# This script validates the generated guides against the W3C Validator.
+#
+# Guides are taken from the output directory, from where all .html files are
+# submitted to the validator.
+#
+# This script is prepared to be launched from the guides directory as a rake task:
+#
+# rake guides:validate
+#
+# If nothing is specified, all files will be validated, but you can check just
+# some of them using this environment variable:
+#
+#   ONLY
+#     Use ONLY if you want to validate only one or a set of guides. Prefixes are
+#     enough:
+#
+#       # validates only association_basics.html
+#       rake guides:validate ONLY=assoc
+#
+#     Separate many using commas:
+#
+#       # validates only association_basics.html and command_line.html
+#       rake guides:validate ONLY=assoc,command
+#
+# ---------------------------------------------------------------------------
+
+require "w3c_validators"
+include W3CValidators
+
+module RailsGuides
+  class Validator
+    def validate
+      # https://github.com/w3c-validators/w3c_validators/issues/25
+      validator = NuValidator.new
+      STDOUT.sync = true
+      errors_on_guides = {}
+
+      guides_to_validate.each do |f|
+        begin
+          results = validator.validate_file(f)
+        rescue Exception => e
+          puts "\nCould not validate #{f} because of #{e}"
+          next
+        end
+
+        if results.errors.length > 0
+          print "E"
+          errors_on_guides[f] = results.errors
+        else
+          print "."
+        end
+      end
+
+      show_results(errors_on_guides)
+    end
+
+    private
+      def guides_to_validate
+        guides = Dir["./output/*.html"]
+        guides.delete("./output/layout.html")
+        guides.delete("./output/_license.html")
+        guides.delete("./output/_welcome.html")
+        ENV.key?("ONLY") ? select_only(guides) : guides
+      end
+
+      def select_only(guides)
+        prefixes = ENV["ONLY"].split(",").map(&:strip)
+        guides.select do |guide|
+          prefixes.any? { |p| guide.start_with?("./output/#{p}") }
+        end
+      end
+
+      def show_results(error_list)
+        if error_list.size == 0
+          puts "\n\nAll checked guides validate OK!"
+        else
+          error_summary = error_detail = ""
+
+          error_list.each_pair do |name, errors|
+            error_summary += "\n  #{name}"
+            error_detail += "\n\n  #{name} has #{errors.size} validation error(s):\n"
+            errors.each do |error|
+              error_detail += "\n    " + error.to_s.delete("\n")
+            end
+          end
+
+          puts "\n\nThere are #{error_list.size} guides with validation errors:\n" + error_summary
+          puts "\nHere are the detailed errors for each guide:" + error_detail
+        end
+      end
+  end
+end
+
+
+# FILE: guides/rails_guides.rb
+# frozen_string_literal: true
+
+$:.unshift __dir__
+
+require "rails_guides/generator"
+
+
+# FILE: guides/README.md
+# Rails Guides Redesign 2024
+
+## About the Project
+
+The Rails Guides Visual Refresh occurred in Q1 2024, and was intended to bring the visual style of the guides inline with the rubyonrails.org site.
+
+## Editing Dependencies
+
+The editing files for the Guides rebuild reside in `stylesrc` and use SCSS to improve developer experience. The code base relies on `include_media` (https://eduardoboucas.github.io/include-media/) to enable inline media-queries adjustments. We've also relied on the standard `normalize.css` (https://necolas.github.io/normalize.css/) to help bring all browsers together.
+
+## Building the Guides in Development
+
+To generate new guides into static files, type `rake guides:generate` from inside the `guides` folder. If you make changes to the HTML or ERB, you'll need to remove the "output" directory before running this command. The master SCSS files (style.scss, highlight.scss) will compile as part of this process.
+
+## FAQ
+
+### Why are you not using CSS variables?
+
+Per the MDN documentation on CSS custom properties (https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties), they are not supported in media or container queries at this point (Feb 2024). They may in future releases, and we should pivot to that when they are more wholistically supported. SCSS variables, because they are interpolated at build, serve a similar purpose and allow us the flexibility to support much older browsers.
+
+### Why do we include LTR and RTL?
+
+LTR/RTL (Left to right/right to left) is a layout change based on the nature of the language the site is being displayed in. Arabic and Farsi are two well known "RTL" languages. If the site is automatically translated, then the layout will adjust (mirror horizontally) to be more in line with the text.
+
+### Why is Dark Mode in a separate file
+
+IncludeMedia does not handle `prefers-color-scheme` at this time, so it was extracted.
+
+# FILE: guides/CHANGELOG.md
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/guides/CHANGELOG.md) for previous changes.
+
+
+# FILE: activestorage/rollup.config.js
+import resolve from "@rollup/plugin-node-resolve"
+import commonjs from "@rollup/plugin-commonjs"
+import { terser } from "rollup-plugin-terser"
+
+const terserOptions = {
+ mangle: false,
+ compress: false,
+ format: {
+   beautify: true,
+   indent_level: 2
+ }
+}
+
+export default [
+  {
+    input: "app/javascript/activestorage/index.js",
+    output: {
+      file: "app/assets/javascripts/activestorage.js",
+      format: "umd",
+      name: "ActiveStorage"
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      terser(terserOptions)
+    ]
+  },
+
+  {
+    input: "app/javascript/activestorage/index.js",
+    output: {
+      file: "app/assets/javascripts/activestorage.esm.js",
+      format: "es"
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      terser(terserOptions)
+    ]
+  }
+]
+
+
+# FILE: activestorage/package.json
+{
+  "name": "@rails/activestorage",
+  "version": "8.2.0-alpha",
+  "description": "Attach cloud and local files in Rails applications",
+  "module": "app/assets/javascripts/activestorage.esm.js",
+  "main": "app/assets/javascripts/activestorage.js",
+  "files": [
+    "app/assets/javascripts/*.js",
+    "src/*.js"
+  ],
+  "homepage": "https://rubyonrails.org/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rails/rails.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rails/rails/issues"
+  },
+  "author": "Javan Makhmali <javan@javan.us>",
+  "license": "MIT",
+  "dependencies": {
+    "spark-md5": "^3.0.1",
+    "js-sha256": "^0.9.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@rollup/plugin-commonjs": "^19.0.1",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^14.0.0",
+    "rollup": "^2.35.1",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "scripts": {
+    "prebuild": "yarn lint",
+    "build": "rollup --config rollup.config.js",
+    "lint": "eslint app/javascript",
+    "prepublishOnly": "rm -rf src && cp -R app/javascript/activestorage src"
+  }
+}
+
+
+# FILE: activestorage/README.md
+# Active Storage
+
+Active Storage makes it simple to upload and reference files in cloud services like [Amazon S3](https://aws.amazon.com/s3/), or [Google Cloud Storage](https://cloud.google.com/storage/docs/), and attach those files to Active Records. Supports having one main service and mirrors in other services for redundancy. It also provides a disk service for testing or local deployments, but the focus is on cloud storage.
+
+Files can be uploaded from the server to the cloud or directly from the client to the cloud.
+
+Image files can furthermore be transformed using on-demand variants for quality, aspect ratio, size, or any other [MiniMagick](https://github.com/minimagick/minimagick) or [Vips](https://www.rubydoc.info/gems/ruby-vips/Vips/Image) supported transformation.
+
+You can read more about Active Storage in the [Active Storage Overview](https://guides.rubyonrails.org/active_storage_overview.html) guide.
+
+## Compared to other storage solutions
+
+A key difference to how Active Storage works compared to other attachment solutions in \Rails is through the use of built-in [Blob](https://github.com/rails/rails/blob/main/activestorage/app/models/active_storage/blob.rb) and [Attachment](https://github.com/rails/rails/blob/main/activestorage/app/models/active_storage/attachment.rb) models (backed by Active Record). This means existing application models do not need to be modified with additional columns to associate with files. Active Storage uses polymorphic associations via the `Attachment` join model, which then connects to the actual `Blob`.
+
+`Blob` models store attachment metadata (filename, content-type, etc.), and their identifier key in the storage service. Blob models do not store the actual binary data. They are intended to be immutable in spirit. One file, one blob. You can associate the same blob with multiple application models as well. And if you want to do transformations of a given `Blob`, the idea is that you'll simply create a new one, rather than attempt to mutate the existing one (though of course you can delete the previous version later if you don't need it).
+
+## Installation
+
+Run `bin/rails active_storage:install` to copy over active_storage migrations.
+
+NOTE: If the task cannot be found, verify that `require "active_storage/engine"` is present in `config/application.rb`.
+
+## Examples
+
+One attachment:
+
+```ruby
+class User < ApplicationRecord
+  # Associates an attachment and a blob. When the user is destroyed they are
+  # purged by default (models destroyed, and resource files deleted).
+  has_one_attached :avatar
+end
+
+# Attach an avatar to the user.
+user.avatar.attach(io: File.open("/path/to/face.jpg"), filename: "face.jpg", content_type: "image/jpeg")
+
+# Does the user have an avatar?
+user.avatar.attached? # => true
+
+# Synchronously destroy the avatar and actual resource files.
+user.avatar.purge
+
+# Destroy the associated models and actual resource files async, via Active Job.
+user.avatar.purge_later
+
+# Does the user have an avatar?
+user.avatar.attached? # => false
+
+# Generate a permanent URL for the blob that points to the application.
+# Upon access, a redirect to the actual service endpoint is returned.
+# This indirection decouples the public URL from the actual one, and
+# allows for example mirroring attachments in different services for
+# high-availability. The redirection has an HTTP expiration of 5 min.
+url_for(user.avatar)
+
+class AvatarsController < ApplicationController
+  def update
+    # params[:avatar] contains an ActionDispatch::Http::UploadedFile object
+    Current.user.avatar.attach(params.require(:avatar))
+    redirect_to Current.user
+  end
+end
+```
+
+Many attachments:
+
+```ruby
+class Message < ApplicationRecord
+  has_many_attached :images
+end
+```
+
+```erb
+<%= form_with model: @message, local: true do |form| %>
+  <%= form.text_field :title, placeholder: "Title" %><br>
+  <%= form.textarea :content %><br><br>
+
+  <%= form.file_field :images, multiple: true %><br>
+  <%= form.submit %>
+<% end %>
+```
+
+```ruby
+class MessagesController < ApplicationController
+  def index
+    # Use the built-in with_attached_images scope to avoid N+1
+    @messages = Message.all.with_attached_images
+  end
+
+  def create
+    message = Message.create! params.expect(message: [ :title, :content, images: [] ])
+    redirect_to message
+  end
+
+  def show
+    @message = Message.find(params[:id])
+  end
+end
+```
+
+Variation of image attachment:
+
+```erb
+<%# Hitting the variant URL will lazy transform the original blob and then redirect to its new service location %>
+<%= image_tag user.avatar.variant(resize_to_limit: [100, 100]) %>
+```
+
+## File serving strategies
+
+Active Storage supports two ways to serve files: redirecting and proxying.
+
+### Redirecting
+
+Active Storage generates stable application URLs for files which, when accessed, redirect to signed, short-lived service URLs. This relieves application servers of the burden of serving file data. It is the default file serving strategy.
+
+When the application is configured to proxy files by default, use the `rails_storage_redirect_path` and `_url` route helpers to redirect instead:
+
+```erb
+<%= image_tag rails_storage_redirect_path(@user.avatar) %>
+```
+
+### Proxying
+
+Optionally, files can be proxied instead. This means that your application servers will download file data from the storage service in response to requests. This can be useful for serving files from a CDN.
+
+You can configure Active Storage to use proxying by default:
+
+```ruby
+# config/initializers/active_storage.rb
+Rails.application.config.active_storage.resolve_model_to_route = :rails_storage_proxy
+```
+
+Or if you want to explicitly proxy specific attachments there are URL helpers you can use in the form of `rails_storage_proxy_path` and `rails_storage_proxy_url`.
+
+```erb
+<%= image_tag rails_storage_proxy_path(@user.avatar) %>
+```
+
+## Direct uploads
+
+Active Storage, with its included JavaScript library, supports uploading directly from the client to the cloud.
+
+### Direct upload installation
+
+1. Include the Active Storage JavaScript in your application's JavaScript bundle or reference it directly.
+
+    Requiring directly without bundling through the asset pipeline in the application HTML with autostart:
+    ```erb
+    <%= javascript_include_tag "activestorage" %>
+    ```
+    Requiring via importmap-rails without bundling through the asset pipeline in the application HTML without autostart as ESM:
+    ```ruby
+    # config/importmap.rb
+    pin "@rails/activestorage", to: "activestorage.esm.js"
+    ```
+    ```html
+    <script type="module-shim">
+      import * as ActiveStorage from "@rails/activestorage"
+      ActiveStorage.start()
+    </script>
+    ```
+    Using the asset pipeline:
+    ```js
+    //= require activestorage
+    ```
+    Using the npm package:
+    ```js
+    import * as ActiveStorage from "@rails/activestorage"
+    ActiveStorage.start()
+    ```
+2. Annotate file inputs with the direct upload URL.
+
+    ```erb
+    <%= form.file_field :attachments, multiple: true, direct_upload: true %>
+    ```
+
+3. Configure CORS on third-party storage services to allow direct upload requests.
+
+4. That's it! Uploads begin upon form submission.
+
+### Direct upload JavaScript events
+
+| Event name | Event target | Event data (`event.detail`) | Description |
+| --- | --- | --- | --- |
+| `direct-uploads:start` | `<form>` | None | A form containing files for direct upload fields was submitted. |
+| `direct-upload:initialize` | `<input>` | `{id, file}` | Dispatched for every file after form submission. |
+| `direct-upload:start` | `<input>` | `{id, file}` | A direct upload is starting. |
+| `direct-upload:before-blob-request` | `<input>` | `{id, file, xhr}` | Before making a request to your application for direct upload metadata. |
+| `direct-upload:before-storage-request` | `<input>` | `{id, file, xhr}` | Before making a request to store a file. |
+| `direct-upload:progress` | `<input>` | `{id, file, progress}` | As requests to store files progress. |
+| `direct-upload:error` | `<input>` | `{id, file, error}` | An error occurred. An `alert` will display unless this event is canceled. |
+| `direct-upload:end` | `<input>` | `{id, file}` | A direct upload has ended. |
+| `direct-uploads:end` | `<form>` | None | All direct uploads have ended. |
+
+## License
+
+Active Storage is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+## Support
+
+API documentation is at:
+
+* https://api.rubyonrails.org
+
+Bug reports for the Ruby on \Rails project can be filed here:
+
+* https://github.com/rails/rails/issues
+
+Feature requests should be discussed on the rubyonrails-core forum here:
+
+* https://discuss.rubyonrails.org/c/rubyonrails-core
+
+
+# FILE: activestorage/CHANGELOG.md
+*   Configurable maxmimum streaming chunk size
+
+    Makes sure that byte ranges for blobs don't exceed 100mb by default.
+    Content ranges that are too big can result in denial of service.
+
+    *Gannon McGibbon*
+
+*   Prevent path traversal in `DiskService`.
+
+    `DiskService#path_for` now raises an `InvalidKeyError` when passed keys with dot segments (".",
+    ".."), or if the resolved path is outside the storage root directory.
+
+    `#path_for` also now consistently raises `InvalidKeyError` if the key is invalid in any way, for
+    example containing null bytes or having an incompatible encoding. Previously, the exception
+    raised may have been `ArgumentError` or `Encoding::CompatibilityError`.
+
+    `DiskController` now explicitly rescues `InvalidKeyError` with appropriate HTTP status codes.
+
+    *Mike Dalessio*
+
+*   Prevent glob injection in `DiskService#delete_prefixed`.
+
+    Escape glob metacharacters in the resolved path before passing to `Dir.glob`.
+
+    Note that this change breaks any existing code that is relying on `delete_prefixed` to expand
+    glob metacharacters. This change presumes that is unintended behavior (as other storage services
+    do not respect these metacharacters).
+
+    *Mike Dalessio*
+
+
+*   Restore ADC when signing URLs with IAM for GCS
+
+    ADC was previously used for automatic authorization when signing URLs with IAM.
+    Now it is again, but the auth client is memoized so that new credentials are only
+    requested when the current ones expire. Other auth methods can now be used
+    instead by setting the authorization on `ActiveStorage::Service::GCSService#iam_client`.
+
+    ```ruby
+    ActiveStorage::Blob.service.iam_client.authorization = Google::Auth::ImpersonatedServiceAccountCredentials.new(options)
+    ```
+
+    This is safer than setting `Google::Apis::RequestOptions.default.authorization`
+    because it only applies to Active Storage and does not affect other Google API
+    clients.
+
+    *Justin Malčić*
+
+*   Move responsibility for checksums storage service
+
+    The storage service should implement calculating and
+    validating checksums.
+
+    *Matt Pasquini*
+
+*   Analyze attachments before validation
+
+    Attachment metadata (width, height, duration, etc.) is now available for
+    model validations:
+
+    ```ruby
+    class User < ApplicationRecord
+      has_one_attached :avatar
+
+      validate :validate_avatar_dimensions, if: -> { avatar.attached? }
+
+      def validate_avatar_dimensions
+        if avatar.metadata[:width] < 200 || avatar.metadata[:height] < 200
+          errors.add(:avatar, "must be at least 200x200")
+        end
+      end
+    end
+    ```
+
+    Configure when analysis is performed:
+
+    * `analyze: :immediately` (default in 8.2) - Analyze before validation
+    * `analyze: :later` - Analyze after upload from local IO or via background job
+    * `analyze: :lazily` - Skip automatic analysis; analyze on-demand
+
+    ```ruby
+    has_one_attached :document, analyze: :later
+    has_many_attached :files, analyze: :lazily
+
+    # Or set the global default:
+    config.active_storage.analyze = :later
+    ```
+
+    Direct uploads bypass the server so the file isn't locally available
+    for analysis. In this case, `:immediately` falls back to `:later`,
+    analyzing via background job after upload completes. Metadata isn't
+    available for validation; validate on the client side instead.
+
+    *Jeremy Daer*
+
+*   Use local files for immediate variant processing and analysis
+
+    `process: :immediately` variants and blob analysis use local files
+    directly instead of re-downloading after upload.
+
+    Applies when attaching uploadable io, not when attaching an existing Blob.
+
+    *Jeremy Daer*
+
+*   Introduce `ActiveStorage::Attachment` upload callbacks
+
+    `after_upload` fires after an attachment's blob is uploaded, enabling
+    analysis and processing to run deterministically rather than assuming
+    after-commit callback execution ordering.
+
+    ```ruby
+    ActiveStorage::Attachment.after_upload do
+      # Your custom logic here
+    end
+    ```
+
+    *Jeremy Daer*
+
+*   Introduce immediate variants that are generated immediately on attachment
+
+    The new `process` option determines when variants are created:
+
+    - `:lazily` (default) - Variants are created dynamically when requested
+    - `:later` (replaces `preprocessed: true`) - Variants are created after attachment, in a background job
+    - `:immediately` (new) - Variants are created along with the attachment
+
+    ```ruby
+    has_one_attached :avatar do |attachable|
+      attachable.variant :thumb, resize_to_limit: [100, 100], process: :immediately
+    end
+    ```
+
+    The `preprocessed: true` option is deprecated in favor of `process: :later`.
+
+    *Tom Rossi*
+
+*   Make `Variant#processed?` and `VariantWithRecord#processed?` public so apps can check variant generation status.
+
+    *Tom Rossi*
+
+*   `ActiveStorage::Blob#open` can now be used without passing a block, like `Tempfile.open`. When using this form the
+    returned temporary file must be unlinked manually.
+
+    *Bart de Water*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/activestorage/CHANGELOG.md) for previous changes.
+
+
+# FILE: railties/RDOC_MAIN.md
+# Welcome to \Rails
+
+## What's \Rails?
+
+\Rails is a web application framework that includes everything needed to
+create database-backed web applications according to the
+[Model-View-Controller (MVC)](https://en.wikipedia.org/wiki/Model-view-controller)
+pattern.
+
+Understanding the MVC pattern is key to understanding \Rails. MVC divides your
+application into three layers: Model, View, and Controller, each with a specific responsibility.
+
+## Model layer
+
+The _**Model layer**_ represents the domain model (such as Account, Product,
+Person, Post, etc.) and encapsulates the business logic specific to
+your application. In \Rails, database-backed model classes are derived from
+`ActiveRecord::Base`. [Active Record](files/activerecord/README.rdoc) allows you to present the data from
+database rows as objects and embellish these data objects with business logic
+methods.
+Although most \Rails models are backed by a database, models can also be ordinary
+Ruby classes, or Ruby classes that implement a set of interfaces as provided by
+the [Active Model](files/activemodel/README.rdoc) module.
+
+## View layer
+
+The _**View layer**_ is composed of "templates" that are responsible for providing
+appropriate representations of your application's resources. Templates can
+come in a variety of formats, but most view templates are HTML with embedded
+Ruby code (\ERB files). Views are typically rendered to generate a controller response
+or to generate the body of an email. In \Rails, View generation is handled by [Action View](files/actionview/README.rdoc).
+
+## Controller layer
+
+The _**Controller layer**_ is responsible for handling incoming HTTP requests and
+providing a suitable response. Usually, this means returning HTML, but \Rails controllers
+can also generate XML, JSON, PDFs, mobile-specific views, and more. Controllers load and
+manipulate models, and render view templates in order to generate the appropriate HTTP response.
+In \Rails, incoming requests are routed by Action Dispatch to an appropriate controller, and
+controller classes are derived from `ActionController::Base`. Action Dispatch and Action Controller
+are bundled together in [Action Pack](files/actionpack/README.rdoc).
+
+## Frameworks and libraries
+
+[Active Record](files/activerecord/README.rdoc), [Active Model](files/activemodel/README.rdoc), [Action Pack](files/actionpack/README.rdoc), and [Action View](files/actionview/README.rdoc) can each be used independently outside \Rails.
+
+In addition to that, \Rails also comes with:
+
+- [Action Mailer](files/actionmailer/README.rdoc), a library to generate and send emails
+- [Action Mailbox](files/actionmailbox/README.md), a library to receive emails within a \Rails application
+- [Active Job](files/activejob/README.md), a framework for declaring jobs and making them run on a variety of queuing backends
+- [Action Cable](files/actioncable/README.md), a framework to integrate WebSockets with a \Rails application
+- [Active Storage](files/activestorage/README.md), a library to attach cloud and local files to \Rails applications
+- [Action Text](files/actiontext/README.md), a library to handle rich text content
+- [Active Support](files/activesupport/README.rdoc), a collection of utility classes and standard library extensions that are useful for \Rails, and may also be used independently outside \Rails
+
+## Getting Started
+
+1.  Install \Rails at the command prompt if you haven't yet:
+
+        $ gem install rails
+
+2.  At the command prompt, create a new \Rails application:
+
+        $ rails new myapp
+
+    where "myapp" is the application name.
+
+3.  Change directory to `myapp` and start the web server:
+
+        $ cd myapp
+        $ bin/rails server
+
+    Run with `--help` or `-h` for options.
+
+4.  Go to `http://localhost:3000` and you'll see the \Rails bootscreen with your
+    \Rails and Ruby versions.
+
+5.  Follow the guidelines to start developing your application. You may find the
+    following resources handy:
+
+    * [Getting Started with Rails](https://guides.rubyonrails.org/getting_started.html)
+    * [Ruby on Rails Guides](https://guides.rubyonrails.org)
+    * [The API Documentation](https://api.rubyonrails.org)
+
+## Contributing
+
+We encourage you to contribute to Ruby on \Rails! Please check out the
+[Contributing to Ruby on Rails guide](https://edgeguides.rubyonrails.org/contributing_to_ruby_on_rails.html) for guidelines about how to proceed. [Join us!](https://contributors.rubyonrails.org)
+
+Trying to report a possible security vulnerability in \Rails? Please
+check out our [security policy](https://rubyonrails.org/security) for
+guidelines about how to proceed.
+
+Everyone interacting in \Rails and its sub-projects' codebases, issue trackers, chat rooms, and mailing lists is expected to follow the \Rails [code of conduct](https://rubyonrails.org/conduct).
+
+## License
+
+Ruby on \Rails is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+# FILE: railties/CHANGELOG.md
+*   Avoid adding `Rack::Sendfile` to the middleware stack if `config.action_dispatch.x_sendfile_header` is `nil`.
+
+    The middleware behave as a noop in such case so it's pointless to have it in the stack.
+
+    *Jean Boussier*
+
+*   Set read-only permissions for GitHub Actions workflow generated by rails new
+
+    *Taketo Takashima*
+
+*   `Rails.app.revision` now checks `ENV["REVISION"]` before falling back to the `REVISION` file or git.
+
+    *Jonathan Baker*
+
+*   Detect JavaScript package manager from lockfiles in generators.
+
+    Rails generators now automatically detect bun, pnpm, npm, or yarn by looking
+    for project lockfiles instead of hardcoding `yarn`.
+
+    *David Lowenfels*
+
+*   Disable the Active Record query cache in the console by default when using the executor.
+
+    The query cache is now off by default in the console. Pass `--query-cache` to enable it for the session.
+
+    *Cam Allen*
+
+*   Console `reload!` will reset the console's executor, when present.
+
+    *Ben Sheldon*
+
+*   Add `libvips` to generated `ci.yml`
+
+    Conditionally adds `libvips` to `ci.yml`.
+
+    *Steve Polito*
+
+*   Add `Rails.app.revision` to provide a version identifier for error reporting, monitoring, cache keys, etc.
+
+    ```ruby
+    Rails.app.revision # => "3d31d593e6cf0f82fa9bd0338b635af2f30d627b"
+    ```
+
+    By default it looks for a `REVISION` file at the root of the application, if absent it tries to extract
+    the revision from the local git repository.
+
+    If none of that is adequate, it can be set in the application config:
+
+    ```ruby
+    # config/application.rb
+    module MyApp
+      class Application < Rails::Application
+        config.revision = ENV["GIT_SHA"]
+      end
+    end
+    ```
+
+    *Abdelkader Boudih*, *Jean Boussier*
+
+*   Add `Rails.app.creds` to provide combined access to credentials stored in either ENV or the encrypted credentials file,
+    and in development also .env credentials. Provides a new require/option API for accessing these values. Examples:
+
+    ```ruby
+    Rails.app.creds.require(:db_host) # ENV.fetch("DB_HOST") || Rails.app.credentials.require(:db_host)
+    Rails.app.creds.require(:aws, :access_key_id) # ENV.fetch("AWS__ACCESS_KEY_ID") || Rails.app.credentials.require(:aws, :access_key_id)
+    Rails.app.creds.option(:cache_host) # ENV["CACHE_HOST"] || Rails.app.credentials.option(:cache_host)
+    Rails.app.creds.option(:cache_host, default: "cache-host-1") # ENV["CACHE_HOST"] || Rails.app.credentials.option(:cache_host) || "cache-host-1"
+    Rails.app.creds.option(:cache_host, default: -> { "cache-host-1" }) # ENV["CACHE_HOST"] || Rails.app.credentials.option(:cache_host) || "cache-host-1"
+    ```
+
+    It's also possible to assign your own combined configuration, if you need to use a different backend than just ENVs + encrypted files:
+
+    ```ruby
+    Rails.app.creds = ActiveSupport::CombinedConfiguration.new(Rails.app.envs, OnePasswordConfiguration.new)
+    ```
+
+    *DHH*
+
+*   Add `Rails.app.dotenvs` to provide access to .env variables through symbol-based lookup with explicit methods
+    for required and optional values. This is the same interface offered by #credentials and can be accessed in a combined manner via #creds.
+
+    It supports both variable interpolation with ${VAR} and command interpolation with $(echo "hello"). Otherwise the same as `Rails.app.envs`.
+
+    *DHH*
+
+*   Add `Rails.app.envs` to provide access to ENV variables through symbol-based lookup with explicit methods
+    for required and optional values. This is the same interface offered by #credentials and can be accessed in a combined manner via #creds.
+
+    ```ruby
+    Rails.app.envs.require(:db_password) # ENV,fetch("DB_PASSWORD")
+    Rails.app.envs.require(:aws, :access_key_id) # ENV.fetch("AWS__ACCESS_KEY_ID")
+    Rails.app.envs.option(:cache_host) # ENV["CACHE_HOST"]
+    Rails.app.envs.option(:cache_host, default: "cache-host-1") # ENV.fetch("CACHE_HOST", "cache-host-1")
+    Rails.app.envs.option(:cache_host, default: -> { HostProvider.cache }) # ENV.fetch("CACHE_HOST") { HostProvider.cache }
+    ```
+
+    *DHH*
+
+*   Add `Rails.app` as alias for `Rails.application`. Particularly helpful when accessing nested accessors inside application code,
+    like when using `Rails.app.credentials`.
+
+    *DHH*
+
+*   Remove duplicate unique index for token migrations
+
+    *zzak*, *Dan Bota*
+
+*   Do not clean directories directly under the application root with `Rails::BacktraceCleaner`
+
+    Improved `Rails.backtrace_cleaner` so that most paths located directly under the application's root directory are no longer silenced.
+
+    *alpaca-tc*
+
+*   Add `Rails::CodeStatistics#register_extension` to register file extensions for `rails stats`
+
+    ```ruby
+    Rails::CodeStatistics.register_extension("txt")
+    ```
+
+    *Taketo Takashima*
+
+*   Wrap console command with an executor by default
+
+    This can be disabled with `-w` or `--skip_executor`, same as runner.
+
+    *zzak*
+
+*   Add a new internal route in development to respond to chromium devtools GET request.
+
+    This allows the app folder to be easily connected as a workspace in chromium-based browsers.
+
+    *coorasse*
+
+*   Set `config.rake_eager_load` in generated test environment to match `config.eager_load` behavior in CI.
+
+    This ensures eager loading works consistently in CI when rake tasks invoke the `:environment` task before tests run.
+
+    *Trevor Turk*
+
+*   Update the `.node-version` file conditionally generated for new applications to 22.21.1
+
+    *Taketo Takashima*
+
+*   Do not assume and force SSL in production by default when using Kamal, to allow for out of the box Kamal deployments.
+
+    It is still recommended to assume and force SSL in production as soon as you can.
+
+    *Jerome Dalbert*
+
+*   Add environment config file existence check
+
+    `Rails::Application` will raise an error if unable to load any environment file.
+
+    *Daniel Niknam*
+
+*   `Rails::Application::RoutesReloader` uses the configured `Rails.application.config.file_watcher`
+
+    *Jan Grodowski*
+
+*   Add structured event for Rails deprecations, when `config.active_support.deprecation` is set to `:notify`.
+
+    *zzak*
+
+*   Report unhandled exceptions to the Error Reporter when running rake tasks via Rails command.
+
+    *Akimichi Tanei*
+
+*   Show help hint when starting `bin/rails console`
+
+    *Petrik de Heus*
+
+*   Persist `/rails/info/routes` search query and results between page reloads.
+
+    *Ryan Kulp*
+
+*   Add `--update` option to the `bin/bundler-audit` script.
+
+    *Julien ANNE*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/railties/CHANGELOG.md) for previous changes.
+
+
+# FILE: actionpack/CHANGELOG.md
+*   Add `ActionDispatch::Request#safe_method?` and `#unsafe_method?`.
+
+    `safe_method?` returns true for HTTP methods that are defined as safe per
+    [RFC 9110 §9.2.1](https://httpwg.org/specs/rfc9110.html#safe.methods):
+    GET, HEAD, OPTIONS, and TRACE. `unsafe_method?` is the inverse.
+
+    ```ruby
+    request.safe_method?   # => true for GET, HEAD, OPTIONS, TRACE
+    request.unsafe_method? # => true for POST, PUT, PATCH, DELETE
+    ```
+
+    *Joseph Hale*
+
+*   Add `content_type` option to HTTP authentication methods.
+
+    `request_http_basic_authentication`, `request_http_digest_authentication`,
+    and `request_http_token_authentication` now accept a `content_type`
+    parameter to control the Content-Type of the 401 response. The default
+    behavior is unchanged.
+
+    ```ruby
+    http_basic_authenticate_with(
+      name: "admin", password: "secret",
+      message: '{"error":"Access denied"}',
+      content_type: "application/json"
+    )
+    ```
+
+    *Iliana Hadzhiatanasova*
+
+*   Add `RAILS_HOST_APP_PATH` environment variable to support editor links in devcontainer/Docker environments.
+
+    When Rails runs inside a container, file paths in error pages are container-internal paths
+    that don't exist on the host machine. Setting `RAILS_HOST_APP_PATH` to the host's application
+    path enables proper translation of container paths to host paths for editor links.
+
+    Example in `.devcontainer/devcontainer.json`:
+
+    ```json
+    {
+      "containerEnv": {
+        "EDITOR": "code",
+        "RAILS_HOST_APP_PATH": "${localWorkspaceFolder}"
+      }
+    }
+    ```
+
+    This allows the "open in editor" feature to work correctly when developing in containers.
+
+    *Victor Cobos*
+
+*   Make `event_backtrace` attribute in `rescue_from_handled.action_controller` notifications the full backtrace, when `config.action_controller.rescue_from_event_backtrace` is `:array`.
+
+    This also affects `action_controller.rescue_from_handled` events.
+
+    *zzak*
+
+*   Avoid loading `ActionController::Live` early in initializer, and introduce
+    `action_controller_live` load hook.
+
+    *Adrianna Chang*
+
+*   Make CSRF header-only protection compatible with local installs using HTTP
+
+    In local installations that don't use HTTPS and where the app is
+    accessed within a local network, requests won't be performed from a
+    secure context. In this case, the browser won't send the
+    `Sec-Fetch-Site` header. This means non-GET requests will be rejected
+    because CSRF protection will fail when using the header-only approach.
+
+    With this change, we allow these requests with missing `Sec-Fetch-Site`
+    headers if:
+
+    - They happen over HTTP
+    - The app is not configured to force SSL
+
+    The `Origin` check always happens in any case.
+
+    *Rosa Gutierrez*
+
+*   Deprecate calling `protect_from_forgery` without specifying a strategy.
+
+    When `protect_from_forgery` is called without the `:with` option, it currently defaults to
+    `:null_session`. This is inconsistent with `config.action_controller.default_protect_from_forgery`,
+    which uses `:exception`.
+
+    A new configuration option `config.action_controller.default_protect_from_forgery_with` has been
+    added to allow applications to configure the default strategy. It currently defaults to `:null_session`
+    for backwards compatibility, but will change to `:exception` in a future version of Rails.
+
+    Applications can opt into the new behavior now by setting:
+
+    ```ruby
+    config.action_controller.default_protect_from_forgery_with = :exception
+    ```
+
+    To silence the deprecation warning without changing behavior, explicitly pass the strategy:
+
+    ```ruby
+    protect_from_forgery with: :null_session
+    ```
+
+    *Said Kaldybaev*
+
+*   Add `ActionDispatch::Request#bearer_token` to extract the bearer token from the Authorization header.
+    Bearer tokens are commonly used for API and MCP requests.
+
+    *DHH*
+
+*   Add block support to `ActionController::Parameters#merge`
+
+    `ActionController::Parameters#merge` now accepts a block to resolve conflicts,
+    consistent with `Hash#merge` and `Parameters#merge!`.
+
+    ```ruby
+    params1 = ActionController::Parameters.new(a: 1, b: 2)
+    params2 = ActionController::Parameters.new(b: 3, c: 4)
+    params1.merge(params2) { |key, old_val, new_val| old_val + new_val }
+    # => #<ActionController::Parameters {"a"=>1, "b"=>5, "c"=>4} permitted: false>
+    ```
+
+    *Said Kaldybaev*
+
+*   Yield key to `ActionController::Parameters#fetch` block
+
+    ```ruby
+    key = params.fetch(:missing) { |missing_key| missing_key }
+    key # => :missing
+
+    key = params.fetch("missing") { |missing_key| missing_key }
+    key # => "missing"
+    ```
+
+    *Sean Doyle*
+
+*   Add `config.action_controller.live_streaming_excluded_keys` to control execution state sharing in ActionController::Live.
+
+    When using ActionController::Live, actions are executed in a separate thread that shares
+    state from the parent thread. This new configuration allows applications to opt-out specific
+    state keys that should not be shared.
+
+    This is useful when streaming inside a `connected_to` block, where you may want
+    the streaming thread to use its own database connection context.
+
+    ```ruby
+    # config/application.rb
+    config.action_controller.live_streaming_excluded_keys = [:active_record_connected_to_stack]
+    ```
+
+    By default, all keys are shared.
+
+    *Eileen M. Uchitelle*
+
+*   Add controller action source location to routes inspector.
+
+    The routes inspector now shows where controller actions are defined.
+    In `rails routes --expanded`, a new "Action Location" field displays
+    the file and line number of each action method.
+
+    On the routing error page, when `RAILS_EDITOR` or `EDITOR` is set,
+    a clickable ✏️ icon appears next to each Controller#Action that opens
+    the action directly in the editor.
+
+    *Guillermo Iguaran*
+
+*   Active Support notifications for CSRF warnings.
+
+    Switches from direct logging to event-driven logging, allowing others to
+    subscribe to and act on CSRF events:
+
+    - `csrf_token_fallback.action_controller`
+    - `csrf_request_blocked.action_controller`
+    - `csrf_javascript_blocked.action_controller`
+
+    *Jeremy Daer*
+
+*   Modern header-based CSRF protection.
+
+    Modern browsers send the `Sec-Fetch-Site` header to indicate the relationship
+    between request initiator and target origins. Rails now uses this header to
+    verify same-origin requests without requiring authenticity tokens.
+
+    Two verification strategies are available via `protect_from_forgery using:`:
+
+    * `:header_only` - Uses `Sec-Fetch-Site` header only. Rejects requests
+      without a valid header. Default for new Rails 8.2 applications.
+
+    * `:header_or_legacy_token` - Uses `Sec-Fetch-Site` header when present,
+      falls back to authenticity token verification for older browsers.
+
+    Configure trusted origins for legitimate cross-site requests (OAuth callbacks,
+    third-party embeds) with `trusted_origins:`:
+
+    ```ruby
+    protect_from_forgery trusted_origins: %w[ https://accounts.google.com ]
+    ```
+
+    `InvalidAuthenticityToken` is deprecated in favor of `InvalidCrossOriginRequest`.
+
+    *Rosa Gutierrez*
+
+*   Fix `action_dispatch_request` early load hook call when building
+    Rails app middleware.
+
+    *Gannon McGibbon*
+
+*   Emit a structured event when `action_on_open_redirect` is set to `:notify`
+    in addition to the existing Active Support Notification.
+
+    *Adrianna Chang*, *Hartley McGuire*
+
+*   Support `text/markdown` format in `DebugExceptions` middleware.
+
+    When `text/markdown` is requested via the Accept header, error responses
+    are returned with `Content-Type: text/markdown` instead of HTML.
+    The existing text templates are reused for markdown output, allowing
+    CLI tools and other clients to receive byte-efficient error information.
+
+    *Guillermo Iguaran*
+
+*   Support dynamic `to:` and `within:` options in `rate_limit`.
+
+    The `to:` and `within:` options now accept callables (lambdas or procs) and
+    method names (as symbols), in addition to static values. This allows for
+    dynamic rate limiting based on user attributes or other runtime conditions.
+
+    ```ruby
+    class APIController < ApplicationController
+      rate_limit to: :max_requests, within: :time_window, by: -> { current_user.id }
+
+      private
+        def max_requests
+          current_user.premium? ? 1000 : 100
+        end
+
+        def time_window
+          current_user.premium? ? 1.hour : 1.minute
+        end
+    end
+    ```
+
+    *Murilo Duarte*
+
+*   Define `ActionController::Parameters#deconstruct_keys` to support pattern matching
+
+    ```ruby
+    if params in { search:, page: }
+      Article.search(search).limit(page)
+    else
+      …
+    end
+
+    case (value = params[:string_or_hash_with_nested_key])
+    in String
+      # do something with a String `value`…
+    in { nested_key: }
+      # do something with `nested_key` or `value`
+    else
+      # …
+    end
+    ```
+
+    *Sean Doyle*
+
+*   Submit test requests using `as: :html` with `Content-Type: x-www-form-urlencoded`
+
+    *Sean Doyle*
+
+*   Add `svg:` renderer:
+
+    ```ruby
+    class Page
+      def to_svg
+        body
+      end
+    end
+
+    class PagesController < ActionController::Base
+      def show
+        @page = Page.find(params[:id])
+
+        respond_to do |format|
+          format.html
+          format.svg { render svg: @page }
+        end
+      end
+    end
+    ```
+
+    *Thiago Youssef*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actionpack/CHANGELOG.md) for previous changes.
+
+
+# FILE: activejob/README.md
+# Active Job – Make work happen later
+
+Active Job is a framework for declaring jobs and making them run on a variety
+of queuing backends. These jobs can be everything from regularly scheduled
+clean-ups, to billing charges, to mailings — anything that can be chopped up into
+small units of work and run in parallel.
+
+It also serves as the backend for Action Mailer's #deliver_later functionality
+that makes it easy to turn any mailing into a job for running later. That's
+one of the most common jobs in a modern web application: sending emails outside
+the request-response cycle, so the user doesn't have to wait on it.
+
+The main point is to ensure that all \Rails apps will have a job infrastructure
+in place, even if it's in the form of an "immediate runner". We can then have
+framework features and other gems build on top of that, without having to worry
+about API differences between Delayed Job and Resque. Picking your queuing
+backend becomes more of an operational concern, then. And you'll be able to
+switch between them without having to rewrite your jobs.
+
+You can read more about Active Job in the [Active Job Basics](https://guides.rubyonrails.org/active_job_basics.html) guide.
+
+## Usage
+
+To learn how to use your preferred queuing backend see its adapter
+documentation at
+[ActiveJob::QueueAdapters](https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters.html).
+
+Declare a job like so:
+
+```ruby
+class MyJob < ActiveJob::Base
+  queue_as :my_jobs
+
+  def perform(record)
+    record.do_work
+  end
+end
+```
+
+Enqueue a job like so:
+
+```ruby
+MyJob.perform_later record  # Enqueue a job to be performed as soon as the queuing system is free.
+```
+
+```ruby
+MyJob.set(wait_until: Date.tomorrow.noon).perform_later(record)  # Enqueue a job to be performed tomorrow at noon.
+```
+
+```ruby
+MyJob.set(wait: 1.week).perform_later(record) # Enqueue a job to be performed 1 week from now.
+```
+
+That's it!
+
+
+## GlobalID support
+
+Active Job supports [GlobalID serialization](https://github.com/rails/globalid/) for parameters. This makes it possible
+to pass live Active Record objects to your job instead of class/id pairs, which
+you then have to manually deserialize. Before, jobs would look like this:
+
+```ruby
+class TrashableCleanupJob
+  def perform(trashable_class, trashable_id, depth)
+    trashable = trashable_class.constantize.find(trashable_id)
+    trashable.cleanup(depth)
+  end
+end
+```
+
+Now you can simply do:
+
+```ruby
+class TrashableCleanupJob
+  def perform(trashable, depth)
+    trashable.cleanup(depth)
+  end
+end
+```
+
+This works with any class that mixes in GlobalID::Identification, which
+by default has been mixed into Active Record classes.
+
+
+## Supported queuing systems
+
+Active Job has built-in adapters for multiple queuing backends (Resque, Delayed Job and others). To get an up-to-date list of the adapters
+see the API Documentation for [ActiveJob::QueueAdapters](https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters.html).
+
+**Please note:** We are not accepting pull requests for new adapters, and we are
+actively extracting the current adapters. We encourage library authors to provide
+an Active Job adapter as part of their gem, or as a stand-alone gem.
+
+## Continuations
+
+Continuations allow jobs to be interrupted and resumed. See more at ActiveJob::Continuation.
+
+
+## Download and installation
+
+The latest version of Active Job can be installed with RubyGems:
+
+```
+  $ gem install activejob
+```
+
+Source code can be downloaded as part of the \Rails project on GitHub:
+
+* https://github.com/rails/rails/tree/main/activejob
+
+
+## License
+
+Active Job is released under the MIT license:
+
+* https://opensource.org/licenses/MIT
+
+
+## Support
+
+API documentation is at:
+
+* https://api.rubyonrails.org
+
+Bug reports for the Ruby on \Rails project can be filed here:
+
+* https://github.com/rails/rails/issues
+
+Feature requests should be discussed on the rubyonrails-core forum here:
+
+* https://discuss.rubyonrails.org/c/rubyonrails-core
+
+
+# FILE: activejob/CHANGELOG.md
+*   Deprecate built-in `queue_classic` Active Job adapter.
+
+    *Harun Sabljaković, Wojciech Wnętrzak*
+
+*   Allow `retry_on` `wait` procs to accept the error as a second argument.
+
+    Procs with arity 1 continue to receive only the execution count.
+
+    ```ruby
+    class RemoteServiceJob < ActiveJob::Base
+      retry_on CustomError, wait: ->(executions, error) { error.retry_after || executions * 2 }
+
+      def perform
+        # ...
+      end
+    end
+    ```
+
+    *JP Camara*
+
+*   Deprecate built-in `resque` adapter.
+
+    If you're using this adapter, upgrade to `resque` 3.0 or later to use the `resque` gem's adapter.
+
+    *zzak, Wojciech Wnętrzak*
+
+*   Remove deprecated `sidekiq` Active Job adapter.
+
+    The adapter is available in the `sidekiq` gem.
+
+    *Wojciech Wnętrzak*
+
+*   Deprecate built-in `delayed_job` adapter.
+
+    If you're using this adapter, upgrade to `delayed_job` 4.2.0 or later to use the `delayed_job` gem's adapter.
+
+    *Dino Maric, David Genord II, Wojciech Wnętrzak*
+
+*   Deprecate built-in `backburner` adapter.
+
+    *Dino Maric, Nathan Esquenazi, Earlopain*
+
+*   Jobs are now enqueued after transaction commit.
+
+    This fixes that jobs would surprisingly run against uncommitted and
+    rolled-back records.
+
+    New Rails 8.2 apps (and apps upgrading to `config.load_defaults "8.2"`)
+    have `config.active_job.enqueue_after_transaction_commit = true` by default.
+    Uncomment the setting in `config/initializers/new_framework_defaults_8_2.rb`
+    to opt in.
+
+    *mugitti9*
+
+*   Un-deprecate the global `config.active_job.enqueue_after_transaction_commit`
+    toggle for app-wide overrides. It was deprecated in Rails 8.0 (when the
+    symbol values were removed) and made non-functional in 8.1. It now works
+    as a boolean config again.
+
+    *Jeremy Daer*
+
+*   Deprecate built-in `sneakers` adapter.
+
+    *Dino Maric*
+
+*   Fix using custom serializers with `ActiveJob::Arguments.serialize` when
+    `ActiveJob::Base` hasn't been loaded.
+
+    *Hartley McGuire*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/activejob/CHANGELOG.md) for previous changes.
+
+
+# FILE: actionmailbox/README.md
+# Action Mailbox
+
+Action Mailbox routes incoming emails to controller-like mailboxes for processing in \Rails. It ships with ingresses for Mailgun, Mandrill, Postmark, and SendGrid. You can also handle inbound mails directly via the built-in Exim, Postfix, and Qmail ingresses.
+
+The inbound emails are turned into `InboundEmail` records using Active Record and feature lifecycle tracking, storage of the original email on cloud storage via Active Storage, and responsible data handling with on-by-default incineration.
+
+These inbound emails are routed asynchronously using Active Job to one or several dedicated mailboxes, which are capable of interacting directly with the rest of your domain model.
+
+You can read more about Action Mailbox in the [Action Mailbox Basics](https://guides.rubyonrails.org/action_mailbox_basics.html) guide.
+
+## License
+
+Action Mailbox is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+# FILE: actionmailbox/CHANGELOG.md
+*   Deprecate `Mail::Address.wrap` because it isn't used.
+
+    *Gannon McGibbon*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actionmailbox/CHANGELOG.md) for previous changes.
+
+
+# FILE: actionview/CHANGELOG.md
+*   Skip blank attribute names in tag helpers to avoid generating invalid HTML.
+
+    *Mike Dalessio*
+
+*   Fix tag parameter content being overwritten instead of combined with tag block content.
+    Before `tag.div("Hello ") { "World" }` would just return `<div>World</div>`, now it returns `<div>Hello World</div>`.
+
+    *DHH*
+
+*   Add ability to pass a block when rendering collection. The block will be executed for each rendered element in the collection.
+
+    *Vincent Robert*
+
+*   Add `key:` and `expires_in:` options under `cached:` to `render` when used with `collection:`
+
+    *Jarrett Lusso*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actionview/CHANGELOG.md) for previous changes.
+
+
+# FILE: actiontext/rollup.config.js
+import resolve from "@rollup/plugin-node-resolve"
+import commonjs from "@rollup/plugin-commonjs"
+import { terser } from "rollup-plugin-terser"
+
+const terserOptions = {
+ mangle: false,
+ compress: false,
+ format: {
+   beautify: true,
+   indent_level: 2
+ }
+}
+
+export default [
+  {
+    input: "app/javascript/actiontext/index.js",
+    output: {
+      file: "app/assets/javascripts/actiontext.js",
+      format: "umd",
+      name: "ActionText"
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      terser(terserOptions)
+    ]
+  },
+
+  {
+    input: "app/javascript/actiontext/index.js",
+    output: {
+      file: "app/assets/javascripts/actiontext.esm.js",
+      format: "es"
+    },
+    plugins: [
+      resolve(),
+      commonjs(),
+      terser(terserOptions)
+    ]
+  }
+]
+
+
+# FILE: actiontext/package.json
+{
+  "name": "@rails/actiontext",
+  "version": "8.2.0-alpha",
+  "description": "Edit and display rich text in Rails applications",
+  "module": "app/assets/javascripts/actiontext.esm.js",
+  "main": "app/assets/javascripts/actiontext.js",
+  "files": [
+    "app/assets/javascripts/*.js"
+  ],
+  "homepage": "https://rubyonrails.org/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rails/rails.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rails/rails/issues"
+  },
+  "author": "37signals LLC",
+  "contributors": [
+    "Javan Makhmali <javan@javan.us>",
+    "Sam Stephenson <sstephenson@gmail.com>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@rails/activestorage": ">= 8.1.0-alpha"
+  },
+  "peerDependencies": {
+    "trix": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^19.0.1",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "rollup": "^2.35.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "trix": "^2.0.0"
+  },
+  "scripts": {
+    "build": "rollup --config rollup.config.js"
+  }
+}
+
+
+# FILE: actiontext/README.md
+# Action Text
+
+Action Text brings rich text content and editing to \Rails. It includes the [Trix editor](https://trix-editor.org) that handles everything from formatting to links to quotes to lists to embedded images and galleries. The rich text content generated by the Trix editor is saved in its own RichText model that's associated with any existing Active Record model in the application. Any embedded images (or other attachments) are automatically stored using Active Storage and associated with the included RichText model.
+
+You can read more about Action Text in the [Action Text Overview](https://guides.rubyonrails.org/action_text_overview.html) guide.
+
+## Development
+
+The JavaScript for Action Text is distributed both as a npm module under @rails/actiontext and via the asset pipeline as actiontext.js (and we mirror Trix as trix.js). To ensure that the latter remains in sync, you must run `yarn build` and checkin the artifacts whenever the JavaScript source or the Trix dependency is bumped. CSS changes must be brought over manually to app/assets/stylesheets/trix.css
+
+## License
+
+Action Text is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+# FILE: actiontext/CHANGELOG.md
+*   Support block children in editor elements alongside value.
+
+    Blocks were introduced in #55827, but only as an alternative to the value
+    argument: the block was captured and used as the initial editor content,
+    making it either value OR block — not both.
+
+    The block semantics are now changed so that blocks render as DOM children of
+    the editor element instead. Value and block are now independent: value flows
+    into the editor's content binding (the hidden input for Trix, the value
+    attribute for custom editors), while the block renders as inner DOM children
+    — useful for embedding custom elements such as prompt menus or toolbar
+    extensions.
+
+    This enables other editors like Lexxy to use the block form for configuration
+    — injecting child elements into the editor tag — while the rich text value is
+    preserved separately.
+
+    Trix preserves the original block-as-initial-value contract by capturing the
+    block in `TrixEditor::Tag#render_in` when no value is present, keeping its
+    hidden input populated as before.
+
+    *Jorge Manrubia*
+
+*   Render `MissingAttachable` as "☒" in plain text.
+
+    Previously, `Content#to_plain_text` would replace a `MissingAttachable` with a blank string.
+    Now it renders the same "☒" character used in the HTML representation.
+
+    *Mike Dalessio*
+
+*   Add `to_markdown` to Action Text, mirroring `to_plain_text`.
+
+    Converts rich text content to Markdown, supporting headings, bold, italic,
+    strikethrough, inline code, code blocks, blockquotes, ordered and unordered
+    lists, links, tables, and attachments. Custom attachment representations can be
+    provided by implementing `attachable_markdown_representation` on the
+    attachable model.
+
+        message = Message.create!(content: "<h1>Hello</h1><p>This is <strong>bold</strong></p>")
+        message.content.to_markdown # => "# Hello\n\nThis is **bold**"
+
+    *Mike Dalessio*
+
+*   Make `ActionText::Attachable#read_attribute_for_serialization` public.
+
+    *Sally Hall*
+
+*   Install generator now detects which JS package manager to use when
+    installing javascript dependencies for the editor.
+
+    *David Lowenfels*
+
+*   Deprecate Trix-specific classes, modules, and methods
+
+    * `ActionText::Attachable#to_trix_content_attachment_partial_path`. Override
+      `#to_editor_content_attachment_partial_path` instead.
+    * `ActionText::Attachments::TrixConversion`
+    * `ActionText::Content#to_trix_html`.
+    * `ActionText::RichText#to_trix_html`.
+    * `ActionText::TrixAttachment`
+
+    *Sean Doyle*
+
+*   Validate `RemoteImage` URLs at creation time.
+
+    `RemoteImage.from_node` now validates the URL before creating a `RemoteImage` object, using the
+    same regex that `AssetUrlHelper` uses during rendering. URLs like "image.png" that would
+    previously have been passed to the asset pipeline and raised a `ActionView::Template::Error` are
+    rejected early, and gracefully fail by resulting in a `MissingAttachable`.
+
+    *Mike Dalessio*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actiontext/CHANGELOG.md) for previous changes.
+
+
+# FILE: activemodel/CHANGELOG.md
+*   Combine `:if`, `:unless`, and `:on` options when specified at both the
+    `validates` level and the per-validator level, instead of the per-validator
+    options silently replacing the top-level ones.
+
+    Before, `validates :title, presence: { if: :local? }, if: :global?` would
+    only check `local?`, ignoring `global?` entirely. Now both conditions must
+    pass for the validation to run.
+
+    Fixes #55761.
+
+    *Denis Savchuk*
+
+*   Add `has_json` and `has_delegated_json` to provide schema-enforced access to JSON attributes.
+
+    ```ruby
+    class Account < ApplicationRecord
+      has_json :settings, restrict_creation_to_admins: true, max_invites: 10, greeting: "Hello!"
+      has_delegated_json :flags, beta: false, staff: :boolean
+    end
+
+    a = Account.new
+    a.settings.restrict_creation_to_admins? # => true
+    a.settings.max_invites = "100" # => Set to integer 100
+    a.settings = { "restrict_creation_to_admins" => "false", "max_invites" => "500", "greeting" => "goodbye" }
+    a.settings.greeting # => "goodbye"
+    a.staff # => nil
+    a.staff = true
+    a.staff? # => true
+    ```
+
+    *DHH*
+
+*   Changes `ActiveModel::Validations#read_attribute_for_validation` to return `nil` if the record doesn't
+    respond to the attribute instead of raising an error.
+
+    This change allows adding errors to custom attributes with symbol messages.
+
+    ```ruby
+    user = User.new # User model has no `address` attribute
+
+    user.errors.add(:address, :invalid)
+
+    user.errors.messages
+    ```
+
+    Previously, calling `messages` would raise an error because `address` attribute can't be read.
+    Now it returns the localized error message.
+
+    *Lovro Bikić*
+
+*   Add built-in Argon2 support for `has_secure_password`.
+
+    `has_secure_password` now supports Argon2 as a built-in algorithm:
+
+    ```ruby
+    class User < ActiveRecord::Base
+      has_secure_password algorithm: :argon2
+    end
+    ```
+
+    To use Argon2, add `gem "argon2", "~> 2.3"` to your Gemfile.
+
+    Argon2 has no password length limit, unlike BCrypt's 72-byte restriction.
+
+    *Justin Bull*, *Guillermo Iguaran*
+
+*   Add ActiveModel::SecurePassword.register_algorithm to register new algorithms for `has_secure_password` by symbol:
+
+    `ActiveModel::SecurePassword.register_algorithm` can be used to register new algorithms:
+
+    ```ruby
+    ActiveModel::SecurePassword.register_algorithm :custom_password, CustomPassword
+    ```
+
+    ```ruby
+    class User < ActiveRecord::Base
+      has_secure_password algorithm: :custom_password
+    end
+    ```
+
+    BCrypt is pre-registered as `:bcrypt` in the algorithms registry.
+
+    *Justin Bull*, *Guillermo Iguaran*
+
+*   `has_secure_password` can support different password hashing algorithms (if defined) using the `:algorithm` option:
+
+    ```ruby
+    class CustomPassword
+      def hash_password(unencrypted_password)
+        CustomHashingLibrary.create(unencrypted_password)
+      end
+
+      def verify_password(password, digest)
+        CustomHashingLibrary.verify(password, digest)
+      end
+
+      def password_salt(digest)
+        CustomHashingLibrary.salt(digest)
+      end
+
+      def validate(record, attribute)
+        # ...
+      end
+
+      def algorithm_name
+        :custom
+      end
+    end
+    ```
+
+    ```ruby
+    class User < ActiveRecord::Base
+      has_secure_password algorithm: CustomPassword.new
+    end
+    ```
+
+    *Justin Bull*, *Lucas Mazza*
+
+*   Allow passing method name or proc to `allow_nil` and `allow_blank`
+
+    ```ruby
+    class EnrollmentForm
+      include ActiveModel::Validations
+
+      attr_accessor :course
+
+      validates :course,
+                inclusion: { in: :open_courses },
+                allow_nil: :saving_progress?
+    end
+    ```
+
+    *Richard Lynch*
+
+*   Add error type support arguments to `ActiveModel::Errors#messages_for` and `ActiveModel::Errors#full_messages_for`
+
+    ```ruby
+    person = Person.create()
+    person.errors.full_messages_for(:name, :invalid)
+    # => ["Name is invalid"]
+
+    person.errors.messages_for(:name, :invalid)
+    # => ["is invalid"]
+    ```
+
+    *Eugene Bezludny*
+
+*   Make `ActiveModel::Serializers::JSON#from_json` compatible with `#assign_attributes`
+
+    *Sean Doyle*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/activemodel/CHANGELOG.md) for previous changes.
+
+
+# FILE: actionmailer/CHANGELOG.md
+*   Add `assert_part` and `assert_no_part` to `ActionMailer::TestCase`
+
+    ```ruby
+    test "assert MyMailer.welcome HTML and text parts" do
+      mail = MyMailer.welcome("Hello, world")
+
+      assert_part :text, mail do |text|
+        assert_includes text, "Hello, world"
+      end
+      assert_part :html, mail do |html|
+        assert_dom html.root, "p", "Hello, world"
+      end
+    end
+    ```
+
+    *Sean Doyle*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actionmailer/CHANGELOG.md) for previous changes.
+
+
+# FILE: actioncable/rollup.config.test.js
+import commonjs from "@rollup/plugin-commonjs"
+import resolve from "@rollup/plugin-node-resolve"
+
+export default {
+  input: "test/javascript/src/test.js",
+
+  output: {
+    file: "test/javascript/compiled/test.js",
+    format: "iife"
+  },
+
+  plugins: [
+    resolve(),
+    commonjs()
+  ]
+}
+
+
+# FILE: actioncable/rollup.config.js
+import resolve from "@rollup/plugin-node-resolve"
+import { terser } from "rollup-plugin-terser"
+
+const terserOptions = {
+  mangle: false,
+  compress: false,
+  format: {
+    beautify: true,
+    indent_level: 2
+  }
+}
+
+export default [
+  {
+    input: "app/javascript/action_cable/index.js",
+    output: [
+      {
+        file: "app/assets/javascripts/actioncable.js",
+        format: "umd",
+        name: "ActionCable"
+      },
+
+      {
+        file: "app/assets/javascripts/actioncable.esm.js",
+        format: "es"
+      }
+    ],
+    plugins: [
+      resolve(),
+      terser(terserOptions)
+    ]
+  },
+
+  {
+    input: "app/javascript/action_cable/index_with_name_deprecation.js",
+    output: {
+      file: "app/assets/javascripts/action_cable.js",
+      format: "umd",
+      name: "ActionCable"
+    },
+    plugins: [
+      resolve(),
+      terser(terserOptions)
+    ]
+  },
+]
+
+
+# FILE: actioncable/package.json
+{
+  "name": "@rails/actioncable",
+  "version": "8.2.0-alpha",
+  "description": "WebSocket framework for Ruby on Rails.",
+  "module": "app/assets/javascripts/actioncable.esm.js",
+  "main": "app/assets/javascripts/actioncable.js",
+  "files": [
+    "app/assets/javascripts/*.js",
+    "src/*.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "rails/rails"
+  },
+  "keywords": [
+    "websockets",
+    "actioncable",
+    "rails"
+  ],
+  "author": "David Heinemeier Hansson <david@loudthinking.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rails/rails/issues"
+  },
+  "homepage": "https://rubyonrails.org/",
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@rollup/plugin-commonjs": "^19.0.1",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "eslint": "^9.24.0",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^14.0.0",
+    "karma": "^6.4.2",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-qunit": "^2.1.0",
+    "karma-sauce-launcher": "^1.2.0",
+    "mock-socket": "^2.0.0",
+    "qunit": "^2.8.0",
+    "rollup": "^2.35.1",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "scripts": {
+    "prebuild": "yarn lint && bundle exec rake assets:codegen",
+    "build": "rollup --config rollup.config.js",
+    "lint": "eslint app/javascript",
+    "prepublishOnly": "rm -rf src && cp -R app/javascript/action_cable src",
+    "pretest": "bundle exec rake assets:codegen && rollup --config rollup.config.test.js",
+    "test": "karma start"
+  }
+}
+
+
+# FILE: actioncable/karma.conf.js
+const config = {
+  browsers: ["ChromeHeadless"],
+  frameworks: ["qunit"],
+  files: [
+    "test/javascript/compiled/test.js",
+  ],
+
+  client: {
+    clearContext: false,
+    qunit: {
+      showUI: true
+    }
+  },
+
+  singleRun: true,
+  autoWatch: false,
+
+  captureTimeout: 180000,
+  browserDisconnectTimeout: 180000,
+  browserDisconnectTolerance: 3,
+  browserNoActivityTimeout: 300000,
+}
+
+if (process.env.CI) {
+  config.customLaunchers = {
+    sl_chrome: sauce("chrome", 70),
+    sl_ff: sauce("firefox", 63),
+    sl_safari: sauce("safari", "16", "macOS 13"),
+    sl_edge: sauce("microsoftedge", "latest", "Windows 11"),
+  }
+
+  config.browsers = Object.keys(config.customLaunchers)
+  config.reporters = ["dots", "saucelabs"]
+
+  config.sauceLabs = {
+    testName: "ActionCable JS Client",
+    retryLimit: 3,
+    build: buildId(),
+  }
+
+  function sauce(browserName, version, platform) {
+    const options = {
+      base: "SauceLabs",
+      browserName: browserName.toString(),
+      version: version.toString(),
+    }
+    if (platform) {
+      options.platform = platform.toString()
+    }
+    return options
+  }
+
+  function buildId() {
+    const { BUILDKITE_JOB_ID } = process.env
+    return BUILDKITE_JOB_ID
+      ? `Buildkite ${BUILDKITE_JOB_ID}`
+      : ""
+  }
+}
+
+module.exports = function(karmaConfig) {
+  karmaConfig.set(config)
+}
+
+
+# FILE: actioncable/README.md
+# Action Cable – Integrated WebSockets for \Rails
+
+Action Cable seamlessly integrates WebSockets with the rest of your \Rails application.
+It allows for real-time features to be written in Ruby in the same style
+and form as the rest of your \Rails application, while still being performant
+and scalable. It's a full-stack offering that provides both a client-side
+JavaScript framework and a server-side Ruby framework. You have access to your full
+domain model written with Active Record or your ORM of choice.
+
+You can read more about Action Cable in the [Action Cable Overview](https://guides.rubyonrails.org/action_cable_overview.html) guide.
+
+## Support
+
+API documentation is at:
+
+* https://api.rubyonrails.org
+
+Bug reports for the Ruby on \Rails project can be filed here:
+
+* https://github.com/rails/rails/issues
+
+Feature requests should be discussed on the rubyonrails-core forum here:
+
+* https://discuss.rubyonrails.org/c/rubyonrails-core
+
+
+# FILE: actioncable/CHANGELOG.md
+*   Channel generator now detects which JS package manager to use when
+    installing javascript dependencies.
+
+    *David Lowenfels*
+
+Please check [8-1-stable](https://github.com/rails/rails/blob/8-1-stable/actioncable/CHANGELOG.md) for previous changes.
+
+
+# FILE: tools/support/leak_checker.rb
+# frozen_string_literal: true
+
+module LeakChecker
+  # These keys are out of our control.
+  # Either added by the system or by other libraries.
+  ALLOWED_KEYS = %w[
+    VIPSHOME
+  ]
+
+  

@@ -1,0 +1,2962 @@
+
+
+# FILE: README.md
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/kafka-logo-readme-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/kafka-logo-readme-dark.svg">
+  <img src="docs/images/kafka-logo-readme-light.svg" alt="Kafka Logo" width="50%"> 
+</picture>
+</p>
+
+[![CI](https://github.com/apache/kafka/actions/workflows/ci.yml/badge.svg?branch=trunk&event=push)](https://github.com/apache/kafka/actions/workflows/ci.yml?query=event%3Apush+branch%3Atrunk)
+[![Flaky Test Report](https://github.com/apache/kafka/actions/workflows/generate-reports.yml/badge.svg?branch=trunk&event=schedule)](https://github.com/apache/kafka/actions/workflows/generate-reports.yml?query=event%3Aschedule+branch%3Atrunk)
+
+[**Apache Kafka**](https://kafka.apache.org) is an open-source distributed event streaming platform used by thousands of companies for high-performance data pipelines, streaming analytics, data integration, and mission-critical applications.
+
+You need to have [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
+
+We build and test Apache Kafka with Java versions 17 and 25. The `release` parameter in javac is set to `11` for the clients 
+and streams modules, and `17` for the rest, ensuring compatibility with their respective
+minimum Java versions. Similarly, the `release` parameter in scalac is set to `11` for the streams modules and `17`
+for the rest.
+
+Scala 2.13 is the only supported version in Apache Kafka.
+
+### Build a JAR and run it
+```bash
+./gradlew jar
+```
+
+Follow instructions in https://kafka.apache.org/quickstart
+
+### Build source JAR
+```bash
+./gradlew srcJar
+```
+
+### Build aggregated javadoc
+```bash
+./gradlew aggregatedJavadoc --no-parallel
+```
+
+### Build javadoc and scaladoc
+```bash
+./gradlew javadoc
+./gradlew javadocJar # builds a javadoc jar for each module
+./gradlew scaladoc
+./gradlew scaladocJar # builds a scaladoc jar for each module
+./gradlew docsJar # builds both (if applicable) javadoc and scaladoc jars for each module
+```
+
+### Run unit/integration tests
+```bash
+./gradlew test  # runs both unit and integration tests
+./gradlew unitTest
+./gradlew integrationTest
+./gradlew test -Pkafka.test.run.flaky=true  # runs tests that are marked as flaky
+```
+
+### Force re-running tests without code change
+```bash
+./gradlew test --rerun-tasks
+./gradlew unitTest --rerun-tasks
+./gradlew integrationTest --rerun-tasks
+```
+
+### Running a particular unit/integration test
+```bash
+./gradlew clients:test --tests RequestResponseTest
+./gradlew streams:integration-tests:test --tests RestoreIntegrationTest
+```
+
+### Running a particular unit/integration test N times
+```bash
+N=500; I=0; while [ $I -lt $N ] && ./gradlew clients:test --tests RequestResponseTest --rerun --fail-fast; do (( I=$I+1 )); echo "Completed run: $I"; sleep 1; done
+```
+
+### Running a particular test method within a unit/integration test
+```bash
+./gradlew core:test --tests kafka.api.ProducerFailureHandlingTest.testCannotSendToInternalTopic
+./gradlew clients:test --tests org.apache.kafka.clients.MetadataTest.testTimeToNextUpdate
+./gradlew streams:integration-tests:test --tests org.apache.kafka.streams.integration.RestoreIntegrationTest.shouldRestoreNullRecord
+```
+
+### Running a particular unit/integration test with log4j output
+By default, there will be only a small number of logs output while testing. You can adjust it by changing the `log4j2.yaml` file in the module's `src/test/resources` directory.
+
+For example, if you want to see more logs for clients project tests, you can modify [the line](https://github.com/apache/kafka/blob/trunk/clients/src/test/resources/log4j2.yaml#L35) in `clients/src/test/resources/log4j2.yaml` 
+to `level: INFO` and then run:
+
+```bash
+./gradlew cleanTest clients:test --tests NetworkClientTest
+```
+
+And you should see `INFO` level logs in the file under the `clients/build/test-results/test` directory.
+
+### Specifying test retries
+Retries are disabled by default, but you can set maxTestRetryFailures and maxTestRetries to enable retries.
+
+The following example declares -PmaxTestRetries=1 and -PmaxTestRetryFailures=3 to enable a failed test to be retried once, with a total retry limit of 3.
+
+```bash
+./gradlew test -PmaxTestRetries=1 -PmaxTestRetryFailures=3
+```
+
+See [Test Retry Gradle Plugin](https://github.com/gradle/test-retry-gradle-plugin) and [build.yml](.github/workflows/build.yml) for more details.
+
+### Generating test coverage reports
+Generate coverage reports for the whole project:
+
+```bash
+./gradlew reportCoverage -PenableTestCoverage=true -Dorg.gradle.parallel=false
+```
+
+Generate coverage for a single module, i.e.: 
+
+```bash
+./gradlew clients:reportCoverage -PenableTestCoverage=true -Dorg.gradle.parallel=false
+```
+
+Coverage reports are located within the module's build directory, categorized by module type:
+
+Core Module (:core): `core/build/reports/scoverageTest/index.html`
+
+Other Modules: `<module>/build/reports/jacoco/test/html/index.html`
+
+### Building a binary release gzipped tarball
+```bash
+./gradlew clean releaseTarGz
+```
+
+The release file can be found inside `./core/build/distributions/`.
+
+### Building auto-generated messages
+Sometimes it is only necessary to rebuild the RPC auto-generated message data when switching between branches, as they could
+fail due to code changes. You can just run:
+
+```bash
+./gradlew processMessages processTestMessages
+```
+
+See [Apache Kafka Message Definitions](clients/src/main/resources/common/message/README.md) for details on Apache Kafka message protocol.
+
+### Running a Kafka broker
+
+Using compiled files:
+
+```bash
+KAFKA_CLUSTER_ID="$(./bin/kafka-storage.sh random-uuid)"
+./bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
+./bin/kafka-server-start.sh config/server.properties
+```
+
+Using docker image:
+
+```bash
+docker run -p 9092:9092 apache/kafka:latest
+```
+
+See [docker/README.md](docker/README.md) for detailed information.
+
+### Cleaning the build
+```bash
+./gradlew clean
+```
+
+### Running a task for a specific project
+This is for `core`, `examples` and `clients`
+
+```bash
+./gradlew core:jar
+./gradlew core:test
+```
+
+Streams has multiple sub-projects, but you can run all the tests:
+
+```bash
+./gradlew :streams:testAll
+```
+
+### Listing all gradle tasks
+```bash
+./gradlew tasks
+```
+
+### Building IDE project
+*Note: Please ensure that JDK 17 is used when developing Kafka.*
+
+IntelliJ supports Gradle natively and it will automatically check Java syntax and compatibility for each module, even if
+the Java version shown in the `Structure > Project Settings > Modules` may not be the correct one.
+
+When it comes to Eclipse, run:
+
+```bash
+./gradlew eclipse
+```
+
+The `eclipse` task has been configured to use `${project_dir}/build_eclipse` as Eclipse's build directory. Eclipse's default
+build directory (`${project_dir}/bin`) clashes with Kafka's scripts directory and we don't use Gradle's build directory
+to avoid known issues with this configuration.
+
+### Publishing the streams quickstart archetype artifact to maven
+For the Streams archetype project, one cannot use gradle to upload to maven; instead the `mvn deploy` command needs to be called at the quickstart folder:
+
+```bash
+cd streams/quickstart
+mvn deploy
+```
+
+Please note for this to work you should create/update user maven settings (typically, `${USER_HOME}/.m2/settings.xml`) to assign the following variables
+
+    <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                           https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    ...                           
+    <servers>
+       ...
+       <server>
+          <id>apache.snapshots.https</id>
+          <username>${maven_username}</username>
+          <password>${maven_password}</password>
+       </server>
+       <server>
+          <id>apache.releases.https</id>
+          <username>${maven_username}</username>
+          <password>${maven_password}</password>
+        </server>
+        ...
+     </servers>
+     ...
+
+### Installing all projects to the local Maven repository
+
+```bash
+./gradlew -PskipSigning=true publishToMavenLocal
+```
+
+### Installing specific projects to the local Maven repository
+
+```bash
+./gradlew -PskipSigning=true :streams:publishToMavenLocal
+```
+
+### Building the test JAR
+```bash
+./gradlew testJar
+```
+
+### Running code quality checks
+There are two code quality analysis tools that we regularly run, SpotBugs and Checkstyle.
+
+#### Checkstyle
+Checkstyle enforces a consistent coding style in Kafka.
+You can run Checkstyle using:
+
+```bash
+./gradlew checkstyleMain checkstyleTest spotlessCheck
+```
+
+The Checkstyle warnings will be found in `reports/checkstyle/reports/main.html` and `reports/checkstyle/reports/test.html` files in the
+subproject build directories. They are also printed to the console. The build will fail if Checkstyle fails.
+For experiments (or regression testing purposes) add `-PcheckstyleVersion=X.y.z` switch (to override project-defined checkstyle version).
+
+#### Spotless
+The import order is a part of static check. Please call `spotlessApply` to optimize Java imports before filing a pull request.
+
+```bash
+./gradlew spotlessApply
+```
+
+#### SpotBugs
+SpotBugs uses static analysis to look for bugs in the code.
+You can run SpotBugs using:
+
+```bash
+./gradlew spotbugsMain spotbugsTest -x test
+```
+
+The SpotBugs warnings will be found in `reports/spotbugs/main.html` and `reports/spotbugs/test.html` files in the subproject build
+directories.  Use -PxmlSpotBugsReport=true to generate an XML report instead of an HTML one.
+
+### JMH microbenchmarks
+We use [JMH](https://openjdk.java.net/projects/code-tools/jmh/) to write microbenchmarks that produce reliable results in the JVM.
+
+See [jmh-benchmarks/README.md](https://github.com/apache/kafka/blob/trunk/jmh-benchmarks/README.md) for details on how to run the microbenchmarks.
+
+### Dependency Analysis
+
+The gradle [dependency debugging documentation](https://docs.gradle.org/current/userguide/viewing_debugging_dependencies.html) mentions using the `dependencies` or `dependencyInsight` tasks to debug dependencies for the root project or individual subprojects.
+
+Alternatively, use the `allDeps` or `allDepInsight` tasks for recursively iterating through all subprojects:
+
+```bash
+./gradlew allDeps
+
+./gradlew allDepInsight --configuration runtimeClasspath --dependency com.fasterxml.jackson.core:jackson-databind
+```
+
+These take the same arguments as the built-in variants.
+
+### Determining if any dependencies could be updated
+```bash
+./gradlew dependencyUpdates --no-parallel
+```
+
+### Common build options ###
+
+The following options should be set with a `-P` switch, for example `./gradlew -PmaxParallelForks=1 test`.
+
+* `commitId`: sets the build commit ID as .git/HEAD might not be correct if there are local commits added for build purposes.
+* `mavenUrl`: sets the URL of the maven deployment repository (`file://path/to/repo` can be used to point to a local repository).
+* `maxParallelForks`: maximum number of test processes to start in parallel. Defaults to the number of processors available to the JVM.
+* `maxScalacThreads`: maximum number of worker threads for the scalac backend. Defaults to the lowest of `8` and the number of processors
+available to the JVM. The value must be between 1 and 16 (inclusive). 
+* `ignoreFailures`: ignore test failures from junit
+* `showStandardStreams`: shows standard output and standard error of the test JVM(s) on the console.
+* `skipSigning`: skips signing of artifacts.
+* `testLoggingEvents`: unit test events to be logged, separated by comma. For example `./gradlew -PtestLoggingEvents=started,passed,skipped,failed test`.
+* `xmlSpotBugsReport`: enable XML reports for SpotBugs. This also disables HTML reports as only one can be enabled at a time.
+* `maxTestRetries`: maximum number of retries for a failing test case.
+* `maxTestRetryFailures`: maximum number of test failures before retrying is disabled for subsequent tests.
+* `enableTestCoverage`: enables test coverage plugins and tasks, including bytecode enhancement of classes required to track said
+coverage. Note that this introduces some overhead when running tests and hence why it's disabled by default (the overhead
+varies, but 15-20% is a reasonable estimate).
+* `keepAliveMode`: configures the keep-alive mode for the Gradle compilation daemon - reuse improves start-up time. The values should 
+be one of `daemon` or `session` (the default is `daemon`). `daemon` keeps the daemon alive until it's explicitly stopped while
+`session` keeps it alive until the end of the build session. This currently only affects the Scala compiler, see
+https://github.com/gradle/gradle/pull/21034 for a PR that attempts to do the same for the Java compiler.
+* `scalaOptimizerMode`: configures the optimizing behavior of the Scala compiler, the value should be one of `none`, `method`, `inline-kafka` or
+`inline-scala` (the default is `inline-kafka`). `none` is the Scala compiler default, which only eliminates unreachable code. `method` also
+includes method-local optimizations. `inline-kafka` adds inlining of methods within the kafka packages. Finally, `inline-scala` also
+includes inlining of methods within the scala library (which avoids lambda allocations for methods like `Option.exists`). `inline-scala` is
+only safe if the Scala library version is the same at compile time and runtime. Since we cannot guarantee this for all cases (for example, users
+may depend on the kafka jar for integration tests where they may include a scala library with a different version), we don't enable it by
+default. See https://www.lightbend.com/blog/scala-inliner-optimizer for more details.
+
+### Upgrading Gradle version
+
+See [gradle/wrapper/README.md](gradle/wrapper/README.md) for instructions on upgrading the Gradle version.
+
+### Running system tests
+
+See [tests/README.md](tests/README.md).
+
+### Using Trogdor for testing
+
+We use Trogdor as a test framework for Apache Kafka. You can use it to run benchmarks and other workloads.
+
+See [trogdor/README.md](trogdor/README.md).
+
+### Running in Vagrant
+
+See [vagrant/README.md](vagrant/README.md).
+
+### Kafka client examples
+
+See [examples/README.md](examples/README.md).
+
+### Contribution
+
+Apache Kafka is interested in building the community; we would welcome any thoughts or [patches](https://issues.apache.org/jira/browse/KAFKA). You can reach us [on the Apache mailing lists](http://kafka.apache.org/contact.html).
+
+To contribute follow the instructions here:
+ * https://kafka.apache.org/contributing.html
+
+
+# FILE: LICENSE
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+# FILE: CONTRIBUTING.md
+## Contributing to Kafka
+
+*Before opening a pull request*, review the [Contributing](https://kafka.apache.org/contributing.html) and [Contributing Code Changes](https://cwiki.apache.org/confluence/display/KAFKA/Contributing+Code+Changes) pages.
+
+It lists steps that are required before creating a PR.
+
+When you contribute code, you affirm that the contribution is your original work and that you
+license the work to the project under the project's open source license. Whether or not you
+state this explicitly, by submitting any copyrighted material via pull request, email, or
+other means you agree to license the material under the project's open source license and
+warrant that you have the legal authority to do so.
+
+
+# FILE: vagrant/zk.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Usage: zk.sh <zkid> <num_zk>
+
+set -e
+
+ZKID=$1
+NUM_ZK=$2
+JMX_PORT=$3
+
+kafka_dir=/opt/kafka-dev
+cd $kafka_dir
+
+cp $kafka_dir/config/zookeeper.properties $kafka_dir/config/zookeeper-$ZKID.properties
+echo "initLimit=5" >> $kafka_dir/config/zookeeper-$ZKID.properties
+echo "syncLimit=2" >> $kafka_dir/config/zookeeper-$ZKID.properties
+echo "quorumListenOnAllIPs=true" >> $kafka_dir/config/zookeeper-$ZKID.properties
+for i in `seq 1 $NUM_ZK`; do
+    echo "server.${i}=zk${i}:2888:3888" >> $kafka_dir/config/zookeeper-$ZKID.properties
+done
+
+mkdir -p /tmp/zookeeper
+echo "$ZKID" > /tmp/zookeeper/myid
+
+echo "Killing ZooKeeper"
+bin/zookeeper-server-stop.sh || true
+sleep 5 # Because zookeeper-server-stop.sh doesn't actually wait
+echo "Starting ZooKeeper"
+if [[  -n $JMX_PORT ]]; then
+  export JMX_PORT=$JMX_PORT
+  export KAFKA_JMX_OPTS="-Djava.rmi.server.hostname=zk$ZKID -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false "
+fi
+bin/zookeeper-server-start.sh config/zookeeper-$ZKID.properties 1>> /tmp/zk.log 2>> /tmp/zk.log &
+
+
+# FILE: vagrant/vagrant-up.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o nounset
+set -o errexit  # exit script if any command exits with nonzero value
+
+readonly PROG_NAME=$(basename $0)
+readonly PROG_DIR=$(dirname $(realpath $0))
+readonly INVOKE_DIR=$(pwd)
+readonly ARGS="$@"
+
+# overrideable defaults
+AWS=false
+PARALLEL=true
+MAX_PARALLEL=5
+DEBUG=false
+
+readonly USAGE="Usage: $PROG_NAME [-h | --help] [--aws [--no-parallel] [--max-parallel MAX]]"
+readonly HELP="$(cat <<EOF
+Tool to bring up a vagrant cluster on local machine or aws.
+
+    -h | --help             Show this help message
+    --aws                   Use if you are running in aws
+    --no-parallel           Bring up machines not in parallel. Only applicable on aws
+    --max-parallel  MAX     Maximum number of machines to bring up in parallel. Note: only applicable on test worker machines on aws. default: $MAX_PARALLEL
+    --debug                 Enable debug information for vagrant
+Approximately speaking, this wrapper script essentially wraps 2 commands:
+    vagrant up
+    vagrant hostmanager
+
+The situation on aws is complicated by the fact that aws imposes a maximum request rate,
+which effectively caps the number of machines we are able to bring up in parallel. Therefore, on aws,
+this wrapper script attempts to bring up machines in small batches.
+
+If you are seeing rate limit exceeded errors, you may need to use a reduced --max-parallel setting.
+
+EOF
+)"
+
+function help {
+    echo "$USAGE"
+    echo "$HELP"
+    exit 0
+}
+
+while [[ $# > 0 ]]; do
+    key="$1"
+    case $key in
+        -h | --help)
+            help
+            ;;
+        --aws)
+            AWS=true
+            ;;
+        --no-parallel)
+            PARALLEL=false
+            ;;
+        --max-parallel)
+            MAX_PARALLEL="$2"
+            shift
+            ;;
+        --debug)
+            DEBUG=true
+            ;;
+        *)
+            # unknown option
+            echo "Unknown option $1"
+            exit 1
+            ;;
+esac
+shift # past argument or value
+done
+
+# Get a list of vagrant machines (in any state)
+function read_vagrant_machines {
+    local ignore_state="ignore"
+    local reading_state="reading"
+    local tmp_file="tmp-$RANDOM"
+
+    local state="$ignore_state"
+    local machines=""
+
+    while read -r line; do
+        # Lines before the first empty line are ignored
+        # The first empty line triggers change from ignore state to reading state
+        # When in reading state, we parse in machine names until we hit the next empty line,
+        # which signals that we're done parsing
+        if [[ -z "$line" ]]; then
+            if [[ "$state" == "$ignore_state" ]]; then
+                state="$reading_state"
+            else
+                # all done
+                echo "$machines"
+                return
+            fi
+            continue
+        fi
+
+        # Parse machine name while in reading state
+        if [[ "$state" == "$reading_state" ]]; then
+            line=$(echo "$line" | cut -d ' ' -f 1)
+            if [[ -z "$machines" ]]; then
+                machines="$line"
+            else
+                machines="${machines} ${line}"
+            fi
+        fi
+    done < <(vagrant status)
+}
+
+# Filter "list", returning a list of strings containing pattern as a substring
+function filter {
+    local list="$1"
+    local pattern="$2"
+
+    local result=""
+    for item in $list; do
+        if [[ ! -z "$(echo $item | grep "$pattern")"  ]]; then
+            result="$result $item"
+        fi
+    done
+    echo "$result"
+}
+
+# Given a list of machine names, return only test worker machines
+function worker {
+    local machines="$1"
+    local workers=$(filter "$machines" "worker")
+    workers=$(echo "$workers" | xargs)  # trim leading/trailing whitespace
+    echo "$workers"
+}
+
+# Given a list of machine names, return only zookeeper and broker machines
+function zk_broker {
+    local machines="$1"
+    local zk_broker_list=$(filter "$machines" "zk")
+    zk_broker_list="$zk_broker_list $(filter "$machines" "broker")"
+    zk_broker_list=$(echo "$zk_broker_list" | xargs)  # trim leading/trailing whitespace
+    echo "$zk_broker_list"
+}
+
+# Run a vagrant command on batches of machines of size $group_size
+# This is annoying but necessary on aws to avoid errors due to AWS request rate
+# throttling
+#
+# Example
+#   $ vagrant_batch_command "vagrant up" "m1 m2 m3 m4 m5" "2"
+#
+#   This is equivalent to running "vagrant up" on groups of machines of size 2 or less, i.e.:
+#   $ vagrant up m1 m2
+#   $ vagrant up m3 m4
+#   $ vagrant up m5
+function vagrant_batch_command {
+    local vagrant_cmd="$1"
+    local machines="$2"
+    local group_size="$3"
+
+    local count=1
+    local m_group=""
+    # Using --provision flag makes this command useable both when bringing up a cluster from scratch,
+    # and when bringing up a halted cluster. Permissions on certain directores set during provisioning
+    # seem to revert when machines are halted, so --provision ensures permissions are set correctly in all cases
+    for machine in $machines; do
+        m_group="$m_group $machine"
+
+        if [[ $(expr $count % $group_size) == 0 ]]; then
+            # We've reached a full group
+            # Bring up this part of the cluster
+            $vagrant_cmd $m_group
+            m_group=""
+        fi
+        ((count++))
+    done
+
+    # Take care of any leftover partially complete group
+    if [[ ! -z "$m_group" ]]; then
+        $vagrant_cmd $m_group
+    fi
+}
+
+# We assume vagrant-hostmanager is installed, but may or may not be disabled during vagrant up
+# In this fashion, we ensure we run hostmanager after machines are up, and before provisioning.
+# This sequence of commands is necessary for example for bringing up a multi-node zookeeper cluster
+function bring_up_local {
+    vagrant up --no-provision
+    vagrant hostmanager
+    vagrant provision
+}
+
+function bring_up_aws {
+    local parallel="$1"
+    local max_parallel="$2"
+    local machines="$(read_vagrant_machines)"
+    case "$3" in
+          true)
+            local debug="--debug"
+            ;;
+          false)
+            local debug=""
+            ;;
+    esac
+    zk_broker_machines=$(zk_broker "$machines")
+    worker_machines=$(worker "$machines")
+
+    if [[ "$parallel" == "true" ]]; then
+        if [[ ! -z "$zk_broker_machines" ]]; then
+            # We still have to bring up zookeeper/broker nodes serially
+            echo "Bringing up zookeeper/broker machines serially"
+            vagrant up --provider=aws --no-parallel --no-provision $zk_broker_machines $debug
+            vagrant hostmanager --provider=aws
+            vagrant provision
+        fi
+
+        if [[ ! -z "$worker_machines" ]]; then
+            echo "Bringing up test worker machines in parallel"
+	    # Try to isolate this job in its own /tmp space. See note
+	    # below about vagrant issue
+            local vagrant_rsync_temp_dir=$(mktemp -d);
+            TMPDIR=$vagrant_rsync_temp_dir vagrant_batch_command "vagrant up $debug --provider=aws" "$worker_machines" "$max_parallel"
+            rm -rf $vagrant_rsync_temp_dir
+            vagrant hostmanager --provider=aws
+        fi
+    else
+        vagrant up --provider=aws --no-parallel --no-provision $debug
+        vagrant hostmanager --provider=aws
+        vagrant provision
+    fi
+
+    # Currently it seems that the AWS provider will always run rsync
+    # as part of vagrant up. However,
+    # https://github.com/mitchellh/vagrant/issues/7531 means it is not
+    # safe to do so. Since the bug doesn't seem to cause any direct
+    # errors, just missing data on some nodes, follow up with serial
+    # rsyncing to ensure we're in a clean state. Use custom TMPDIR
+    # values to ensure we're isolated from any other instances of this
+    # script that are running/ran recently and may cause different
+    # instances to sync to the wrong nodes
+    for worker in $worker_machines; do
+        local vagrant_rsync_temp_dir=$(mktemp -d);
+        TMPDIR=$vagrant_rsync_temp_dir vagrant rsync $worker;
+        rm -rf $vagrant_rsync_temp_dir
+    done
+}
+
+function main {
+    if [[ "$AWS" == "true" ]]; then
+        bring_up_aws "$PARALLEL" "$MAX_PARALLEL" "$DEBUG"
+    else
+        bring_up_local
+    fi
+}
+
+main
+
+
+# FILE: vagrant/package-base-box.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script automates the process of creating and packaging 
+# a new vagrant base_box. For use locally (not aws).
+
+base_dir=`dirname $0`/..
+cd $base_dir
+
+backup_vagrantfile=backup_Vagrantfile.local
+local_vagrantfile=Vagrantfile.local
+
+# Restore original Vagrantfile.local, if it exists
+function revert_vagrantfile {
+    rm -f $local_vagrantfile
+    if [ -e $backup_vagrantfile ]; then
+        mv $backup_vagrantfile $local_vagrantfile
+    fi
+}
+
+function clean_up {
+    echo "Cleaning up..."
+    vagrant destroy -f
+    rm -f package.box
+    revert_vagrantfile
+}
+
+# Name of the new base box
+base_box="kafkatest-worker"
+
+# vagrant VM name
+worker_name="worker1"
+
+echo "Destroying vagrant machines..."
+vagrant destroy -f
+
+echo "Removing $base_box from vagrant..."
+vagrant box remove $base_box
+
+echo "Bringing up a single vagrant machine from scratch..."
+if [ -e $local_vagrantfile ]; then
+    mv $local_vagrantfile $backup_vagrantfile
+fi
+echo "num_workers = 1" > $local_vagrantfile
+echo "num_brokers = 0" >> $local_vagrantfile
+echo "num_zookeepers = 0" >> $local_vagrantfile
+vagrant up
+up_status=$?
+if [ $up_status != 0 ]; then
+    echo "Failed to bring up a template vm, please try running again."
+    clean_up
+    exit $up_status
+fi
+
+echo "Packaging $worker_name..."
+vagrant package $worker_name
+
+echo "Adding new base box $base_box to vagrant..."
+vagrant box add $base_box package.box
+
+clean_up
+
+
+
+# FILE: vagrant/broker.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Usage: brokers.sh <broker ID> <public hostname or IP> <list zookeeper public hostname or IP + port>
+
+set -e
+
+BROKER_ID=$1
+PUBLIC_ADDRESS=$2
+PUBLIC_ZOOKEEPER_ADDRESSES=$3
+JMX_PORT=$4
+
+kafka_dir=/opt/kafka-dev
+cd $kafka_dir
+
+sed \
+    -e 's/broker.id=0/'broker.id=$BROKER_ID'/' \
+    -e 's/#advertised.host.name=<hostname routable by clients>/'advertised.host.name=$PUBLIC_ADDRESS'/' \
+    -e 's/zookeeper.connect=localhost:2181/'zookeeper.connect=$PUBLIC_ZOOKEEPER_ADDRESSES'/' \
+    $kafka_dir/config/server.properties > $kafka_dir/config/server-$BROKER_ID.properties
+
+echo "Killing server"
+bin/kafka-server-stop.sh || true
+sleep 5 # Because kafka-server-stop.sh doesn't actually wait
+echo "Starting server"
+if [[  -n $JMX_PORT ]]; then
+  export JMX_PORT=$JMX_PORT
+  export KAFKA_JMX_OPTS="-Djava.rmi.server.hostname=$PUBLIC_ADDRESS -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false "
+fi
+bin/kafka-server-start.sh $kafka_dir/config/server-$BROKER_ID.properties 1>> /tmp/broker.log 2>> /tmp/broker.log &
+
+
+# FILE: vagrant/base.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -ex
+
+# The version of Kibosh to use for testing.
+# If you update this, also update tests/docker/Dockerfile
+export KIBOSH_VERSION=8841dd392e6fbf02986e2fb1f1ebf04df344b65a
+
+path_to_jdk_cache() {
+  jdk_version=$1
+  echo "/tmp/jdk-${jdk_version}.tar.gz"
+}
+
+fetch_jdk_tgz() {
+  jdk_version=$1
+
+  path=$(path_to_jdk_cache $jdk_version)
+
+  if [ ! -e $path ]; then
+    mkdir -p $(dirname $path)
+    curl --retry 5 -s -L "https://s3-us-west-2.amazonaws.com/kafka-packages/jdk/jdk-${jdk_version}.tar.gz" -o $path
+  fi
+}
+
+# Validate JDK_MAJOR - must be a version number (e.g., 17, 25.0.1), default to 17 if empty or invalid
+if [[ -z "$JDK_MAJOR" ]]; then
+    JDK_MAJOR="17"
+elif [[ ! "$JDK_MAJOR" =~ ^[0-9]+(u[0-9]+|(\.[0-9]+)+)?$ ]]; then
+    echo "WARNING: Invalid JDK_MAJOR format '$JDK_MAJOR'. Expected format: 17, 21.0.1, 25.0.2. Defaulting to 17."
+    JDK_MAJOR="17"
+fi
+
+# Validate JDK_ARCH - default to x64 if empty or invalid
+if [[ -z "$JDK_ARCH" ]]; then
+    JDK_ARCH="x64"
+elif [[ ! "$JDK_ARCH" =~ ^(x64|aarch64)$ ]]; then
+    echo "WARNING: Invalid JDK_ARCH format '$JDK_ARCH'. Expected: x64 or aarch64. Defaulting to x64."
+    JDK_ARCH="x64"
+fi
+
+# Use JDK_FULL if provided and valid, otherwise construct from JDK_MAJOR and JDK_ARCH
+if [[ -z "$JDK_FULL" ]]; then
+    JDK_FULL="${JDK_MAJOR}-linux-${JDK_ARCH}"
+elif [[ ! "$JDK_FULL" =~ ^[0-9]+(u[0-9]+|(\.[0-9]+)+)?-linux-(x64|aarch64)$ ]]; then
+    echo "WARNING: Invalid JDK_FULL format '$JDK_FULL'. Constructing from JDK_MAJOR and JDK_ARCH."
+    JDK_FULL="${JDK_MAJOR}-linux-${JDK_ARCH}"
+fi
+
+echo "JDK_MAJOR=$JDK_MAJOR JDK_ARCH=$JDK_ARCH JDK_FULL=$JDK_FULL"
+
+if [ -z `which javac` ]; then
+    apt-get -y update
+    apt-get install -y software-properties-common python-software-properties binutils java-common
+
+    echo "===> Installing JDK..." 
+
+    mkdir -p /opt/jdk
+    cd /opt/jdk
+    rm -rf $JDK_MAJOR
+    mkdir -p $JDK_MAJOR
+    cd $JDK_MAJOR
+    fetch_jdk_tgz $JDK_FULL
+    tar x --strip-components=1 -zf $(path_to_jdk_cache $JDK_FULL)
+    for bin in /opt/jdk/$JDK_MAJOR/bin/* ; do 
+      name=$(basename $bin)
+      update-alternatives --install /usr/bin/$name $name $bin 1081 && update-alternatives --set $name $bin
+    done
+    echo -e "export JAVA_HOME=/opt/jdk/$JDK_MAJOR\nexport PATH=\$PATH:\$JAVA_HOME/bin" > /etc/profile.d/jdk.sh
+    echo "JDK installed: $(javac -version 2>&1)"
+
+fi
+
+chmod a+rw /opt
+if [ -h /opt/kafka-dev ]; then
+    # reset symlink
+    rm /opt/kafka-dev
+fi
+ln -s /vagrant /opt/kafka-dev
+
+
+get_kafka() {
+    version=$1
+    scala_version=$2
+
+    kafka_dir=/opt/kafka-$version
+    url=https://s3-us-west-2.amazonaws.com/kafka-packages/kafka_$scala_version-$version.tgz
+    # the .tgz above does not include the streams test jar hence we need to get it separately
+    url_streams_test=https://s3-us-west-2.amazonaws.com/kafka-packages/kafka-streams-$version-test.jar
+    if [ ! -d /opt/kafka-$version ]; then
+        pushd /tmp
+        curl --retry 5 -O $url
+        curl --retry 5 -O $url_streams_test || true
+        file_tgz=`basename $url`
+        file_streams_jar=`basename $url_streams_test` || true
+        tar -xzf $file_tgz
+        rm -rf $file_tgz
+
+        file=`basename $file_tgz .tgz`
+        mv $file $kafka_dir
+        mv $file_streams_jar $kafka_dir/libs || true
+        popd
+    fi
+}
+
+# Install Kibosh
+apt-get update -y && apt-get install -y git cmake pkg-config libfuse-dev ca-certificates
+update-ca-certificates --fresh
+pushd /opt
+rm -rf /opt/kibosh
+git clone -q  https://github.com/confluentinc/kibosh.git
+pushd "/opt/kibosh"
+git reset --hard $KIBOSH_VERSION
+mkdir "/opt/kibosh/build"
+pushd "/opt/kibosh/build"
+../configure && make -j 2
+popd
+popd
+popd
+
+# Install iperf
+apt-get install -y iperf traceroute
+
+# Test multiple Kafka versions
+# We want to use the latest Scala version per Kafka version
+# Previously we could not pull in Scala 2.12 builds, because Scala 2.12 requires Java 8 and we were running the system
+# tests with Java 7. We have since switched to Java 8, so 2.0.0 and later use Scala 2.12.
+get_kafka 2.1.1 2.12
+chmod a+rw /opt/kafka-2.1.1
+get_kafka 2.2.2 2.12
+chmod a+rw /opt/kafka-2.2.2
+get_kafka 2.3.1 2.12
+chmod a+rw /opt/kafka-2.3.1
+get_kafka 2.4.1 2.12
+chmod a+rw /opt/kafka-2.4.1
+get_kafka 2.5.1 2.12
+chmod a+rw /opt/kafka-2.5.1
+get_kafka 2.6.3 2.12
+chmod a+rw /opt/kafka-2.6.3
+get_kafka 2.7.2 2.12
+chmod a+rw /opt/kafka-2.7.2
+get_kafka 2.8.2 2.12
+chmod a+rw /opt/kafka-2.8.2
+get_kafka 3.0.2 2.12
+chmod a+rw /opt/kafka-3.0.2
+get_kafka 3.1.2 2.12
+chmod a+rw /opt/kafka-3.1.2
+get_kafka 3.2.3 2.12
+chmod a+rw /opt/kafka-3.2.3
+get_kafka 3.3.2 2.12
+chmod a+rw /opt/kafka-3.3.2
+get_kafka 3.4.1 2.12
+chmod a+rw /opt/kafka-3.4.1
+get_kafka 3.5.2 2.12
+chmod a+rw /opt/kafka-3.5.2
+get_kafka 3.6.2 2.12
+chmod a+rw /opt/kafka-3.6.2
+get_kafka 3.7.2 2.12
+chmod a+rw /opt/kafka-3.7.2
+get_kafka 3.8.1 2.12
+chmod a+rw /opt/kafka-3.8.1
+get_kafka 3.9.2 2.13
+chmod a+rw /opt/kafka-3.9.2
+get_kafka 4.0.1 2.13
+chmod a+rw /opt/kafka-4.0.1
+get_kafka 4.1.2 2.13
+chmod a+rw /opt/kafka-4.1.2
+get_kafka 4.2.0 2.13
+chmod a+rw /opt/kafka-4.2.0
+
+# To ensure the Kafka cluster starts successfully under JDK 17, we need to update the Zookeeper
+# client from version 3.4.x to 3.5.7 in Kafka versions 2.1.1, 2.2.2, and 2.3.1, as the older Zookeeper
+# client is incompatible with JDK 17. See KAFKA-17888 for more details.
+curl -s "https://repo1.maven.org/maven2/org/apache/zookeeper/zookeeper/3.5.7/zookeeper-3.5.7.jar" -o /opt/zookeeper-3.5.7.jar
+curl -s "https://repo1.maven.org/maven2/org/apache/zookeeper/zookeeper-jute/3.5.7/zookeeper-jute-3.5.7.jar" -o /opt/zookeeper-jute-3.5.7.jar
+rm -f /opt/kafka-2.1.1/libs/zookeeper-*
+rm -f /opt/kafka-2.2.2/libs/zookeeper-*
+rm -f /opt/kafka-2.3.1/libs/zookeeper-*
+
+cp /opt/zookeeper-3.5.7.jar /opt/kafka-2.1.1/libs/zookeeper-3.5.7.jar
+chmod a+rw /opt/kafka-2.1.1/libs/zookeeper-3.5.7.jar
+cp /opt/zookeeper-3.5.7.jar /opt/kafka-2.2.2/libs/zookeeper-3.5.7.jar
+chmod a+rw /opt/kafka-2.2.2/libs/zookeeper-3.5.7.jar
+cp /opt/zookeeper-3.5.7.jar /opt/kafka-2.3.1/libs/zookeeper-3.5.7.jar
+chmod a+rw /opt/kafka-2.3.1/libs/zookeeper-3.5.7.jar
+cp /opt/zookeeper-jute-3.5.7.jar /opt/kafka-2.1.1/libs/zookeeper-jute-3.5.7.jar
+chmod a+rw /opt/kafka-2.1.1/libs/zookeeper-jute-3.5.7.jar
+cp /opt/zookeeper-jute-3.5.7.jar /opt/kafka-2.2.2/libs/zookeeper-jute-3.5.7.jar
+chmod a+rw /opt/kafka-2.2.2/libs/zookeeper-jute-3.5.7.jar
+cp /opt/zookeeper-jute-3.5.7.jar /opt/kafka-2.3.1/libs/zookeeper-jute-3.5.7.jar
+chmod a+rw /opt/kafka-2.3.1/libs/zookeeper-jute-3.5.7.jar
+
+# For EC2 nodes, we want to use /mnt, which should have the local disk. On local
+# VMs, we can just create it if it doesn't exist and use it like we'd use
+# /tmp. Eventually, we'd like to also support more directories, e.g. when EC2
+# instances have multiple local disks.
+if [ ! -e /mnt ]; then
+    mkdir /mnt
+fi
+chmod a+rwx /mnt
+
+# Run ntpdate once to sync to ntp servers
+# use -u option to avoid port collision in case ntp daemon is already running
+ntpdate -u pool.ntp.org
+# Install ntp daemon - it will automatically start on boot
+apt-get -y install ntp
+
+# Increase the ulimit
+mkdir -p /etc/security/limits.d
+echo "* soft nofile 128000" >> /etc/security/limits.d/nofile.conf
+echo "* hard nofile 128000" >> /etc/security/limits.d/nofile.conf
+
+ulimit -Hn 128000
+ulimit -Sn 128000
+
+
+# FILE: vagrant/README.md
+# Apache Kafka #
+
+Using Vagrant to get up and running.
+
+1) Install Virtual Box [https://www.virtualbox.org/](https://www.virtualbox.org/)
+2) Install Vagrant >= 1.6.4 [https://www.vagrantup.com/](https://www.vagrantup.com/)
+3) Install Vagrant Plugins:
+```
+$ vagrant plugin install vagrant-hostmanager
+
+# Optional, to caches & shares package downloads across VMs
+$ vagrant plugin install vagrant-cachier
+```
+
+In the main Kafka folder, do a normal Kafka build:
+
+    $ gradle
+    $ ./gradlew jar
+
+You can override default settings in `Vagrantfile.local`, which is a Ruby file
+that is ignored by git and imported into the Vagrantfile.
+One setting you likely want to enable
+in `Vagrantfile.local` is `enable_dns = true` to put hostnames in the host's
+/etc/hosts file. You probably want this to avoid having to use IP addresses when
+addressing the cluster from outside the VMs, e.g. if you run a client on the
+host. It's disabled by default since it requires `sudo` access, mucks with your
+system state, and breaks with naming conflicts if you try to run multiple
+clusters concurrently.
+
+Now bring up the cluster:
+
+    $ vagrant/vagrant-up.sh     
+    $ # If on aws, run: vagrant/vagrant-up.sh --aws
+
+(This essentially runs vagrant up --no-provision && vagrant hostmanager && vagrant provision)
+
+We separate out the steps (bringing up the base VMs, mapping hostnames, and configuring the VMs)
+due to current limitations in ZooKeeper (ZOOKEEPER-1506) that require us to
+collect IPs for all nodes before starting ZooKeeper nodes. Breaking into multiple steps
+also allows us to bring machines up in parallel on AWS.
+
+Once this completes:
+
+* Zookeeper will be running on 192.168.50.11 (and `zk1` if you used enable_dns)
+* Broker 1 on 192.168.50.51 (and `broker1` if you used enable_dns)
+* Broker 2 on 192.168.50.52 (and `broker2` if you used enable_dns)
+* Broker 3 on 192.168.50.53 (and `broker3` if you used enable_dns)
+
+To log into one of the machines:
+
+    vagrant ssh <machineName>
+
+You can access the brokers by their IP or hostname, e.g.
+
+    # Specify brokers by their hostnames: broker1, broker2, broker3 (or just one of them)
+    bin/kafka-topics.sh --create --bootstrap-server broker1:9092 --replication-factor 3 --partitions 1 --topic sandbox
+    bin/kafka-console-producer.sh --bootstrap-server broker1:9092,broker2:9092,broker3:9092 --topic sandbox
+
+    # Specify brokers by their IP: 192.168.50.51, 192.168.50.52, 192.168.50.53
+    bin/kafka-console-consumer.sh --bootstrap-server 192.168.50.51:9092,192.168.50.52:9092,192.168.50.53:9092 --topic sandbox --from-beginning
+
+If you need to update the running cluster, you can re-run the provisioner (the
+step that installs software and configures services):
+
+    vagrant provision
+
+Note that this doesn't currently ensure a fresh start -- old cluster state will
+still remain intact after everything restarts. This can be useful for updating
+the cluster to your most recent development version.
+
+Finally, you can clean up the cluster by destroying all the VMs:
+
+    vagrant destroy -f
+
+## Configuration ##
+
+You can override some default settings by specifying the values in
+`Vagrantfile.local`. It is interpreted as a Ruby file, although you'll probably
+only ever need to change a few simple configuration variables. Some values you
+might want to override:
+
+* `enable_hostmanager` - true by default; override to false if on AWS to allow parallel cluster bringup.
+* `enable_dns` - Register each VM with a hostname in /etc/hosts on the
+  hosts. Hostnames are always set in the /etc/hosts in the VMs, so this is only
+  necessary if you want to address them conveniently from the host for tasks
+  that aren't provided by Vagrant.
+* `enable_jmx` - Whether to enable JMX ports on 800x and 900x for Zookeeper and the Brokers respectively where `x` is the nodes of each respectively. For example, the zk1 machine would have JMX exposed on 8001, ZK2 would be on 8002, etc. 
+* `num_workers` - Generic workers that get the code (from this project), but don't start any services (no brokers, no zookeepers, etc). Useful for starting clients. Each worker will have an IP address of `192.168.50.10x` where `x` starts at `1` and increments for each worker. 
+* `num_zookeepers` - Size of zookeeper cluster
+* `num_brokers` - Number of broker instances to run
+* `ram_megabytes` - The size of each virtual machine's RAM; default to `1200MB`
+
+
+
+## Using Other Providers ##
+
+### EC2 ###
+
+Install the `vagrant-aws` plugin to provide EC2 support:
+
+    $ vagrant plugin install vagrant-aws
+
+Next, configure parameters in `Vagrantfile.local`. A few are *required*:
+`enable_hostmanager`, `enable_dns`, `ec2_access_key`, `ec2_secret_key`, `ec2_keypair_name`, `ec2_keypair_file`, and
+`ec2_security_groups`. A couple of important notes:
+
+1. You definitely want to use `enable_dns` if you plan to run clients outside of
+   the cluster (e.g. from your local host). If you don't, you'll need to go
+   lookup `vagrant ssh-config`.
+
+2. You'll have to setup a reasonable security group yourself. You'll need to
+   open ports for Zookeeper (2888 & 3888 between ZK nodes, 2181 for clients) and
+   Kafka (9092). Beware that opening these ports to all sources (e.g. so you can
+   run producers/consumers locally) will allow anyone to access your Kafka
+   cluster. All other settings have reasonable defaults for setting up an
+   Ubuntu-based cluster, but you may want to customize instance type, region,
+   AMI, etc.
+
+3. `ec2_access_key` and `ec2_secret_key` will use the environment variables
+   `AWS_ACCESS_KEY` and `AWS_SECRET_KEY` respectively if they are set and not
+   overridden in `Vagrantfile.local`.
+
+4. If you're launching into a VPC, you must specify `ec2_subnet_id` (the subnet
+   in which to launch the nodes) and `ec2_security_groups` must be a list of
+   security group IDs instead of names, e.g. `sg-34fd3551` instead of
+   `kafka-test-cluster`.
+
+Now start things up, but specify the aws provider:
+
+    $ vagrant/vagrant-up.sh --aws
+
+Your instances should get tagged with a name including your hostname to make
+them identifiable and make it easier to track instances in the AWS management
+console.
+
+
+# FILE: tests/setup.py
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import re
+import sys
+from setuptools import find_packages, setup, Command
+
+version = ''
+with open('kafkatest/__init__.py', 'r') as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', fd.read(), re.MULTILINE).group(1)
+
+
+class PyTest(Command):
+    user_options = [('pytest-args=', 'a', "Arguments to pass to py.test")]
+
+    def initialize_options(self):
+        self.pytest_args = []
+
+    def finalize_options(self):
+        self.test_args = []
+        self.test_suite = True
+
+    def run(self):
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        print(self.pytest_args)
+        errno = pytest.main(self.pytest_args)
+        sys.exit(errno)
+
+# Note: when changing the version of ducktape, also revise tests/docker/Dockerfile
+# Ensure the 'requests' version here matches the one specified in .github/scripts/requirements.txt
+setup(name="kafkatest",
+      version=version,
+      description="Apache Kafka System Tests",
+      author="Apache Kafka",
+      platforms=["any"],
+      license="apache2.0",
+      packages=find_packages(),
+      include_package_data=True,
+      install_requires=["ducktape==0.14.0", "requests>=2.32.4", "psutil==5.7.2", "pytest==8.3.3", "mock==5.1.0"],
+      cmdclass={'test': PyTest},
+      zip_safe=False
+      )
+
+
+# FILE: tests/bootstrap-test-env.sh
+#!/usr/bin/env bash
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This script automates the process of setting up a local machine for running Kafka system tests
+export GREP_OPTIONS='--color=never'
+
+# Helper function which prints version numbers so they can be compared lexically or numerically
+function version { echo "$@" | awk -F. '{ printf("%03d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+
+base_dir=`dirname $0`/..
+cd $base_dir
+
+echo "Checking Virtual Box installation..."
+bad_vb=false
+if [ -z `vboxmanage --version` ]; then
+    echo "It appears that Virtual Box is not installed. Please install and try again (see https://www.virtualbox.org/ for details)"
+    bad_vb=true   
+else
+    echo "Virtual Box looks good."
+fi
+
+echo "Checking Vagrant installation..."
+vagrant_version=`vagrant --version | egrep -o "[0-9]+\.[0-9]+\.[0-9]+"`
+bad_vagrant=false
+if [ "$(version $vagrant_version)" -lt "$(version 1.6.4)" ]; then
+    echo "Found Vagrant version $vagrant_version. Please upgrade to 1.6.4 or higher (see https://www.vagrantup.com for details)"
+    bad_vagrant=true
+else
+    echo "Vagrant installation looks good."
+fi
+
+if [ "x$bad_vagrant" == "xtrue" -o "x$bad_vb" == "xtrue" ]; then
+    exit 1
+fi
+
+echo "Checking for necessary Vagrant plugins..."
+hostmanager_version=`vagrant plugin list | grep vagrant-hostmanager | egrep -o "[0-9]+\.[0-9]+\.[0-9]+"`
+if [ -z "$hostmanager_version"  ]; then
+    vagrant plugin install vagrant-hostmanager
+fi
+
+echo "Creating and packaging a reusable base box for Vagrant..."
+vagrant/package-base-box.sh
+
+# Set up Vagrantfile.local if necessary
+if [ ! -e Vagrantfile.local ]; then
+    echo "Creating Vagrantfile.local..."
+    cp vagrant/system-test-Vagrantfile.local Vagrantfile.local
+else
+    echo "Found an existing Vagrantfile.local. Keeping without overwriting..."
+fi
+
+# Sanity check contents of Vagrantfile.local
+echo "Checking Vagrantfile.local..."
+vagrantfile_ok=true
+num_brokers=`egrep -o "num_brokers\s*=\s*[0-9]+" Vagrantfile.local | cut -d '=' -f 2 | xargs`
+num_zookeepers=`egrep -o "num_zookeepers\s*=\s*[0-9]+" Vagrantfile.local | cut -d '=' -f 2 | xargs`
+num_workers=`egrep -o "num_workers\s*=\s*[0-9]+" Vagrantfile.local | cut -d '=' -f 2 | xargs`
+if [ "x$num_brokers" == "x" -o "$num_brokers" != 0 ]; then
+    echo "Vagrantfile.local: bad num_brokers. Update to: num_brokers = 0"
+    vagrantfile_ok=false
+fi
+if [ "x$num_zookeepers" == "x" -o "$num_zookeepers" != 0 ]; then
+    echo "Vagrantfile.local: bad num_zookeepers. Update to: num_zookeepers = 0"
+    vagrantfile_ok=false
+fi
+if [ "x$num_workers" == "x" -o "$num_workers" == 0 ]; then
+    echo "Vagrantfile.local: bad num_workers (size of test cluster). Set num_workers high enough to run your tests."
+    vagrantfile_ok=false
+fi
+
+if [ "$vagrantfile_ok" == "true" ]; then
+    echo "Vagrantfile.local looks good."
+fi
+
+
+# FILE: tests/README.md
+System Integration & Performance Testing
+========================================
+
+This directory contains Kafka system integration and performance tests.
+[ducktape](https://github.com/confluentinc/ducktape) is used to run the tests.  
+(ducktape is a distributed testing framework which provides test runner,
+result reporter and utilities to pull up and tear down services.)
+
+Running tests using docker
+--------------------------
+Docker containers can be used for running kafka system tests locally.
+* Requirements
+  - Docker 1.12.3 (or higher) is installed and running on the machine.
+  - You can use also use Podman as an alternative to Docker, see below.
+  - Test requires that Kafka, including system test libs, is built. This can be done by running
+```
+./gradlew clean systemTestLibs
+```
+* Run all tests
+```
+bash tests/docker/run_tests.sh
+```
+* Run all tests with debug on (warning will produce log of logs)
+```
+_DUCKTAPE_OPTIONS="--debug" bash tests/docker/run_tests.sh | tee debug_logs.txt
+```
+* Run a subset of tests
+```
+TC_PATHS="tests/kafkatest/tests/streams tests/kafkatest/tests/tools" bash tests/docker/run_tests.sh
+```
+* Run a specific tests file
+```
+TC_PATHS="tests/kafkatest/tests/client/pluggable_test.py" bash tests/docker/run_tests.sh
+```
+* Run multiple test files
+```
+TC_PATHS="tests/kafkatest/tests/client/pluggable_test.py tests/kafkatest/sanity_checks/test_console_consumer.py" bash tests/docker/run_tests.sh
+```
+* Run a specific test class
+```
+TC_PATHS="tests/kafkatest/tests/client/pluggable_test.py::PluggableConsumerTest" bash tests/docker/run_tests.sh
+```
+* Run a specific test method
+```
+TC_PATHS="tests/kafkatest/tests/client/pluggable_test.py::PluggableConsumerTest.test_start_stop" bash tests/docker/run_tests.sh
+```
+* Run a specific test method with specific parameters
+```
+TC_PATHS="tests/kafkatest/tests/streams/streams_upgrade_test.py::StreamsUpgradeTest.test_rolling_upgrade_with_2_bounces" _DUCKTAPE_OPTIONS='--parameters '\''{"from_version":"2.4.1","metadata_quorum":"COMBINED_KRAFT"}'\' bash tests/docker/run_tests.sh
+```
+* Run tests with a specific image name
+```
+image_name="ducker-ak-openjdk:17" bash tests/docker/run_tests.sh
+```
+* Run tests with a different JVM
+```
+bash tests/docker/ducker-ak up -j '<JDK_IMAGE>'; tests/docker/run_tests.sh
+```
+  You can customize the OpenJDK base image using the `-j` or `--jdk` parameter, otherwise a default value will be used.
+* Remove ducker-ak containers
+```
+bash tests/docker/ducker-ak down -f
+```
+* Rebuild first and then run tests
+```
+REBUILD="t" bash tests/docker/run_tests.sh
+```
+  * Set container runtime (docker or podman)
+  ```
+  CONTAINER_RUNTIME="podman" bash tests/docker/run_tests.sh 
+  ```
+By default, the test scripts will auto-detect the available container runtime (prioritizing docker over podman). 
+You can explicitly set it to `docker` or `podman` using this environment variable.
+* Run tests with Kafka in `native` mode
+  - To run tests with Kafka in `native` mode, pass `{"kafka_mode": "native"}` to the ducktape globals. This will bring up ducker nodes with the native Kafka binary inside them and use it to start Kafka while running the tests.
+    ```
+    _DUCKTAPE_OPTIONS="--globals '{\"kafka_mode\":\"native\"}'" TC_PATHS="tests/kafkatest/tests/"  bash tests/docker/run_tests.sh
+    ```
+  - To only bring up ducker nodes with kafka native binary inside it.
+    ```
+    bash tests/docker/ducker-ak up -m native
+    ```
+  - To run tests with Kafka in `native` mode using `ducker-ak test`(Make sure that the ducker nodes are already up with kafka native binary inside it).
+    ```
+    tests/docker/ducker-ak test tests/kafkatest/tests/client/compression_test.py -- --globals '{\"kafka_mode\":\"native\"}'
+    ```
+* Debug tests in VS Code:
+  - Run test with `--debug` flag (can be before or after file name):
+    ```
+    tests/docker/ducker-ak up; tests/docker/ducker-ak test tests/kafkatest/tests/core/security_test.py --debug
+    ```
+  - Test will run in debug mode and wait for a debugger to attach. 
+  - Launch VS Code debugger with `"attach"` request - here's an example:
+    ```json
+    {
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Attach to Ducker",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "justMyCode": false,
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ]
+        }
+      ]
+    }
+    ```
+  - To pass `--debug` flag to ducktape itself, use `--`:
+    ```
+    tests/docker/ducker-ak test tests/kafkatest/tests/core/security_test.py --debug -- --debug
+    ```
+
+* Notes
+  - The scripts to run tests creates and destroys docker network named *knw*.
+   This network can't be used for any other purpose.
+  - The docker containers are named knode01, knode02 etc.
+   These nodes can't be used for any other purpose.
+
+* Exposing ports using --expose-ports option of `ducker-ak up` command
+
+    If `--expose-ports` is specified then we will expose those ports to random ephemeral ports
+    on the host. The argument can be a single port (like 5005), a port range like (5005-5009)
+    or a combination of port/port-range separated by comma (like 2181,9092 or 2181,5005-5008).
+    By default no port is exposed.
+    
+    The exposed port mapping can be seen by executing `docker ps` command. The PORT column
+    of the output shows the mapping like this (maps port 33891 on host to port 2182 in container):
+
+    0.0.0.0:33891->2182/tcp
+
+    Behind the scene Docker is setting up a DNAT rule for the mapping and it is visible in
+    the DOCKER section of iptables command (`sudo iptables -t nat -L -n`), something like:
+
+    <pre>DNAT       tcp  --  0.0.0.0/0      0.0.0.0/0      tcp       dpt:33882       to:172.22.0.2:9092</pre>
+
+    The exposed port(s) are useful to attach a remote debugger to the process running
+    in the docker image. For example if port 5005 was exposed and is mapped to an ephemeral
+    port (say 33891), then a debugger attaching to port 33891 on host will be connecting to
+    a debug session started at port 5005 in the docker image. As an example, for above port
+    numbers, run following commands in the docker image (say by ssh using `./docker/ducker-ak ssh ducker02`):
+
+    > $ export KAFKA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+    
+    > $ /opt/kafka-dev/bin/kafka-topics.sh --bootstrap-server ducker03:9095 --topic __consumer_offsets --describe
+
+    This will run the TopicCommand to describe the __consumer-offset topic. The java process
+    will stop and wait for debugger to attach as `suspend=y` option was specified. Now starting
+    a debugger on host with host `localhost` and following parameter as JVM setting:
+
+    `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=33891`
+
+    will attach it to the TopicCommand process running in the docker image.
+
+Local Quickstart
+----------------
+This quickstart will help you run the Kafka system tests on your local machine. Note this requires bringing up a cluster of virtual machines on your local computer, which is memory intensive; it currently requires around 10G RAM.
+For a tutorial on how to setup and run the Kafka system tests, see
+https://cwiki.apache.org/confluence/display/KAFKA/tutorial+-+set+up+and+run+Kafka+system+tests+with+ducktape
+
+* Install Virtual Box from [https://www.virtualbox.org/](https://www.virtualbox.org/) (run `$ vboxmanage --version` to check if it's installed).
+* Install Vagrant >= 1.6.4 from [https://www.vagrantup.com/](https://www.vagrantup.com/) (run `vagrant --version` to check if it's installed).
+* Install system test dependencies, including ducktape, a command-line tool and library for testing distributed systems. We recommend to use virtual env for system test development
+
+        $ cd kafka/tests
+        $ virtualenv -p python3 venv
+        $ . ./venv/bin/activate
+        $ python3 -m pip install --editable .
+        $ cd ..  # back to base kafka directory
+
+* Run the bootstrap script to set up Vagrant for testing
+
+        $ tests/bootstrap-test-env.sh
+
+* Bring up the test cluster
+
+        $ vagrant/vagrant-up.sh
+        $ # When using Virtualbox, it also works to run: vagrant up
+
+* Build the desired branch of Kafka
+
+        $ git checkout $BRANCH
+        $ gradle  # (only if necessary)
+        $ ./gradlew systemTestLibs
+
+* Run the system tests using ducktape:
+
+        $ ducktape tests/kafkatest/tests
+
+EC2 Quickstart
+--------------
+This quickstart will help you run the Kafka system tests on EC2. In this setup, all logic is run
+on EC2 and none on your local machine.
+
+There are a lot of steps here, but the basic goals are to create one distinguished EC2 instance that
+will be our "test driver", and to set up the security groups and iam role so that the test driver
+can create, destroy, and run ssh commands on any number of "workers".
+
+As a convention, we'll use "kafkatest" in most names, but you can use whatever name you want.
+
+Preparation
+-----------
+In these steps, we will create an IAM role which has permission to create and destroy EC2 instances,
+set up a keypair used for ssh access to the test driver and worker machines, and create a security group to allow the test driver and workers to all communicate via TCP.
+
+* [Create an IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user.html). We'll give this role the ability to launch or kill additional EC2 machines.
+ - Create role "kafkatest-master"
+ - Role type: Amazon EC2
+ - Attach policy: AmazonEC2FullAccess (this will allow our test-driver to create and destroy EC2 instances)
+
+* If you haven't already, [set up a keypair to use for SSH access](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html). For the purpose
+of this quickstart, let's say the keypair name is kafkatest, and you've saved the private key in kafktest.pem
+
+* Next, create a EC2 security group called "kafkatest".
+ - After creating the group, inbound rules: allow SSH on port 22 from anywhere; also, allow access on all ports (0-65535) from other machines in the kafkatest group.
+
+Create the Test Driver
+----------------------
+* Launch a new test driver machine
+ - OS: Ubuntu server is recommended
+ - Instance type: t2.medium is easily enough since this machine is just a driver
+ - Instance details: Most defaults are fine.
+ - IAM role -> kafkatest-master
+ - Tagging the instance with a useful name is recommended.
+ - Security group -> 'kafkatest'
+
+
+* Once the machine is started, upload the SSH key to your test driver:
+
+        $ scp -i /path/to/kafkatest.pem \
+            /path/to/kafkatest.pem ubuntu@public.hostname.amazonaws.com:kafkatest.pem
+
+* Grab the public hostname/IP (available for example by navigating to your EC2 dashboard and viewing running instances) of your test driver and SSH into it:
+
+        $ ssh -i /path/to/kafkatest.pem ubuntu@public.hostname.amazonaws.com
+
+Set Up the Test Driver
+----------------------
+The following steps assume you have ssh'd into
+the test driver machine.
+
+* Start by making sure you're up to date, and install git and ducktape:
+
+        $ sudo apt-get update && sudo apt-get -y upgrade && sudo apt-get install -y python3-pip git
+        $ pip install ducktape
+
+* Get Kafka:
+
+        $ git clone https://git-wip-us.apache.org/repos/asf/kafka.git kafka
+
+* Update your AWS credentials:
+
+        export AWS_IAM_ROLE=$(curl -s http://169.254.169.254/latest/meta-data/iam/info | grep InstanceProfileArn | cut -d '"' -f 4 | cut -d '/' -f 2)
+        export AWS_ACCESS_KEY=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$AWS_IAM_ROLE | grep AccessKeyId | awk -F\" '{ print $4 }')
+        export AWS_SECRET_KEY=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$AWS_IAM_ROLE | grep SecretAccessKey | awk -F\" '{ print $4 }')
+        export AWS_SESSION_TOKEN=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$AWS_IAM_ROLE | grep Token | awk -F\" '{ print $4 }')
+
+* Install some dependencies:
+
+        $ cd kafka
+        $ ./vagrant/aws/aws-init.sh
+        $ . ~/.bashrc
+
+* An example Vagrantfile.local has been created by aws-init.sh which looks something like:
+
+        # Vagrantfile.local
+        ec2_instance_type = "..." # Pick something appropriate for your
+                                  # test. Note that the default m3.medium has
+                                  # a small disk.
+        ec2_spot_max_price = "0.123"  # On-demand price for instance type
+        enable_hostmanager = false
+        num_zookeepers = 0
+        num_kafka = 0
+        num_workers = 9
+        ec2_keypair_name = 'kafkatest'
+        ec2_keypair_file = '/home/ubuntu/kafkatest.pem'
+        ec2_security_groups = ['kafkatest']
+        ec2_region = 'us-west-2'
+        ec2_ami = "ami-29ebb519"
+
+* Start up the instances:
+
+        # This will brink up worker machines in small parallel batches
+        $ vagrant/vagrant-up.sh --aws
+
+* Now you should be able to run tests:
+
+        $ cd kafka/tests
+        $ ducktape kafkatest/tests
+
+* Update Worker VM
+
+If you change code in a branch on your driver VM, you need to update your worker VM to pick up this change:
+
+        $ ./gradlew systemTestLibs
+        $ vagrant rsync
+
+* To halt your workers without destroying persistent state, run `vagrant halt`. Run `vagrant destroy -f` to destroy all traces of your workers.
+
+Unit Tests
+----------
+The system tests have unit tests! The various services in the python `kafkatest` module are reasonably complex, and intended to be reusable. Hence we have unit tests
+for the system service classes.
+
+Where are the unit tests?
+* The kafkatest unit tests are located under kafka/tests/unit
+
+How do I run the unit tests?
+```bash
+$ cd kafka/tests # The base system test directory
+$ python3 setup.py test
+```
+
+How can I add a unit test?
+* Follow the naming conventions - module name starts with "check", class name begins with "Check", test method name begins with "check"
+* These naming conventions are defined in "setup.cfg". We use "check" to distinguish unit tests from system tests, which use "test" in the various names.
+
+
+
+# FILE: trogdor/README.md
+Trogdor
+========================================
+Trogdor is a test framework for Apache Kafka.
+
+Trogdor can run benchmarks and other workloads. Trogdor can also inject faults in order to stress test the system.
+
+Quickstart
+=========================================================
+First, we want to [start a single-node Kafka cluster](https://github.com/apache/kafka/blob/trunk/README.md#running-a-kafka-broker)
+
+Running Kafka:
+
+```
+KAFKA_CLUSTER_ID="$(./bin/kafka-storage.sh random-uuid)"
+./bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
+./bin/kafka-server-start.sh config/server.properties  &> /tmp/kafka.log &
+```
+Then, we want to run a Trogdor Agent, plus a Trogdor Coordinator.
+
+To run the Trogdor Agent:
+
+```
+./bin/trogdor.sh agent -c ./config/trogdor.conf -n node0 &> /tmp/trogdor-agent.log &
+```
+To run the Trogdor Coordinator:
+
+```
+./bin/trogdor.sh coordinator -c ./config/trogdor.conf -n node0 &> /tmp/trogdor-coordinator.log &
+```
+Let's confirm that all of the daemons are running:
+
+```
+jps
+116212 Coordinator
+115188 QuorumPeerMain
+116571 Jps
+115420 Kafka
+115694 Agent
+```
+Now, we can submit a test job to Trogdor.
+
+```
+./bin/trogdor.sh client createTask -t localhost:8889 -i produce0 --spec ./tests/spec/simple_produce_bench.json
+Sent CreateTaskRequest for task produce0.
+```
+We can run showTask to see what the task's status is:
+
+```
+./bin/trogdor.sh client showTask -t localhost:8889 -i produce0
+Task bar of type org.apache.kafka.trogdor.workload.ProduceBenchSpec is DONE. FINISHED at 2019-01-09T20:38:22.039-08:00 after 6s
+```
+To see the results, we use showTask with --show-status:
+
+```
+./bin/trogdor.sh client showTask -t localhost:8889 -i produce0 --show-status
+Task bar of type org.apache.kafka.trogdor.workload.ProduceBenchSpec is DONE. FINISHED at 2019-01-09T20:38:22.039-08:00 after 6s
+Status: {
+  "totalSent" : 50000,
+  "averageLatencyMs" : 17.83388,
+  "p50LatencyMs" : 12,
+  "p95LatencyMs" : 75,
+  "p99LatencyMs" : 96,
+  "transactionsCommitted" : 0
+}
+```
+Trogdor Architecture
+========================================
+Trogdor has a single coordinator process which manages multiple agent processes.  Each agent process is responsible for a single cluster node.
+
+The Trogdor coordinator manages tasks.  A task is anything we might want to do on a cluster, such as running a benchmark, injecting a fault, or running a workload.  In order to implement each task, the coordinator creates workers on one or more agent nodes.
+
+The Trogdor agent process implements the tasks.  For example, when running a workload, the agent process is the process which produces and consumes messages.
+
+Both the coordinator and the agent expose a REST interface that accepts objects serialized via JSON.  There is also a command-line program which makes it easy to send messages to either one without manually crafting the JSON message body.
+
+All Trogdor RPCs are idempotent except the shutdown requests.  Sending an idempotent RPC twice in a row has the same effect as sending the RPC once.
+
+Tasks
+========================================
+Tasks are described by specifications containing:
+
+* A "class" field describing the task type.  This contains a full Java class name.
+* A "startMs" field describing when the task should start.  This is given in terms of milliseconds since the UNIX epoch.
+* A "durationMs" field describing how long the task should last.  This is given in terms of milliseconds.
+* Other fields which are task-specific.
+
+The task specification is usually written as JSON.  For example, this task specification describes a network partition between nodes 1 and 2, and 3:
+
+    {
+        "class": "org.apache.kafka.trogdor.fault.NetworkPartitionFaultSpec",
+        "startMs": 1000,
+        "durationMs": 30000,
+        "partitions": [["node1", "node2"], ["node3"]]
+    }
+    
+This task runs a simple ProduceBench test on a cluster with one producer node, 5 topics, and 10,000 messages per second. 
+The keys are generated sequentially and the configured partitioner (DefaultPartitioner) is used. 
+
+    {
+        "class": "org.apache.kafka.trogdor.workload.ProduceBenchSpec",
+        "durationMs": 10000000,
+        "producerNode": "node0",
+        "bootstrapServers": "localhost:9092",
+        "targetMessagesPerSec": 10000,
+        "maxMessages": 50000,
+        "activeTopics": {
+            "foo[1-3]": {
+                "numPartitions": 10,
+                "replicationFactor": 1
+            }
+        },
+        "inactiveTopics": {
+             "foo[4-5]": {
+                 "numPartitions": 10,
+                 "replicationFactor": 1
+             }
+        },
+        "keyGenerator": {
+             "type": "sequential",
+             "size": 8,
+             "offset": 1
+        },
+        "useConfiguredPartitioner": true
+     }
+
+Tasks are submitted to the coordinator.  Once the coordinator determines that it is time for the task to start, it creates workers on agent processes.  The workers run until the task is done.
+
+Task specifications are immutable; they do not change after the task has been created.
+
+Tasks can be in several states:
+* PENDING, when task is waiting to execute,
+* RUNNING, when the task is running,
+* STOPPING, when the task is in the process of stopping,
+* DONE, when the task is done.
+
+Tasks that are DONE also have an error field which will be set if the task failed.
+
+Workloads
+========================================
+Trogdor can run several workloads.  Workloads perform operations on the cluster and measure their performance.  Workloads fail when the operations cannot be performed.
+
+### ProduceBench
+ProduceBench starts a Kafka producer on a single agent node, producing to several partitions.  The workload measures the average produce latency, as well as the median, 95th percentile, and 99th percentile latency.
+It can be configured to use a transactional producer which can commit transactions based on a set time interval or number of messages.
+
+### RoundTripWorkload
+RoundTripWorkload tests both production and consumption.  The workload starts a Kafka producer and consumer on a single node.  The consumer will read back the messages that were produced by the producer.
+
+### ConsumeBench
+ConsumeBench starts one or more Kafka consumers on a single agent node. Depending on the passed in configuration (see ConsumeBenchSpec), the consumers either subscribe to a set of topics (leveraging consumer group functionality and dynamic partition assignment) or manually assign partitions to themselves.
+The workload measures the average consume latency, as well as the median, 95th percentile, and 99th percentile latency.
+
+Faults
+========================================
+Trogdor can run several faults which deliberately break something in the cluster.
+
+### ProcessStopFault
+ProcessStopFault stops a process by sending it a SIGSTOP signal.  When the fault ends, the process is resumed with SIGCONT.
+
+### NetworkPartitionFault
+NetworkPartitionFault sets up an artificial network partition between one or more sets of nodes.  Currently, this is implemented using iptables.  The iptables rules are set up on the outbound traffic from the affected nodes.  Therefore, the affected nodes should still be reachable from outside the cluster.
+
+External Processes
+========================================
+Trogdor supports running arbitrary commands in external processes. This is a generic way to run any configurable command in the Trogdor framework - be it a Python program, bash script, docker image, etc.
+
+### ExternalCommandWorker
+ExternalCommandWorker starts an external command defined by the ExternalCommandSpec. It essentially allows you to run any command on any Trogdor agent node.
+The worker communicates with the external process via its stdin, stdout and stderr in a JSON protocol. It uses stdout for any actionable communication and only logs what it sees in stderr.
+On startup the worker will first send a message describing the workload to the external process in this format:
+```
+{"id":<task ID string>, "workload":<configured workload JSON object>}
+```
+and will then listen for messages from the external process, again in a JSON format.
+Said JSON can contain the following fields:
+- status: If the object contains this field, the status of the worker will be set to the given value.
+- error: If the object contains this field, the error of the worker will be set to the given value. Once an error occurs, the external process will be terminated.
+- log: If the object contains this field, a log message will be issued with this text.
+An example:
+```json
+{"log": "Finished successfully.", "status": {"p99ProduceLatency": "100ms", "messagesSent": 10000}}
+```
+
+Exec Mode
+========================================
+Sometimes, you just want to run a test quickly on a single node.  In this case, you can use "exec mode."  This mode allows you to run a single Trogdor Agent without a Coordinator.
+
+When using exec mode, you must pass in a Task specification to use.  The Agent will try to start this task.
+
+For example:
+
+```
+./bin/trogdor.sh agent -n node0 -c ./config/trogdor.conf --exec ./tests/spec/simple_produce_bench.json
+```
+When using exec mode, the Agent will exit once the task is complete.
+
+
+# FILE: raft/README.md
+KRaft (Kafka Raft)
+==================
+KRaft (Kafka Raft) is a protocol based on the [Raft Consensus Protocol](https://www.usenix.org/system/files/conference/atc14/atc14-paper-ongaro.pdf)
+tailored for Apache Kafka.
+
+This is used by Apache Kafka in the KRaft (Kafka Raft Metadata) mode. We
+also have a standalone test server which can be used for performance testing. We describe the details to set this up below.
+
+### Run Single Quorum ###
+    bin/test-kraft-server-start.sh --config config/kraft.properties --replica-directory-id b8tRS7h4TJ2Vt43Dp85v2A
+
+### Run Multi Node Quorum ###
+Create 3 separate KRaft quorum properties as the following:
+
+`cat << EOF >> config/kraft-quorum-1.properties`
+    
+    node.id=1
+    listeners=PLAINTEXT://localhost:9092
+    controller.listener.names=PLAINTEXT
+    controller.quorum.voters=1@localhost:9092,2@localhost:9093,3@localhost:9094
+    log.dirs=/tmp/kraft-logs-1
+    EOF
+
+`cat << EOF >> config/kraft-quorum-2.properties`
+    
+    node.id=2
+    listeners=PLAINTEXT://localhost:9093
+    controller.listener.names=PLAINTEXT
+    controller.quorum.voters=1@localhost:9092,2@localhost:9093,3@localhost:9094
+    log.dirs=/tmp/kraft-logs-2
+    EOF
+    
+`cat << EOF >> config/kraft-quorum-3.properties`
+    
+    node.id=3
+    listeners=PLAINTEXT://localhost:9094
+    controller.listener.names=PLAINTEXT
+    controller.quorum.voters=1@localhost:9092,2@localhost:9093,3@localhost:9094
+    log.dirs=/tmp/kraft-logs-3
+    EOF
+ 
+Open up 3 separate terminals, and run individual commands:
+
+    bin/test-kraft-server-start.sh --config config/kraft-quorum-1.properties --replica-directory-id b8tRS7h4TJ2Vt43Dp85v2A
+    bin/test-kraft-server-start.sh --config config/kraft-quorum-2.properties --replica-directory-id Nkij_D9XRiYKNb41SiJo7Q
+    bin/test-kraft-server-start.sh --config config/kraft-quorum-3.properties --replica-directory-id 4-e97nI7eHPYKfEDtW8rtQ
+
+Once a leader is elected, it will begin writing to an internal
+`__raft_performance_test` topic with a steady workload of random data.
+You can control the workload using the `--throughput` and `--record-size`
+arguments passed to `test-kraft-server-start.sh`.
+
+
+# FILE: release/textfiles.py
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""
+Auxiliary functions to access and manipulate text files.
+"""
+
+import re
+
+from jproperties import Properties
+
+
+def read(file_path):
+    with open(file_path) as f:
+        return f.read()
+
+
+def write(file_path, content):
+    with open(file_path, "w") as f:
+        f.write(content)
+
+
+def props(properties_text):
+    """
+    Load the keys and values into a dictionary from a .properties file.
+    """
+    props = Properties()
+    props.load(properties_text, "utf-8")
+    return props
+
+
+def prop(filepath, propname):
+    """
+    Read the value for a given key in a .properties file.
+    """
+    values = props(read(filepath))
+    value, _ = values[propname]
+    return value
+
+
+def replace(path, pattern, replacement, **kwargs):
+    """
+    Replace all occurrences of a text pattern in a text file.
+    """
+    is_regex = kwargs.get("regex", False)
+    updated = []
+    with open(path, "r") as f:
+        for line in f:
+            modified = line
+            if is_regex:
+                modified = re.sub(pattern, replacement, line)
+            elif line.startswith(pattern):
+                modified = replacement + "\n"
+
+            updated.append(modified)
+
+    with open(path, "w") as f:
+        for line in updated:
+            f.write(line)
+
+
+# FILE: release/templates.py
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""
+Text templates for long messages with instructions for the user.
+We keep these in this separate file to avoid cluttering the script.
+"""
+
+
+def requirements_instructions(prefs_file, prefs):
+    return f"""
+Requirements:
+1. Updated docs to reference the new release version where appropriate.
+2. JDK25 compiler and libraries
+3. Your Apache ID, already configured with SSH keys on id.apache.org and SSH keys available in this shell session
+4. All issues in the target release resolved with valid resolutions (if not, this script will report the problematic JIRAs)
+5. A GPG key used for signing the release. This key should have been added to public Apache servers and the KEYS file on the Kafka site
+6. Standard toolset installed -- git, gpg, gradle, sftp, etc.
+7. ~/.gradle/gradle.properties configured with the signing properties described in the release process wiki, i.e.
+
+      mavenUrl=https://repository.apache.org/service/local/staging/deploy/maven2
+      mavenUsername=your-apache-id
+      mavenPassword=your-apache-passwd
+      signing.keyId=your-gpgkeyId
+      signing.password=your-gpg-passphrase
+      signing.secretKeyRingFile=/Users/your-id/.gnupg/secring.gpg (if you are using GPG 2.1 and beyond, then this file will no longer exist anymore, and you have to manually create it from the new private key directory with "gpg --export-secret-keys -o ~/.gnupg/secring.gpg")
+8. ~/.m2/settings.xml configured for pgp signing and uploading to apache release maven, i.e.,
+       <server>
+          <id>apache.releases.https</id>
+          <username>your-apache-id</username>
+          <password>your-apache-passwd</password>
+        </server>
+        <server>
+            <id>your-gpgkeyId</id>
+            <passphrase>your-gpg-passphrase</passphrase>
+        </server>
+        <profile>
+            <id>gpg-signing</id>
+            <properties>
+                <gpg.keyname>your-gpgkeyId</gpg.keyname>
+                <gpg.passphraseServerId>your-gpgkeyId</gpg.passphraseServerId>
+            </properties>
+        </profile>
+9. You may also need to update some gnupgp configs:
+        ~/.gnupg/gpg-agent.conf
+        allow-loopback-pinentry
+
+        ~/.gnupg/gpg.conf
+        use-agent
+        pinentry-mode loopback
+
+        echo RELOADAGENT | gpg-connect-agent
+
+If any of these are missing, see https://cwiki.apache.org/confluence/display/KAFKA/Release+Process for instructions on setting them up.
+
+Some of these may be used from these previous settings loaded from {prefs_file}:
+{prefs}
+
+Do you have all of these setup?"""
+
+
+def release_announcement_email(release_version, contributors):
+    contributors_str = ", ".join(contributors)
+    num_contributors = len(contributors)
+    return f"""
+To: announce@apache.org, dev@kafka.apache.org, users@kafka.apache.org, kafka-clients@googlegroups.com
+Subject: [ANNOUNCE] Apache Kafka {release_version}
+
+The Apache Kafka community is pleased to announce the release for Apache Kafka {release_version}
+
+<DETAILS OF THE CHANGES>
+
+All of the changes in this release can be found in the release notes:
+https://www.apache.org/dist/kafka/{release_version}/RELEASE_NOTES.html
+
+
+An overview of the release can be found in our announcement blog post:
+https://kafka.apache.org/blog
+
+You can download the source and binary release (Scala <VERSIONS>) from:
+https://kafka.apache.org/downloads#{release_version}
+
+---------------------------------------------------------------------------------------------------
+
+
+Apache Kafka is a distributed streaming platform with four core APIs:
+
+
+** The Producer API allows an application to publish a stream of records to
+one or more Kafka topics.
+
+** The Consumer API allows an application to subscribe to one or more
+topics and process the stream of records produced to them.
+
+** The Streams API allows an application to act as a stream processor,
+consuming an input stream from one or more topics and producing an
+output stream to one or more output topics, effectively transforming the
+input streams to output streams.
+
+** The Connector API allows building and running reusable producers or
+consumers that connect Kafka topics to existing applications or data
+systems. For example, a connector to a relational database might
+capture every change to a table.
+
+
+With these APIs, Kafka can be used for two broad classes of application:
+
+** Building real-time streaming data pipelines that reliably get data
+between systems or applications.
+
+** Building real-time streaming applications that transform or react
+to the streams of data.
+
+
+Apache Kafka is in use at large and small companies worldwide, including
+Capital One, Goldman Sachs, ING, LinkedIn, Netflix, Pinterest, Rabobank,
+Target, The New York Times, Uber, Yelp, and Zalando, among others.
+
+A big thank you for the following {num_contributors} contributors to this release! (Please report an unintended omission)
+
+{contributors_str}
+
+We welcome your help and feedback. For more information on how to
+report problems, and to get involved, visit the project website at
+https://kafka.apache.org/
+
+Thank you!
+
+
+Regards,
+
+<YOU>
+Release Manager for Apache Kafka {release_version}"""
+
+
+def deploy_instructions():
+    return """
+Next, we need to get the Maven artifacts we published into the staging repository.
+Go to https://repository.apache.org/#stagingRepositories and hit 'Close' for the new repository that was created by uploading artifacts.
+There will be more than one repository entries created, please close all of them.
+In some cases, you may get errors on some repositories while closing them, see KAFKA-15033.
+If this is not the first RC, you need to 'Drop' the previous artifacts.
+Confirm the correct artifacts are visible at https://repository.apache.org/content/groups/staging/org/apache/kafka/ and build the
+jvm and native Docker images following these instructions: https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=34840886#ReleaseProcess-CreateJVMApacheKafkaDockerArtifacts(Forversions>=3.7.0)
+"""
+
+def sanity_check_instructions(release_version, rc_tag):
+    return f"""
+*******************************************************************************************************************************************************
+Ok. We've built and staged everything for the {rc_tag}.
+
+Now you should sanity check it before proceeding. All subsequent steps start making RC data public.
+
+Some suggested steps:
+
+ * Grab the source archive and make sure it compiles: https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz
+ * Grab one of the binary distros and run the quickstarts against them: https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka_2.13-{release_version}.tgz
+ * Extract and verify one of the site docs jars: https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka_2.13-{release_version}-site-docs.tgz
+ * Build a sample against jars in the staging repo: (TODO: Can we get a temporary URL before "closing" the staged artifacts?)
+ * Validate GPG signatures on at least one file:
+      wget https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz &&
+      wget https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz.asc &&
+      wget https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz.md5 &&
+      wget https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz.sha1 &&
+      wget https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/kafka-{release_version}-src.tgz.sha512 &&
+      gpg --verify kafka-{release_version}-src.tgz.asc kafka-{release_version}-src.tgz &&
+      gpg --print-md md5 kafka-{release_version}-src.tgz | diff - kafka-{release_version}-src.tgz.md5 &&
+      gpg --print-md sha1 kafka-{release_version}-src.tgz | diff - kafka-{release_version}-src.tgz.sha1 &&
+      gpg --print-md sha512 kafka-{release_version}-src.tgz | diff - kafka-{release_version}-src.tgz.sha512 &&
+      rm kafka-{release_version}-src.tgz* &&
+      echo "OK" || echo "Failed"
+ * Validate the javadocs look ok. They are at https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/javadoc/
+
+*******************************************************************************************************************************************************
+"""
+
+
+def rc_vote_email_text(release_version, rc, rc_tag, dev_branch, docs_version):
+    return f"""
+To: dev@kafka.apache.org, users@kafka.apache.org, kafka-clients@googlegroups.com
+Subject: [VOTE] {release_version} RC{rc}
+
+Hello Kafka users, developers and client-developers,
+
+This is the <ORDINAL> candidate for release of Apache Kafka {release_version}.
+
+<DESCRIPTION OF MAJOR CHANGES, INCLUDE INDICATION OF MAJOR/MINOR RELEASE>
+
+Release notes for the {release_version} release:
+https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/RELEASE_NOTES.html
+
+*** Please download, test and vote by <VOTING DEADLINE, e.g. Monday, March 28, 9am PT>
+<THE RELEASE POLICY (https://www.apache.org/legal/release-policy.html#release-approval) REQUIRES VOTES TO BE OPEN FOR MINIMUM OF 3 DAYS THEREFORE VOTING DEADLINE SHOULD BE AT LEAST 72 HOURS FROM THE TIME THIS EMAIL IS SENT.>
+
+Kafka's KEYS file containing PGP keys we use to sign the release:
+https://downloads.apache.org/kafka/KEYS
+
+* Release artifacts to be voted upon (source and binary):
+https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/
+
+<USE docker/README.md FOR STEPS TO CREATE RELEASE CANDIDATE DOCKER IMAGE>
+* Docker release artifacts to be voted upon:
+apache/kafka:{rc_tag}
+apache/kafka-native:{rc_tag}
+
+* Maven artifacts to be voted upon:
+https://repository.apache.org/content/groups/staging/org/apache/kafka/
+
+* Javadoc:
+https://dist.apache.org/repos/dist/dev/kafka/{rc_tag}/javadoc/index.html
+
+* Tag to be voted upon (off {dev_branch} branch) is the {release_version} tag:
+https://github.com/apache/kafka/releases/tag/{rc_tag}
+
+* Documentation:
+https://kafka.apache.org/{docs_version}/documentation.html
+
+* Protocol:
+https://kafka.apache.org/{docs_version}/design/protocol
+
+* Successful CI builds for the {dev_branch} branch:
+Unit/integration tests: https://github.com/apache/kafka/actions/runs/<RUN_NUMBER>
+System tests:
+<Confluent engineers can access the semaphore build to provide the build number
+https://confluent-open-source-kafka-system-test-results.s3-us-west-2.amazonaws.com/{dev_branch}/<BUILD_NUMBER>/report.html>
+
+<USE docker/README.md FOR STEPS TO RUN DOCKER BUILD TEST GITHUB ACTIONS>
+* Successful Docker Image Github Actions Pipeline for {dev_branch} branch:
+Docker Build Test Pipeline (JVM): https://github.com/apache/kafka/actions/runs/<RUN_NUMBER>
+Docker Build Test Pipeline (Native): https://github.com/apache/kafka/actions/runs/<RUN_NUMBER>
+
+Thanks,
+<YOU>
+"""
+
+
+def rc_email_instructions(rc_email_text):
+    return f"""
+*****************************************************************
+
+{rc_email_text}
+
+*****************************************************************
+
+All artifacts should now be fully staged. Use the above template to send the announcement for the RC to the mailing list.
+IMPORTANT: Note that there are still some substitutions that need to be made in the template:
+  - Describe major changes in this release
+  - Deadline for voting, which should be at least 3 days after you send out the email
+  - Jenkins build numbers for successful unit & system test builds
+  - Fill in your name in the signature
+  - Finally, validate all the links before shipping!
+Note that all substitutions are annotated with <> around them.
+"""
+
+
+def cmd_failed():
+    return """
+*************************************************
+*** First command failure occurred here.      ***
+*** Will now try to clean up working state.   ***
+*************************************************
+"""
+
+
+def release_announcement_email_instructions(release_announcement_email):
+    return f"""
+*****************************************************************
+
+{release_announcement_email}
+
+*****************************************************************
+
+Use the above template to send the announcement for the release to the mailing list.
+IMPORTANT: Note that there are still some substitutions that need to be made in the template:
+  - Describe major changes in this release
+  - Scala versions
+  - Fill in your name in the signature
+  - You will need to use your apache email address to send out the email (otherwise, it won't be delivered to announce@apache.org)
+  - Finally, validate all the links before shipping!
+Note that all substitutions are annotated with <> around them.
+"""
+
+
+# FILE: release/svn.py
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""
+Auxiliary functions to interact with svn(1).
+"""
+
+import os
+import shutil
+import subprocess
+
+from runtime import cmd
+
+SVN_DEV_URL="https://dist.apache.org/repos/dist/dev/kafka"
+
+def delete_old_rc_directory_if_needed(rc_tag, work_dir):
+    svn_dev = os.path.join(work_dir, "svn_dev")
+    cmd_desc = f"Check if {rc_tag} exists in the subversion repository."
+    cmd_str = f"svn info --show-item revision {SVN_DEV_URL}/{rc_tag}"
+    if not cmd(cmd_desc, cmd_str, cwd = svn_dev, allow_failure = True):
+        print(f"Nothing under {SVN_DEV_URL}/{rc_tag}. Continuing.")
+        return
+    cmd_desc = f"Committing the deletion of {SVN_DEV_URL}/{rc_tag} from the svn repo."
+    cmd_str = f"svn delete -m Remove_{rc_tag} {SVN_DEV_URL}/{rc_tag}"
+    cmd(cmd_desc, cmd_str, cwd = svn_dev)
+
+def commit_artifacts(rc_tag, src, work_dir):
+    delete_old_rc_directory_if_needed(rc_tag, work_dir)
+    svn_dev = os.path.join(work_dir, "svn_dev")
+    dst = os.path.join(svn_dev, rc_tag)
+    print(f"Copying {src} to {dst}")
+    shutil.copytree(src, dst)
+    cmd_desc = f"Adding {SVN_DEV_URL}/{rc_tag} to the svn repo."
+    cmd_str = f"svn add ./{rc_tag}"
+    cmd(cmd_desc, cmd_str, cwd = svn_dev)
+    cmd_desc = f"Committing the addition of {SVN_DEV_URL}/{rc_tag} to the svn repo. Please wait, this may take a while."
+    cmd_str = f"svn commit -m Add_{rc_tag}"
+    cmd(cmd_desc, cmd_str, cwd = svn_dev)
+
+def checkout_svn_dev(work_dir):
+    svn_dev = os.path.join(work_dir, "svn_dev")
+    if os.path.exists(svn_dev):
+        shutil.rmtree(svn_dev)
+    cmd_desc = f"Checking out {SVN_DEV_URL} at {svn_dev}"
+    cmd_str = f"svn checkout --depth empty {SVN_DEV_URL}/ {svn_dev}"
+    cmd(cmd_desc, cmd_str)
+
+
+# FILE: release/runtime.py
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""
+Auxiliary functions to manage the release script runtime
+and launch external utilities.
+"""
+
+import os
+import subprocess
+import sys
+import tempfile
+
+import templates
+
+
+this_script_dir = os.path.abspath(os.path.dirname(__file__))
+repo_dir = os.environ.get("KAFKA_HOME", os.path.abspath(this_script_dir + "/.."))
+
+fail_hooks = []
+failing = False
+
+
+def append_fail_hook(name, hook_fn):
+    """
+    Register a fail hook function, to run in case fail() is called.
+    """
+    fail_hooks.append((name, hook_fn))
+
+
+def fail(msg = ""):
+    """
+    Terminate execution with the given message,
+    after running any registered hooks.
+    """
+    global failing
+    if failing:
+        raise Exception(f"Recursive fail invocation")
+    failing = True
+
+    for name, func in fail_hooks:
+        try:
+            func()
+        except Exception as e:
+            print(f"Exception caught in fail hook {name}: {e}")
+
+    print(f"FAILURE: {msg}")
+    sys.exit(1)
+
+
+def prompt(msg):
+    """
+    Prompt user for input with the given message.
+    This removes leading and trailing spaces.
+    """
+    text = input(msg)
+    return text.strip()
+
+
+def confirm(msg):
+    """
+    Prompt the user to confirm
+    """
+    while True:
+        text = prompt(msg + " (y/n): ").lower()
+        if text in ['y', 'n']:
+            return text == 'y'
+
+
+def confirm_or_fail(msg):
+    """
+    Prompt the user to confirm and fail on negative input.
+    """
+    if not confirm(msg):
+        fail("Ok, giving up")
+
+
+def execute(cmd, *args, **kwargs):
+    """
+    Execute an external command and return its output.
+    """
+    if "shell" not in kwargs and isinstance(cmd, str):
+        cmd = cmd.split()
+    if "input" in kwargs and isinstance(kwargs["input"], str):
+        kwargs["input"] = kwargs["input"].encode()
+    kwargs["stderr"] = stderr=subprocess.STDOUT
+    output = subprocess.check_output(cmd, *args, **kwargs)
+    return output.decode("utf-8")
+
+
+def _prefix(prefix_str, value_str):
+    return prefix_str + value_str.replace("\n", "\n" + prefix_str)
+
+
+def cmd(action, cmd_arg, *args, **kwargs):
+    """
+    Execute an external command. This should be preferred over execute()
+    when returning the output is not necessary, as the user will be given
+    the option of retrying in case of a failure.
+    """
+    stdin_log = ""
+    if "stdin" in kwargs and isinstance(kwargs["stdin"], str):
+        stdin_str = kwargs["stdin"]
+        stdin_log = "\n" + _prefix("< ", stdin_str)
+        stdin = tempfile.TemporaryFile()
+        stdin.write(stdin_str.encode("utf-8"))
+        stdin.seek(0)
+        kwargs["stdin"] = stdin
+
+    print(f"{action}\n$ {cmd_arg}{stdin_log}")
+
+    if isinstance(cmd_arg, str) and not kwargs.get("shell", False):
+        cmd_arg = cmd_arg.split()
+
+    allow_failure = kwargs.pop("allow_failure", False)
+
+    retry = True
+    while retry:
+        try:
+            output = execute(cmd_arg, *args, stderr=subprocess.STDOUT, **kwargs)
+            print(_prefix("> ", output.strip()))
+            return True
+        except subprocess.CalledProcessError as e:
+            print(e.output.decode("utf-8"))
+
+            if allow_failure:
+                return False
+
+            retry = confirm("Retry?")
+
+    print(templates.cmd_failed())
+    fail("")
+
+
+# FILE: release/requirements.txt
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+jira==3.8.0
+jproperties==2.1.1
+
+
+# FILE: release/release.py
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+"""
+Utility for creating release candidates and promoting release candidates to a final release.
+
+Usage: release.py [subcommand]
+
+release.py stage
+
+  Builds and stages an RC for a release.
+
+  The utility is interactive; you will be prompted for basic release information and guided through the process.
+
+  This utility assumes you already have local a kafka git folder and that you
+  have added remotes corresponding to both:
+  (i) the github apache kafka mirror and
+  (ii) the apache kafka git repo.
+
+release.py stage-docs [kafka-site-path]
+
+  Builds the documentation and stages it into an instance of the Kafka website repository.
+
+  This is meant to automate the integration between the main Kafka website repository (https://github.com/apache/kafka-site)
+  and the versioned documentation maintained in the main Kafka repository. This is useful both for local testing and
+  development of docs (follow the instructions here: https://cwiki.apache.org/confluence/display/KAFKA/Setup+Kafka+Website+on+Local+Apache+Server)
+  as well as for committers to deploy docs (run this script, then validate, commit, and push to kafka-site).
+
+  With no arguments this script assumes you have the Kafka repository and kafka-site repository checked out side-by-side, but
+  you can specify a full path to the kafka-site repository if this is not the case.
+
+release.py release-email
+
+  Generates the email content/template for sending release announcement email.
+
+"""
+
+import datetime
+import os
+import re
+import subprocess
+import sys
+import time
+
+from runtime import (
+    append_fail_hook,
+    cmd,
+    confirm,
+    confirm_or_fail,
+    execute,
+    fail,
+    prompt,
+    repo_dir,
+)
+import git
+import gpg
+import notes
+import preferences
+import svn
+import templates
+import textfiles
+
+from svn import SVN_DEV_URL
+
+
+def get_jdk(version):
+    """
+    Get settings for the specified JDK version.
+    """
+    msg = f"Enter the path for JAVA_HOME for a JDK{version} compiler (blank to use default JAVA_HOME): "
+    key = f"jdk{version}"
+    jdk_java_home = preferences.get(key, lambda: prompt(msg))
+    jdk_env = dict(os.environ)
+    if jdk_java_home.strip(): jdk_env["JAVA_HOME"] = jdk_java_home
+    else: jdk_java_home = jdk_env["JAVA_HOME"]
+    java_version = execute(f"{jdk_java_home}/bin/java -version", env=jdk_env)
+    if (version == 8 and "1.8.0" not in java_version) or \
+       (f"{version}.0" not in java_version and f'"{version}"' not in java_version):
+        preferences.unset(key)
+        fail(f"JDK {version} is required")
+    return jdk_env
+
+
+def docs_version(version):
+    """
+    Detects the major/minor version and converts it to the format used for docs on the website, e.g. gets 0.10.2.0-SNAPSHOT
+    from gradle.properties and converts it to 0102
+    """
+    version_parts = version.strip().split(".")
+    # 1.0+ will only have 3 version components as opposed to pre-1.0 that had 4
+    major_minor = version_parts[0:3] if version_parts[0] == "0" else version_parts[0:2]
+    return ''.join(major_minor)
+
+
+def detect_docs_release_version(version):
+    """
+    Detects the version from gradle.properties and converts it to a release version number that should be valid for the
+    current release branch. For example, 0.10.2.0-SNAPSHOT would remain 0.10.2.0-SNAPSHOT (because no release has been
+    made on that branch yet); 0.10.2.1-SNAPSHOT would be converted to 0.10.2.0 because 0.10.2.1 is still in development
+    but 0.10.2.0 should have already been released. Regular version numbers (e.g. as encountered on a release branch)
+    will remain the same.
+    """
+    version_parts = version.strip().split(".")
+    if "-SNAPSHOT" in version_parts[-1]:
+        bugfix = int(version_parts[-1].split("-")[0])
+        if bugfix > 0:
+            version_parts[-1] = str(bugfix - 1)
+    return ".".join(version_parts)
+
+
+def command_stage_docs():
+    kafka_site_repo_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(repo_dir, "..", "kafka-site")
+    if not os.path.exists(kafka_site_repo_path) or not os.path.exists(os.path.join(kafka_site_repo_path, "powered-by.html")):
+        fail("{kafka_site_repo_path} doesn't exist or does not appear to be the kafka-site repository")
+
+    jdk25_env = get_jdk(25)
+
+    # We explicitly override the version of the project that we normally get from gradle.properties since we want to be
+    # able to run this from a release branch where we made some updates, but the build would show an incorrect SNAPSHOT
+    # version due to already having bumped the bugfix version number.
+    gradle_version_override = detect_docs_release_version(project_version)
+
+    cmd("Building docs",f"./gradlew -Pversion={gradle_version_override} clean siteDocsTar", cwd=repo_dir, env=jdk25_env,)
+    # Disable parallel execution for aggregatedJavadoc due to Gradle 9 issues
+    cmd("Building docs", f"./gradlew -Pversion={gradle_version_override} aggregatedJavadoc --no-parallel", cwd=repo_dir, env=jdk25_env,)
+
+
+    docs_tar = os.path.join(repo_dir, "core", "build", "distributions", f"kafka_2.13-{gradle_version_override}-site-docs.tgz")
+
+    versioned_docs_path = os.path.join(kafka_site_repo_path, docs_version(project_version))
+    if not os.path.exists(versioned_docs_path):
+        os.mkdir(versioned_docs_path, 0o755)
+
+    # The contents of the docs jar are site-docs/<docs dir>. We need to get rid of the site-docs prefix and dump everything
+    # inside it into the docs version subdirectory in the kafka-site repo
+    cmd("Extracting site-docs", f"tar xf {docs_tar} --strip-components 1", cwd=versioned_docs_path)
+
+    javadocs_src_dir = os.path.join(repo_dir, "build", "docs", "javadoc")
+
+    cmd("Copying javadocs", f"cp -R {javadocs_src_dir} {versioned_docs_path}")
+
+    sys.exit(0)
+
+
+def validate_release_version_parts(version):
+    try:
+        version_parts = version.split(".")
+        if len(version_parts) != 3:
+            fail("Invalid release version, should have 3 version number components")
+        # Validate each part is a number
+        [int(x) for x in version_parts]
+    except ValueError:
+        fail("Invalid release version, should be a dotted version number")
+
+
+def get_release_version_parts(version):
+    validate_release_version_parts(version)
+    return version.split(".")
+
+
+def validate_release_num(version):
+    if version not in git.tags():
+        fail("The specified version is not a valid release version number")
+    validate_release_version_parts(version)
+
+
+def command_release_announcement_email():
+    release_tag_pattern = re.compile("^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    release_tags = sorted([t for t in git.tags() if re.match(release_tag_pattern, t)])
+    release_version_num = release_tags[-1]
+    if not confirm(f"Is the current release {release_version_num}?"):
+        release_version_num = prompt("What is the current release version:")
+        validate_release_num(release_version_num)
+    previous_release_version_num = release_tags[-2]
+    if not confirm(f"Is the previous release {previous_release_version_num}?"):
+        previous_release_version_num = prompt("What is the previous release version:")
+        validate_release_num(previous_release_version_num)
+    if release_version_num < previous_release_version_num :
+        fail("Current release version number can't be less than previous release version number")
+    contributors = git.contributors(previous_release_version_num, release_version_num)
+    release_announcement_email = templates.release_announcement_email(release_version_num, contributors)
+    print(templates.release_announcement_email_instructions(release_announcement_email))
+    sys.exit(0)
+
+
+project_version = textfiles.prop(os.path.join(repo_dir, "gradle.properties"), 'version')
+release_version = project_version.replace('-SNAPSHOT', '')
+release_version_parts = get_release_version_parts(release_version)
+dev_branch = '.'.join(release_version_parts[:2])
+docs_release_version = docs_version(release_version)
+
+# Dispatch to subcommand
+subcommand = sys.argv[1] if len(sys.argv) > 1 else None
+if subcommand == 'stage-docs':
+    command_stage_docs()
+elif subcommand == 'release-email':
+    command_release_announcement_email()
+elif not (subcommand is None or subcommand == 'stage'):
+    fail(f"Unknown subcommand: {subcommand}")
+# else -> default subcommand stage
+
+
+## Default 'stage' subcommand implementation isn't isolated to its own function yet for historical reasons
+
+
+def verify_gpg_key():
+    if not gpg.key_exists(gpg_key_id):
+        fail(f"GPG key {gpg_key_id} not found")
+    if not gpg.valid_passphrase(gpg_key_id, gpg_passphrase):
+        fail(f"GPG passphrase not valid for key {gpg_key_id}")
+
+
+preferences.once("verify_requirements", lambda: confirm_or_fail(templates.requirements_instructions(preferences.FILE, preferences.as_json())))
+global_gradle_props = os.path.expanduser("~/.gradle/gradle.properties")
+gpg_key_id = textfiles.prop(global_gradle_props

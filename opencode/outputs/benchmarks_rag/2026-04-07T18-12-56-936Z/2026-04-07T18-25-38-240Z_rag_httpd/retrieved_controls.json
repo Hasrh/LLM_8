@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-ISO27001pdf-020",
+    "title": "ISO27001.pdf snippet 20",
+    "text": "sage integrity.......................................................................................................................... 79 12.2.4 Output data validation.................................................................................................................. 79 12.3 CRYPTOGRAPHIC CONTROLS ................................................................................................................. 80 12.3.1 Policy on the use of cryptographic controls ................................................................................. 80 12.3.2 Key management........................................................................................................................... 81 12.4 S ECURITY OF SYSTEM FILES ................................................................................................................... 83 12.4.1 Control of operational software ................................................................................................... 83 12.4.2 Protection of system test data ....................................................................................................... 84 -- 7 of 128 -- ISO/IEC FDIS 17799:2005(E) © ISO/IEC 2005 – All rights reserved vii 12.4.3 Access control to program source code........................................................................................ 84 12.5 S ECURITY IN DEVELOPMEN",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.24882110953330994
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-009",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 9",
+    "text": "ose intended for its further maintenance are described in the ISO/IEC Directives, Part 1. In particular, the different approval criteria needed for the different types of document should be noted. This document was drafted in accordance with the editorial rules of the ISO/IEC Directives, Part 2 (see www.iso.org/directives or www.iec.ch/members_experts/refdocs). Attention is drawn to the possibility that some of the elements of this document may be the subject of patent rights. ISO and IEC shall not be held responsible for identifying any or all such patent rights. Details of any patent rights identified during the development of the document will be in the Introduction and/or on the ISO list of patent declarations received (see www.iso.org/patents) or the IEC list of patent declarations received (see https://patents.iec.ch). Any trade name used in this document is information given for the convenience of users and does not constitute an endorsement. For an explanation of the voluntary nature of standards, the meaning of ISO specific terms and expressions related to conformity assessment, as well as information about ISO's adherence to the World Trade Organization (WTO) principles in the Technical Barriers to Trade (TBT) see www.iso.org/iso/foreword.html. In the IEC, see www.iec.ch/understanding-standards. This document was prepared by Joint Technical Committee ISO/IEC JTC 1, In",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.22332319617271423
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-002",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 2",
+    "text": "-- ISO/IEC 27001:2022(E) Foreword........................................................................................................................................................................................................................................iv Introduction .................................................................................................................................................................................................................................v 1 Scope ................................................................................................................................................................................................................................. 1 2 Normative references ..................................................................................................................................................................................... 1 3 Terms and definitions .................................................................................................................................................................................... 1 4 Context of the organization ...................................................................................................................................................................... 1 4.1 Understanding the organization and its",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.21420559287071228
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-012",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 12",
+    "text": "d terms and definitions. 0.2 Compatibility with other management system standards This document applies the high-level structure, identical sub-clause titles, identical text, common terms, and core definitions defined in Annex SL of ISO/IEC Directives, Part 1, Consolidated ISO Supplement, and therefore maintains compatibility with other management system standards that have adopted the Annex SL. This common approach defined in the Annex SL will be useful for those organizations that choose to operate a single management system that meets the requirements of two or more management system standards. v © ISO/IEC 2022 – All rights reserved SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 5 of 26 -- SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 6 of 26 -- INTERNATIONAL STANDARD ISO/IEC 27001:2022(E) Information security, cybersecurity and privacy protection — Information security management systems — Requirements 1 Scope This document specifies the requirements for establishing, implementing, maintaining and continually improving an information security management system within the context of the organization. This document also includes requirements for the assessment and treatment of i",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.19806723296642303
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-001",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 1",
+    "text": "Information security, cybersecurity and privacy protection — Information security management systems — Requirements Sécurité de l'information, cybersécurité et protection de la vie privée — Systèmes de management de la sécurité de l'information — Exigences INTERNATIONAL STANDARD ISO/IEC 27001 Third edition 2022-10 Reference number ISO/IEC 27001:2022(E) © ISO/IEC 2022 SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 1 of 26 -- ii ISO/IEC 27001:2022(E) COPYRIGHT PROTECTED DOCUMENT © ISO/IEC 2022 All rights reserved. Unless otherwise specified, or required in the context of its implementation, no part of this publication may be reproduced or utilized otherwise in any form or by any means, electronic or mechanical, including photocopying, or posting on the internet or an intranet, without prior written permission. Permission can be requested from either ISO at the address below or ISO’s member body in the country of the requester. ISO copyright office CP 401 • Ch. de Blandonnet 8 CH-1214 Vernier, Geneva Phone: +41 22 749 01 11 Email: copyright@iso.org Website: www.iso.org Published in Switzerland © ISO/IEC 2022 – All rights reserved SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 2 of 26",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.19744540750980377
+  }
+]

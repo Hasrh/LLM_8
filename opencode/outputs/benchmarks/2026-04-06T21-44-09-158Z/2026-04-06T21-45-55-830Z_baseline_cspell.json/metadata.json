@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-04-06T21:45:55.830Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_29b3dfed1ffeLquSD8LDS1KxWI",
+  "files": 1,
+  "clipped": true,
+  "provider_id": "opencode",
+  "model_id": "qwen3.6-plus-free",
+  "agent": "build",
+  "mode": "baseline",
+  "message_id": "msg_d64c20141001fBbA0Qjc5w6iNK",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/chef/cspell.json",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/chef/cspell.json\nThe file is attached as context. Use only that evidence."
+}

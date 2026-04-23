@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:54:14.536Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296ebb27effeaQKARUprqtTNkw",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/rails/tools/releaser/test/fixtures/activestorage/package.json\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\n{\n  \"name\": \"@rails/activestorage\",\n  \"version\": \"1.0.0-alpha\",\n  \"description\": \"Attach cloud and local files in Rails applications\",\n  \"module\": \"app/assets/javascripts/activestorage.esm.js\",\n  \"main\": \"app/assets/javascripts/activestorage.js\",\n  \"files\": [\n    \"app/assets/javascripts/*.js\",\n    \"src/*.js\"\n  ],\n  \"homepage\": \"https://rubyonrails.org/\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"git+https://github.com/rails/rails.git\"\n  },\n  \"bugs\": {\n    \"url\": \"https://github.com/rails/rails/issues\"\n  },\n  \"author\": \"Javan Makhmali <javan@javan.us>\",\n  \"license\": \"MIT\",\n  \"dependencies\": {\n    \"spark-md5\": \"^3.0.1\"\n  },\n  \"devDependencies\": {\n    \"@rollup/plugin-node-resolve\": \"^11.0.1\",\n    \"@rollup/plugin-commonjs\": \"^19.0.1\",\n    \"eslint\": \"^8.40.0\",\n    \"eslint-plugin-import\": \"^2.29.0\",\n    \"rollup\": \"^2.35.1\",\n    \"rollup-plugin-terser\": \"^7.0.2\"\n  },\n  \"scripts\": {\n    \"prebuild\": \"yarn lint\",\n    \"build\": \"rollup --config rollup.config.js\",\n    \"lint\": \"eslint app/javascript\",\n    \"prepublishOnly\": \"rm -rf src && cp -R app/javascript/activestorage src\"\n  }\n}\n\n```"
+}

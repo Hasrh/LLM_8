@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-ISO27001pdf-020",
+    "title": "ISO27001.pdf snippet 20",
+    "text": "sage integrity.......................................................................................................................... 79 12.2.4 Output data validation.................................................................................................................. 79 12.3 CRYPTOGRAPHIC CONTROLS ................................................................................................................. 80 12.3.1 Policy on the use of cryptographic controls ................................................................................. 80 12.3.2 Key management........................................................................................................................... 81 12.4 S ECURITY OF SYSTEM FILES ................................................................................................................... 83 12.4.1 Control of operational software ................................................................................................... 83 12.4.2 Protection of system test data ....................................................................................................... 84 -- 7 of 128 -- ISO/IEC FDIS 17799:2005(E) © ISO/IEC 2005 – All rights reserved vii 12.4.3 Access control to program source code........................................................................................ 84 12.5 S ECURITY IN DEVELOPMEN",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.20916910469532013
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-022",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 22",
+    "text": "all determine the need for internal and external communications relevant to the information security management system including: a) on what to communicate; b) when to communicate; c) with whom to communicate; d) how to communicate. 7.5 Documented information 7.5.1 General The organization’s information security management system shall include: a) documented information required by this document; and © ISO/IEC 2022 – All rights reserved 6 SNV / licensed to 14955111 - Schweiz. Vereinigung für Qualitäts- und Management-Systeme (SQS) / S105748 / 2022-10-31_12:56 / ISO/IEC 27001:2022 -- 12 of 26 -- ISO/IEC 27001:2022(E) b) documented information determined by the organization as being necessary for the effectiveness of the information security management system. NOTE The extent of documented information for an information security management system can differ from one organization to another due to: 1) the size of organization and its type of activities, processes, products and services; 2) the complexity of processes and their interactions; and 3) the competence of persons. 7.5.2 Creating and updating When creating and updating documented information the organization shall ensure appropriate: a) identification and description (e.g. a title, date, author, or reference number); b) format (e.g. language, software version, graphics) and media (e.g. paper, electronic); and c) review an",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.19853632152080536
+  },
+  {
+    "id": "ISO-ISO27001pdf-023",
+    "title": "ISO27001.pdf snippet 23",
+    "text": "............................................... 97 14.1.5 Testing, maintaining and re-assessing business continuity plans................................................. 98 15 COMPLIANCE........................................................................................................................................... 100 15.1 COMPLIANCE WITH LEGAL REQUIREMENTS ......................................................................................... 100 15.1.1 Identification of applicable legislation ....................................................................................... 100 15.1.2 Intellectual property rights (IPR) ............................................................................................... 100 15.1.3 Protection of organizational records.......................................................................................... 101 15.1.4 Data protection and privacy of personal information ................................................................ 102 15.1.5 Prevention of misuse of information processing facilities .......................................................... 102 15.1.6 Regulation of cryptographic controls ......................................................................................... 103 15.2 COMPLIANCE WITH SECURITY POLICIES AND STANDARDS AND TECHNICAL COMPLIANCE ................... 103 15.2.1 Compliance w",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.19103653728961945
+  },
+  {
+    "id": "ISO-ISO27001pdf-021",
+    "title": "ISO27001.pdf snippet 21",
+    "text": "T AND SUPPORT PROCESSES ......................................................................... 85 12.5.1 Change control procedures .......................................................................................................... 85 12.5.2 Technical review of applications after operating system changes................................................ 86 12.5.3 Restrictions on changes to software packages.............................................................................. 86 12.5.4 Information leakage...................................................................................................................... 87 12.5.5 Outsourced software development................................................................................................ 87 12.6 TECHNICAL V ULNERABILITY MANAGEMENT ........................................................................................ 88 12.6.1 Control of technical vulnerabilities .............................................................................................. 88 13 INFORMATION SECURITY INCIDENT MANAGEMENT ................................................................. 90 13.1 REPORTING INFORMATION SECURITY EVENTS AND WEAKNESSES .......................................................... 90 13.1.1 Reporting information security events ..............................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.19019672274589539
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-002",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 2",
+    "text": "-- ISO/IEC 27001:2022(E) Foreword........................................................................................................................................................................................................................................iv Introduction .................................................................................................................................................................................................................................v 1 Scope ................................................................................................................................................................................................................................. 1 2 Normative references ..................................................................................................................................................................................... 1 3 Terms and definitions .................................................................................................................................................................................... 1 4 Context of the organization ...................................................................................................................................................................... 1 4.1 Understanding the organization and its",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1876830905675888
+  }
+]

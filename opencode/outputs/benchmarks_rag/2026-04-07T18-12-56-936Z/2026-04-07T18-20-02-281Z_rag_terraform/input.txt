@@ -1,0 +1,3346 @@
+
+
+# FILE: working_dir.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import "github.com/hashicorp/terraform/internal/command/workdir"
+
+func WorkingDir(originalDir string, overrideDataDir string) *workdir.Dir {
+	ret := workdir.NewDir(".") // caller should already have used os.Chdir in "-chdir=..." mode
+	ret.OverrideOriginalWorkingDir(originalDir)
+	if overrideDataDir != "" {
+		ret.OverrideDataDir(overrideDataDir)
+	}
+	return ret
+}
+
+
+# FILE: version.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"github.com/hashicorp/terraform/version"
+)
+
+var Version = version.Version
+
+var VersionPrerelease = version.Prerelease
+
+
+# FILE: telemetry.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"context"
+	"os"
+
+	"github.com/hashicorp/terraform/version"
+	"go.opentelemetry.io/contrib/exporters/autoexport"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
+)
+
+// If this environment variable is set to "otlp" when running Terraform CLI
+// then we'll enable an experimental OTLP trace exporter.
+//
+// BEWARE! This is not a committed external interface.
+//
+// Everything about this is experimental and subject to change in future
+// releases. Do not depend on anything about the structure of this output.
+// This mechanism might be removed altogether if a different strategy seems
+// better based on experience with this experiment.
+const openTelemetryExporterEnvVar = "OTEL_TRACES_EXPORTER"
+
+// tracer is the OpenTelemetry tracer to use for traces in package main only.
+var tracer trace.Tracer
+
+func init() {
+	tracer = otel.Tracer("github.com/hashicorp/terraform")
+}
+
+// openTelemetryInit initializes the optional OpenTelemetry exporter.
+//
+// By default we don't export telemetry information at all, since Terraform is
+// a CLI tool and so we don't assume we're running in an environment with
+// a telemetry collector available.
+//
+// However, for those running Terraform in automation we allow setting
+// the standard OpenTelemetry environment variable OTEL_TRACES_EXPORTER=otlp
+// to enable an OTLP exporter, which is in turn configured by all of the
+// standard OTLP exporter environment variables:
+//
+//	https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration-options
+//
+// We don't currently support any other telemetry export protocols, because
+// OTLP has emerged as a de-facto standard and each other exporter we support
+// means another relatively-heavy external dependency. OTLP happens to use
+// protocol buffers and gRPC, which Terraform would depend on for other reasons
+// anyway.
+func openTelemetryInit() error {
+	// We'll check the environment variable ourselves first, because the
+	// "autoexport" helper we're about to use is built under the assumption
+	// that exporting should always be enabled and so will expect to find
+	// an OTLP server on localhost if no environment variables are set at all.
+	if os.Getenv(openTelemetryExporterEnvVar) != "otlp" {
+		return nil // By default we just discard all telemetry calls
+	}
+
+	otelResource := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String("Terraform CLI"),
+		semconv.ServiceVersionKey.String(version.Version),
+	)
+
+	// If the environment variable was set to explicitly enable telemetry
+	// then we'll enable it, using the "autoexport" library to automatically
+	// handle the details based on the other OpenTelemetry standard environment
+	// variables.
+	exp, err := autoexport.NewSpanExporter(context.Background())
+	if err != nil {
+		return err
+	}
+	sp := sdktrace.NewSimpleSpanProcessor(exp)
+	provider := sdktrace.NewTracerProvider(
+		sdktrace.WithSpanProcessor(sp),
+		sdktrace.WithResource(otelResource),
+	)
+	otel.SetTracerProvider(provider)
+
+	pgtr := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(pgtr)
+
+	return nil
+}
+
+
+# FILE: signal_windows.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+//go:build windows
+// +build windows
+
+package main
+
+import (
+	"os"
+)
+
+var ignoreSignals = []os.Signal{os.Interrupt}
+var forwardSignals []os.Signal
+
+
+# FILE: signal_unix.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+//go:build !windows
+// +build !windows
+
+package main
+
+import (
+	"os"
+	"syscall"
+)
+
+var ignoreSignals = []os.Signal{os.Interrupt}
+var forwardSignals = []os.Signal{syscall.SIGTERM}
+
+
+# FILE: provider_source.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/url"
+	"os"
+	"path/filepath"
+
+	"github.com/apparentlymart/go-userdirs/userdirs"
+	"github.com/hashicorp/terraform-svchost/disco"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// providerSource constructs a provider source based on a combination of the
+// CLI configuration and some default search locations. This will be the
+// provider source used for provider installation in the "terraform init"
+// command, unless overridden by the special -plugin-dir option.
+func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	if len(configs) == 0 {
+		// If there's no explicit installation configuration then we'll build
+		// up an implicit one with direct registry installation along with
+		// some automatically-selected local filesystem mirrors.
+		return implicitProviderSource(services), nil
+	}
+
+	// There should only be zero or one configurations, which is checked by
+	// the validation logic in the cliconfig package. Therefore we'll just
+	// ignore any additional configurations in here.
+	config := configs[0]
+	return explicitProviderSource(config, services)
+}
+
+func explicitProviderSource(config *cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var searchRules []getproviders.MultiSourceSelector
+
+	log.Printf("[DEBUG] Explicit provider installation configuration is set")
+	for _, methodConfig := range config.Methods {
+		source, moreDiags := providerSourceForCLIConfigLocation(methodConfig.Location, services)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+
+		include, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Include)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider source inclusion patterns",
+				fmt.Sprintf("CLI config specifies invalid provider inclusion patterns: %s.", err),
+			))
+			continue
+		}
+		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Exclude)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider source exclusion patterns",
+				fmt.Sprintf("CLI config specifies invalid provider exclusion patterns: %s.", err),
+			))
+			continue
+		}
+
+		searchRules = append(searchRules, getproviders.MultiSourceSelector{
+			Source:  source,
+			Include: include,
+			Exclude: exclude,
+		})
+
+		log.Printf("[TRACE] Selected provider installation method %#v with includes %s and excludes %s", methodConfig.Location, include, exclude)
+	}
+
+	return getproviders.MultiSource(searchRules), diags
+}
+
+// implicitProviderSource builds a default provider source to use if there's
+// no explicit provider installation configuration in the CLI config.
+//
+// This implicit source looks in a number of local filesystem directories and
+// directly in a provider's upstream registry. Any providers that have at least
+// one version available in a local directory are implicitly excluded from
+// direct installation, as if the user had listed them explicitly in the
+// "exclude" argument in the direct provider source in the CLI config.
+func implicitProviderSource(services *disco.Disco) getproviders.Source {
+	// The local search directories we use for implicit configuration are:
+	// - The "terraform.d/plugins" directory in the current working directory,
+	//   which we've historically documented as a place to put plugins as a
+	//   way to include them in bundles uploaded to HCP Terraform, where
+	//   there has historically otherwise been no way to use custom providers.
+	// - The "plugins" subdirectory of the CLI config search directory.
+	//   (thats ~/.terraform.d/plugins on Unix systems, equivalents elsewhere)
+	// - The "plugins" subdirectory of any platform-specific search paths,
+	//   following e.g. the XDG base directory specification on Unix systems,
+	//   Apple's guidelines on OS X, and "known folders" on Windows.
+	//
+	// Any provider we find in one of those implicit directories will be
+	// automatically excluded from direct installation from an upstream
+	// registry. Anything not available locally will query its primary
+	// upstream registry.
+	var searchRules []getproviders.MultiSourceSelector
+
+	// We'll track any providers we can find in the local search directories
+	// along the way, and then exclude them from the registry source we'll
+	// finally add at the end.
+	foundLocally := map[addrs.Provider]struct{}{}
+
+	addLocalDir := func(dir string) {
+		// We'll make sure the directory actually exists before we add it,
+		// because otherwise installation would always fail trying to look
+		// in non-existent directories. (This is done here rather than in
+		// the source itself because explicitly-selected directories via the
+		// CLI config, once we have them, _should_ produce an error if they
+		// don't exist to help users get their configurations right.)
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			log.Printf("[DEBUG] will search for provider plugins in %s", dir)
+			fsSource := getproviders.NewFilesystemMirrorSource(dir)
+
+			// We'll peep into the source to find out what providers it seems
+			// to be providing, so that we can exclude those from direct
+			// install. This might fail, in which case we'll just silently
+			// ignore it and assume it would fail during installation later too
+			// and therefore effectively doesn't provide _any_ packages.
+			if available, err := fsSource.AllAvailablePackages(); err == nil {
+				for found := range available {
+					foundLocally[found] = struct{}{}
+				}
+			}
+
+			searchRules = append(searchRules, getproviders.MultiSourceSelector{
+				Source: fsSource,
+			})
+
+		} else {
+			log.Printf("[DEBUG] ignoring non-existing provider search directory %s", dir)
+		}
+	}
+
+	addLocalDir("terraform.d/plugins") // our "vendor" directory
+	cliConfigDir, err := cliconfig.ConfigDir()
+	if err == nil {
+		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
+	}
+
+	// This "userdirs" library implements an appropriate user-specific and
+	// app-specific directory layout for the current platform, such as XDG Base
+	// Directory on Unix, using the following name strings to construct a
+	// suitable application-specific subdirectory name following the
+	// conventions for each platform:
+	//
+	//   XDG (Unix): lowercase of the first string, "terraform"
+	//   Windows:    two-level hierarchy of first two strings, "HashiCorp\Terraform"
+	//   OS X:       reverse-DNS unique identifier, "io.terraform".
+	sysSpecificDirs := userdirs.ForApp("Terraform", "HashiCorp", "io.terraform")
+	for _, dir := range sysSpecificDirs.DataSearchPaths("plugins") {
+		addLocalDir(dir)
+	}
+
+	// Anything we found in local directories above is excluded from being
+	// looked up via the registry source we're about to construct.
+	var directExcluded getproviders.MultiSourceMatchingPatterns
+	for addr := range foundLocally {
+		directExcluded = append(directExcluded, addr)
+	}
+
+	// Last but not least, the main registry source! We'll wrap a caching
+	// layer around this one to help optimize the several network requests
+	// we'll end up making to it while treating it as one of several sources
+	// in a MultiSource (as recommended in the MultiSource docs).
+	// This one is listed last so that if a particular version is available
+	// both in one of the above directories _and_ in a remote registry, the
+	// local copy will take precedence.
+	searchRules = append(searchRules, getproviders.MultiSourceSelector{
+		Source: getproviders.NewMemoizeSource(
+			getproviders.NewRegistrySource(services),
+		),
+		Exclude: directExcluded,
+	})
+
+	return getproviders.MultiSource(searchRules)
+}
+
+func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	if loc == cliconfig.ProviderInstallationDirect {
+		return getproviders.NewMemoizeSource(
+			getproviders.NewRegistrySource(services),
+		), nil
+	}
+
+	switch loc := loc.(type) {
+
+	case cliconfig.ProviderInstallationFilesystemMirror:
+		return getproviders.NewFilesystemMirrorSource(string(loc)), nil
+
+	case cliconfig.ProviderInstallationNetworkMirror:
+		url, err := url.Parse(string(loc))
+		if err != nil {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot parse %q as a URL for a network provider mirror: %s.", string(loc), err),
+			))
+			return nil, diags
+		}
+		if url.Scheme != "https" || url.Host == "" {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot use %q as a URL for a network provider mirror: the mirror must be at an https: URL.", string(loc)),
+			))
+			return nil, diags
+		}
+		return getproviders.NewHTTPMirrorSource(url, services.CredentialsSource()), nil
+
+	default:
+		// We should not get here because the set of cases above should
+		// be comprehensive for all of the
+		// cliconfig.ProviderInstallationLocation implementations.
+		panic(fmt.Sprintf("unexpected provider source location type %T", loc))
+	}
+}
+
+func providerDevOverrides(configs []*cliconfig.ProviderInstallation) map[addrs.Provider]getproviders.PackageLocalDir {
+	if len(configs) == 0 {
+		return nil
+	}
+
+	// There should only be zero or one configurations, which is checked by
+	// the validation logic in the cliconfig package. Therefore we'll just
+	// ignore any additional configurations in here.
+	return configs[0].DevOverrides
+}
+
+
+# FILE: main_test.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/hashicorp/cli"
+)
+
+func TestMain_cliArgsFromEnv(t *testing.T) {
+	// Set up the state. This test really messes with the environment and
+	// global state so we set things up to be restored.
+
+	// Restore original CLI args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Set up test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
+	testCommandName := "unit-test-cli-args"
+	testCommand := &testCommandCLI{}
+	Commands[testCommandName] = func() (cli.Command, error) {
+		return testCommand, nil
+	}
+
+	cases := []struct {
+		Name     string
+		Args     []string
+		EnvValue string
+		Expected []string
+		Err      bool
+	}{
+		{
+			"no env",
+			[]string{testCommandName, "foo", "bar"},
+			"",
+			[]string{"foo", "bar"},
+			false,
+		},
+
+		{
+			"both env var and CLI",
+			[]string{testCommandName, "foo", "bar"},
+			"-foo baz",
+			[]string{"-foo", "baz", "foo", "bar"},
+			false,
+		},
+
+		{
+			"only env var",
+			[]string{testCommandName},
+			"-foo bar",
+			[]string{"-foo", "bar"},
+			false,
+		},
+
+		{
+			"cli string has blank values",
+			[]string{testCommandName, "bar", "", "baz"},
+			"-foo bar",
+			[]string{"-foo", "bar", "bar", "", "baz"},
+			false,
+		},
+
+		{
+			"cli string has blank values before the command",
+			[]string{"", testCommandName, "bar"},
+			"-foo bar",
+			[]string{"-foo", "bar", "bar"},
+			false,
+		},
+
+		{
+			// this should fail gracefully, this is just testing
+			// that we don't panic with our slice arithmetic
+			"no command",
+			[]string{},
+			"-foo bar",
+			nil,
+			true,
+		},
+
+		{
+			"single quoted strings",
+			[]string{testCommandName, "foo"},
+			"-foo 'bar baz'",
+			[]string{"-foo", "bar baz", "foo"},
+			false,
+		},
+
+		{
+			"double quoted strings",
+			[]string{testCommandName, "foo"},
+			`-foo "bar baz"`,
+			[]string{"-foo", "bar baz", "foo"},
+			false,
+		},
+
+		{
+			"double quoted single quoted strings",
+			[]string{testCommandName, "foo"},
+			`-foo "'bar baz'"`,
+			[]string{"-foo", "'bar baz'", "foo"},
+			false,
+		},
+
+		{
+			"backticks taken literally",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically execute commands written in
+			// backticks. This test is here to make sure we don't accidentally
+			// enable that.
+			[]string{testCommandName, "foo"},
+			"-foo `echo nope`",
+			[]string{"-foo", "`echo nope`", "foo"},
+			false,
+		},
+
+		{
+			"no nested environment variable expansion",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically expand sequences that appear
+			// to be environment variable interpolations. This test is here to
+			// make sure we don't accidentally enable that.
+			[]string{testCommandName, "foo"},
+			"-foo $OTHER_ENV",
+			[]string{"-foo", "$OTHER_ENV", "foo"},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			t.Setenv(EnvCLI, tc.EnvValue)
+			t.Setenv("OTHER_ENV", "placeholder")
+
+			// Set up the args
+			args := make([]string, len(tc.Args)+1)
+			args[0] = oldArgs[0] // process name
+			copy(args[1:], tc.Args)
+
+			// Run it!
+			os.Args = args
+			testCommand.Args = nil
+			exit := realMain()
+			if (exit != 0) != tc.Err {
+				t.Fatalf("bad: %d", exit)
+			}
+			if tc.Err {
+				return
+			}
+
+			// Verify
+			if !reflect.DeepEqual(testCommand.Args, tc.Expected) {
+				t.Fatalf("expected args %#v but got %#v", tc.Expected, testCommand.Args)
+			}
+		})
+	}
+}
+
+// This test just has more options than the test above. Use this for
+// more control over behavior at the expense of more complex test structures.
+func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
+	// Restore original CLI args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Set up test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
+
+	cases := []struct {
+		Name     string
+		Command  string
+		EnvVar   string
+		Args     []string
+		Value    string
+		Expected []string
+		Err      bool
+	}{
+		{
+			"targeted to another command",
+			"command",
+			EnvCLI + "_foo",
+			[]string{"command", "foo", "bar"},
+			"-flag",
+			[]string{"foo", "bar"},
+			false,
+		},
+
+		{
+			"targeted to this command",
+			"command",
+			EnvCLI + "_command",
+			[]string{"command", "foo", "bar"},
+			"-flag",
+			[]string{"-flag", "foo", "bar"},
+			false,
+		},
+
+		{
+			"targeted to a command with a hyphen",
+			"command-name",
+			EnvCLI + "_command_name",
+			[]string{"command-name", "foo", "bar"},
+			"-flag",
+			[]string{"-flag", "foo", "bar"},
+			false,
+		},
+
+		{
+			"targeted to a command with a space",
+			"command name",
+			EnvCLI + "_command_name",
+			[]string{"command", "name", "foo", "bar"},
+			"-flag",
+			[]string{"-flag", "foo", "bar"},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			// Set up test command and restore that
+			testCommandName := tc.Command
+			testCommand := &testCommandCLI{}
+			defer func() { delete(Commands, testCommandName) }()
+			Commands[testCommandName] = func() (cli.Command, error) {
+				return testCommand, nil
+			}
+
+			os.Unsetenv(tc.EnvVar)
+			defer os.Unsetenv(tc.EnvVar)
+
+			// Set the env var value
+			if tc.Value != "" {
+				if err := os.Setenv(tc.EnvVar, tc.Value); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			// Set up the args
+			args := make([]string, len(tc.Args)+1)
+			args[0] = oldArgs[0] // process name
+			copy(args[1:], tc.Args)
+
+			// Run it!
+			os.Args = args
+			testCommand.Args = nil
+			exit := realMain()
+			if (exit != 0) != tc.Err {
+				t.Fatalf("unexpected exit status %d; want 0", exit)
+			}
+			if tc.Err {
+				return
+			}
+
+			// Verify
+			if !reflect.DeepEqual(testCommand.Args, tc.Expected) {
+				t.Fatalf("bad: %#v", testCommand.Args)
+			}
+		})
+	}
+}
+
+// verify that we output valid autocomplete results
+func TestMain_autoComplete(t *testing.T) {
+	// Restore original CLI args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Restore stdout
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	defer func() { os.Stdout = old }()
+
+	// Set up test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
+	Commands["version"] = func() (cli.Command, error) {
+		return &testCommandCLI{}, nil
+	}
+
+	// Run command that should get autocomplete suggestion "version"
+	os.Setenv("COMP_LINE", "terraform versio")
+	defer os.Unsetenv("COMP_LINE")
+	os.Args = []string{"terraform", "terraform", "versio"}
+	exit := realMain()
+	if exit != 0 {
+		t.Fatalf("unexpected exit status %d; want 0", exit)
+	}
+
+	// Check autocomplete suggestion
+	expectedAutocomplete := "version"
+	b := make([]byte, 25)
+	n, err := r.Read(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(b[0:n])
+	output = strings.ReplaceAll(output, "\n", "")
+	if output != expectedAutocomplete {
+		t.Fatalf("expected autocompletion to return %q, but got %q", expectedAutocomplete, output)
+	}
+
+	// Run command that should NOT get an autocomplete suggestion
+	r, w, _ = os.Pipe()
+	os.Stdout = w
+
+	os.Setenv("COMP_LINE", "terraform zzz")
+	defer os.Unsetenv("COMP_LINE")
+	os.Args = []string{"terraform", "terraform", "zzz"}
+	exit = realMain()
+	if exit != 0 {
+		t.Fatalf("unexpected exit status %d; want 0", exit)
+	}
+
+	// Avoid infinite blocking in this case, where no autocomplete suggestions are returned
+	r.SetReadDeadline(time.Now().Add(time.Duration(1 * time.Second)))
+
+	// Check autocomplete suggestion
+	b = make([]byte, 25)
+	n, err = r.Read(b)
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Fatalf("expected autocompletion to return 0 bytes, but got %d: %q", n, b[0:n])
+	}
+}
+
+type testCommandCLI struct {
+	Args []string
+}
+
+func (c *testCommandCLI) Run(args []string) int {
+	c.Args = args
+	return 0
+}
+
+func (c *testCommandCLI) Synopsis() string { return "" }
+func (c *testCommandCLI) Help() string     { return "" }
+
+func TestWarnOutput(t *testing.T) {
+	mock := cli.NewMockUi()
+	wrapped := &ui{mock}
+	wrapped.Warn("WARNING")
+
+	stderr := mock.ErrorWriter.String()
+	stdout := mock.OutputWriter.String()
+
+	if stderr != "" {
+		t.Fatalf("unexpected stderr: %q", stderr)
+	}
+
+	if stdout != "WARNING\n" {
+		t.Fatalf("unexpected stdout: %q\n", stdout)
+	}
+}
+
+
+# FILE: main.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+
+	"github.com/apparentlymart/go-shquot/shquot"
+	"github.com/hashicorp/cli"
+	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
+	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/version"
+	"github.com/mattn/go-shellwords"
+	"github.com/mitchellh/colorstring"
+	"go.opentelemetry.io/otel/trace"
+
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+)
+
+const (
+	// EnvCLI is the environment variable name to set additional CLI args.
+	EnvCLI = "TF_CLI_ARGS"
+
+	// The parent process will create a file to collect crash logs
+	envTmpLogPath = "TF_TEMP_LOG_PATH"
+)
+
+// ui wraps the primary output cli.Ui, and redirects Warn calls to Output
+// calls. This ensures that warnings are sent to stdout, and are properly
+// serialized within the stdout stream.
+type ui struct {
+	cli.Ui
+}
+
+func (u *ui) Warn(msg string) {
+	u.Ui.Output(msg)
+}
+
+func init() {
+	Ui = &ui{&cli.BasicUi{
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+		Reader:      os.Stdin,
+	}}
+}
+
+func main() {
+	os.Exit(realMain())
+}
+
+func realMain() int {
+	defer logging.PanicHandler()
+
+	var err error
+
+	err = openTelemetryInit()
+	if err != nil {
+		// openTelemetryInit can only fail if Terraform was run with an
+		// explicit environment variable to enable telemetry collection,
+		// so in typical use we cannot get here.
+		Ui.Error(fmt.Sprintf("Could not initialize telemetry: %s", err))
+		Ui.Error(fmt.Sprintf("Unset environment variable %s if you don't intend to collect telemetry from Terraform.", openTelemetryExporterEnvVar))
+		return 1
+	}
+	var ctx context.Context
+	var otelSpan trace.Span
+	{
+		// At minimum we emit a span covering the entire command execution.
+		_, displayArgs := shquot.POSIXShellSplit(os.Args)
+		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		defer otelSpan.End()
+	}
+
+	tmpLogPath := os.Getenv(envTmpLogPath)
+	if tmpLogPath != "" {
+		f, err := os.OpenFile(tmpLogPath, os.O_RDWR|os.O_APPEND, 0666)
+		if err == nil {
+			defer f.Close()
+
+			log.Printf("[DEBUG] Adding temp file log sink: %s", f.Name())
+			logging.RegisterSink(f)
+		} else {
+			log.Printf("[ERROR] Could not open temp log file: %v", err)
+		}
+	}
+
+	log.Printf(
+		"[INFO] Terraform version: %s %s",
+		Version, VersionPrerelease)
+	for _, depMod := range version.InterestingDependencies() {
+		log.Printf("[DEBUG] using %s %s", depMod.Path, depMod.Version)
+	}
+	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
+	log.Printf("[INFO] CLI args: %#v", os.Args)
+	if ExperimentsAllowed() {
+		log.Printf("[INFO] This build of Terraform allows using experimental features")
+	}
+
+	streams, err := terminal.Init()
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Failed to configure the terminal: %s", err))
+		return 1
+	}
+	if streams.Stdout.IsTerminal() {
+		log.Printf("[TRACE] Stdout is a terminal of width %d", streams.Stdout.Columns())
+	} else {
+		log.Printf("[TRACE] Stdout is not a terminal")
+	}
+	if streams.Stderr.IsTerminal() {
+		log.Printf("[TRACE] Stderr is a terminal of width %d", streams.Stderr.Columns())
+	} else {
+		log.Printf("[TRACE] Stderr is not a terminal")
+	}
+	if streams.Stdin.IsTerminal() {
+		log.Printf("[TRACE] Stdin is a terminal")
+	} else {
+		log.Printf("[TRACE] Stdin is not a terminal")
+	}
+
+	// NOTE: We're intentionally calling LoadConfig _before_ handling a possible
+	// -chdir=... option on the command line, so that a possible relative
+	// path in the TERRAFORM_CONFIG_FILE environment variable (though probably
+	// ill-advised) will be resolved relative to the true working directory,
+	// not the overridden one.
+	config, diags := cliconfig.LoadConfig()
+
+	if len(diags) > 0 {
+		// Since we haven't instantiated a command.Meta yet, we need to do
+		// some things manually here and use some "safe" defaults for things
+		// that command.Meta could otherwise figure out in smarter ways.
+		Ui.Error("There are some problems with the CLI configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			// We don't currently have access to the source code cache for
+			// the parser used to load the CLI config, so we can't show
+			// source code snippets in early diagnostics.
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			// We continue to run anyway, since Terraform has reasonable defaults.
+		}
+	}
+
+	// Get any configured credentials from the config and initialize
+	// a service discovery object. The slightly awkward predeclaration of
+	// disco is required to allow us to pass untyped nil as the creds source
+	// when creating the source fails. Otherwise we pass a typed nil which
+	// breaks the nil checks in the disco object
+	var services *disco.Disco
+	credsSrc, err := credentialsSource(config)
+	if err == nil {
+		services = disco.NewWithCredentialsSource(credsSrc)
+	} else {
+		// Most commands don't actually need credentials, and most situations
+		// that would get us here would already have been reported by the config
+		// loading above, so we'll just log this one as an aid to debugging
+		// in the unlikely event that it _does_ arise.
+		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
+		// passing (untyped) nil as the creds source is okay because the disco
+		// object checks that and just acts as though no credentials are present.
+		services = disco.NewWithCredentialsSource(nil)
+	}
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+
+	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	if len(diags) > 0 {
+		Ui.Error("There are some problems with the provider_installation configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform's provider installer may not behave as intended.\n\n")
+			// We continue to run anyway, because most commands don't do provider installation.
+		}
+	}
+	providerDevOverrides := providerDevOverrides(config.ProviderInstallation)
+
+	// The user can declare that certain providers are being managed on
+	// Terraform's behalf using this environment variable. This is used
+	// primarily by the SDK's acceptance testing framework.
+	unmanagedProviders, err := reattach.ParseReattachProviders(os.Getenv(reattach.TF_REATTACH_PROVIDERS))
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
+	// Initialize the backends.
+	backendInit.Init(services)
+
+	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
+	args := os.Args[1:]
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		// It would be very strange to end up here
+		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+		return 1
+	}
+
+	// The arguments can begin with a -chdir option to ask Terraform to switch
+	// to a different working directory for the rest of its work. If that
+	// option is present then extractChdirOption returns a trimmed args with that option removed.
+	overrideWd, args, err := extractChdirOption(args)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
+		return 1
+	}
+	if overrideWd != "" {
+		err := os.Chdir(overrideWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
+			return 1
+		}
+	}
+
+	// In tests, Commands may already be set to provide mock commands
+	if Commands == nil {
+		// Commands get to hold on to the original working directory here,
+		// in case they need to refer back to it for any special reason, though
+		// they should primarily be working with the override working directory
+		// that we've now switched to above.
+		initCommands(ctx, originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
+	}
+
+	// Run checkpoint
+	go runCheckpoint(ctx, config)
+
+	// Make sure we clean up any managed plugins at the end of this
+	defer plugin.CleanupClients()
+
+	// Build the CLI so far, we do this so we can query the subcommand.
+	cliRunner := &cli.CLI{
+		Args:       args,
+		Commands:   Commands,
+		HelpFunc:   helpFunc,
+		HelpWriter: os.Stdout,
+	}
+
+	// Prefix the args with any args from the EnvCLI
+	args, err = mergeEnvArgs(EnvCLI, cliRunner.Subcommand(), args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
+	// Prefix the args with any args from the EnvCLI targeting this command
+	suffix := strings.Replace(strings.Replace(
+		cliRunner.Subcommand(), "-", "_", -1), " ", "_", -1)
+	args, err = mergeEnvArgs(
+		fmt.Sprintf("%s_%s", EnvCLI, suffix), cliRunner.Subcommand(), args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
+	// We shortcut "--version" and "-v" to just show the version
+	for _, arg := range args {
+		if arg == "-v" || arg == "-version" || arg == "--version" {
+			newArgs := make([]string, len(args)+1)
+			newArgs[0] = "version"
+			copy(newArgs[1:], args)
+			args = newArgs
+			break
+		}
+	}
+
+	// Rebuild the CLI with any modified args.
+	log.Printf("[INFO] CLI command args: %#v", args)
+	cliRunner = &cli.CLI{
+		Name:       binName,
+		Args:       args,
+		Commands:   Commands,
+		HelpFunc:   helpFunc,
+		HelpWriter: os.Stdout,
+
+		Autocomplete:          true,
+		AutocompleteInstall:   "install-autocomplete",
+		AutocompleteUninstall: "uninstall-autocomplete",
+	}
+
+	// Before we continue we'll check whether the requested command is
+	// actually known. If not, we might be able to suggest an alternative
+	// if it seems like the user made a typo.
+	// (This bypasses the built-in help handling in cli.CLI for the situation
+	// where a command isn't found, because it's likely more helpful to
+	// mention what specifically went wrong, rather than just printing out
+	// a big block of usage information.)
+
+	// Check if this is being run via shell auto-complete, which uses the
+	// binary name as the first argument and won't be listed as a subcommand.
+	autoComplete := os.Getenv("COMP_LINE") != ""
+
+	if cmd := cliRunner.Subcommand(); cmd != "" && !autoComplete {
+		// Due to the design of cli.CLI, this special error message only works
+		// for typos of top-level commands. For a subcommand typo, like
+		// "terraform state posh", cmd would be "state" here and thus would
+		// be considered to exist, and it would print out its own usage message.
+		if _, exists := Commands[cmd]; !exists {
+			suggestions := make([]string, 0, len(Commands))
+			for name := range Commands {
+				suggestions = append(suggestions, name)
+			}
+			suggestion := didyoumean.NameSuggestion(cmd, suggestions)
+			if suggestion != "" {
+				suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+			}
+			fmt.Fprintf(os.Stderr, "Terraform has no command named %q.%s\n\nTo see all of Terraform's top-level commands, run:\n  terraform -help\n\n", cmd, suggestion)
+			return 1
+		}
+	}
+
+	exitCode, err := cliRunner.Run()
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
+		return 1
+	}
+
+	// if we are exiting with a non-zero code, check if it was caused by any
+	// plugins crashing
+	if exitCode != 0 {
+		for _, panicLog := range logging.PluginPanics() {
+			Ui.Error(panicLog)
+		}
+	}
+
+	return exitCode
+}
+
+func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
+	v := os.Getenv(envName)
+	if v == "" {
+		return args, nil
+	}
+
+	swParser := &shellwords.Parser{
+		ParseEnv:      false,
+		ParseBacktick: false,
+	}
+
+	log.Printf("[INFO] %s value: %q", envName, v)
+	extra, err := swParser.Parse(v)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error parsing extra CLI args from %s: %s",
+			envName, err)
+	}
+
+	// Find the command to look for in the args. If there is a space,
+	// we need to find the last part.
+	search := cmd
+	if idx := strings.LastIndex(search, " "); idx >= 0 {
+		search = cmd[idx+1:]
+	}
+
+	// Find the index to place the flags. We put them exactly
+	// after the first non-flag arg.
+	idx := -1
+	for i, v := range args {
+		if v == search {
+			idx = i
+			break
+		}
+	}
+
+	// idx points to the exact arg that isn't a flag. We increment
+	// by one so that all the copying below expects idx to be the
+	// insertion point.
+	idx++
+
+	// Copy the args
+	newArgs := make([]string, len(args)+len(extra))
+	copy(newArgs, args[:idx])
+	copy(newArgs[idx:], extra)
+	copy(newArgs[len(extra)+idx:], args[idx:])
+	return newArgs, nil
+}
+
+func extractChdirOption(args []string) (string, []string, error) {
+	if len(args) == 0 {
+		return "", args, nil
+	}
+
+	const argName = "-chdir"
+	const argPrefix = argName + "="
+	var argValue string
+	var argPos int
+
+	for i, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			// Because the chdir option is a subcommand-agnostic one, we require
+			// it to appear before any subcommand argument, so if we find a
+			// non-option before we find -chdir then we are finished.
+			break
+		}
+		if arg == argName || arg == argPrefix {
+			return "", args, fmt.Errorf("must include an equals sign followed by a directory path, like -chdir=example")
+		}
+		if strings.HasPrefix(arg, argPrefix) {
+			argPos = i
+			argValue = arg[len(argPrefix):]
+		}
+	}
+
+	// When we fall out here, we'll have populated argValue with a non-empty
+	// string if the -chdir=... option was present and valid, or left it
+	// empty if it wasn't present.
+	if argValue == "" {
+		return "", args, nil
+	}
+
+	// If we did find the option then we'll need to produce a new args that
+	// doesn't include it anymore.
+	if argPos == 0 {
+		// Easy case: we can just slice off the front
+		return argValue, args[1:], nil
+	}
+	// Otherwise we need to construct a new array and copy to it.
+	newArgs := make([]string, len(args)-1)
+	copy(newArgs, args[:argPos])
+	copy(newArgs[argPos:], args[argPos+1:])
+	return argValue, newArgs, nil
+}
+
+
+# FILE: help.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"log"
+	"sort"
+	"strings"
+
+	"github.com/hashicorp/cli"
+)
+
+// helpFunc is a cli.HelpFunc that can be used to output the help CLI instructions for Terraform.
+func helpFunc(commands map[string]cli.CommandFactory) string {
+	// Determine the maximum key length, and classify based on type
+	var otherCommands []string
+	maxKeyLen := 0
+
+	for key := range commands {
+		if _, ok := HiddenCommands[key]; ok {
+			// We don't consider hidden commands when deciding the
+			// maximum command length.
+			continue
+		}
+
+		if len(key) > maxKeyLen {
+			maxKeyLen = len(key)
+		}
+
+		isOther := true
+		for _, candidate := range PrimaryCommands {
+			if candidate == key {
+				isOther = false
+				break
+			}
+		}
+		if isOther {
+			otherCommands = append(otherCommands, key)
+		}
+	}
+	sort.Strings(otherCommands)
+
+	// The output produced by this is included in the docs at
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
+	// change this then consider updating that to match.
+	helpText := fmt.Sprintf(`
+Usage: terraform [global options] <subcommand> [args]
+
+The available commands for execution are listed below.
+The primary workflow commands are given first, followed by
+less common or more advanced commands.
+
+Main commands:
+%s
+All other commands:
+%s
+Global options (use these before the subcommand, if any):
+  -chdir=DIR    Switch to a different working directory before executing the
+                given subcommand.
+  -help         Show this help output or the help for a specified subcommand.
+  -version      An alias for the "version" subcommand.
+`, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
+
+	return strings.TrimSpace(helpText)
+}
+
+// listCommands just lists the commands in the map with the
+// given maximum key length.
+func listCommands(allCommands map[string]cli.CommandFactory, order []string, maxKeyLen int) string {
+	var buf bytes.Buffer
+
+	for _, key := range order {
+		commandFunc, ok := allCommands[key]
+		if !ok {
+			// This suggests an inconsistency in the command table definitions
+			// in commands.go .
+			panic("command not found: " + key)
+		}
+
+		command, err := commandFunc()
+		if err != nil {
+			// This would be really weird since there's no good reason for
+			// any of our command factories to fail.
+			log.Printf("[ERR] cli: Command '%s' failed to load: %s",
+				key, err)
+			continue
+		}
+
+		key = fmt.Sprintf("%s%s", key, strings.Repeat(" ", maxKeyLen-len(key)))
+		buf.WriteString(fmt.Sprintf("  %s  %s\n", key, command.Synopsis()))
+	}
+
+	return buf.String()
+}
+
+
+# FILE: experiments.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+// experimentsAllowed can be set to any non-empty string using Go linker
+// arguments in order to enable the use of experimental features for a
+// particular Terraform build:
+//
+//	go install -ldflags="-X 'main.experimentsAllowed=yes'"
+//
+// By default this variable is initialized as empty, in which case
+// experimental features are not available.
+//
+// The Terraform release process should arrange for this variable to be
+// set for alpha releases and development snapshots, but _not_ for
+// betas, release candidates, or final releases.
+//
+// (NOTE: Some experimental features predate the rule that experiments
+// are available only for alpha/dev builds, and so intentionally do not
+// make use of this setting to avoid retracting a previously-documented
+// open experiment.)
+var experimentsAllowed string
+
+func ExperimentsAllowed() bool {
+	return experimentsAllowed != ""
+}
+
+
+# FILE: commands.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"context"
+	"os"
+	"os/signal"
+
+	"github.com/hashicorp/cli"
+	"github.com/hashicorp/go-plugin"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/rpcapi"
+	"github.com/hashicorp/terraform/internal/terminal"
+)
+
+// runningInAutomationEnvName gives the name of an environment variable that
+// can be set to any non-empty value in order to suppress certain messages
+// that assume that Terraform is being run from a command prompt.
+const runningInAutomationEnvName = "TF_IN_AUTOMATION"
+
+// Commands is the mapping of all the available Terraform commands.
+var Commands map[string]cli.CommandFactory
+
+// PrimaryCommands is an ordered sequence of the top-level commands (not
+// subcommands) that we emphasize at the top of our help output. This is
+// ordered so that we can show them in the typical workflow order, rather
+// than in alphabetical order. Anything not in this sequence or in the
+// HiddenCommands set appears under "all other commands".
+var PrimaryCommands []string
+
+// HiddenCommands is a set of top-level commands (not subcommands) that are
+// not advertised in the top-level help at all. This is typically because
+// they are either just stubs that return an error message about something
+// no longer being supported or backward-compatibility aliases for other
+// commands.
+//
+// No commands in the PrimaryCommands sequence should also appear in the
+// HiddenCommands set, because that would be rather silly.
+var HiddenCommands map[string]struct{}
+
+// Ui is the cli.Ui used for communicating to the outside world.
+var Ui cli.Ui
+
+func initCommands(
+	ctx context.Context,
+	originalWorkingDir string,
+	streams *terminal.Streams,
+	config *cliconfig.Config,
+	services *disco.Disco,
+	providerSrc getproviders.Source,
+	providerDevOverrides map[addrs.Provider]getproviders.PackageLocalDir,
+	unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig,
+) {
+	var inAutomation bool
+	if v := os.Getenv(runningInAutomationEnvName); v != "" {
+		inAutomation = true
+	}
+
+	for userHost, hostConfig := range config.Hosts {
+		host, err := svchost.ForComparison(userHost)
+		if err != nil {
+			// We expect the config was already validated by the time we get
+			// here, so we'll just ignore invalid hostnames.
+			continue
+		}
+		services.ForceHostServices(host, hostConfig.Services)
+	}
+
+	configDir, err := cliconfig.ConfigDir()
+	if err != nil {
+		configDir = "" // No config dir available (e.g. looking up a home directory failed)
+	}
+
+	wd := WorkingDir(originalWorkingDir, os.Getenv("TF_DATA_DIR"))
+
+	meta := command.Meta{
+		WorkingDir: wd,
+		Streams:    streams,
+		View:       views.NewView(streams).SetRunningInAutomation(inAutomation),
+
+		Color:            true,
+		GlobalPluginDirs: cliconfig.GlobalPluginDirs(),
+		Ui:               Ui,
+
+		Services:        services,
+		BrowserLauncher: webbrowser.NewNativeLauncher(),
+
+		RunningInAutomation: inAutomation,
+		CLIConfigDir:        configDir,
+		PluginCacheDir:      config.PluginCacheDir,
+
+		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
+
+		ShutdownCh:    makeShutdownCh(),
+		CallerContext: ctx,
+
+		ProviderSource:       providerSrc,
+		ProviderDevOverrides: providerDevOverrides,
+		UnmanagedProviders:   unmanagedProviders,
+
+		AllowExperimentalFeatures: ExperimentsAllowed(),
+	}
+
+	// The command list is included in the terraform -help
+	// output, which is in turn included in the docs at
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
+	// add, remove or reclassify commands then consider updating
+	// that to match.
+
+	Commands = map[string]cli.CommandFactory{
+		"apply": func() (cli.Command, error) {
+			return &command.ApplyCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"console": func() (cli.Command, error) {
+			return &command.ConsoleCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"destroy": func() (cli.Command, error) {
+			return &command.ApplyCommand{
+				Meta:    meta,
+				Destroy: true,
+			}, nil
+		},
+
+		"env": func() (cli.Command, error) {
+			return &command.WorkspaceCommand{
+				Meta:       meta,
+				LegacyName: true,
+			}, nil
+		},
+
+		"env list": func() (cli.Command, error) {
+			return &command.WorkspaceListCommand{
+				Meta:       meta,
+				LegacyName: true,
+			}, nil
+		},
+
+		"env select": func() (cli.Command, error) {
+			return &command.WorkspaceSelectCommand{
+				Meta:       meta,
+				LegacyName: true,
+			}, nil
+		},
+
+		"env new": func() (cli.Command, error) {
+			return &command.WorkspaceNewCommand{
+				Meta:       meta,
+				LegacyName: true,
+			}, nil
+		},
+
+		"env delete": func() (cli.Command, error) {
+			return &command.WorkspaceDeleteCommand{
+				Meta:       meta,
+				LegacyName: true,
+			}, nil
+		},
+
+		"fmt": func() (cli.Command, error) {
+			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"get": func() (cli.Command, error) {
+			return &command.GetCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"graph": func() (cli.Command, error) {
+			return &command.GraphCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"import": func() (cli.Command, error) {
+			return &command.ImportCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"init": func() (cli.Command, error) {
+			return &command.InitCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"login": func() (cli.Command, error) {
+			return &command.LoginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"logout": func() (cli.Command, error) {
+			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata": func() (cli.Command, error) {
+			return &command.MetadataCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata functions": func() (cli.Command, error) {
+			return &command.MetadataFunctionsCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"modules": func() (cli.Command, error) {
+			return &command.ModulesCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"output": func() (cli.Command, error) {
+			return &command.OutputCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"plan": func() (cli.Command, error) {
+			return &command.PlanCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers": func() (cli.Command, error) {
+			return &command.ProvidersCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers lock": func() (cli.Command, error) {
+			return &command.ProvidersLockCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers mirror": func() (cli.Command, error) {
+			return &command.ProvidersMirrorCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers schema": func() (cli.Command, error) {
+			return &command.ProvidersSchemaCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"push": func() (cli.Command, error) {
+			return &command.PushCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"query": func() (cli.Command, error) {
+			return &command.QueryCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"refresh": func() (cli.Command, error) {
+			return &command.RefreshCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		// "rpcapi" is handled a bit differently because the whole point of
+		// this interface is to bypass the CLI layer so wrapping automation can
+		// get as-direct-as-possible access to Terraform Core functionality,
+		// without interference from behaviors that are intended for CLI
+		// end-user convenience. We bypass the "command" package entirely
+		// for this command in particular.
+		"rpcapi": rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
+			ExperimentsAllowed: meta.AllowExperimentalFeatures,
+			ShutdownCh:         meta.ShutdownCh,
+		}),
+
+		"show": func() (cli.Command, error) {
+			return &command.ShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"taint": func() (cli.Command, error) {
+			return &command.TaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"test": func() (cli.Command, error) {
+			return &command.TestCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"validate": func() (cli.Command, error) {
+			return &command.ValidateCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"version": func() (cli.Command, error) {
+			return &command.VersionCommand{
+				Meta:              meta,
+				Version:           Version,
+				VersionPrerelease: VersionPrerelease,
+				Platform:          getproviders.CurrentPlatform,
+				CheckFunc:         commandVersionCheck,
+			}, nil
+		},
+
+		"untaint": func() (cli.Command, error) {
+			return &command.UntaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace": func() (cli.Command, error) {
+			return &command.WorkspaceCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace list": func() (cli.Command, error) {
+			return &command.WorkspaceListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace select": func() (cli.Command, error) {
+			return &command.WorkspaceSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace show": func() (cli.Command, error) {
+			return &command.WorkspaceShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace new": func() (cli.Command, error) {
+			return &command.WorkspaceNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"workspace delete": func() (cli.Command, error) {
+			return &command.WorkspaceDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		//-----------------------------------------------------------
+		// Plumbing
+		//-----------------------------------------------------------
+
+		"force-unlock": func() (cli.Command, error) {
+			return &command.UnlockCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state": func() (cli.Command, error) {
+			return &command.StateCommand{}, nil
+		},
+
+		"state list": func() (cli.Command, error) {
+			return &command.StateListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state identities": func() (cli.Command, error) {
+			return &command.StateIdentitiesCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state rm": func() (cli.Command, error) {
+			return &command.StateRmCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
+
+		"state mv": func() (cli.Command, error) {
+			return &command.StateMvCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
+
+		"state pull": func() (cli.Command, error) {
+			return &command.StatePullCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state push": func() (cli.Command, error) {
+			return &command.StatePushCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state show": func() (cli.Command, error) {
+			return &command.StateShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state replace-provider": func() (cli.Command, error) {
+			return &command.StateReplaceProviderCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
+
+		"stacks": func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		},
+	}
+
+	if meta.AllowExperimentalFeatures {
+		Commands["cloud"] = func() (cli.Command, error) {
+			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
+				Meta: meta,
+			}, nil
+		}
+	}
+
+	PrimaryCommands = []string{
+		"init",
+		"validate",
+		"plan",
+		"apply",
+		"destroy",
+	}
+
+	HiddenCommands = map[string]struct{}{
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
+		"rpcapi":          {},
+	}
+}
+
+// makeShutdownCh creates an interrupt listener and returns a channel.
+// A message will be sent on the channel for every interrupt received.
+func makeShutdownCh() <-chan struct{} {
+	resultCh := make(chan struct{})
+
+	signalCh := make(chan os.Signal, 4)
+	signal.Notify(signalCh, ignoreSignals...)
+	signal.Notify(signalCh, forwardSignals...)
+	go func() {
+		for {
+			<-signalCh
+			resultCh <- struct{}{}
+		}
+	}()
+
+	return resultCh
+}
+
+func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", cliconfig.GlobalPluginDirs())
+	return config.CredentialsSource(helperPlugins)
+}
+
+
+# FILE: checkpoint.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"path/filepath"
+
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/terraform/internal/command"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"go.opentelemetry.io/otel/codes"
+)
+
+func init() {
+	checkpointResult = make(chan *checkpoint.CheckResponse, 1)
+}
+
+var checkpointResult chan *checkpoint.CheckResponse
+
+// runCheckpoint runs a HashiCorp Checkpoint request. You can read about
+// Checkpoint here: https://github.com/hashicorp/go-checkpoint.
+func runCheckpoint(ctx context.Context, c *cliconfig.Config) {
+	// If the user doesn't want checkpoint at all, then return.
+	if c.DisableCheckpoint {
+		log.Printf("[INFO] Checkpoint disabled. Not running.")
+		checkpointResult <- nil
+		return
+	}
+
+	ctx, span := tracer.Start(ctx, "HashiCorp Checkpoint")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
+
+	configDir, err := cliconfig.ConfigDir()
+	if err != nil {
+		log.Printf("[ERR] Checkpoint setup error: %s", err)
+		checkpointResult <- nil
+		return
+	}
+
+	version := Version
+	if VersionPrerelease != "" {
+		version += fmt.Sprintf("-%s", VersionPrerelease)
+	}
+
+	signaturePath := filepath.Join(configDir, "checkpoint_signature")
+	if c.DisableCheckpointSignature {
+		log.Printf("[INFO] Checkpoint signature disabled")
+		signaturePath = ""
+	}
+
+	resp, err := checkpoint.Check(&checkpoint.CheckParams{
+		Product:       "terraform",
+		Version:       version,
+		SignatureFile: signaturePath,
+		CacheFile:     filepath.Join(configDir, "checkpoint_cache"),
+	})
+	if err != nil {
+		log.Printf("[ERR] Checkpoint error: %s", err)
+		span.SetStatus(codes.Error, err.Error())
+		resp = nil
+	} else {
+		span.SetStatus(codes.Ok, "checkpoint request succeeded")
+	}
+
+	checkpointResult <- resp
+}
+
+// commandVersionCheck implements command.VersionCheckFunc and is used
+// as the version checker.
+func commandVersionCheck() (command.VersionCheckInfo, error) {
+	// Wait for the result to come through
+	info := <-checkpointResult
+	if info == nil {
+		var zero command.VersionCheckInfo
+		return zero, nil
+	}
+
+	// Build the alerts that we may have received about our version
+	alerts := make([]string, len(info.Alerts))
+	for i, a := range info.Alerts {
+		alerts[i] = a.Message
+	}
+
+	return command.VersionCheckInfo{
+		Outdated: info.Outdated,
+		Latest:   info.CurrentVersion,
+		Alerts:   alerts,
+	}, nil
+}
+
+
+# FILE: catalog-info.yaml
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+#
+# Intended for internal HashiCorp use only
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform
+  description: HashiCorp Terraform
+  annotations:
+    github.com/project-slug: hashicorp/terraform
+    jira/project-key: TF
+    jira/label: terraform
+spec:
+  type: library
+  owner: team-tf-core
+  lifecycle: production
+
+
+# FILE: build.Dockerfile
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# This Dockerfile is not intended for general use, but is rather used to
+# produce our "light" release packages as part of our official release
+# pipeline.
+#
+# If you want to test this locally you'll need to set the three arguments
+# to values realistic for what the hashicorp/actions-docker-build GitHub
+# action would set, and ensure that there's a suitable "terraform" executable
+# in the dist/linux/${TARGETARCH} directory.
+
+FROM docker.mirror.hashicorp.services/alpine:latest AS default
+
+# This is intended to be run from the hashicorp/actions-docker-build GitHub
+# action, which sets these appropriately based on context.
+ARG PRODUCT_VERSION=UNSPECIFIED
+ARG PRODUCT_REVISION=UNSPECIFIED
+ARG BIN_NAME=terraform
+
+# This argument is set by the Docker toolchain itself, to the name
+# of the CPU architecture we're building an image for.
+# Our caller should've extracted the corresponding "terraform" executable
+# into dist/linux/${TARGETARCH} for us to use.
+ARG TARGETARCH
+
+LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
+
+# New standard version label.
+LABEL version=$PRODUCT_VERSION
+
+# Historical Terraform-specific label preserved for backward compatibility.
+LABEL "com.hashicorp.terraform.version"="${PRODUCT_VERSION}"
+
+# @see https://specs.opencontainers.org/image-spec/annotations/?v=v1.0.1#pre-defined-annotation-keys
+LABEL org.opencontainers.image.title=${BIN_NAME} \
+      org.opencontainers.image.description="Terraform enables you to safely and predictably create, change, and improve infrastructure" \
+      org.opencontainers.image.authors="HashiCorp Terraform Team <terraform@hashicorp.com>" \
+      org.opencontainers.image.url="https://www.terraform.io/" \
+      org.opencontainers.image.documentation="https://www.terraform.io/docs" \
+      org.opencontainers.image.source="https://github.com/hashicorp/terraform" \
+      org.opencontainers.image.version=${PRODUCT_VERSION} \
+      org.opencontainers.image.revision=${PRODUCT_REVISION} \
+      org.opencontainers.image.vendor="HashiCorp" \
+      org.opencontainers.image.licenses="BUSL-1.1"
+
+RUN apk add --no-cache git openssh ca-certificates
+
+# Copy the license file as per Legal requirement
+COPY LICENSE "/usr/share/doc/${BIN_NAME}/LICENSE.txt"
+
+# The hashicorp/actions-docker-build GitHub Action extracts the appropriate
+# release package for our target architecture into the current working
+# directory before running "docker build", which we'll then copy into the
+# Docker image to make sure that we use an identical binary as all of the
+# other official release channels.
+COPY ["dist/linux/${TARGETARCH}/terraform", "/bin/terraform"]
+
+ENTRYPOINT ["/bin/terraform"]
+
+
+# FILE: README.md
+# Terraform
+
+- Website: https://developer.hashicorp.com/terraform
+- Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
+- Documentation: [https://developer.hashicorp.com/terraform/docs](https://developer.hashicorp.com/terraform/docs)
+- Tutorials: [HashiCorp's Learn Platform](https://developer.hashicorp.com/terraform/tutorials)
+- Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
+
+<img alt="Terraform" src="https://www.datocms-assets.com/2885/1731373310-terraform_white.svg" width="600px">
+
+Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
+
+The key features of Terraform are:
+
+- **Infrastructure as Code**: Infrastructure is described using a high-level configuration syntax. This allows a blueprint of your datacenter to be versioned and treated as you would any other code. Additionally, infrastructure can be shared and re-used.
+
+- **Execution Plans**: Terraform has a "planning" step where it generates an execution plan. The execution plan shows what Terraform will do when you call apply. This lets you avoid any surprises when Terraform manipulates infrastructure.
+
+- **Resource Graph**: Terraform builds a graph of all your resources, and parallelizes the creation and modification of any non-dependent resources. Because of this, Terraform builds infrastructure as efficiently as possible, and operators get insight into dependencies in their infrastructure.
+
+- **Change Automation**: Complex changesets can be applied to your infrastructure with minimal human interaction. With the previously mentioned execution plan and resource graph, you know exactly what Terraform will change and in what order, avoiding many possible human errors.
+
+For more information, refer to the [What is Terraform?](https://www.terraform.io/intro) page on the Terraform website.
+
+## Getting Started & Documentation
+
+Documentation is available on the [Terraform website](https://developer.hashicorp.com/terraform):
+
+- [Introduction](https://developer.hashicorp.com/terraform/intro)
+- [Documentation](https://developer.hashicorp.com/terraform/docs)
+
+If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
+
+Show off your Terraform knowledge by passing a certification exam. Visit the [certification page](https://www.hashicorp.com/certification/) for information about exams and find [study materials](https://learn.hashicorp.com/terraform/certification/terraform-associate) on HashiCorp's learning platform.
+
+## Developing Terraform
+
+This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, refer to [Plugin development](https://developer.hashicorp.com/terraform/plugin).
+
+- To learn more about compiling Terraform and contributing suggested changes, refer to [the contributing guide](.github/CONTRIBUTING.md).
+
+- To learn more about how we handle bug reports, refer to the [bug triage guide](./BUGPROCESS.md).
+
+- To learn how to contribute to the Terraform documentation, refer to the [Web Unified Docs repository](https://github.com/hashicorp/web-unified-docs).
+
+## License
+
+[Business Source License 1.1](https://github.com/hashicorp/terraform/blob/main/LICENSE)
+
+
+# FILE: Makefile
+# generate runs `go generate` to build the dynamically generated
+# source files, except the protobuf stubs which are built instead with
+# "make protobuf".
+generate:
+	go generate ./...
+
+# We separate the protobuf generation because most development tasks on
+# Terraform do not involve changing protobuf files and protoc is not a
+# go-gettable dependency and so getting it installed can be inconvenient.
+#
+# If you are working on changes to protobuf interfaces, run this Makefile
+# target to be sure to regenerate all of the protobuf stubs using the expected
+# versions of protoc and the protoc Go plugins.
+protobuf:
+	go run ./tools/protobuf-compile .
+
+fmtcheck:
+	"$(CURDIR)/scripts/gofmtcheck.sh"
+
+importscheck:
+	"$(CURDIR)/scripts/goimportscheck.sh"
+
+vetcheck:
+	@echo "==> Checking that the code complies with go vet requirements"
+	@go vet ./...
+
+staticcheck:
+	"$(CURDIR)/scripts/staticcheck.sh"
+
+exhaustive:
+	"$(CURDIR)/scripts/exhaustive.sh"
+
+copyright:
+	"$(CURDIR)/scripts/copyright.sh" --plan
+
+copyrightfix:
+	"$(CURDIR)/scripts/copyright.sh"
+
+syncdeps:
+	"$(CURDIR)/scripts/syncdeps.sh"
+
+# disallow any parallelism (-j) for Make. This is necessary since some
+# commands during the build process create temporary files that collide
+# under parallel conditions.
+.NOTPARALLEL:
+
+.PHONY: fmtcheck importscheck vetcheck generate protobuf staticcheck syncdeps
+
+
+# FILE: LICENSE
+License text copyright (c) 2020 MariaDB Corporation Ab, All Rights Reserved.
+"Business Source License" is a trademark of MariaDB Corporation Ab.
+
+Parameters
+
+Licensor:             International Business Machines Corporation (IBM)
+Licensed Work:        Terraform Version 1.6.0 or later. The Licensed Work is (c) 2024
+                      IBM Corp.
+Additional Use Grant: You may make production use of the Licensed Work, provided
+                      Your use does not include offering the Licensed Work to third
+                      parties on a hosted or embedded basis in order to compete with 
+                      IBM Corp.'s paid version(s) of the Licensed Work. For purposes 
+                      of this license:
+
+                      A "competitive offering" is a Product that is offered to third
+                      parties on a paid basis, including through paid support 
+                      arrangements, that significantly overlaps with the capabilities 
+                      of IBM Corp.'s paid version(s) of the Licensed Work. If Your 
+                      Product is not a competitive offering when You first make it 
+                      generally available, it will not become a competitive offering
+                      later due to IBM Corp. releasing a new version of the Licensed 
+                      Work with additional capabilities. In addition, Products that 
+                      are not provided on a paid basis are not competitive.
+
+                      "Product" means software that is offered to end users to manage 
+                      in their own environments or offered as a service on a hosted 
+                      basis.
+
+                      "Embedded" means including the source code or executable code 
+                      from the Licensed Work in a competitive offering. "Embedded" 
+                      also means packaging the competitive offering in such a way 
+                      that the Licensed Work must be accessed or downloaded for the 
+                      competitive offering to operate.
+
+                      Hosting or using the Licensed Work(s) for internal purposes 
+                      within an organization is not considered a competitive 
+                      offering. IBM Corp. considers your organization to include all 
+                      of your affiliates under common control.
+
+                      For binding interpretive guidance on using IBM Corp. products 
+                      under the Business Source License, please visit our FAQ. 
+                      (https://www.hashicorp.com/license-faq)
+Change Date:          Four years from the date the Licensed Work is published.
+Change License:       MPL 2.0
+
+For information about alternative licensing arrangements for the Licensed Work,
+please contact licensing@hashicorp.com.
+
+Notice
+
+Business Source License 1.1
+
+Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work. The
+Licensor may make an Additional Use Grant, above, permitting limited production use.
+
+Effective on the Change Date, or the fourth anniversary of the first publicly
+available distribution of a specific version of the Licensed Work under this
+License, whichever comes first, the Licensor hereby grants you rights under
+the terms of the Change License, and the rights granted in the paragraph
+above terminate.
+
+If your use of the Licensed Work does not comply with the requirements
+currently in effect as described in this License, you must purchase a
+commercial license from the Licensor, its affiliated entities, or authorized
+resellers, or you must refrain from using the Licensed Work.
+
+All copies of the original and modified Licensed Work, and derivative works
+of the Licensed Work, are subject to this License. This License applies
+separately for each version of the Licensed Work and the Change Date may vary
+for each version of the Licensed Work released by Licensor.
+
+You must conspicuously display this License on each original or modified copy
+of the Licensed Work. If you receive the Licensed Work in original or
+modified form from a third party, the terms and conditions set forth in this
+License apply to your use of that work.
+
+Any use of the Licensed Work in violation of this License will automatically
+terminate your rights under this License for the current and all other
+versions of the Licensed Work.
+
+This License does not grant you any right in any trademark or logo of
+Licensor or its affiliates (provided that you may use a trademark or logo of
+Licensor as expressly required by this License).
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSED WORK IS PROVIDED ON
+AN "AS IS" BASIS. LICENSOR HEREBY DISCLAIMS ALL WARRANTIES AND CONDITIONS,
+EXPRESS OR IMPLIED, INCLUDING (WITHOUT LIMITATION) WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, AND
+TITLE.
+
+
+# FILE: Dockerfile
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# This Dockerfile builds on golang:alpine by building Terraform from source
+# using the current working directory.
+#
+# This produces a docker image that contains a working Terraform binary along
+# with all of its source code. This is not what produces the official releases
+# in the "terraform" namespace on Dockerhub; those images include only
+# the officially-released binary from releases.hashicorp.com and are
+# built by the (closed-source) official release process.
+
+FROM docker.mirror.hashicorp.services/golang:alpine
+LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
+
+RUN apk add --no-cache git bash openssh ca-certificates
+
+ENV TF_DEV=true
+ENV TF_RELEASE=1
+
+WORKDIR $GOPATH/src/github.com/hashicorp/terraform
+COPY . .
+RUN /bin/bash ./scripts/build.sh
+
+WORKDIR $GOPATH
+ENTRYPOINT ["terraform"]
+
+
+# FILE: CHANGELOG.md
+## 1.16.0 (Unreleased)
+
+
+EXPERIMENTS:
+
+Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+
+- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
+- `terraform test cleanup`: The experimental `test cleanup` command. In experimental builds of Terraform, a manifest file and state files for each failed cleanup operation during test operations are saved within the `.terraform` local directory. The `test cleanup` command will attempt to clean up the local state files left behind automatically, without requiring manual intervention.
+- `terraform test`: `backend` blocks and `skip_cleanup` attributes:
+  - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
+  - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
+
+## Previous Releases
+
+For information on prior major and minor releases, refer to their changelogs:
+
+- [v1.15](https://github.com/hashicorp/terraform/blob/v1.15/CHANGELOG.md)
+- [v1.14](https://github.com/hashicorp/terraform/blob/v1.14/CHANGELOG.md)
+- [v1.13](https://github.com/hashicorp/terraform/blob/v1.13/CHANGELOG.md)
+- [v1.12](https://github.com/hashicorp/terraform/blob/v1.12/CHANGELOG.md)
+- [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
+- [v1.10](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
+- [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
+- [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
+- [v1.7](https://github.com/hashicorp/terraform/blob/v1.7/CHANGELOG.md)
+- [v1.6](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+- [v1.5](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+- [v1.4](https://github.com/hashicorp/terraform/blob/v1.4/CHANGELOG.md)
+- [v1.3](https://github.com/hashicorp/terraform/blob/v1.3/CHANGELOG.md)
+- [v1.2](https://github.com/hashicorp/terraform/blob/v1.2/CHANGELOG.md)
+- [v1.1](https://github.com/hashicorp/terraform/blob/v1.1/CHANGELOG.md)
+- [v1.0](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md)
+- [v0.15](https://github.com/hashicorp/terraform/blob/v0.15/CHANGELOG.md)
+- [v0.14](https://github.com/hashicorp/terraform/blob/v0.14/CHANGELOG.md)
+- [v0.13](https://github.com/hashicorp/terraform/blob/v0.13/CHANGELOG.md)
+- [v0.12](https://github.com/hashicorp/terraform/blob/v0.12/CHANGELOG.md)
+- [v0.11 and earlier](https://github.com/hashicorp/terraform/blob/v0.11/CHANGELOG.md)
+
+
+# FILE: BUILDING.md
+# Building from Source
+
+Pre-built binaries are available for download for a variety of supported platforms through the [HashiCorp Releases website](https://releases.hashicorp.com/terraform/). 
+
+However, if you'd like to build Terraform yourself, you can do so using the Go build toolchain and the options specified in this document.
+
+## Prerequisites
+
+1. Ensure you've installed the Go language version specified in [`.go-version`](https://github.com/hashicorp/terraform/blob/main/.go-version).
+2. Clone this repository to a location of your choice.
+
+## Terraform Build Options
+
+Terraform accepts certain options passed using `ldflags` at build time which control the behavior of the resulting binary.
+
+### Dev Version Reporting
+
+Terraform will include a `-dev` flag when reporting its own version (ex: 1.5.0-dev) unless `version.dev` is set to `no`:
+
+```
+go build -ldflags "-w -s -X 'github.com/hashicorp/terraform/version.dev=no'" -o bin/ .
+```
+
+### Experimental Features
+
+Experimental features of Terraform will be disabled unless `main.experimentsAllowed` is set to `yes`:
+
+```
+go build -ldflags "-w -s -X 'main.experimentsAllowed=yes'" -o bin/ .
+```
+
+In the official build process for Terraform, experiments are only allowed in alpha release builds. We recommend that third-party distributors follow that convention in order to reduce user confusion.
+
+## Go Options
+
+For the most part, the Terraform release process relies on the Go toolchain defaults for the target operating system and processor architecture.
+
+### `CGO_ENABLED`
+
+One exception is the `CGO_ENABLED` option, which is set explicitly when building Terraform binaries. For most platforms, we build with `CGO_ENABLED=0` in order to produce a statically linked binary. For MacOS/Darwin operating systems, we build with `CGO_ENABLED=1` to avoid a platform-specific issue with DNS resolution. 
+
+
+
+
+# FILE: BUGPROCESS.md
+# Terraform Core GitHub Bug Triage & Labeling
+The Terraform Core team has adopted a more structured bug triage process than we previously used. Our goal is to respond to reports of issues quickly.
+
+When a bug report is filed, our goal is to either:
+1. Get it to a state where it is ready for engineering to fix it in an upcoming Terraform release, or 
+2. Close it and explain why, if we can't help
+
+## Process
+
+### 1. [Newly created issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering. 
+
+These are raw reports that need categorization and support clarifying them. They need the following done:
+
+* label backends, provisioners, and providers so we can route work on codebases we don't support to the correct teams
+* point requests for help to the community forum and close the issue
+* close reports against old versions we no longer support
+* prompt users who have submitted obviously incomplete reproduction cases for additional information
+
+If an issue requires discussion with the user to get it out of this initial state, leave "new" on there and label it "waiting-response" until this phase of triage is done.
+
+Once this initial filtering has been done, remove the new label. If an issue subjectively looks very high-impact and likely to impact many users, assign it to the [appropriate milestone](https://github.com/hashicorp/terraform/milestones) to mark it as being urgent.
+
+### 2. Clarify [unreproduced issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+created%3A%3E2020-05-01+-label%3Abackend%2Fk8s+-label%3Aprovisioner%2Fsalt-masterless+-label%3Adocumentation+-label%3Aprovider%2Fazuredevops+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3Anew+-label%3A%22waiting+for+reproduction%22+-label%3Awaiting-response+-label%3Aexplained+sort%3Acreated-asc+)
+
+A core team member initially determines whether the issue is immediately reproducible. If they cannot readily reproduce it, they label it "waiting for reproduction" and correspond with the reporter to describe what is needed. When the issue is reproduced by a core team member, they label it "confirmed". 
+
+"confirmed" issues should have a clear reproduction case. Anyone who picks it up should be able to reproduce it readily without having to invent any details.
+
+Note that the link above excludes issues reported before May 2020; this is to avoid including issues that were reported prior to this new process being implemented. [Unreproduced issues reported before May 2020](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+created%3A%3C2020-05-01+-label%3Aprovisioner%2Fsalt-masterless+-label%3Adocumentation+-label%3Aprovider%2Fazuredevops+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3Anew+-label%3A%22waiting+for+reproduction%22+-label%3Awaiting-response+-label%3Aexplained+sort%3Areactions-%2B1-desc) will be triaged as capacity permits.
+
+
+### 3. Explain or fix [confirmed issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+-label%3Aexplained+-label%3Abackend%2Foss+-label%3Abackend%2Fk8s+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+)
+The next step for confirmed issues is to either:
+
+* explain why the behavior is expected, label the issue as "working as designed", and close it, or
+* locate the cause of the defect in the codebase. When the defect is located, and that description is posted on the issue, the issue is labeled "explained". In many cases, this step will get skipped if the fix is obvious, and engineers will jump forward and make a PR. 
+
+ [Confirmed crashes](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Acrash+label%3Abug+-label%3Abackend%2Fk8s+-label%3Aexplained+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+) should generally be considered high impact
+
+### 4. The last step for [explained issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Aexplained+no%3Amilestone+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+) is to make a PR to fix them. 
+
+Explained issues that are expected to be fixed in a future release should be assigned to a milestone
+
+## GitHub Issue Labels
+label                    | description
+------------------------ | -----------
+new                      | new issue not yet triaged
+explained                | a Terraform Core team member has described the root cause of this issue in code
+waiting for reproduction | unable to reproduce issue without further information 
+not reproducible         | closed because a reproduction case could not be generated
+duplicate                | issue closed because another issue already tracks this problem
+confirmed                | a Terraform Core team member has reproduced this issue
+working as designed      | confirmed as reported and closed because the behavior is intended
+pending project          | issue is confirmed but will require a significant project to fix
+
+## Lack of response and unreproducible issues
+When bugs that have been [labeled waiting response](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+-label%3Abackend%2Foss+-label%3Abackend%2Fk8s+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+label%3Awaiting-response+-label%3Aexplained+sort%3Aupdated-asc+) or [labeled "waiting for reproduction"](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+label%3A%22waiting+for+reproduction%22+-label%3Aexplained+sort%3Aupdated-asc+) for more than 30 days, we'll use our best judgement to determine whether it's more helpful to close it or prompt the reporter again. If they again go without a response for 30 days, they can be closed with a polite message explaining why and inviting the person to submit the needed information or reproduction case in the future.
+
+The intent of this process is to get fix the maximum number of bugs in Terraform as quickly as possible, and having un-actionable bug reports makes it harder for Terraform Core team members and community contributors to find bugs they can actually work on.
+
+## Helpful GitHub Filters
+
+### Triage Process
+1. [Newly created issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Foss+-label%3Abackend%2Fk8s+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering.
+2. Clarify [unreproduced issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+created%3A%3E2020-05-01+-label%3Abackend%2Fk8s+-label%3Aprovisioner%2Fsalt-masterless+-label%3Adocumentation+-label%3Aprovider%2Fazuredevops+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3Anew+-label%3A%22waiting+for+reproduction%22+-label%3Awaiting-response+-label%3Aexplained+sort%3Acreated-asc+)
+3. Explain or fix [confirmed issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+-label%3Aexplained+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+). Prioritize [confirmed crashes](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Acrash+label%3Abug+-label%3Aexplained+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+).
+4. Fix [explained issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Aexplained+no%3Amilestone+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+)
+
+### Other Backlog
+
+[Confirmed needs for documentation fixes](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Adocumentation++label%3Aconfirmed+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+)
+
+[Confirmed bugs that will require significant projects to fix](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Aconfirmed+label%3A%22pending+project%22+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+)
+
+### Milestone Use
+
+Milestones ending in .x indicate issues assigned to that milestone are intended to be fixed during that release lifecycle. Milestones ending in .0 indicate issues that will be fixed in that major release. For example:
+
+[0.13.x Milestone](https://github.com/hashicorp/terraform/milestone/17). Issues in this milestone should be considered high-priority but do not block a patch release. All issues in this milestone should be resolved in a 13.x release before the 0.14.0 RC1 ships.
+
+[0.14.0 Milestone](https://github.com/hashicorp/terraform/milestone/18). All issues in this milestone must be fixed before 0.14.0 RC1 ships, and should ideally be fixed before 0.14.0 beta 1 ships.
+
+[0.14.x Milestone](https://github.com/hashicorp/terraform/milestone/20). Issues in this milestone are expected to be addressed at some point in the 0.14.x lifecycle, before 0.15.0. All issues in this milestone should be resolved in a 14.x release before the 0.15.0 RC1 ships.
+
+[0.15.0 Milestone](https://github.com/hashicorp/terraform/milestone/19). All issues in this milestone must be fixed before 0.15.0 RC1 ships, and should ideally be fixed before 0.15.0 beta 1 ships.
+
+
+# FILE: website/README.md
+# Terraform Documentation
+
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+> [!IMPORTANT]  
+> **Documentation Update:** Product documentation previously located in `/website` has moved to the [`hashicorp/web-unified-docs`](https://github.com/hashicorp/web-unified-docs) repository, where all product documentation is now centralized. Please make contributions directly to `web-unified-docs`.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+
+# FILE: version/version_test.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package version
+
+import (
+	"regexp"
+	"strings"
+	"testing"
+)
+
+// Smoke test to validate that the version file can be read correctly and all exported
+// variables include the expected information.
+func TestVersion(t *testing.T) {
+	if match, _ := regexp.MatchString("[^\\d+\\.]", Version); match != false {
+		t.Fatalf("Version should contain only the main version")
+	}
+
+	if match, _ := regexp.MatchString("[^a-z\\d]", Prerelease); match != false {
+		t.Fatalf("Prerelease should contain only letters and numbers")
+	}
+
+	if SemVer.Prerelease() != "" {
+		t.Fatalf("SemVer should not include prerelease information")
+	}
+
+	if !strings.Contains(String(), Prerelease) {
+		t.Fatalf("Full version string should include prerelease information")
+	}
+}
+
+
+# FILE: version/version.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+// The version package provides a location to set the release versions for all
+// packages to consume, without creating import cycles.
+//
+// This package should not import any other terraform packages.
+package version
+
+import (
+	_ "embed"
+	"fmt"
+	"strings"
+
+	version "github.com/hashicorp/go-version"
+)
+
+// rawVersion is the current version as a string, as read from the VERSION
+// file. This must be a valid semantic version.
+//
+//go:embed VERSION
+var rawVersion string
+
+// dev determines whether the -dev prerelease marker will
+// be included in version info. It is expected to be set to "no" using
+// linker flags when building binaries for release.
+var dev string = "yes"
+
+// The main version number that is being run at the moment, populated from the raw version.
+var Version string
+
+// A pre-release marker for the version, populated using a combination of the raw version
+// and the dev flag.
+var Prerelease string
+
+// SemVer is an instance of version.Version representing the main version
+// without any prerelease information.
+var SemVer *version.Version
+
+func init() {
+	semVerFull := version.Must(version.NewVersion(strings.TrimSpace(rawVersion)))
+	SemVer = semVerFull.Core()
+	Version = SemVer.String()
+
+	if dev == "no" {
+		Prerelease = semVerFull.Prerelease()
+	} else {
+		Prerelease = "dev"
+	}
+}
+
+// Header is the header name used to send the current terraform version
+// in http requests.
+const Header = "Terraform-Version"
+
+// String returns the complete version string, including prerelease
+func String() string {
+	if Prerelease != "" {
+		return fmt.Sprintf("%s-%s", Version, Prerelease)
+	}
+	return Version
+}
+
+
+# FILE: version/dependencies.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package version
+
+import "runtime/debug"
+
+// See the docs for InterestingDependencies to understand what "interesting" is
+// intended to mean here. We should keep this set relatively small to avoid
+// bloating the logs too much.
+var interestingDependencies = map[string]struct{}{
+	"github.com/hashicorp/hcl/v2":            {},
+	"github.com/zclconf/go-cty":              {},
+	"github.com/hashicorp/go-tfe":            {},
+	"github.com/hashicorp/terraform-svchost": {},
+}
+
+// InterestingDependencies returns the compiled-in module version info for
+// a small number of dependencies that Terraform uses broadly and which we
+// tend to upgrade relatively often as part of improvements to Terraform.
+//
+// The set of dependencies this reports might change over time if our
+// opinions change about what's "interesting". This is here only to create
+// a small number of extra annotations in a debug log to help us more easily
+// cross-reference bug reports with dependency changelogs.
+func InterestingDependencies() []*debug.Module {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		// Weird to not be built in module mode, but not a big deal.
+		return nil
+	}
+
+	ret := make([]*debug.Module, 0, len(interestingDependencies))
+
+	for _, mod := range info.Deps {
+		if _, ok := interestingDependencies[mod.Path]; !ok {
+			continue
+		}
+		if mod.Replace != nil {
+			mod = mod.Replace
+		}
+		ret = append(ret, mod)
+	}
+
+	return ret
+}
+
+
+# FILE: tools/tools.go
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+//go:build tools
+// +build tools
+
+package tools
+
+import (
+	_ "github.com/mitchellh/gox"
+	_ "github.com/nishanths/exhaustive"
+	_ "go.uber.org/mock/mockgen"
+	_ "golang.org/x/tools/cmd/cover"
+	_ "golang.org/x/tools/cmd/stringer"
+	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+	_ "honnef.co/go/tools/cmd/staticcheck"
+)
+
+
+# FILE: scripts/version-bump.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+set -uo pipefail
+
+function usage {
+  cat <<-'EOF'
+Usage: ./version-bump.sh <version>
+
+Description:
+  This script will update the version/VERSION file with the given version.
+EOF
+}
+
+function update_version {
+  VERSION="${1:-}"
+
+  if [[ -z "$VERSION" ]]; then
+    echo "missing at least one of [<version>] arguments"
+    usage
+    exit 1
+  fi
+
+  echo "$VERSION" > version/VERSION
+}
+
+update_version "$@"
+exit $?
+
+
+# FILE: scripts/syncdeps.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# This repository contains one logical codebase but as an implementation detail
+# it's split into multiple modules at the boundaries of code ownership, so
+# that we can keep track of which dependency changes might affect which
+# components.
+#
+# This script runs "go mod tidy" in each module to synchronize any dependency
+# updates that were made in any one of the modules.
+
+set -eufo pipefail
+
+# We'll do our work in the root of the repository, which is the parent
+# directory of where this script is.
+cd "$( dirname "${BASH_SOURCE[0]}" )/.."
+
+# We need to make sure the root go.mod is synchronized first, because otherwise
+# the "go list" command below might fail.
+go mod tidy
+
+# Each of the modules starting at our root gets its go.mod and go.sum
+# synchronized, so that we can see which components are affected by an
+# update and therefore which codeowners might be interested in the change.
+for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
+    (cd $dir && go mod tidy)
+done
+
+
+# FILE: scripts/staticcheck.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+echo "==> Checking that code complies with static analysis requirements..."
+# Skip legacy code which is frozen, and can be removed once we can refactor the
+# remote backends to no longer require it.
+skip="internal/legacy|backend/remote-state/"
+
+# Skip generated code for protobufs.
+skip=$skip"|internal/planproto|internal/tfplugin5|internal/tfplugin6"
+
+packages=$(go list ./... | egrep -v ${skip})
+
+# Note that we globally disable some checks. The list is controlled by the
+# top-level staticcheck.conf file in this repo.
+go tool honnef.co/go/tools/cmd/staticcheck ${packages}
+
+
+# FILE: scripts/goimportscheck.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+set -euo pipefail
+
+# Check goimports
+echo "==> Checking the code complies with goimports requirements..."
+
+# We only require goimports to have been run on files that were changed
+# relative to the main branch, so that we can gradually create more consistency
+# rather than bulk-changing everything at once.
+
+declare -a target_files
+# "readarray" will return an "unbound variable" error if there isn't already
+# at least one element in the target array. "readarray" will overwrite this
+# item, though.
+target_files[0]=""
+
+base_branch="origin/main"
+
+# HACK: If we seem to be running inside a GitHub Actions pull request check
+# then we'll use the PR's target branch from this variable instead.
+if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+  base_branch="origin/$GITHUB_BASE_REF"
+fi
+
+# FIXME: "readarray' is a Bash 4 feature, which means that currently this script
+# can't work on macOS which (at the time of writing this) ships with only Bash 3.
+# We can probably replace this with something more clunky using an overridden
+# "IFS" environment variable, but the primary place we want to run this right
+# now is in our "quick checks" workflow and that _does_ have a reasonably
+# modern version of Bash.
+readarray -t target_files < <(git diff --name-only ${base_branch} --diff-filter=MA | grep "\.go" | grep -v ".pb.go" | grep -v ".go-version")
+
+# NOTE: The above intentionally excludes .pb.go files because those are
+# generated by a tool (protoc-gen-go) which itself doesn't produce
+# style-compliant imports.
+
+if [[ "${#target_files[@]}" -eq 0 ]]; then
+  echo "No files have changed relative to branch ${base_branch}, so there's nothing to check!"
+  exit 0
+fi
+
+declare -a incorrect_files
+# Array must have at least one item before we can append to it. Code below must
+# work around this extra empty-string element at the beginning of the array.
+incorrect_files[0]=""
+
+for filename in "${target_files[@]}"; do
+  if [[ -z "$filename" ]]; then
+    continue
+  fi
+
+  output=$(go tool golang.org/x/tools/cmd/goimports -l "${filename}")
+  if [[ $? -ne 0 ]]; then
+    echo >&2 goimports failed for "$filename"
+    exit 1
+  fi
+
+  if [[ -n "$output" ]]; then
+    incorrect_files+=("$filename")
+  fi
+done
+
+if [[ "${#incorrect_files[@]}" -gt 1 ]]; then
+  echo >&2 'The following files have import statements that disagree with "goimports"':
+  for filename in "${incorrect_files[@]}"; do
+    if [[ -z "$filename" ]]; then
+      continue
+    fi
+
+    echo >&2 ' - ' "${filename}"
+  done
+  echo >&2 'Use `go tool golang.org/x/tools/cmd/goimports -w -l` on each of these files to update these files.'
+  exit 1
+fi
+
+echo 'All of the changed files look good!'
+exit 0
+
+
+# FILE: scripts/gogetcookie.sh
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+touch ~/.gitcookies
+chmod 0600 ~/.gitcookies
+
+git config --global http.cookiefile ~/.gitcookies
+
+tr , \\t <<\__END__ >>~/.gitcookies
+go.googlesource.com,FALSE,/,TRUE,2147483647,o,git-admin.hashicorptest.com=1/5dMSZVNdQscVq3on5V38iBrG9sP2TYRlbj3TDMJHKEvoBxl_QW-zl-L7a8lk-FU-
+__END__
+
+
+# FILE: scripts/gofmtcheck.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+# Check go fmt
+echo "==> Checking that code complies with go fmt requirements..."
+gofmt_files=$(go fmt ./...)
+if [[ -n ${gofmt_files} ]]; then
+    echo 'gofmt needs running on the following files:'
+    echo "${gofmt_files}"
+    echo "You can use the command: \`go fmt\` to reformat code."
+    exit 1
+fi
+
+exit 0
+
+
+# FILE: scripts/exhaustive.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+echo "==> Checking for switch statement exhaustiveness..."
+
+# For now we're only checking a handful of packages, rather than defaulting to
+# everything with a skip list.
+go tool github.com/nishanths/exhaustive/cmd/exhaustive ./internal/command/views/json
+
+
+# FILE: scripts/copyright.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+# This script checks that all files have the appropriate copyright headers,
+# according to their nearest .copywrite.hcl config file. The copyright tool
+# does not natively support repos with multiple licenses, so we have to
+# script this ourselves.
+
+set -euo pipefail
+
+# Find all directories containing a .copywrite.hcl config file
+directories=$(find . -type f -name '.copywrite.hcl' -execdir pwd \;)
+args=${1:-}
+
+for dir in $directories; do
+    cd $dir && pwd && go tool github.com/hashicorp/copywrite headers $args
+done
+
+
+# FILE: scripts/changelog.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+set -uo pipefail
+
+CHANGIE_VERSION="${CHANGIE_VERSION:-1.21.0}"
+SEMVER_VERSION="${SEMVER_VERSION:-7.6.3}"
+
+function usage {
+  cat <<-'EOF'
+Usage: ./changelog.sh <command> [<options>]
+
+Description:
+  This script will update CHANGELOG.md with the given version and date and add the changelog entries.
+  It will also set the version/VERSION file to the correct version.
+  In general this script should handle most release related tasks within this repository.
+
+Commands:
+  generate <release-type>
+    generate will create a new section in the CHANGELOG.md file for the given release
+    type. The release type should be one of "dev", "alpha", "rc", "release", or "patch".
+    `dev`: will update the changelog with the latest unreleased changes.
+    `alpha`: will generate a new section with an alpha version for today.
+    `beta`: will generate a new beta release.
+    `rc`: will generate a new rc release.
+    `release`: will make the initial minor release for this branch.
+    `patch`: will generate a new patch release
+
+  nextminor:
+    Run on main branch: Updates the minor version.
+
+  listIssuesInRelease:
+    Lists all issues in the release passed as an argument.
+EOF
+}
+
+function generate {
+    RELEASE_TYPE="${1:-}"
+    
+    if [[ -z "$RELEASE_TYPE" ]]; then
+        echo "missing <release-type> argument"
+        usage
+        exit 1
+    fi
+    
+    FOOTER_FILE='footer.md'
+    
+    case "$RELEASE_TYPE" in
+  
+        dev)
+        FOOTER_FILE='footer-with-experiments.md'
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+
+        # Check if we already released this version already
+        if git tag -l "v$LATEST_VERSION" | grep -q "v$LATEST_VERSION"; then
+            LATEST_VERSION=$(npx -y semver@$SEMVER_VERSION -i patch $LATEST_VERSION)
+        fi
+
+        COMPLETE_VERSION="$LATEST_VERSION-dev"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
+        
+        # If we have no changes yet, the changelog is empty now, so we need to add a header
+        if ! grep -q "## $LATEST_VERSION" CHANGELOG.md; then
+            CURRENT_CHANGELOG=$(cat CHANGELOG.md)
+            echo "## $LATEST_VERSION (Unreleased)" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
+        fi
+        ;;
+
+        alpha)
+        FOOTER_FILE='footer-with-experiments.md'
+        PRERELEASE_VERSION=$(date +"alpha%Y%m%d")
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
+        COMPLETE_VERSION="$LATEST_VERSION-$PRERELEASE_VERSION"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+
+        # If we have no changes yet, the changelog is empty now, so we need to add a header
+        if ! grep -q "$COMPLETE_VERSION" CHANGELOG.md; then
+            CURRENT_CHANGELOG=$(cat CHANGELOG.md)
+            echo "## $COMPLETE_VERSION ($HUMAN_DATE)" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
+        fi
+        ;;
+
+        beta)
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        # We need to check if this is the first RC of the version
+        BETA_NUMBER=$(git tag -l "v$LATEST_VERSION-beta*" | wc -l)
+        BETA_NUMBER=$((BETA_NUMBER + 1))
+        HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
+        COMPLETE_VERSION="$LATEST_VERSION-beta$BETA_NUMBER"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+        ;;
+        
+        rc)
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        # We need to check if this is the first RC of the version
+        RC_NUMBER=$(git tag -l "v$LATEST_VERSION-rc*" | wc -l)
+        RC_NUMBER=$((RC_NUMBER + 1))
+        HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
+        COMPLETE_VERSION="$LATEST_VERSION-rc$RC_NUMBER"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+        ;;
+
+        patch)
+        COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION next patch)
+        npx -y changie@$CHANGIE_VERSION batch patch
+        npx -y changie@$CHANGIE_VERSION merge
+        ;;
+
+        release)
+        # This is the first release of the branch, releasing the new minor version
+        COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        # We currently keep a file that looks like this release to ensure the alphas and dev versions are generated correctly
+        rm ./.changes/$COMPLETE_VERSION.md
+
+        npx -y changie@$CHANGIE_VERSION batch $COMPLETE_VERSION
+        npx -y changie@$CHANGIE_VERSION merge
+        ;;
+
+        *)
+        echo "invalid <release-type> argument"
+        usage
+        exit 1
+    
+        ;;
+    esac
+
+    # Set version/VERSION to the to be released version
+    echo "$COMPLETE_VERSION" > version/VERSION
+    
+    # Add footer to the changelog
+    cat ./.changes/$FOOTER_FILE >> CHANGELOG.md
+    echo "" >> CHANGELOG.md
+    cat ./.changes/previous-releases.md >> CHANGELOG.md
+}
+
+# This function expects the current branch to be main. Run it if you want to set main to the next
+# minor version.
+function nextminor {
+    # Prepend the latest version to the previous releases
+    LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+    LATEST_VERSION=${LATEST_VERSION%.*} # Remove the patch version
+    CURRENT_FILE_CONTENT=$(cat ./.changes/previous-releases.md)
+    echo "- [v$LATEST_VERSION](https://github.com/hashicorp/terraform/blob/v$LATEST_VERSION/CHANGELOG.md)" > ./.changes/previous-releases.md
+    echo "$CURRENT_FILE_CONTENT" >> ./.changes/previous-releases.md
+
+    NEXT_VERSION=$(npx -y changie@$CHANGIE_VERSION next minor)
+    # Remove all existing per-release changelogs
+    rm ./.changes/*.*.*.md
+    
+    # Remove all old changelog entries
+    rm ./.changes/v*/*.yaml
+    
+    
+    
+    # Create a new empty version file for the next minor version
+    touch ./.changes/$NEXT_VERSION.md
+    
+    LATEST_MAJOR_MINOR=$(echo $LATEST_VERSION | awk -F. '{print $1"."$2}')
+    NEXT_MAJOR_MINOR=$(echo $NEXT_VERSION | awk -F. '{print $1"."$2}')
+    
+    # Create a new changes directory for the next minor version
+    mkdir ./.changes/v$NEXT_MAJOR_MINOR
+    touch ./.changes/v$NEXT_MAJOR_MINOR/.gitkeep
+
+    # Set changies changes dir to the new version
+    awk "{sub(/unreleasedDir: v$LATEST_MAJOR_MINOR/, \"unreleasedDir: v$NEXT_MAJOR_MINOR\")}1" ./.changie.yaml > temp && mv temp ./.changie.yaml
+    generate "dev"
+}
+
+function listIssuesInRelease() {
+    RELEASE_MAJOR_MINOR="${1:-}"
+    if [ -z "$RELEASE_MAJOR_MINOR" ]; then
+        echo "No release version specified"
+        exit 1
+    fi
+    
+    # Check if yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "yq could not be found"
+        exit 1
+    fi
+    
+    echo "Listing issues in release $RELEASE_MAJOR_MINOR"
+    # Loop through files in .changes/v$RELEASE_MAJOR_MINOR
+    for file in ./.changes/v$RELEASE_MAJOR_MINOR/*.yaml; do
+        ISSUE=$(cat "$file" | yq '.custom.Issue')
+        echo "- https://github.com/hashicorp/terraform/issues/$ISSUE"
+    done
+}
+
+function main {
+  case "$1" in
+    generate)
+    generate "${@:2}"
+      ;;
+
+    nextminor)
+    nextminor "${@:2}"
+      ;;
+
+    listIssuesInRelease)
+    listIssuesInRelease "${@:2}"
+      ;;
+
+    *)
+      usage
+      exit 1
+
+      ;;
+  esac
+}
+
+main "$@"
+exit $?
+
+
+# FILE: scripts/changelog-links.sh
+#!/bin/bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+
+# This script rewrites [GH-nnnn]-style references in the CHANGELOG.md file to
+# be Markdown links to the given github issues.
+#
+# This is run during releases so that the issue references in all of the
+# released items are presented as clickable links, but we can just use the
+# easy [GH-nnnn] shorthand for quickly adding items to the "Unrelease" section
+# while merging things between releases.
+
+set -e
+
+if [[ ! -f CHANGELOG.md ]]; then
+  echo "ERROR: CHANGELOG.md not found in pwd."
+  echo "Please run this from the root of the terraform source repository"
+  exit 1
+fi
+
+if [[ `uname` == "Darwin" ]]; then
+  echo "Using BSD sed"
+  SED="sed -i.bak -E -e"
+else
+  echo "Using GNU sed"
+  SED="sed -i.bak -r -e"
+fi
+
+$SED 's/GH-([0-9]+)/\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)/g' -e 's/\[\[#(.+)([0-9])\)]$/(\[#\1\2))/g' CHANGELOG.md
+
+rm CHANGELOG.md.bak
+
+
+# FILE: scripts/build.sh
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+#
+# This script builds the application from source for multiple platforms.
+
+# Get the parent directory of where this script is.
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
+DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
+
+# Change into that directory
+cd "$DIR" || exit
+
+# Determine the arch/os combos we're building for
+XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
+XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
+XC_EXCLUDE_OSARCH="!darwin/arm !darwin/386"
+
+# Delete the old dir
+echo "==> Removing old directory..."
+rm -f bin/*
+rm -rf pkg/*
+mkdir -p bin/
+
+# If its dev mode, only build for ourself
+if [[ -n "${TF_DEV}" ]]; then
+    XC_OS=$(go env GOOS)
+    XC_ARCH=$(go env GOARCH)
+fi
+
+if ! which gox > /dev/null; then
+    echo "==> Installing gox..."
+    go install github.com/mitchellh/gox
+fi
+
+# Instruct gox to build statically linked binaries
+export CGO_ENABLED=0
+
+# Set module download mode to readonly to not implicitly update go.mod
+export GOFLAGS="-mod=readonly"
+
+# In release mode we don't want debug information in the binary and we don't
+# want the -dev version marker
+if [[ -n "${TF_RELEASE}" ]]; then
+    LD_FLAGS="-s -w -X 'github.com/hashicorp/terraform/version.dev=no'"
+fi
+
+# Ensure all remote modules are downloaded and cached before build so that
+# the concurrent builds launched by gox won't race to redundantly download them.
+go mod download
+
+# Build!
+echo "==> Building..."
+gox \
+    -os="${XC_OS}" \
+    -arch="${XC_ARCH}" \
+    -osarch="${XC_EXCLUDE_OSARCH}" \
+    -ldflags "${LD_FLAGS}" \
+    -output "pkg/{{.OS}}_{{.Arch}}/terraform" \
+    .
+
+# Move all the compiled things to the $GOPATH/bin
+GOPATH=${GOPATH:-$(go env GOPATH)}
+case $(uname) in
+    CYGWIN*)
+        GOPATH="$(cygpath $GOPATH)"
+        ;;
+esac
+OLDIFS=$IFS
+IFS=: MAIN_GOPATH=($GOPATH)
+IFS=$OLDIFS
+
+# Create GOPATH/bin if it's doesn't exists
+if [ ! -d $MAIN_GOPATH/bin ]; then
+    echo "==> Creating GOPATH/bin directory..."
+    mkdir -p $MAIN_GOPATH/bin
+fi
+
+# Copy our OS/Arch to the bin/ directory
+DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
+if [[ -d "${DEV_PLATFORM}" ]]; then
+    for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
+        cp ${F} bin/
+        cp ${F} ${MAIN_GOPATH}/bin/
+    done
+fi
+
+if [ "${TF_DEV}x" = "x" ]; then
+    # Zip and copy to the dist dir
+    echo "==> Packaging..."
+    for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
+        OSARCH=$(basename ${PLATFORM})
+        echo "--> ${OSARCH}"
+
+        pushd $PLATFORM >/dev/null 2>&1
+        zip ../${OSARCH}.zip ./*
+        popd >/dev/null 2>&1
+    done
+fi
+
+# Done!
+echo
+echo "==> Results:"
+ls -hl bin/
+
+
+# FILE: docs/unicode.md
+# How Terraform Uses Unicode
+
+The Terraform language uses the Unicode standards as the basis of various
+different features. The Unicode Consortium publishes new versions of those
+standards periodically, and we aim to adopt those new versions in new
+minor releases of Terraform in order to support additional characters added
+in those new versions.
+
+Unfortunately, due to those features relying on multiple
+of external libraries, adopting a new version of Unicode is not as simple as
+just updating a version number somewhere. This document aims to describe the
+various steps required to adopt a new version of Unicode in Terraform.
+
+We typically aim to be consistent across all of these dependencies as to which
+major version of Unicode we currently conform to. The usual initial driver
+for a Unicode upgrade is switching to a new version of the Go runtime library
+which itself uses a new version of Unicode, because Go itself does not provide
+any way to select Unicode versions independently from Go versions. Therefore,
+we typically upgrade to a new Unicode version only in conjunction with
+upgrading to a new Go version.
+
+## Unicode tables in the Go standard library
+
+Several Terraform language features are implemented in terms of functions in
+[the Go `strings` package](https://pkg.go.dev/strings),
+[the Go `unicode` package](https://pkg.go.dev/unicode), and other supporting
+packages in the Go standard library.
+
+The Go team maintains the Go standard library features to support a particular
+Unicode version for each Go version. The specific Unicode version for a
+particular Go version is available in
+[`unicode.Version`](https://pkg.go.dev/unicode#Version).
+
+We adopt a new version of Go by editing the `.go-version` file in the root
+of this repository. Although it's typically possible to build Terraform with
+other versions of Go, that file documents the version we intend to use for
+official releases and thus the primary version we use for development and
+testing. Adopting a new Go version typically also implies other behavior
+changes inherited from the Go standard library, so it's important to review the
+relevant version changelog(s) to note any behavior changes we'll need to pass
+on to our own users via the Terraform changelog.
+
+The other subsystems described below should always be set up to match
+`unicode.Version`. In some cases those libraries automatically try to align
+themselves with `unicode.Version` and generate an error if they cannot, but
+that isn't true of all of them.
+
+## Unicode Identifier Rules in HCL
+
+_Identifier and Pattern Syntax_ (TF31) is a Unicode standards annex which
+describe a set of rules for tokenizing "identifiers", such as variable names
+in a programming language.
+
+HCL uses a superset of that specification for its own identifier tokenization
+rules, and so it includes some code derived from the TF31 data tables that
+describe which characters belong to the "ID_Start" and "ID_Continue" classes.
+
+Since Terraform is the primary user of HCL, it's typically Terraform's adoption
+of a new Unicode version which drives HCL to adopt one. To update the Unicode
+tables to a new version:
+* Edit `hclsyntax/generate.go`'s line which runs `unicode2ragel.rb` to specify
+  the URL of the `DerivedCoreProperties.txt` data file for the intended Unicode
+  version.
+* Run `go generate ./hclsyntax` to run the generation code to update both
+  `unicode_derived.rl` and, indirectly, `scan_tokens.go`. (You will need both
+  a Ruby interpreter and the Ragel state machine compiler on your system in
+  order to complete this step.)
+* Run all the tests to check for regressions: `go test ./...`
+* If all looks good, commit all of the changes and open a PR to HCL.
+* Once that PR is merged and released, update Terraform to use the new version
+  of HCL.
+
+## Unicode Text Segmentation
+
+_Text Segmentation_ (TR29) is a Unicode standards annex which describes
+algorithms for breaking strings into smaller units such as sentences, words,
+and grapheme clusters.
+
+Several Terraform language features make use of the _grapheme cluster_
+algorithm in particular, because it provides a practical definition of
+individual visible characters, taking into account combining sequences such
+as Latin letters with separate diacritics or Emoji characters with gender
+presentation and skin tone modifiers.
+
+The text segmentation algorithms rely on supplementary data tables that are
+not part of the core set encoded in the Go standard library's `unicode`
+packages, and so instead we rely on the third-party module
+[`github.com/apparentlymart/go-textseg`](http://pkg.go.dev/github.com/apparentlymart/go-textseg)
+to provide those tables and a Go implementation of the grapheme cluster
+segmentation algorithm in terms of the tables.
+
+The `go-textseg` library is designed to allow calling programs to potentially
+support multiple Unicode versions at once, by offering a separate module major
+version for each Unicode major version. For example, the full module path for
+the Unicode 13 implementation is `github.com/apparentlymart/go-textseg/v13`.
+
+If that external library doesn't yet have support for the Unicode version we
+intend to adopt then we'll first need to open a pull request to contribute
+new language support. The details of how to do this will unfortunately vary
+depending on how significantly the Text Segmentation annex has changed since
+the most recently-supported Unicode version, but in many cases it can be
+just a matter of editing that library's `make_tables.go`, `make_test_tables.go`,
+and `generate.go` files to point to the URLs where the Unicode consortium
+published new tables and then run `go generate` to rebuild the files derived
+from those data sources. As long as the new Unicode version has only changed
+the data tables and not also changed the algorithm, often no further changes
+are needed.
+
+Once a new Unicode version is included, the maintainer of that library will
+typically publish a new major version that we can depend on. Two different
+codebases included in Terraform al

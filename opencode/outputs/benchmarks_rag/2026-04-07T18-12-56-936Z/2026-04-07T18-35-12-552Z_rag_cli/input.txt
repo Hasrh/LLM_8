@@ -1,0 +1,3114 @@
+
+
+# FILE: README.md
+# GitHub CLI
+
+`gh` is GitHub on the command line. It brings pull requests, issues, and other GitHub concepts to the terminal next to where you are already working with `git` and your code.
+
+![screenshot of gh pr status](https://user-images.githubusercontent.com/98482/84171218-327e7a80-aa40-11ea-8cd1-5177fc2d0e72.png)
+
+GitHub CLI is supported for users on GitHub.com, GitHub Enterprise Cloud, and GitHub Enterprise Server 2.20+ with support for macOS, Windows, and Linux.
+
+## Documentation
+
+For [installation options see below](#installation), for usage instructions [see the manual](https://cli.github.com/manual/).
+
+## Contributing
+
+If anything feels off or if you feel that some functionality is missing, please check out the [contributing page](.github/CONTRIBUTING.md). There you will find instructions for sharing your feedback, building the tool locally, and submitting pull requests to the project.
+
+If you are a hubber and are interested in shipping new commands for the CLI, check out our [doc on internal contributions](docs/working-with-us.md)
+
+<!-- this anchor is linked to from elsewhere, so avoid renaming it -->
+## Installation
+
+### [macOS](docs/install_macos.md)
+
+- [Homebrew](docs/install_macos.md#homebrew)
+- [Precompiled binaries](docs/install_macos.md#precompiled-binaries) on [releases page][]
+
+For additional macOS packages and installers, see [community-supported docs](docs/install_macos.md#community-unofficial)
+
+### [Linux & Unix](docs/install_linux.md)
+
+- [Debian, Raspberry Pi, Ubuntu](docs/install_linux.md#debian)
+- [Amazon Linux, CentOS, Fedora, openSUSE, RHEL, SUSE](docs/install_linux.md#rpm)
+- [Precompiled binaries](docs/install_linux.md#precompiled-binaries) on [releases page][]
+
+For additional Linux & Unix packages and installers, see [community-supported docs](docs/install_linux.md#community-unofficial)
+
+### [Windows](docs/install_windows.md)
+
+- [WinGet](docs/install_windows.md#winget)
+- [Precompiled binaries](docs/install_windows.md#precompiled-binaries) on [releases page][]
+
+For additional Windows packages and installers, see [community-supported docs](docs/install_windows.md#community-unofficial)
+
+### Build from source
+
+See here on how to [build GitHub CLI from source](docs/install_source.md).
+
+### GitHub Codespaces
+
+To add GitHub CLI to your codespace, add the following to your [devcontainer file](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-features-to-a-devcontainer-file):
+
+```json
+"features": {
+  "ghcr.io/devcontainers/features/github-cli:1": {}
+}
+```
+
+### GitHub Actions
+
+[GitHub-hosted runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners) have the GitHub CLI pre-installed, which is updated weekly.
+
+If a specific version is needed, your GitHub Actions workflow will need to install it based on the [macOS](#macos), [Linux & Unix](#linux--unix), or [Windows](#windows) instructions above.
+
+For information on all pre-installed tools, see [`actions/runner-images`](https://github.com/actions/runner-images)
+
+### Verification of binaries
+
+Since version 2.50.0, `gh` has been producing [Build Provenance Attestation](https://github.blog/changelog/2024-06-25-artifact-attestations-is-generally-available/), enabling a cryptographically verifiable paper-trail back to the origin GitHub repository, git revision, and build instructions used. The build provenance attestations are signed and rely on Public Good [Sigstore](https://www.sigstore.dev/) for PKI.
+
+There are two common ways to verify a downloaded release, depending on whether `gh` is already installed or not. If `gh` is installed, it's trivial to verify a new release:
+
+- **Option 1: Using `gh` if already installed:**
+
+  ```shell
+  $ gh at verify -R cli/cli gh_2.62.0_macOS_arm64.zip
+  Loaded digest sha256:fdb77f31b8a6dd23c3fd858758d692a45f7fc76383e37d475bdcae038df92afc for file://gh_2.62.0_macOS_arm64.zip
+  Loaded 1 attestation from GitHub API
+  ✓ Verification succeeded!
+
+  sha256:fdb77f31b8a6dd23c3fd858758d692a45f7fc76383e37d475bdcae038df92afc was attested by:
+  REPO     PREDICATE_TYPE                  WORKFLOW
+  cli/cli  https://slsa.dev/provenance/v1  .github/workflows/deployment.yml@refs/heads/trunk
+  ```
+
+- **Option 2: Using Sigstore [`cosign`](https://github.com/sigstore/cosign):**
+
+  To perform this, download the [attestation](https://github.com/cli/cli/attestations) for the downloaded release and use cosign to verify the authenticity of the downloaded release:
+
+  ```shell
+  $ cosign verify-blob-attestation --bundle cli-cli-attestation-3120304.sigstore.json \
+        --new-bundle-format \
+        --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+        --certificate-identity="https://github.com/cli/cli/.github/workflows/deployment.yml@refs/heads/trunk" \
+        gh_2.62.0_macOS_arm64.zip
+  Verified OK
+  ```
+
+## Comparison with hub
+
+For many years, [hub](https://github.com/github/hub) was the unofficial GitHub CLI tool. `gh` is a new project that helps us explore
+what an official GitHub CLI tool can look like with a fundamentally different design. While both
+tools bring GitHub to the terminal, `hub` behaves as a proxy to `git`, and `gh` is a standalone
+tool. Check out our [more detailed explanation](docs/gh-vs-hub.md) to learn more.
+
+[releases page]: https://github.com/cli/cli/releases/latest
+
+
+# FILE: Makefile
+CGO_CPPFLAGS ?= ${CPPFLAGS}
+export CGO_CPPFLAGS
+CGO_CFLAGS ?= ${CFLAGS}
+export CGO_CFLAGS
+CGO_LDFLAGS ?= $(filter -g -L% -l% -O%,${LDFLAGS})
+export CGO_LDFLAGS
+
+EXE =
+ifeq ($(shell go env GOOS),windows)
+EXE = .exe
+endif
+
+## The following tasks delegate to `script/build.go` so they can be run cross-platform.
+
+.PHONY: bin/gh$(EXE)
+bin/gh$(EXE): script/build$(EXE)
+	@script/build$(EXE) $@
+
+script/build$(EXE): script/build.go
+ifeq ($(EXE),)
+	GOOS= GOARCH= GOARM= GOFLAGS= CGO_ENABLED= go build -o $@ $<
+else
+	go build -o $@ $<
+endif
+
+.PHONY: clean
+clean: script/build$(EXE)
+	@$< $@
+
+.PHONY: manpages
+manpages: script/build$(EXE)
+	@$< $@
+
+.PHONY: completions
+completions: bin/gh$(EXE)
+	mkdir -p ./share/bash-completion/completions ./share/fish/vendor_completions.d ./share/zsh/site-functions
+	bin/gh$(EXE) completion -s bash > ./share/bash-completion/completions/gh
+	bin/gh$(EXE) completion -s fish > ./share/fish/vendor_completions.d/gh.fish
+	bin/gh$(EXE) completion -s zsh > ./share/zsh/site-functions/_gh
+
+# just convenience tasks around `go test`
+.PHONY: test
+test:
+	go test ./...
+
+# For more information, see https://github.com/cli/cli/blob/trunk/acceptance/README.md
+.PHONY: acceptance
+acceptance:
+	go test -tags acceptance ./acceptance
+
+## Site-related tasks are exclusively intended for use by the GitHub CLI team and for our release automation.
+
+site:
+	git clone https://github.com/github/cli.github.com.git "$@"
+
+.PHONY: site-docs
+site-docs: site
+	git -C site pull
+	git -C site rm 'manual/gh*.md' 2>/dev/null || true
+	go run ./cmd/gen-docs --website --doc-path site/manual
+	rm -f site/manual/*.bak
+	git -C site add 'manual/gh*.md'
+	git -C site commit -m 'update help docs' || true
+
+.PHONY: site-bump
+site-bump: site-docs
+ifndef GITHUB_REF
+	$(error GITHUB_REF is not set)
+endif
+	sed -i.bak -E 's/(assign version = )".+"/\1"$(GITHUB_REF:refs/tags/v%=%)"/' site/index.html
+	rm -f site/index.html.bak
+	git -C site commit -m '$(GITHUB_REF:refs/tags/v%=%)' index.html
+
+## Install/uninstall tasks are here for use on *nix platform. On Windows, there is no equivalent.
+
+DESTDIR :=
+prefix  ?= /usr/local
+bindir  := ${prefix}/bin
+datadir := ${prefix}/share
+mandir  := ${datadir}/man
+
+.PHONY: install
+install: bin/gh manpages completions
+	install -d ${DESTDIR}${bindir}
+	install -m755 bin/gh ${DESTDIR}${bindir}/
+	install -d ${DESTDIR}${mandir}/man1
+	install -m644 ./share/man/man1/* ${DESTDIR}${mandir}/man1/
+	install -d ${DESTDIR}${datadir}/bash-completion/completions
+	install -m644 ./share/bash-completion/completions/gh ${DESTDIR}${datadir}/bash-completion/completions/gh
+	install -d ${DESTDIR}${datadir}/fish/vendor_completions.d
+	install -m644 ./share/fish/vendor_completions.d/gh.fish ${DESTDIR}${datadir}/fish/vendor_completions.d/gh.fish
+	install -d ${DESTDIR}${datadir}/zsh/site-functions
+	install -m644 ./share/zsh/site-functions/_gh ${DESTDIR}${datadir}/zsh/site-functions/_gh
+
+.PHONY: uninstall
+uninstall:
+	rm -f ${DESTDIR}${bindir}/gh ${DESTDIR}${mandir}/man1/gh.1 ${DESTDIR}${mandir}/man1/gh-*.1
+	rm -f ${DESTDIR}${datadir}/bash-completion/completions/gh
+	rm -f ${DESTDIR}${datadir}/fish/vendor_completions.d/gh.fish
+	rm -f ${DESTDIR}${datadir}/zsh/site-functions/_gh
+
+.PHONY: macospkg
+macospkg: manpages completions
+ifndef VERSION
+	$(error VERSION is not set. Use `make macospkg VERSION=vX.Y.Z`)
+endif
+	./script/release --local "$(VERSION)" --platform macos
+	./script/pkgmacos $(VERSION)
+
+.PHONY: licenses
+licenses:
+	./script/licenses $$(go env GOOS) $$(go env GOARCH)
+
+.PHONY: licenses-check
+licenses-check:
+	./script/licenses --check
+
+
+# FILE: LICENSE
+MIT License
+
+Copyright (c) 2019 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+# FILE: AGENTS.md
+# AGENTS.md
+
+This is the GitHub CLI (`gh`), a command-line tool for interacting with GitHub. The module path is `github.com/cli/cli/v2`.
+
+## Build, Test, and Lint
+
+```bash
+make                                       # Build (Unix) — outputs bin/gh
+go run script/build.go                     # Build (Windows)
+go test ./...                              # All unit tests
+go test ./pkg/cmd/issue/list/... -run TestIssueList_nontty  # Single test
+go test -tags acceptance ./acceptance      # Acceptance tests
+make lint                                  # golangci-lint (same as CI)
+```
+
+**Before committing, ensure both tests and linter pass:**
+```bash
+go test ./...
+make lint
+```
+
+## Architecture
+
+Entry point: `cmd/gh/main.go` → `internal/ghcmd.Main()` → `pkg/cmd/root.NewCmdRoot()`.
+
+Key packages:
+- `pkg/cmd/<command>/<subcommand>/` — CLI command implementations
+- `pkg/cmdutil/` — Factory, error types, flag helpers (`NilStringFlag`, `NilBoolFlag`, `StringEnumFlag`)
+- `pkg/iostreams/` — I/O abstraction with TTY detection, color, pager
+- `pkg/httpmock/` — HTTP mocking for tests
+- `api/` — GitHub API client (GraphQL + REST)
+- `internal/featuredetection/` — GitHub.com vs GHES capability detection
+- `internal/tableprinter/` — Table output for list commands
+
+## Command Structure
+
+A command `gh foo bar` lives in `pkg/cmd/foo/bar/` with `bar.go`, `bar_test.go`, and optionally `http.go`/`http_test.go`.
+
+### Canonical Examples
+
+- **Command + tests**: `pkg/cmd/issue/list/list.go` and `list_test.go`
+- **Factory wiring**: `pkg/cmd/factory/default.go`
+- **Unit tests**: `internal/agents/detect_test.go`
+
+### The Options + Factory Pattern
+
+Every command follows this structure (see `pkg/cmd/issue/list/list.go`):
+
+1. `Options` struct with `IO`, `HttpClient`, `Config`, `BaseRepo` + flags
+2. `NewCmdFoo(f *cmdutil.Factory, runF func(*FooOptions) error)` constructor — `runF` is the test injection point
+3. Separate `fooRun(opts)` function with the business logic
+
+Key rules:
+- Lazy-init `BaseRepo`, `Remotes`, `Branch` inside `RunE`, not the constructor
+- Commands register in `pkg/cmd/root/root.go`; subcommand groups use `cmdutil.AddGroup()`
+
+### Command Examples and Help Text
+
+Use `heredoc.Doc` for examples with `#` comment lines and `$ ` command prefixes:
+```go
+Example: heredoc.Doc(`
+    # Do the thing
+    $ gh foo bar --flag value
+`),
+```
+
+### JSON Output
+
+Add `--json`, `--jq`, `--template` flags via `cmdutil.AddJSONFlags(cmd, &opts.Exporter, fieldNames)`. In the run function: `if opts.Exporter != nil { return opts.Exporter.Write(opts.IO, data) }`. See `pkg/cmd/pr/list/list.go`.
+
+## Testing
+
+### HTTP Mocking
+
+Use `httpmock.Registry` with `defer reg.Verify(t)` to ensure all stubs are called:
+
+```go
+reg := &httpmock.Registry{}
+defer reg.Verify(t)
+
+reg.Register(
+    httpmock.REST("GET", "repos/OWNER/REPO"),
+    httpmock.JSONResponse(someData),
+)
+reg.Register(
+    httpmock.GraphQL(`query PullRequestList\b`),
+    httpmock.FileResponse("./fixtures/prList.json"),
+)
+client := &http.Client{Transport: reg}
+```
+
+Common: `REST(method, path)`, `GraphQL(pattern)`, `JSONResponse(body)`, `FileResponse(path)`. See `pkg/httpmock/` for all matchers/responders.
+
+### IOStreams in Tests
+
+```go
+ios, stdin, stdout, stderr := iostreams.Test()
+ios.SetStdoutTTY(true)  // simulate terminal
+```
+
+### Assertions
+
+Use `testify`. Always use `require` (not `assert`) for error checks so the test halts immediately:
+
+```go
+require.NoError(t, err)
+require.Error(t, err)
+assert.Equal(t, "expected", actual)
+```
+
+### Generated Mocks
+
+Interfaces use `moq`: `//go:generate moq -rm -out prompter_mock.go . Prompter`. Run `go generate ./...` after interface changes.
+
+### Table-Driven Tests
+
+Use table-driven tests for functions with multiple input/output scenarios. See `internal/agents/detect_test.go` or `pkg/cmd/issue/list/list_test.go` for examples:
+
+```go
+tests := []struct {
+    name      string
+    // inputs and expected outputs
+}{
+    {name: "descriptive case name", ...},
+}
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        // arrange, act, assert
+    })
+}
+```
+
+## Code Style
+
+- Add godoc comments to all exported functions, types, and constants
+- Avoid unnecessary code comments — only comment when the *why* isn't obvious from the code
+- Do not comment just to restate what the code does
+
+## Error Handling
+
+Error types in `pkg/cmdutil/errors.go`:
+- `FlagErrorf(...)` — flag validation (prints usage)
+- `cmdutil.SilentError` — exit 1, no message
+- `cmdutil.CancelError` — user cancelled
+- `cmdutil.PendingError` — outcome pending
+- `cmdutil.NoResultsError` — empty results
+
+Use `cmdutil.MutuallyExclusive("message", cond1, cond2)` for mutually exclusive flags.
+
+## Feature Detection
+
+Commands using feature detection must include a `// TODO <cleanupIdentifier>` comment directly above the if-statement for linter compliance:
+
+```go
+// TODO someFeatureCleanup
+if features.SomeCapability {
+    // use new API
+} else {
+    // fallback for older GHES
+}
+```
+
+## API Patterns
+
+```go
+client := api.NewClientFromHTTP(httpClient)
+client.GraphQL(hostname, query, variables, &data)
+client.REST(hostname, "GET", "repos/owner/repo", nil, &data)
+```
+
+For host resolution, use `cfg.Authentication().DefaultHost()` — not `ghinstance.Default()` which always returns `github.com`.
+
+# FILE: utils/utils.go
+package utils
+
+import (
+	"fmt"
+	"os"
+
+	"golang.org/x/term"
+)
+
+func IsDebugEnabled() (bool, string) {
+	debugValue, isDebugSet := os.LookupEnv("GH_DEBUG")
+	legacyDebugValue := os.Getenv("DEBUG")
+
+	if !isDebugSet {
+		switch legacyDebugValue {
+		case "true", "1", "yes", "api":
+			return true, legacyDebugValue
+		default:
+			return false, legacyDebugValue
+		}
+	}
+
+	switch debugValue {
+	case "false", "0", "no", "":
+		return false, debugValue
+	default:
+		return true, debugValue
+	}
+}
+
+var TerminalSize = func(w interface{}) (int, int, error) {
+	if f, isFile := w.(*os.File); isFile {
+		return term.GetSize(int(f.Fd()))
+	}
+
+	return 0, 0, fmt.Errorf("%v is not a file", w)
+}
+
+
+# FILE: test/helpers.go
+package test
+
+import (
+	"bytes"
+	"regexp"
+)
+
+// TODO copypasta from command package
+type CmdOut struct {
+	OutBuf     *bytes.Buffer
+	ErrBuf     *bytes.Buffer
+	BrowsedURL string
+}
+
+func (c CmdOut) String() string {
+	return c.OutBuf.String()
+}
+
+func (c CmdOut) Stderr() string {
+	return c.ErrBuf.String()
+}
+
+// OutputStub implements a simple utils.Runnable
+type OutputStub struct {
+	Out   []byte
+	Error error
+}
+
+func (s OutputStub) Output() ([]byte, error) {
+	if s.Error != nil {
+		return s.Out, s.Error
+	}
+	return s.Out, nil
+}
+
+func (s OutputStub) Run() error {
+	if s.Error != nil {
+		return s.Error
+	}
+	return nil
+}
+
+type T interface {
+	Helper()
+	Errorf(string, ...interface{})
+}
+
+// Deprecated: prefer exact matches for command output
+func ExpectLines(t T, output string, lines ...string) {
+	t.Helper()
+	var r *regexp.Regexp
+	for _, l := range lines {
+		r = regexp.MustCompile(l)
+		if !r.MatchString(output) {
+			t.Errorf("output did not match regexp /%s/\n> output\n%s\n", r, output)
+			return
+		}
+	}
+}
+
+
+# FILE: context/remote_test.go
+package context
+
+import (
+	"net/url"
+	"testing"
+
+	"github.com/cli/cli/v2/git"
+	"github.com/cli/cli/v2/internal/ghrepo"
+	"github.com/stretchr/testify/assert"
+)
+
+func Test_Remotes_FindByName(t *testing.T) {
+	list := Remotes{
+		&Remote{Remote: &git.Remote{Name: "mona"}, Repo: ghrepo.New("monalisa", "myfork")},
+		&Remote{Remote: &git.Remote{Name: "origin"}, Repo: ghrepo.New("monalisa", "octo-cat")},
+		&Remote{Remote: &git.Remote{Name: "upstream"}, Repo: ghrepo.New("hubot", "tools")},
+	}
+
+	r, err := list.FindByName("upstream", "origin")
+	assert.NoError(t, err)
+	assert.Equal(t, "upstream", r.Name)
+
+	r, err = list.FindByName("nonexistent", "*")
+	assert.NoError(t, err)
+	assert.Equal(t, "mona", r.Name)
+
+	_, err = list.FindByName("nonexistent")
+	assert.Error(t, err, "no GitHub remotes found")
+}
+
+func Test_Remotes_FindByRepo(t *testing.T) {
+	list := Remotes{
+		&Remote{Remote: &git.Remote{Name: "remote-0"}, Repo: ghrepo.New("owner", "repo")},
+		&Remote{Remote: &git.Remote{Name: "remote-1"}, Repo: ghrepo.New("another-owner", "another-repo")},
+	}
+
+	tests := []struct {
+		name        string
+		owner       string
+		repo        string
+		wantsRemote *Remote
+		wantsError  string
+	}{
+		{
+			name:        "exact match (owner/repo)",
+			owner:       "owner",
+			repo:        "repo",
+			wantsRemote: list[0],
+		},
+		{
+			name:        "exact match (another-owner/another-repo)",
+			owner:       "another-owner",
+			repo:        "another-repo",
+			wantsRemote: list[1],
+		},
+		{
+			name:        "case-insensitive match",
+			owner:       "OWNER",
+			repo:        "REPO",
+			wantsRemote: list[0],
+		},
+		{
+			name:       "non-match (owner)",
+			owner:      "unknown-owner",
+			repo:       "repo",
+			wantsError: "no matching remote found; looking for unknown-owner/repo",
+		},
+		{
+			name:       "non-match (repo)",
+			owner:      "owner",
+			repo:       "unknown-repo",
+			wantsError: "no matching remote found; looking for owner/unknown-repo",
+		},
+		{
+			name:       "non-match (owner, repo)",
+			owner:      "unknown-owner",
+			repo:       "unknown-repo",
+			wantsError: "no matching remote found; looking for unknown-owner/unknown-repo",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := list.FindByRepo(tt.owner, tt.repo)
+			if tt.wantsError != "" {
+				assert.Error(t, err, tt.wantsError)
+				assert.Nil(t, r)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, r, tt.wantsRemote)
+			}
+		})
+	}
+}
+
+type identityTranslator struct{}
+
+func (it identityTranslator) Translate(u *url.URL) *url.URL {
+	return u
+}
+
+func Test_translateRemotes(t *testing.T) {
+	publicURL, _ := url.Parse("https://github.com/monalisa/hello")
+	originURL, _ := url.Parse("http://example.com/repo")
+
+	gitRemotes := git.RemoteSet{
+		&git.Remote{
+			Name:     "origin",
+			FetchURL: originURL,
+		},
+		&git.Remote{
+			Name:     "public",
+			FetchURL: publicURL,
+		},
+	}
+
+	result := TranslateRemotes(gitRemotes, identityTranslator{})
+
+	if len(result) != 1 {
+		t.Errorf("got %d results", len(result))
+	}
+	if result[0].Name != "public" {
+		t.Errorf("got %q", result[0].Name)
+	}
+	if result[0].RepoName() != "hello" {
+		t.Errorf("got %q", result[0].RepoName())
+	}
+}
+
+func Test_FilterByHosts(t *testing.T) {
+	r1 := &Remote{Remote: &git.Remote{Name: "mona"}, Repo: ghrepo.NewWithHost("monalisa", "myfork", "test.com")}
+	r2 := &Remote{Remote: &git.Remote{Name: "origin"}, Repo: ghrepo.NewWithHost("monalisa", "octo-cat", "example.com")}
+	r3 := &Remote{Remote: &git.Remote{Name: "upstream"}, Repo: ghrepo.New("hubot", "tools")}
+	list := Remotes{r1, r2, r3}
+	f := list.FilterByHosts([]string{"example.com", "test.com"})
+	assert.Equal(t, 2, len(f))
+	assert.Equal(t, r1, f[0])
+	assert.Equal(t, r2, f[1])
+}
+
+
+# FILE: context/remote.go
+package context
+
+import (
+	"fmt"
+	"net/url"
+	"strings"
+
+	"github.com/cli/cli/v2/git"
+	"github.com/cli/cli/v2/internal/ghrepo"
+)
+
+// Remotes represents a set of git remotes
+type Remotes []*Remote
+
+// FindByName returns the first Remote whose name matches the list
+func (r Remotes) FindByName(names ...string) (*Remote, error) {
+	for _, name := range names {
+		for _, rem := range r {
+			if rem.Name == name || name == "*" {
+				return rem, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no matching remote found")
+}
+
+// FindByRepo returns the first Remote that points to a specific GitHub repository
+func (r Remotes) FindByRepo(owner, name string) (*Remote, error) {
+	for _, rem := range r {
+		if strings.EqualFold(rem.RepoOwner(), owner) && strings.EqualFold(rem.RepoName(), name) {
+			return rem, nil
+		}
+	}
+	return nil, fmt.Errorf("no matching remote found; looking for %s/%s", owner, name)
+}
+
+// Filter remotes by given hostnames, maintains original order
+func (r Remotes) FilterByHosts(hosts []string) Remotes {
+	filtered := make(Remotes, 0)
+	for _, rr := range r {
+		for _, host := range hosts {
+			if strings.EqualFold(rr.RepoHost(), host) {
+				filtered = append(filtered, rr)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+func (r Remotes) ResolvedRemote() (*Remote, error) {
+	for _, rr := range r {
+		if rr.Resolved != "" {
+			return rr, nil
+		}
+	}
+	return nil, fmt.Errorf("no resolved remote found")
+}
+
+func remoteNameSortScore(name string) int {
+	switch strings.ToLower(name) {
+	case "upstream":
+		return 3
+	case "github":
+		return 2
+	case "origin":
+		return 1
+	default:
+		return 0
+	}
+}
+
+// https://golang.org/pkg/sort/#Interface
+func (r Remotes) Len() int      { return len(r) }
+func (r Remotes) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+func (r Remotes) Less(i, j int) bool {
+	return remoteNameSortScore(r[i].Name) > remoteNameSortScore(r[j].Name)
+}
+
+// Remote represents a git remote mapped to a GitHub repository
+type Remote struct {
+	*git.Remote
+	Repo ghrepo.Interface
+}
+
+// RepoName is the name of the GitHub repository
+func (r Remote) RepoName() string {
+	return r.Repo.RepoName()
+}
+
+// RepoOwner is the name of the GitHub account that owns the repo
+func (r Remote) RepoOwner() string {
+	return r.Repo.RepoOwner()
+}
+
+// RepoHost is the GitHub hostname that the remote points to
+func (r Remote) RepoHost() string {
+	return r.Repo.RepoHost()
+}
+
+type Translator interface {
+	Translate(*url.URL) *url.URL
+}
+
+func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes Remotes) {
+	for _, r := range gitRemotes {
+		var repo ghrepo.Interface
+		if r.FetchURL != nil {
+			repo, _ = ghrepo.FromURL(translator.Translate(r.FetchURL))
+		}
+		if r.PushURL != nil && repo == nil {
+			repo, _ = ghrepo.FromURL(translator.Translate(r.PushURL))
+		}
+		if repo == nil {
+			continue
+		}
+		remotes = append(remotes, &Remote{
+			Remote: r,
+			Repo:   repo,
+		})
+	}
+	return
+}
+
+
+# FILE: context/context.go
+// TODO: rename this package to avoid clash with stdlib
+package context
+
+import (
+	"errors"
+	"fmt"
+	"slices"
+	"sort"
+
+	"github.com/cli/cli/v2/api"
+	"github.com/cli/cli/v2/internal/ghrepo"
+	"github.com/cli/cli/v2/pkg/iostreams"
+)
+
+// Cap the number of git remotes to look up, since the user might have an
+// unusually large number of git remotes.
+const defaultRemotesForLookup = 5
+
+func ResolveRemotesToRepos(remotes Remotes, client *api.Client, base string) (*ResolvedRemotes, error) {
+	sort.Stable(remotes)
+
+	result := &ResolvedRemotes{
+		remotes:   remotes,
+		apiClient: client,
+	}
+
+	var baseOverride ghrepo.Interface
+	if base != "" {
+		var err error
+		baseOverride, err = ghrepo.FromFullName(base)
+		if err != nil {
+			return result, err
+		}
+		result.baseOverride = baseOverride
+	}
+
+	return result, nil
+}
+
+func resolveNetwork(result *ResolvedRemotes, remotesForLookup int) error {
+	var repos []ghrepo.Interface
+	for _, r := range result.remotes {
+		repos = append(repos, r)
+		if len(repos) == remotesForLookup {
+			break
+		}
+	}
+
+	networkResult, err := api.RepoNetwork(result.apiClient, repos)
+	result.network = &networkResult
+	return err
+}
+
+type ResolvedRemotes struct {
+	baseOverride ghrepo.Interface
+	remotes      Remotes
+	network      *api.RepoNetworkResult
+	apiClient    *api.Client
+}
+
+func (r *ResolvedRemotes) BaseRepo(io *iostreams.IOStreams) (ghrepo.Interface, error) {
+	if r.baseOverride != nil {
+		return r.baseOverride, nil
+	}
+
+	if len(r.remotes) == 0 {
+		return nil, errors.New("no git remotes")
+	}
+
+	// if any of the remotes already has a resolution, respect that
+	for _, r := range r.remotes {
+		if r.Resolved == "base" {
+			return r, nil
+		} else if r.Resolved != "" {
+			repo, err := ghrepo.FromFullName(r.Resolved)
+			if err != nil {
+				return nil, err
+			}
+			return ghrepo.NewWithHost(repo.RepoOwner(), repo.RepoName(), r.RepoHost()), nil
+		}
+	}
+
+	if !io.CanPrompt() {
+		// we cannot prompt, so just resort to the 1st remote
+		return r.remotes[0], nil
+	}
+
+	repos, err := r.NetworkRepos(defaultRemotesForLookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(repos) == 0 {
+		return r.remotes[0], nil
+	} else if len(repos) == 1 {
+		return repos[0], nil
+	}
+
+	cs := io.ColorScheme()
+
+	fmt.Fprintf(io.ErrOut,
+		"%s No default remote repository has been set. To learn more about the default repository, run: gh repo set-default --help\n",
+		cs.FailureIcon())
+
+	fmt.Fprintln(io.Out)
+
+	return nil, errors.New(
+		"please run `gh repo set-default` to select a default remote repository.")
+}
+
+func (r *ResolvedRemotes) HeadRepos() ([]*api.Repository, error) {
+	if r.network == nil {
+		err := resolveNetwork(r, defaultRemotesForLookup)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var results []*api.Repository
+	var ids []string // Check if repo duplicates
+	for _, repo := range r.network.Repositories {
+		if repo != nil && repo.ViewerCanPush() && !slices.Contains(ids, repo.ID) {
+			results = append(results, repo)
+			ids = append(ids, repo.ID)
+		}
+	}
+	return results, nil
+}
+
+// NetworkRepos fetches info about remotes for the network of repos.
+// Pass a value of 0 to fetch info on all remotes.
+func (r *ResolvedRemotes) NetworkRepos(remotesForLookup int) ([]*api.Repository, error) {
+	if r.network == nil {
+		err := resolveNetwork(r, remotesForLookup)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var repos []*api.Repository
+	repoMap := map[string]bool{}
+
+	add := func(r *api.Repository) {
+		fn := ghrepo.FullName(r)
+		if _, ok := repoMap[fn]; !ok {
+			repoMap[fn] = true
+			repos = append(repos, r)
+		}
+	}
+
+	for _, repo := range r.network.Repositories {
+		if repo == nil {
+			continue
+		}
+		if repo.Parent != nil {
+			add(repo.Parent)
+		}
+		add(repo)
+	}
+
+	return repos, nil
+}
+
+// RemoteForRepo finds the git remote that points to a repository
+func (r *ResolvedRemotes) RemoteForRepo(repo ghrepo.Interface) (*Remote, error) {
+	for _, remote := range r.remotes {
+		if ghrepo.IsSame(remote, repo) {
+			return remote, nil
+		}
+	}
+	return nil, errors.New("not found")
+}
+
+
+# FILE: script/versioninfo.template.json
+{
+    "FixedFileInfo": {
+        "FileVersion": {
+            "Major": 0,
+            "Minor": 0,
+            "Patch": 0,
+            "Build": 0
+        },
+        "ProductVersion": {
+            "Major": 0,
+            "Minor": 0,
+            "Patch": 0,
+            "Build": 0
+        },
+        "FileFlagsMask": "3f",
+        "FileFlags ": "00",
+        "FileOS": "040004",
+        "FileType": "01",
+        "FileSubType": "00"
+    },
+    "StringFileInfo": {
+        "Comments": "",
+        "CompanyName": "GitHub",
+        "FileDescription": "GitHub CLI",
+        "FileVersion": "",
+        "InternalName": "gh",
+        "LegalCopyright": "",
+        "LegalTrademarks": "",
+        "OriginalFilename": "gh.exe",
+        "PrivateBuild": "",
+        "ProductName": "GitHub CLI",
+        "ProductVersion": "",
+        "SpecialBuild": ""
+    },
+    "VarFileInfo": {
+        "Translation": {
+            "LangID": "0409",
+            "CharsetID": "04B0"
+        }
+    },
+    "IconPath": "",
+    "ManifestPath": ""
+}
+
+# FILE: script/createrepo.sh
+#!/bin/bash
+set -e
+mkdir createrepo
+cat > createrepo/Dockerfile << EOF
+FROM fedora:32
+RUN yum install -y createrepo_c
+ENTRYPOINT ["createrepo", "/packages"]
+EOF
+
+docker build -t createrepo createrepo/
+docker run --rm --volume "$PWD/dist":/packages createrepo
+rm -rf createrepo
+
+
+# FILE: script/build.go
+// Build tasks for the GitHub CLI project.
+//
+// Usage:  go run script/build.go [<tasks>...] [<env>...]
+//
+// Known tasks are:
+//
+//   bin/gh:
+//     Builds the main executable.
+//     Supported environment variables:
+//     - GH_VERSION: determined from source by default
+//     - GH_OAUTH_CLIENT_ID
+//     - GH_OAUTH_CLIENT_SECRET
+//     - SOURCE_DATE_EPOCH: enables reproducible builds
+//     - GO_LDFLAGS
+//
+//   manpages:
+//     Builds the man pages under `share/man/man1/`.
+//
+//   clean:
+//     Deletes all built files.
+//
+
+package main
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cli/safeexec"
+)
+
+var tasks = map[string]func(string) error{
+	"bin/gh": func(exe string) error {
+		info, err := os.Stat(exe)
+		if err == nil && !sourceFilesLaterThan(info.ModTime()) {
+			fmt.Printf("%s: `%s` is up to date.\n", self, exe)
+			return nil
+		}
+
+		ldflags := os.Getenv("GO_LDFLAGS")
+		ldflags = fmt.Sprintf("-X github.com/cli/cli/v2/internal/build.Version=%s %s", version(), ldflags)
+		ldflags = fmt.Sprintf("-X github.com/cli/cli/v2/internal/build.Date=%s %s", date(), ldflags)
+		if oauthSecret := os.Getenv("GH_OAUTH_CLIENT_SECRET"); oauthSecret != "" {
+			ldflags = fmt.Sprintf("-X github.com/cli/cli/v2/internal/authflow.oauthClientSecret=%s %s", oauthSecret, ldflags)
+			ldflags = fmt.Sprintf("-X github.com/cli/cli/v2/internal/authflow.oauthClientID=%s %s", os.Getenv("GH_OAUTH_CLIENT_ID"), ldflags)
+		}
+
+		buildTags, _ := os.LookupEnv("GO_BUILDTAGS")
+
+		args := []string{"go", "build", "-trimpath"}
+		if buildTags != "" {
+			args = append(args, "-tags", buildTags)
+		}
+		args = append(args, "-ldflags", ldflags, "-o", exe, "./cmd/gh")
+
+		return run(args...)
+	},
+	"manpages": func(_ string) error {
+		return run("go", "run", "./cmd/gen-docs", "--man-page", "--doc-path", "./share/man/man1/")
+	},
+	"clean": func(_ string) error {
+		return rmrf("bin", "share")
+	},
+}
+
+var self string
+
+func main() {
+	args := os.Args[:1]
+	for _, arg := range os.Args[1:] {
+		if idx := strings.IndexRune(arg, '='); idx >= 0 {
+			os.Setenv(arg[:idx], arg[idx+1:])
+		} else {
+			args = append(args, arg)
+		}
+	}
+
+	if len(args) < 2 {
+		if isWindowsTarget() {
+			args = append(args, filepath.Join("bin", "gh.exe"))
+		} else {
+			args = append(args, "bin/gh")
+		}
+	}
+
+	self = filepath.Base(args[0])
+	if self == "build" {
+		self = "build.go"
+	}
+
+	for _, task := range args[1:] {
+		t := tasks[normalizeTask(task)]
+		if t == nil {
+			fmt.Fprintf(os.Stderr, "Don't know how to build task `%s`.\n", task)
+			os.Exit(1)
+		}
+
+		err := t(task)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s: building task `%s` failed.\n", self, task)
+			os.Exit(1)
+		}
+	}
+}
+
+func isWindowsTarget() bool {
+	if os.Getenv("GOOS") == "windows" {
+		return true
+	}
+	if runtime.GOOS == "windows" {
+		return true
+	}
+	return false
+}
+
+func version() string {
+	if versionEnv := os.Getenv("GH_VERSION"); versionEnv != "" {
+		return versionEnv
+	}
+	if desc, err := cmdOutput("git", "describe", "--tags"); err == nil {
+		return desc
+	}
+	rev, _ := cmdOutput("git", "rev-parse", "--short", "HEAD")
+	return rev
+}
+
+func date() string {
+	t := time.Now()
+	if sourceDate := os.Getenv("SOURCE_DATE_EPOCH"); sourceDate != "" {
+		if sec, err := strconv.ParseInt(sourceDate, 10, 64); err == nil {
+			t = time.Unix(sec, 0)
+		}
+	}
+	return t.Format("2006-01-02")
+}
+
+func sourceFilesLaterThan(t time.Time) bool {
+	foundLater := false
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// Ignore errors that occur when the project contains a symlink to a filesystem or volume that
+			// Windows doesn't have access to.
+			if path != "." && isAccessDenied(err) {
+				fmt.Fprintf(os.Stderr, "%s: %v\n", path, err)
+				return nil
+			}
+			return err
+		}
+		if foundLater {
+			return filepath.SkipDir
+		}
+		if len(path) > 1 && (path[0] == '.' || path[0] == '_') {
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
+		}
+		if info.IsDir() {
+			if name := filepath.Base(path); name == "vendor" || name == "node_modules" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if path == "go.mod" || path == "go.sum" || (strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go")) {
+			if info.ModTime().After(t) {
+				foundLater = true
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return foundLater
+}
+
+func isAccessDenied(err error) bool {
+	var pe *os.PathError
+	// we would use `syscall.ERROR_ACCESS_DENIED` if this script supported build tags
+	return errors.As(err, &pe) && strings.Contains(pe.Err.Error(), "Access is denied")
+}
+
+func rmrf(targets ...string) error {
+	args := append([]string{"rm", "-rf"}, targets...)
+	announce(args...)
+	for _, target := range targets {
+		if err := os.RemoveAll(target); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func announce(args ...string) {
+	fmt.Println(shellInspect(args))
+}
+
+func run(args ...string) error {
+	exe, err := safeexec.LookPath(args[0])
+	if err != nil {
+		return err
+	}
+	announce(args...)
+	cmd := exec.Command(exe, args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func cmdOutput(args ...string) (string, error) {
+	exe, err := safeexec.LookPath(args[0])
+	if err != nil {
+		return "", err
+	}
+	cmd := exec.Command(exe, args[1:]...)
+	cmd.Stderr = io.Discard
+	out, err := cmd.Output()
+	return strings.TrimSuffix(string(out), "\n"), err
+}
+
+func shellInspect(args []string) string {
+	fmtArgs := make([]string, len(args))
+	for i, arg := range args {
+		if strings.ContainsAny(arg, " \t'\"") {
+			fmtArgs[i] = fmt.Sprintf("%q", arg)
+		} else {
+			fmtArgs[i] = arg
+		}
+	}
+	return strings.Join(fmtArgs, " ")
+}
+
+func normalizeTask(t string) string {
+	return filepath.ToSlash(strings.TrimSuffix(t, ".exe"))
+}
+
+
+# FILE: docs/working-with-us.md
+# Working with the GitHub CLI Team: Hubber Edition
+
+POV: your team at GitHub is interested in shipping a new command in `gh`.
+
+This document outlines the process the CLI team prefers for helping ensure success both for your new feature and the CLI project as a whole.
+
+> [!NOTE]
+> External contributors, please see [CONTRIBUTING.md](/.github/CONTRIBUTING.md).
+
+## Step 0: Create an extension
+
+Even if you want to see your code merged into `gh`, you should start with [an extension](https://docs.github.com/en/github-cli/github-cli/creating-github-cli-extensions) written in Go and leveraging [go-gh](https://github.com/cli/go-gh). Though `gh` extensions can be written in any language, we treat Go as a first class experience and ship a library of helpers for extensions written in Go.
+
+Creating an extension enables you to start prototyping immediately, without waiting for us, and gives us something tangible to review if you decide you'd like the work incorporated into `gh`. It also means that you can decide to simply release your work without waiting for us to merge it, which leaves you in charge of release scheduling moving forward.
+
+If you know from this point that you're comfortable with your new feature being an extension, don't worry about the rest of this document. We don't dictate how people create and release `gh` extensions.
+
+If you do want your feature merged into `gh`, read on.
+
+## Step 1: UX review
+
+No matter what state your code is in, open up an issue either in [the open source cli/cli repository](https://github.com/cli/cli) or, if you'd rather not make the new feature public yet, [the closed github/cli repository](https://github.com/github/cli).
+
+Describe how your new command would be used. Include mock-up examples, including a mock-up of what usage information would be printed if a user ran your command with `--help`.
+
+We take this step seriously because we believe in keeping `gh`'s interface consistent and intuitive.
+
+## Step 2: Public Preview
+
+Once we've signed off on the proposed UX on the issue opened in step 1, develop your extension to at least public preview quality. It's up to you if you actually want to go through a public preview release phase with real users or not.
+
+## Step 3: Merge or no merge
+
+With a public preview in hand it's time to decide whether or not to mainline your extension into the `trunk` of `gh`. Some questions to consider:
+
+- How complex is the support burden for your feature?
+
+If this feature requires extensive or specialized support, you will either need to release it as an extension or work with the CLI team to get maintainer access to `cli/cli`. The CLI team is very small and cannot promise any kind of SLA for supporting your work. For example, the `gh cs` command is sufficiently specialized and complex that we have given the `codespaces` team write access to the repository to maintain their own pull request review process. We have not put it in an extension as Codespaces are a core GitHub product with widespread use among our users.
+
+- What kind of release cadence do you want?
+
+We do a `gh` release roughly every other week, but if the changeset for a given week is light we may skip one. We make no official promise as to our cadence, and while we do have an on-call rotation there is no guarantee that you'll be able to get emergency fixes out within hours. If this is troubling, consider keeping your work in an extension.
+
+- What kind of audience are you trying to reach?
+
+Is this new feature intended for all GitHub users or just a few? If it's as applicable to your average GitHub user or customer as something like Codespaces or Pull Requests, that's a strong indication it should be merged into `trunk`. If not, consider keeping it an extension.
+
+If after all of this consideration you think your feature should be merged, please open an issue in [cli/cli](https://github.com/cli/cli) with a link to your extension's code. It will go into our triage queue and we'll confirm that merging into `trunk` is feasible and appropriate.
+
+## Step 4
+
+Once we've signed off, open up a pull request in [cli/cli](https://github.com/cli/cli) adding your command. Since we make use of `go-gh` within our code already, it shouldn't be too onerous to make your extension merge-able. Link to the issue you opened in step 3 so we have some context on the pull request.
+
+Keep in mind that our expectation of non-trivial commands that end up merged into `cli/cli` is that your team will continue to maintain what they merged over time. We can help redirect issues your way as part of our first responder rotation, but are unable to take on the full support burden for your new command.
+
+## Other considerations
+
+- If you have a high need for secrecy until the point of release, let us know in [#cli on slack](https://github.slack.com/archives/CLLG3RMAR). We'll come up with a solution to work on merging your command in private.
+- We are a highly asynchronous team due to wide timezone differences. The best way to get in touch with us is via issue and pull request comments to which we'll respond within 24 hours. You can ping us on Slack but that's generally not our preference.
+- We are happy to pair with you on extension authoring! Just let us know if we can provide guidance and we can schedule synchronous time to work together with you.
+
+
+# FILE: docs/triage.md
+# Triage role
+
+The primary responsibility of the First Responder (FR) during their weekly rotation is to triage incoming issues and pull requests from the open source community. An issue is considered "triaged" when the `needs-triage` label is removed.
+
+## Quick Guide
+
+Pick an issue from the triage queue.
+
+**Your goal:** Do what is needed to remove the `needs-triage` label.
+
+1. **Can we close it?**
+   - Duplicate → Comment and close as duplicate, linking the original
+   - Spam → Add `invalid` or `suspected-spam` (auto-closes)
+   - Abuse → Add `invalid`, remove content, report, block (see [Spam and abuse](#spam-and-abuse))
+   - Off-topic → Add `off-topic` (auto-closes with comment)
+
+2. **Is it a bug?**
+   - Reproducible → Add `bug` and a priority label (`priority-1`, `priority-2`, or `priority-3`)
+   - Not reproducible → Add `unable-to-reproduce` (auto-requests info, 14-day timer)
+
+3. **Is it an enhancement?**
+   - Clear value → Add `enhancement` (auto-posts backlog comment)
+   - Unclear → Comment for clarification and add `more-info-needed` (14-day timer)
+
+4. **Is it a pull request?** (see [Community pull requests](#community-pull-requests))
+   - Spam or AI sludge → Add `invalid` (auto-closes)
+   - Tiny fix (e.g., typo) → Review, test, and merge directly
+   - Not linked to a help-wanted issue → Add `no-help-wanted-issue` (auto-closes with comment)
+   - Valid → Add `ready-for-review` and run CI (auto-removes `needs-triage`, auto-posts acknowledging comment)
+
+The `needs-triage` label is automatically removed when end-state labels (`enhancement`, `bug`, `ready-for-review`) are applied or the issue is closed.
+
+## Bug Triage
+
+1. Try to reproduce the issue
+2. If reproducible (or strongly suspect an intermittent bug) → add `bug` and a priority label
+3. If not reproducible → add `unable-to-reproduce` (auto-requests info, 14-day timer) or request clarification with `more-info-needed`
+
+### Bug Priorities
+
+| Priority | Description |
+|----------|-------------|
+| `priority-1` | Affects a large population and inhibits work. **Escalate internally via the appropriate incident channel; may require a hotfix.** |
+| `priority-2` | Affects more than a few users but does not prevent core functions |
+| `priority-3` | Affects a small number of users or is largely cosmetic |
+
+## Enhancement Triage
+
+**Do:**
+- Ensure the value is clear (ask if needed) and apply `more-info-needed` while waiting for clarification
+- Apply the `enhancement` label once value is clear (auto-posts backlog comment)
+
+**Don't:**
+- Deep-dive technical feasibility
+- Prematurely accept or suggest the feature will be added
+
+## Community Pull Requests
+
+Community pull requests receive `needs-triage` (as well as `external`) just like issues do, but **are not meant to be reviewed as part of triage.**
+
+The triager's responsibility is to do a quick pass:
+
+1. **Spam or AI sludge** → Add `invalid` label (auto-closes). Block user if necessary.
+2. **Tiny mergeable fix** (e.g., typo) → Review, test, and merge.
+3. **Not related to a help-wanted issue** → Add `no-help-wanted-issue` (auto-closes with comment).
+4. **Valid for review** → Add `ready-for-review` and run CI (auto-removes `needs-triage`, auto-posts acknowledging comment).
+
+The pull request will be auto-assigned to an engineer on the team; that engineer will wait to review until `needs-triage` is removed.
+
+## Spam and Abuse
+
+The primary goal of triaging spam and abuse is to remove distracting and offensive content from our community.
+
+- **Spam issues:** Add the `invalid` label (auto-closes as "won't do").
+- **Spam comments:** Mark as spam using GitHub's built-in feature.
+- **Abusive content:** Defined by our [Code of Conduct](../.github/CODE-OF-CONDUCT.md). Remove the content. Repeat offenses or particularly offensive abuse should be reported and the user blocked.
+
+## Automated Workflows
+
+| Label | Automation |
+|-------|------------|
+| `needs-triage` | Auto-added on open; removed when classified or closed |
+| `more-info-needed` | Auto-closes after 14 days without response |
+| `unable-to-reproduce` | Auto-adds `more-info-needed` + posts comment |
+| `enhancement` | Auto-posts backlog comment |
+| `invalid` | Auto-closes immediately |
+| `suspected-spam` | Auto-closes immediately |
+| `off-topic` | Auto-posts explanation comment + closes |
+| `no-help-wanted-issue` | Auto-posts explanation comment + closes |
+| `ready-for-review` | Auto-removes `needs-triage` + posts acknowledging comment |
+
+## Examples
+
+We want our project to be a safe and encouraging open-source environment. Below are some examples of how to empathetically respond to or close an issue/PR:
+
+- [Closing a quality PR when its scope is too large](https://github.com/cli/cli/pull/1161)
+- [Closing a stale PR](https://github.com/cli/cli/pull/557#issuecomment-639077269)
+- [Closing a PR that doesn't follow our CONTRIBUTING policy](https://github.com/cli/cli/pull/864)
+- [Responding to a bug report](https://github.com/desktop/desktop/issues/9195#issuecomment-592243129)
+- [Closing an issue that is out of scope](https://github.com/cli/cli/issues/777#issuecomment-612926229)
+- [Closing an issue with a feature request](https://github.com/desktop/desktop/issues/9722#issuecomment-625461766)
+
+
+
+# FILE: docs/source.md
+# Installation from source
+
+1. Verify that you have Go 1.26+ installed
+
+   ```sh
+   $ go version
+   ```
+
+   If `go` is not installed, follow instructions on [the Go website](https://golang.org/doc/install).
+
+2. Clone this repository
+
+   ```sh
+   $ git clone https://github.com/cli/cli.git gh-cli
+   $ cd gh-cli
+   ```
+
+3. Build and install
+
+   #### Unix-like systems
+
+   ```sh
+   # installs to '/usr/local' by default; sudo may be required, or sudo -E for configured go environments
+   $ make install
+
+   # or, install to a different location
+   $ make install prefix=/path/to/gh
+   ```
+
+   #### Windows
+
+   ```pwsh
+   # build the `bin\gh.exe` binary
+   > go run script\build.go
+   ```
+
+   There is no install step available on Windows.
+
+4. Run `gh version` to check if it worked.
+
+   #### Windows
+
+   Run `bin\gh version` to check if it worked.
+
+## Cross-compiling binaries for different platforms
+
+You can use any platform with Go installed to build a binary that is intended for another platform
+or CPU architecture. This is achieved by setting environment variables such as GOOS and GOARCH.
+
+For example, to compile the `gh` binary for the 32-bit Raspberry Pi OS:
+
+```sh
+# on a Unix-like system:
+$ GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 make clean bin/gh
+```
+
+```pwsh
+# on Windows, pass environment variables as arguments to the build script:
+> go run script\build.go clean bin\gh GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0
+```
+
+Run `go tool dist list` to list all supported values of GOOS/GOARCH.
+
+Tip: to reduce the size of the resulting binary, you can use `GO_LDFLAGS="-s -w"`. This omits
+symbol tables used for debugging. See the list of [supported linker flags](https://golang.org/cmd/link/).
+
+
+# FILE: docs/releasing.md
+# Releasing
+
+To read about what happens during a production deployment, see the [release process deep dive doc](release-process-deep-dive.md).
+
+To initiate a new production deployment:
+
+```sh
+script/release vX.Y.Z
+```
+
+See `script/release --help` for more information.
+
+> [!NOTE]
+> Deployment workflow requires maintainer approval to run.
+
+What this does is:
+
+- Builds Linux binaries on Ubuntu;
+- Builds and signs Windows binaries on Windows;
+- Builds, signs, and notarizes macOS binaries on macOS;
+- Uploads all release artifacts to a new GitHub Release;
+- A new git tag `vX.Y.Z` is created in the remote repository;
+- The changelog is [generated from the list of merged pull requests](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes);
+- Updates [GitHub CLI marketing site](https://cli.github.com) with the contents of the new release;
+- Updates the [`gh` Homebrew formula](https://github.com/williammartin/homebrew-core/blob/master/Formula/g/gh.rb) in the [`homebrew/homebrew-core` repo](https://github.com/search?q=repo%3AHomebrew%2Fhomebrew-core+%22gh%22+in%3Atitle&type=pullrequests).
+
+> [!NOTE]
+> `Homebrew/formulae.brew.sh` makes new formula versions available every 15 minutes through scheduled [CI workflow](https://github.com/Homebrew/formulae.brew.sh/actions/workflows/tests.yml).
+>
+> For more information, see https://docs.brew.sh/Formula-Cookbook#an-introduction
+
+To test out the build system while avoiding creating an actual release:
+
+```sh
+script/release --staging vX.Y.Z --branch patch-1 -p macos
+```
+
+The build artifacts will be available via `gh run download <RUN> -n macos`.
+
+## General guidelines
+
+- Features to be released should be reviewed and approved at least one day prior
+  to the release.
+- Feature releases should bump up the minor version number.
+- Breaking releases should bump up the major version number. These should
+  generally be rare.
+
+## Test the build system locally
+
+A local release can be created for testing without creating anything official on
+the release page.
+
+1. Make sure GoReleaser is installed: `brew install goreleaser`
+2. `script/release --local`
+3. Find the built products under `dist/`.
+
+## Cleaning up a bad release
+
+Occasionally, it might be necessary to clean up a bad release and re-release.
+
+1. Delete the release and associated tag
+2. Re-release and monitor the workflow run logs
+3. Open pull request updating [`gh` Homebrew formula](https://github.com/williammartin/homebrew-core/blob/master/Formula/g/gh.rb)
+   with new SHA versions, linking the previous PR
+4. Verify resulting Debian and RPM packages, Homebrew formula
+
+
+# FILE: docs/release-process-deep-dive.md
+# Release Process Deep Dive
+
+The current release workflow and associated scripts were created before the current set of maintainers, and all maintainers from that time have left. On a number of occasions (releasing a MacOS installer, moving to Azure HSM signing, updating expired GPG key) the current maintainers have spent time investigating the release workflow. This document is intended to serve as a guide for future maintainers who need to understand the release process.
+
+# High Level Overview
+
+From a high level, the [release workflow](https://github.com/cli/cli/blob/537a22228cd6b42b740d7f1c09f47c45bb1dab30/.github/workflows/deployment.yml):
+ * Is triggered by a `workflow_dispatch` event (typically a result of running `./script/release`)
+ * Builds, packages and signs artifacts in parallel for Linux, MacOS and Windows
+ * GPG signs Debian and Red Hat repository artifacts
+ * Builds and updates the [manual](https://cli.github.com/manual) and repository packages
+ * Creates GitHub Attestations for the artifacts
+ * Creates a GitHub Release and attaches the artifacts
+ * Bumps the `gh` [homebrew-core formula](https://github.com/Homebrew/homebrew-core/blob/2df031cbd8f7bc9b9a380e941ccefcf3c8f3d02b/Formula/g/gh.rb)
+
+# Jobs Deep Dive
+
+This section will deep dive into each job in the [`deployment.yml` workflow](https://github.com/cli/cli/blob/537a22228cd6b42b740d7f1c09f47c45bb1dab30/.github/workflows/deployment.yml).
+
+- [validate-tag-name](#validate-tag-name)
+- [OS Specific Builds](#os-builds)
+  - [linux](#linux)
+  - [macos](#macos)
+  - [windows](#windows)
+- [release](#release)
+
+Although this workflow is used to do our production releases for Linux, MacOS and Windows, it is also possible to run subsets of the workflow. Specifically:
+ * The workflow can be triggered with `inputs.release` set to `false`, resulting in the entire [release job](#release) being skipped. This is not exposed via `./script/release`.
+ * Many sections are guarded by `if: inputs.environment == 'production'`. These guards protect sections that require secrets (e.g. signing) or that result in mutations (e.g. creating a GitHub release). `./script/release` accepts the `--staging` flag for this purpose. This differs from the previous bullet point as some steps in the [release job](#release) print debug information such as [`git` diffs](https://github.com/cli/cli/blob/5d2eadef8cccf2671f68aad05cd93215a4c01b48/.github/workflows/deployment.yml#L380-L384).
+ * The workflow can be triggered for only `linux`, `MacOS` or `Windows` which allows for debugging single jobs. This is not exposed via `./script/release`. The [release job](#release) should not run in this case as it [requires all OS specific builds.](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L252)
+
+## <a id="validate-tag-name">[validate-tag-name](https://github.com/cli/cli/blob/537a22228cd6b42b740d7f1c09f47c45bb1dab30/.github/workflows/deployment.yml#L31-L39)</a>
+
+<details>
+
+```yml
+  validate-tag-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag name format
+        run: |
+          if [[ ! "${{ inputs.tag_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag name format. Must be in the form v1.2.3"
+            exit 1
+          fi
+```
+</details>
+
+The purpose of this job is to [prevent incorrectly tagged releases](https://github.com/cli/cli/pull/10121), by ensuring they conform to the `major.minor.patch` form of semantic versioning, preceded by a `v`.
+
+> [!WARNING]
+> The `release` job can [create the GitHub release as a pre-release based on the existence of a hyphen in the tag name](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L362-L364), but the later addition of `validate-tag-name` disallows this.
+
+## <a id="os-builds">[OS Builds](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L40-L248)</a>
+
+After validating the tag name, the workflow parallelises across `ubuntu`, `macos` and `windows` runners. The primary purpose of these jobs is to build and sign release artifacts. These artifacts are made available to the `release` job via `actions/upload-artifact` and `actions/download-artifact` respectively.
+
+### <a id="linux">[linux](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L40-L73)</a>
+
+<details>
+
+```yml
+  linux:
+    needs: validate-tag-name
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    if: contains(inputs.platforms, 'linux')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~1.17.1"
+          install-only: true
+      - name: Build release binaries
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: script/release --local "$TAG_NAME" --platform linux
+      - name: Generate web manual pages
+        run: |
+          go run ./cmd/gen-docs --website --doc-path dist/manual
+          tar -czvf dist/manual.tar.gz -C dist -- manual
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/*.tar.gz
+            dist/*.rpm
+            dist/*.deb
+```
+</details>
+
+In addition to building release artifacts, the `linux` job builds the [CLI manual](https://cli.github.com/manual/) for use in the later `release` job.
+
+#### Building
+
+This job executes `script/release --local "$TAG_NAME" --platform linux` which uses`GoReleaser` to create the Go executables, `.zip` archives, and `.deb` / `.rpm` repository packages. See [how ./script/release works](#how-script-release-works) for further information.
+
+#### Signing
+
+There is no signing of linux artifacts in this job. See the [release job](#release) for more information on signing linux artifacts.
+
+### <a id="macos">[macos](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L75-L145)</a>
+
+<details>
+
+```yaml
+  macos:
+    needs: validate-tag-name
+    runs-on: macos-latest
+    environment: ${{ inputs.environment }}
+    if: contains(inputs.platforms, 'macos')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Configure macOS signing
+        if: inputs.environment == 'production'
+        env:
+          APPLE_DEVELOPER_ID: ${{ vars.APPLE_DEVELOPER_ID }}
+          APPLE_APPLICATION_CERT: ${{ secrets.APPLE_APPLICATION_CERT }}
+          APPLE_APPLICATION_CERT_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/buildagent.keychain"
+          keychain_password="password1"
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          security default-keychain -s "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+
+          base64 -D <<<"$APPLE_APPLICATION_CERT" > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$APPLE_APPLICATION_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "$keychain_password" "$keychain"
+          rm "$RUNNER_TEMP/cert.p12"
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~1.17.1"
+          install-only: true
+      - name: Build release binaries
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+          APPLE_DEVELOPER_ID: ${{ vars.APPLE_DEVELOPER_ID }}
+        run: script/release --local "$TAG_NAME" --platform macos
+      - name: Notarize macOS archives
+        if: inputs.environment == 'production'
+        env:
+          APPLE_ID: ${{ vars.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_DEVELOPER_ID: ${{ vars.APPLE_DEVELOPER_ID }}
+        run: |
+          shopt -s failglob
+          script/sign dist/gh_*_macOS_*.zip
+      - name: Build universal macOS pkg installer
+        if: inputs.environment != 'production'
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: script/pkgmacos "$TAG_NAME"
+      - name: Build & notarize universal macOS pkg installer
+        if: inputs.environment == 'production'
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+          APPLE_DEVELOPER_INSTALLER_ID: ${{ vars.APPLE_DEVELOPER_INSTALLER_ID }}
+        run: |
+          shopt -s failglob
+          script/pkgmacos "$TAG_NAME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.pkg
+```
+</details>
+
+#### Building
+
+This job executes `script/release --local "$TAG_NAME" --platform macos` which uses `GoReleaser` to create the Go executables and `.zip` archives. See [how ./script/release works](#how-script-release-works) for further information.
+
+This job also executes `script/pkgmacos "$TAG_NAME"` to build a Universal (architecture independent) MacOS `.pkg` installer. See [how ./script/pkgmacos works](#how-script-pkgmacos-works) for further information.
+
+#### Signing
+
+For MacOS, the "signing" section refers to both signing and notarizing.
+
+There are three levels of "signing" that occur in this job:
+ * Signing of Go executables created by `GoReleaser` is performed in a [`GoReleaser` hook](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml#L20).
+ * Notarization of `.zip` archives created by `GoReleaser` is performed by directly executing `script/sign dist/gh_*_macOS_*.zip`
+ * Signing of the `.pkg` installer in `./script/pkgmacos` when executing [`productbuild`](https://github.com/cli/cli/blob/1c74296d28cf5595008065d3ddf7061ca9388305/script/pkgmacos#L108). See warnings below.
+
+ > [!WARNING]
+> Although the job title is `Build & notarize universal macOS pkg installer`, the [`productbuild` docs](https://www.unix.com/man_page/osx/1/productbuild/) only refer to signing, thus notarization may not be the correct term here.
+
+> [!WARNING]
+> Although it appears as if signing the `.pkg` installer can occur if `inputs.environment == 'production'`, in practice, I don't believe we ever set `${{ vars.APPLE_DEVELOPER_INSTALLER_ID }}`, thus we always [skip signing](https://github.com/cli/cli/actions/runs/13271193192/job/37050749548#step:9:11).
+
+Signing of MacOS artifacts uses `codesign` and notarization uses `xcrun notarytool`, which submits the artifact to the Apple servers for additional checks.
+
+In order to perform signing, a keychain must be configured with the signing certificate. Comments have been added to provide clarity to the script:
+
+```sh
+keychain="$RUNNER_TEMP/buildagent.keychain"
+keychain_password="password1"
+
+# Create a new keychain for credentials to be stored in.
+security create-keychain -p "$keychain_password" "$keychain"
+# Mark the keychain as the system default so that a later signing step doesn't require
+# referencing the keychain by name.
+security default-keychain -s "$keychain"
+# Unlock the keychain so that future operations can access the secrets without user interaction.
+security unlock-keychain -p "$keychain_password" "$keychain"
+
+base64 -D <<<"$APPLE_APPLICATION_CERT" > "$RUNNER_TEMP/cert.p12"
+
+# Import the certificate into the keychain so that a later signing step can use it.
+# `man security` snippet:
+# -k keychain     Specify keychain into which item(s) will be imported.
+# -P passphrase   Specify the unwrapping passphrase immediately. The default is to obtain a secure passphrase via GUI.
+# -T appPath      Specify an application which may access the imported key (multiple -T options are allowed)
+security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$APPLE_APPLICATION_CERT_PASSWORD" -T /usr/bin/codesign
+
+# Enforce additional security requirements that only the applications used for signing can access the keychain. This allows for signing applications to access the keychain without user interaction.
+# The three values:
+#  * apple-tool: → Grants access to Apple's development tools.
+#  * apple: → Grants access to Apple’s general cryptographic tools.
+#  * codesign: → Grants access to the codesign tool, which is used to sign binaries and applications.
+#
+# `man security` snippet:
+# set-key-partition-list [-S partition-list] [-k password] [options...] [keychain] Sets the "partition list" for a key. The "partition list" is an extra parameter in the ACL which limits access to the key based on an application's code signature. You must present the keychain's password to change a partition list. If you'd like to run /usr/bin/codesign with the key, "apple:" must be an element of the partition
+# list.
+
+#       -S partition-list
+#                       Comma-separated partition list. See output of "security dump-keychain" for examples.
+#       -k password     Password for keychain
+#       -s              Match keys that can sign
+security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "$keychain_password" "$keychain"
+# Clean up the certificate so that it's not lying around for later jobs to leak.
+rm "$RUNNER_TEMP/cert.p12"
+```
+
+When we execute `codesign --timestamp --options=runtime -s "${APPLE_DEVELOPER_ID?}" -v "$1"` in `./script/sign`, `codesign` inspects into the default keychain to find a certificate that matches the `APPLE_DEVELOPER_ID` environment variable. The `--timestamp` and `--options=runtime` flags are required for Notarization, described below.
+
+---
+
+[Code signing certifies that a `gh` executable was created by GitHub](https://developer.apple.com/documentation/security/code-signing-services). On the other hand, [Notarization](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution) is an additional security step upon which software is submitted to Apple for automated scanning. If passed, Apple generates a `ticket` that can be `stapled` to the software, and Apple's [Gatekeeper](https://support.apple.com/en-gb/guide/security/sec5599b66df/web) software is made aware of it.
+
+When we execute `xcrun notarytool submit "$1" --apple-id "${APPLE_ID?}" --team-id "${APPLE_DEVELOPER_ID?}" --password "${APPLE_ID_PASSWORD?}"` in `./script/sign` no keychain access should be required as the `APPLE_ID_PASSWORD` environment variable is used to authenticate.
+
+### <a id="windows">[windows](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L147-L248)</a>
+
+<details>
+
+```yml
+windows:
+    needs: validate-tag-name
+    runs-on: windows-latest
+    environment: ${{ inputs.environment }}
+    if: contains(inputs.platforms, 'windows')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~1.17.1"
+          install-only: true
+      - name: Install Azure Code Signing Client
+        shell: pwsh
+        env:
+          ACS_DIR: ${{ runner.temp }}\acs
+          ACS_ZIP: ${{ runner.temp }}\acs.zip
+          CORRELATION_ID: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          METADATA_PATH: ${{ runner.temp }}\acs\metadata.json
+        run: |
+          # Download Azure Code Signing client containing the DLL needed for signtool in script/sign
+          Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Azure.CodeSigning.Client/1.0.43 -OutFile $Env:ACS_ZIP -Verbose
+          Expand-Archive $Env:ACS_ZIP -Destination $Env:ACS_DIR -Force -Verbose
+
+          # Generate metadata file for signtool, used in signing box .exe and .msi
+          @{
+            CertificateProfileName = "GitHubInc"
+            CodeSigningAccountName = "GitHubInc"
+            CorrelationId = $Env:CORRELATION_ID
+            Endpoint =  "https://wus.codesigning.azure.net/"
+          } | ConvertTo-Json | Out-File -FilePath $Env:METADATA_PATH
+
+      # Azure Code Signing leverages the environment variables for secrets that complement the metadata.json
+      # file generated above (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+      # For more information, see https://learn.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet
+      - name: Build release binaries
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.SPN_GITHUB_CLI_SIGNING_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.SPN_GITHUB_CLI_SIGNING }}
+          AZURE_TENANT_ID: ${{ secrets.SPN_GITHUB_CLI_SIGNING_TENANT_ID }}
+          DLIB_PATH: ${{ runner.temp }}\acs\bin\x64\Azure.CodeSigning.Dlib.dll
+          METADATA_PATH: ${{ runner.temp }}\acs\metadata.json
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: script/release --local "$TAG_NAME" --platform windows
+      - name: Set up MSBuild
+        id: setupmsbuild
+        uses: microsoft/setup-msbuild@v2.0.0
+      - name: Build MSI
+        shell: bash
+        env:
+          MSBUILD_PATH: ${{ steps.setupmsbuild.outputs.msbuildPath }}
+        run: |
+          for ZIP_FILE in dist/gh_*_windows_*.zip; do
+            MSI_NAME="$(basename "$ZIP_FILE" ".zip")"
+            MSI_VERSION="$(cut -d_ -f2 <<<"$MSI_NAME" | cut -d- -f1)"
+            case "$MSI_NAME" in
+            *_386 )
+              source_dir="$PWD/dist/windows_windows_386"
+              platform="x86"
+              ;;
+            *_amd64 )
+              source_dir="$PWD/dist/windows_windows_amd64_v1"
+              platform="x64"
+              ;;
+            *_arm64 )
+              source_dir="$PWD/dist/windows_windows_arm64"
+              platform="arm64"
+              ;;
+            * )
+              printf "unsupported architecture: %s\n" "$MSI_NAME" >&2
+              exit 1
+              ;;
+            esac
+            "${MSBUILD_PATH}\MSBuild.exe" ./build/windows/gh.wixproj -p:SourceDir="$source_dir" -p:OutputPath="$PWD/dist" -p:OutputName="$MSI_NAME" -p:ProductVersion="${MSI_VERSION#v}" -p:Platform="$platform"
+          done
+      - name: Sign .msi release binaries
+        if: inputs.environment == 'production'
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.SPN_GITHUB_CLI_SIGNING_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.SPN_GITHUB_CLI_SIGNING }}
+          AZURE_TENANT_ID: ${{ secrets.SPN_GITHUB_CLI_SIGNING_TENANT_ID }}
+          DLIB_PATH: ${{ runner.temp }}\acs\bin\x64\Azure.CodeSigning.Dlib.dll
+          METADATA_PATH: ${{ runner.temp }}\acs\metadata.json
+        run: |
+          Get-ChildItem -Path .\dist -Filter *.msi | ForEach-Object {
+            .\script\sign.ps1 $_.FullName
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/*.zip
+            dist/*.msi
+```
+</details>
+
+#### Building
+
+This job executes `script/release --local "$TAG_NAME" --platform windows` to use `GoReleaser` to create the Go executables and `.zip` archives. See [how ./script/release works](#how-script-release-works) for further information.
+
+This job also executes `MSBuild.exe` to build MSI Installers, wrapping each architecture dependent `.zip` produced by GoReleaser. This is done via the command:
+
+```pwsh
+"${MSBUILD_PATH}\MSBuild.exe" ./build/windows/gh.wixproj -p:SourceDir="$source_dir" -p:OutputPath="$PWD/dist" -p:OutputName="$MSI_NAME" -p:ProductVersion="${MSI_VERSION#v}" -p:Platform="$platform"
+```
+
+This references a number of [pretty inscrutable files](https://github.com/cli/cli/tree/817eeb26e567de11007c8a82c25e61c7e20e4337/build/windows) in our repository that form a kind of manifest. Some of the details and motivation for the contents of these files is described in the [PR](https://github.com/cli/cli/pull/4276) that introduced them.
+
+#### Signing
+
+There are two levels of signing that occur in this job:
+ * Signing of Go executables created by `GoReleaser` is performed in a [`GoReleaser` hook](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml#L43).
+ * Signing of the MSI installers by executing `.\script\sign.ps1 $_.FullName`
+
+Signing of the Windows artifacts uses `signtool.exe` to request signing from [Azure HSM](https://azure.microsoft.com/en-us/products/azure-dedicated-hsm). This takes the following steps:
+
+Firstly, a package is downloaded that contains a DLL to allow `signtool.exe` to interact with Azure HSM.
+
+```pwsh
+# Download Azure Code Signing client containing the DLL needed for signtool in script/sign
+Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Azure.CodeSigning.Client/1.0.43 -OutFile $Env:ACS_ZIP -Verbose
+Expand-Archive $Env:ACS_ZIP -Destination $Env:ACS_DIR -Force -Verbose
+```
+
+Secondly, we create a JSON file containing metadata required by HSM:
+
+```pwsh
+# Generate metadata file for signtool, used in signing box .exe and .msi
+@{
+  CertificateProfileName = "GitHubInc"
+  CodeSigningAccountName = "GitHubInc"
+  CorrelationId = $Env:CORRELATION_ID
+  Endpoint =  "https://wus.codesigning.azure.net/"
+} | ConvertTo-Json | Out-File -FilePath $Env:METADATA_PATH
+```
+
+Thirdly, in `./script/sign.ps1` we look for the `signtool` executable:
+
+```pwsh
+$signtool = Resolve-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -Last 1
+```
+
+Finally, in `./script/sign.ps`, we execute `signtool`:
+
+```pwsh
+& $signtool sign /d "GitHub CLI" /fd sha256 /td sha256 /tr http://timestamp.acs.microsoft.com /v /dlib "$Env:DLIB_PATH" /dmdf "$Env:METADATA_PATH" $Args[0]
+```
+
+Breaking this command down:
+ * `/fd` is the file digest algorithm
+ * `/td` is the timestamp digest algorithm
+ * `/tr` indicates the timestamp server so a timestamp can be added to the signature, proving when it was signed
+ * `/dlib` points to the previously extracted DLL
+ * `/dmdf` points to the previously created metadata file
+
+## <a id="release">[release](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L250-L395)</a>
+
+<details>
+
+```yml
+release:
+    runs-on: ubuntu-latest
+    needs: [linux, macos, windows]
+    environment: ${{ inputs.environment }}
+    if: inputs.release
+    steps:
+      - name: Checkout cli/cli
+        uses: actions/checkout@v4
+      - name: Merge built artifacts
+        uses: actions/download-artifact@v4
+      - name: Checkout documentation site
+        uses: actions/checkout@v4
+        with:
+          repository: github/cli.github.com
+          path: site
+          fetch-depth: 0
+          token: ${{ secrets.SITE_DEPLOY_PAT }}
+      - name: Update site man pages
+        env:
+          GIT_COMMITTER_NAME: cli automation
+          GIT_AUTHOR_NAME: cli automation
+          GIT_COMMITTER_EMAIL: noreply@github.com
+          GIT_AUTHOR_EMAIL: noreply@github.com
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          git -C site rm 'manual/gh*.md' 2>/dev/null || true
+          tar -xzvf linux/manual.tar.gz -C site
+          git -C site add 'manual/gh*.md'
+          sed -i.bak -E "s/(assign version = )\".+\"/\1\"${TAG_NAME#v}\"/" site/index.html
+          rm -f site/index.html.bak
+          git -C site add index.html
+          git -C site diff --quiet --cached || git -C site commit -m "gh ${TAG_NAME#v}"
+      - name: Prepare release assets
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          shopt -s failglob
+          rm -rf dist
+          mkdir dist
+          mv -v {linux,macos,windows}/gh_* dist/
+      - name: Install packaging dependencies
+        run: sudo apt-get install -y rpm reprepro
+      - name: Set up GPG
+        if: inputs.environment == 'production'
+        env:
+          GPG_PUBKEY: ${{ secrets.GPG_PUBKEY }}
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEYGRIP: ${{ secrets.GPG_KEYGRIP }}
+        run: |
+          base64 -d <<<"$GPG_PUBKEY" | gpg --import --no-tty --batch --yes
+          base64 -d <<<"$GPG_KEY" | gpg --import --no-tty --batch --yes
+          echo "allow-preset-passphrase" > ~/.gnupg/gpg-agent.conf
+          gpg-connect-agent RELOADAGENT /bye
+          /usr/lib/gnupg2/gpg-preset-passphrase --preset "$GPG_KEYGRIP" <<<"$GPG_PASSPHRASE"
+      - name: Sign RPMs
+        if: inputs.environment == 'production'
+        run: |
+          cp script/rpmmacros ~/.rpmmacros
+          rpmsign --addsign dist/*.rpm
+      - name: Attest release artifacts
+        if: inputs.environment == 'production'
+        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
+        with:
+          subject-path: "dist/gh_*"
+      - name: Run createrepo
+        env:
+          GPG_SIGN: ${{ inputs.environment == 'production' }}
+        run: |
+          mkdir -p site/packages/rpm
+          cp dist/*.rpm site/packages/rpm/
+          ./script/createrepo.sh
+          cp -r dist/repodata site/packages/rpm/
+          pushd site/packages/rpm
+          [ "$GPG_SIGN" = "false" ] || gpg --yes --detach-sign --armor repodata/repomd.xml
+          popd
+      - name: Run reprepro
+        env:
+          GPG_SIGN: ${{ inputs.environment == 'production' }}
+          # We are no longer adding to the distribution list.
+          # All apt distributions should use "stable" according to our install documentation.
+          # In the future we will remove legacy distributions listed here.
+          RELEASES: "cosmic eoan disco groovy focal stable oldstable testing sid unstable buster bullseye stretch jessie bionic trusty precise xenial hirsute impish kali-rolling"
+        run: |
+          mkdir -p upload
+          [ "$GPG_SIGN" = "true" ] || sed -i.bak '/^SignWith:/d' script/distributions
+          for release in $RELEASES; do
+            for file in dist/*.deb; do
+              reprepro --confdir="+b/script" includedeb "$release" "$file"
+            done
+          done
+          cp -a dists/ pool/ upload/
+          mkdir -p site/packages
+          cp -a upload/* site/packages/
+      - name: Create the release
+        env:
+          # In non-production environments, the assets will not have been signed
+          DO_PUBLISH: ${{ inputs.environment == 'production' }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s failglob
+          pushd dist
+          shasum -a 256 gh_* > checksums.txt
+          mv checksums.txt gh_${TAG_NAME#v}_checksums.txt
+          popd
+          release_args=(
+            "$TAG_NAME"
+            --title "GitHub CLI ${TAG_NAME#v}"
+            --target "$GITHUB_SHA"
+            --generate-notes
+          )
+          if [[ $TAG_NAME == *-* ]]; then
+            release_args+=( --prerelease )
+          fi
+          guard="echo"
+          [ "$DO_PUBLISH" = "false" ] || guard=""
+          script/label-assets dist/gh_* | xargs $guard gh release create "${release_args[@]}" --
+      - name: Publish site
+        env:
+          DO_PUBLISH: ${{ inputs.environment == 'production' && !contains(inputs.tag_name, '-') }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          GIT_COMMITTER_NAME: cli automation
+          GIT_AUTHOR_NAME: cli automation
+          GIT_COMMITTER_EMAIL: noreply@github.com
+          GIT_AUTHOR_EMAIL: noreply@github.com
+        working-directory: ./site
+        run: |
+          git add packages
+          git commit -m "Add rpm and deb packages for $TAG_NAME"
+          if [ "$DO_PUBLISH" = "true" ]; then
+            git push
+          else
+            git log --oneline @{upstream}..
+            git diff --name-status @{upstream}..
+          fi
+      - name: Bump homebrew-core formula
+        uses: mislav/bump-homebrew-formula-action@v3
+        if: inputs.environment == 'production' && !contains(inputs.tag_name, '-')
+        with:
+          formula-name: gh
+          formula-path: Formula/g/gh.rb
+          tag-name: ${{ inputs.tag_name }}
+          push-to: williammartin/homebrew-core
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_PR_PAT }}
+```
+</details>
+
+The following sections are not strictly in the same order as the workflow but intended to bucket the different responsibilities.
+
+### Site Manual
+
+A git commit is created in the `cli.github.com` site repository containing the contents of the CLI Manual uploaded by the [`linux`](#linux) job. This is not pushed until the package repository artifacts are set up later.
+
+### Site Package Repositories
+
+The `cli.github.com` website hosts RPM and Debian package repositories to support the [official sources installation instructions](https://github.com/cli/cli/blob/trunk/docs/install_linux.md#official-sources). In order to provide a secure installation method, artifacts in these repositories are signed by a GPG key, which must be loaded into `gpg` for use in later steps. Comments have been added to provide clarity to the script:
+
+```sh
+# Import the public and private keys into gpg non-interactively
+base64 -d <<<"$GPG_PUBKEY" | gpg --import --no-tty --batch --yes
+base64 -d <<<"$GPG_KEY" | gpg --import --no-tty --batch --yes
+# Configure gpg so that passphrases can be preset, so that they don't
+# have to be provided on every future operation.
+echo "allow-preset-passphrase" > ~/.gnupg/gpg-agent.conf
+# Inform gpg that it should reload the configuration to apply the previous step
+gpg-connect-agent RELOADAGENT /bye
+# Store the passphrase for a specific key (referenced by keygrip) in memory.
+/usr/lib/gnupg2/gpg-preset-passphrase --preset "$GPG_KEYGRIP" <<<"$GPG_PASSPHRASE"
+```
+
+#### RPM
+
+The `.rpm` files uploaded by the [`linux`](#linux) job are signed using [`rpmsign`](https://man7.org/linux/man-pages/man8/rpmsign.8.html). The [`createrepo`](https://linux.die.net/man/8/createrepo) tool is used to generate a `repomd.xml` metadata file which describes the contents of a Red Hat repository. The artifacts and `repomd.xml` file are then copied into the site repository, and the `repomd.xml` is signed using `gpg --yes --detach-sign --armor repodata/repomd.xml`, producing a signature file. Since there is only one private key imported into `gpg`, that key is used for the signing.
+
+> [!WARNING]
+> The `createrepo` tool is executed inside a [Docker container](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/script/createrepo.sh) for [package management reasons](https://github.com/cli/cli/pull/2856) that may no longer be true.
+
+#### Debian
+
+The `.deb` files uploaded by the [`linux`](#linux) job are iterated per Debian release (see warning below), using [`reprepro`](https://manpages.debian.org/bookworm/reprepro/reprepro.1.en.html) which produces a directory and file structure for a Debian package repository. The [`./script/distributions`](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/script/distributions) `SignWith` lines indicate the GPG Key ID that `reprepro` should use to sign packages in the created repository. The generated directories are then copied to the site repository.
+
+> [!WARNING]
+> There is a note that we should remove [legacy distributions from our list](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.github/workflows/deployment.yml#L329-L332) but no indication of when that would happen.
+
+### Attest Artifacts
+
+[Attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds) are created for each of the release artifacts. For an example see: https://github.com/cli/cli/attestations/4920729
+
+### Publish Release
+
+After all release artifacts have been created, and signed, there are a number of steps taken to make them available to our users.
+
+#### GitHub Release
+
+`gh release create` is invoked to create a new release on GitHub, attaching all the archives, packages and installers, plus a checksum file to allow `gh` users to validate the attached artifacts. The artifact file names are provided to `gh release create` along with a label, as per the command `--help`:
+
+```
+Upload a release asset with a display label
+$ gh release create v1.2.3 '/path/to/asset.zip#My display label'
+```
+
+> [!NOTE]
+> It's unclear why human readable display labels were used, beyond comments that it was intentional
+> https://github.com/cli/cli/pull/7324
+> https://github.com/cli/cli/issues/7470#issuecomment-1556986607
+
+#### Site
+
+In previous steps, a git commit was made for the manual, and files had moved into place for the RPM and Debian package repositories. The package repository structure is committed and pushed, which kicks off a deployment workflow in site repository.
+
+Occasionally, the repository can become unwieldy due to hosting so many large binary artifacts. Instructions can be found in the README for that repository.
+
+#### Homebrew Formula
+
+Using [`mislav/bump-homebrew-formula-action`](https://github.com/mislav/bump-homebrew-formula-action), a PR for the `gh` [`homebrew-core` formula](https://github.com/Homebrew/homebrew-core/blob/master/Formula/g/gh.rb) is created. The fork repository is currently owned by `williammartin` as PRs are [not accepted from organizations.](https://github.com/cli/cli/pull/7953)
+
+`Homebrew/formulae.brew.sh` makes new formula versions available every 15 minutes through scheduled CI workflow. For more information, see https://docs.brew.sh/Formula-Cookbook#an-introduction
+
+## <a id="deepest-dive">Deepest Dive</a>
+
+### <a id="how-script-release-works">How script/release works</a>
+
+[`./script/release`](https://github.com/cli/cli/blob/817eeb26e567de11007c8a82c25e61c7e20e4337/script/release) is used by `gh` maintainers to [create a new release](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/docs/releasing.md). When invoked it executes `gh workflow run` in order to kick off the workflow described in detail above. However, that workflow also calls back into `./script/release` with the `--local` flag resulting in release artifacts being created on the machine invoking it. Each OS specific job in the workflow additionally provides the `--platform` flag.
+
+The surprising behaviour in `./script/release` is that it uses `sed` to modify the base [`.goreleaser.yml` ](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml) file, so that only platform specific sections are retained. For example, in the case of of `linux` only the [`linux` build](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml#L27) and [`npmfs`](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml#L78) section would be configured for `GoReleaser`. The `archive` sections are addressed by [requirements](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml#L52) on previous platform builds.
+
+Each build entry in [`.goreleaser.yml` ](https://github.com/cli/cli/blob/756f4ec04abdc9fdbab3fef35b182c546ef1dd17/.goreleaser.yml) specifies the platforms that are supported, for example:
+
+```yml
+  - id: linux #build:linux
+    goos: [linux]
+    goarch: [386, arm, amd64, arm64]
+```
+
+### <a id="how-script-pkgmacos-works">How script/pkgmacos works</a>
+
+[./script/pkgmacos](https://github.com/cli/cli/blob/817eeb26e567de11007c8a82c25e61c7e20e4337/script/pkgmacos) is used by the [macos job](#macos) to create a `.pkg` installer. It uses three main utilities:
+ * [`lipo`](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary) to combine the `arm64` and `amd64` binaries into one
+ *  [`pkgbuild`](https://www.unix.com/man_page/osx/1/pkgbuild/) to build a "component package", which is the payload to be installed by a MacOS installer. For `gh`, this is `com.github.cli.pkg`. The contents of this package is the universal binary, zsh completions and man pages.
+ * [`productbuild`](https://www.unix.com/man_page/osx/1/productbuild/) creates a "product archive" which is used by the MacOS installer. In addition to the "component package", a product archive can contain customized installation elements. For `gh`, we include a `LICENSE` file. We include a [`distribution.xml`](https://github.com/cli/cli/blob/trunk/build/macOS/distribution.xml) file in our repo. which` productbuild` uses.
+
+A good explanation of the difference between `pkgbuild` and `productbuild` can be found on [this Stackoverflow answer](https://stackoverflow.com/questions/74422992/what-is-the-difference-between-pkgbuild-vs-productbuild).
+
+
+# FILE: docs/project-layout.md
+# GitHub CLI project layout
+
+At a high level, these areas make up the `github.com/cli/cli` project:
+- [`cmd/`](../cmd) - `main` packages for building binaries such as the `gh` executable
+- [`pkg/`](../pkg) - most other packages, including the implementation for individual gh commands
+- [`docs/`](../docs) - documentation for maintainers and contributors
+- [`script/`](../script) - build and release scripts
+- [`internal/`](../internal) - Go packages highly specific to our needs and thus internal
+- [`go.mod`](../go.mod) - external Go dependencies for this project, automatically fetched by Go at build time
+
+Some auxiliary Go packages are at the top level of the project for historical reasons:
+- [`api/`](../api) - main utilities for making requests to the GitHub API
+- [`context/`](../context) - DEPRECATED: use only for referencing git remotes
+- [`git/`](../git) - utilities to gather information from a local git repository
+- [`test/`](../test) - DEPRECATED: do not use
+- [`utils/`](../utils) - DEPRECATED: use only for printing table output
+
+## Command-line help text
+
+Running `gh help issue list` displays help text for a topic. In this case, the topic is a specific command,
+and help text for every command is embedded in that command's source code. The naming convention for gh
+commands is:
+```
+pkg/cmd/<command>/<subcommand>/<subcommand>.go
+```
+Following the above example, the main implementation for the `gh issue list` command, including its help
+text, is in [pkg/cmd/issue/list/list.go](../pkg/cmd/issue/list/list.go)
+
+Other help topics not specific to any command, for example `gh help environment`, are found in
+[pkg/cmd/root/help_topic.go](../pkg/cmd/root/help_topic.go).
+
+During our release process, these help topics are [automatically converted](../cmd/gen-docs/main.go) to
+manual pages and published under https://cli.github.com/manual/.
+
+## How GitHub CLI works
+
+To illustrate how GitHub CLI works in its typical mode of operation, let's build the project, run a command,
+and talk through which code gets run in order.
+
+1. `go run script/build.go` - Makes sure all external Go dependencies are fetched, then compiles the
+   `cmd/gh/main.go` file into a `bin/gh` binary.
+2. `bin/gh issue list --limit 5` - Runs the newly built `bin/gh` binary (note: on Windows you must use
+   backslashes like `bin\gh`) and passes the following arguments to the process: `["issue", "list", "--limit", "5"]`.
+3. `func main()` inside `cmd/gh/main.go` is the first Go function that runs. The arguments passed to the
+   process are available through `os.Args`.
+4. The `main` package initializes the "root" command with `root.NewCmdRoot()` and dispatches execution to it
+   with `rootCmd.ExecuteC()`.
+5. The [root command](../pkg/cmd/root/root.go) represents the top-level `gh` command and knows how to
+   dispatch execution to any other gh command nested under it.
+6. Based on `["issue", "list"]` arguments, the execution reaches the `RunE` block of the `cobra.Command`
+   within [pkg/cmd/issue/list/list.go](../pkg/cmd/issue/list/list.go).
+7. The `--limit 5` flag originally passed as arguments be automatically parsed and its value stored as
+   `opts.LimitResults`.
+8. `func listRun()` is called, which is responsible for implementing the logic of the `gh issue list` command.
+9. The command collects information from sources like the GitHub API then writes the final output to
+   standard output and standard error [streams](../pkg/iostreams/iostreams.go) available at `opts.IO`.
+10. The program execution is now back at `func main()` of `cmd/gh/main.go`. If there were any Go errors as a
+    result of processing the command, the function will abort the process with a non-zero exit status.
+    Otherwise, the process ends with status 0 indicating success.
+
+## How to add a new command
+
+1. First, check on our issue tracker to verify that our team had approved the plans for a new command.
+2. Create a package for the new command, e.g. for a new command `gh boom` create the following directory
+   structure: `pkg/cmd/boom/`
+3. The new package should expose a method, e.g. `NewCmdBoom()`, that accepts a `*cmdutil.Factory` type and
+   returns a `*cobra.Command`.
+   * Any logic specific to this command should be kept within the command's package and not added to any
+     "global" packages like `api` or `utils`.
+4. Use the method from the previous step to generate the command and add it to the command tree, typically
+   somewhere in the `NewCmdRoot()` method.
+
+## How to write tests
+
+This task might be tricky. Typically, gh commands do things like look up information from the git repository
+in the current directory, query the GitHub API, scan the user's `~/.ssh/config` file, clone or fetch git
+repositories, etc. Naturally, none of these things should ever happen for real when running tests, unless
+you are sure that any filesystem operations are strictly scoped to a location made for and maintained by the
+test itself. To avoid actually running things like making real API requests or shelling out to `git`
+commands, we stub them. You should look at how that's done within some existing tests.
+
+To make your code testable, write small, isolated pieces of functionality that are designed to be composed
+together. Prefer table-driven tests for maintaining variations of different test inputs and expectations
+when exercising a single piece of functionality.
+
+
+# FILE: docs/multiple-accounts.md
+# Multiple Accounts with the CLI - v2.40.0
+
+Since its creation, `gh` has enforced a mapping of one account per host. Functionally, this meant that when targeting a
+single host (e.g. github.com) each `auth login` would replace the token being used for API requests, and for git
+operations when `gh` was configured as a git credential manager. Removing this limitation has been a [long requested
+feature](https://github.com/cli/cli/issues/326), with many community members offering workarounds for a variety of use cases.
+A particular shoutout to @gabe565 and his long term community support for https://github.com/gabe565/gh-profile in this space.
+
+With the release of `v2.40.0`, `gh` has begun supporting multiple accounts for some use cases on github.com and
+in GitHub Enterprise. We recognise that there are a number of missing quality of life features, and we've opted
+not to address the use case of automatic account switching based on some context (e.g. `pwd`, `git remote`).
+However, we hope many of those using these custom solutions will now find it easier to obtain and update tokens (via the standard
+OAuth flow rather than as a PAT), and to store them securely in the system keyring managed by `gh`.
+
+We are by no means excluding these things from ever being native to `gh` but we wanted to ship this MVP and get more
+feedback so that we can iterate on it with the community.
+
+## What is in scope for this release?
+
+The support for multiple accounts in this release is focused around `auth login` becoming additive in behaviour.
+This allows for multiple accounts to be easily switched between using the new `auth switch` command. Switching the "active"
+user for a host will swap the token used by `gh` for API requests, and for git operations when `gh` was configured as a
+git credential manager.
+
+We have extended the `auth logout` command to switch account where possible if the currently active user is the target
+of the `logout`. Finally we have extended `auth token`, `auth switch`, and `auth logout` with a
+`--user` flag. This new flag in combination with `--hostname` can be used to disambiguate accounts when running
+non-interactively.
+
+Here's an example usage. First, we can see that I have a single account `wilmartin_microsoft` logged in, and
+`auth status` reports that this is the active account:
+
+```
+➜ gh auth status
+github.com
+  ✓ Logged in to github.com account wilmartin_microsoft (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+Running `auth login` and proceeding through the browser based OAuth flow as `williammartin`, we can see that
+`auth status` now reports two accounts under `github.com`, and our new account is now marked as active.
+
+```
+➜ gh auth login
+? What account do you want to log into? GitHub.com
+? What is your preferred protocol for Git operations on this host? HTTPS
+? How would you like to authenticate GitHub CLI? Login with a web browser
+
+! First copy your one-time code: A1F4-3B3C
+Press Enter to open github.com in your browser...
+✓ Authentication complete.
+- gh config set -h github.com git_protocol https
+✓ Configured git protocol
+✓ Logged in as williammartin
+
+➜ gh auth status
+github.com
+  ✓ Logged in to github.com account williammartin (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+
+  ✓ Logged in to github.com account wilmartin_microsoft (keyring)
+  - Active account: false
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+Fetching our username from the API shows that our active token correctly corresponds to `williammartin`:
+
+```
+➜ gh api /user | jq .login
+"williammartin"
+```
+
+Now we can easily switch accounts using `gh auth switch`, and hitting the API shows that the active token has been
+changed:
+
+```
+➜ gh auth switch
+✓ Switched active account for github.com to wilmartin_microsoft
+
+➜ gh api /user | jq .login
+"wilmartin_microsoft"
+```
+
+We can use `gh auth token --user` to get a specific token for a user (which should be handy for automated switching
+solutions):
+
+```
+➜ GH_TOKEN=$(gh auth token --user williammartin) gh api /user | jq .login
+"williammartin"
+```
+
+Finally, running `gh auth logout` presents a prompt when there are multiple choices for logout, and switches account
+if there are any remaining logged into the host:
+
+```
+➜ gh auth logout
+? What account do you want to log out of? wilmartin_microsoft (github.com)
+✓ Logged out of github.com account wilmartin_microsoft
+✓ Switched active account for github.com to williammartin
+```
+
+## What is out of scope for this release?
+
+As mentioned above, we know that this only addresses some of the requests around supporting multiple accounts. While
+these are not out of scope forever, for this release some of the big things we have intentionally not included are:
+ * Automatic account switching based on some context (e.g. `pwd`, `git remote`)
+ * Automatic configuration of git config such as `user.name` and `user.email` when switching
+ * User level configuration e.g. `williammartin` uses `vim` but `wilmartin_microsoft` uses `emacs`
+
+## What are some sharp edges in this release?
+
+As in any MVP there are going to be some sharp edges that need to be smoothed out over time. Here are a list of known
+sharp edges in this release.
+
+### Data Migration
+
+The trickiest piece of this work was that the `hosts.yml` file only supported a mapping of one-to-one in the host to
+account relationship. Having persistent data on disk that required a schema change presented a compatibility challenge
+both backwards for those who use [`go-gh`](https://github.com/cli/go-gh/) outside of `gh`, and forward for `gh` itself
+where we try to ensure that it's possible to use older versions in case we accidentally make a breaking change for users.
+
+As such, from this release, running any command will attempt to migrate this data into a new format, and will
+additionally add a `version` field into the `config.yml` to aid in our future maintainability. While we have tried
+to maintain forward compatibility (except in one edge case outlined below), and in the worst case you should be able
+to remove these files and start from scratch, if you are concerned about the data in these files, we advise you to take
+a backup.
+
+#### Forward Compatibility Exclusion
+
+There is one known case using `--insecure-storage` that we don't maintain complete forward and backward compatibility.
+This occurs if you `auth login --insecure-storage`, upgrade to this release (which performs the data migration), run
+`auth login --insecure-storage` again on an older release, then at some time later use `auth switch` to make this
+account active. The symptom here would be usage of an older token (which may for example have different scopes).
+
+This occurs because we will only perform the data migration once, moving the original insecure token to a place where
+it would later be used by `auth switch`.
+
+#### Immutable Config Users
+
+Some of our users lean on tools to manage their application configuration in an immutable manner for example using
+https://github.com/nix-community/home-manager. These users will hit an error when we attempt to persist the new
+`version` field to the `config.yml`. They will need to ensure that the `home-manager` configuration scripts are updated
+to add `version: 1`.
+
+See https://github.com/nix-community/home-manager/issues/4744 for more details.
+
+### Auth Refresh
+
+Although this has always been possible, the multi account flow increases the likelihood of doing something surprising
+with `auth refresh`. This command allows for a token to be updated with additional or fewer scopes. For example,
+in the following example we add the `read:project` scope to the scopes for our currently active user `williammartin`,
+and proceed through the OAuth browser flow as `williammartin`:
+
+```
+➜ gh auth refresh -s read:project
+? What account do you want to refresh auth for? github.com
+
+! First copy your one-time code: E79E-5FA2
+Press Enter to open github.com in your browser...
+✓ Authentication complete.
+
+➜ gh auth status
+github.com
+  ✓ Logged in to github.com account williammartin (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'read:project', 'repo', 'workflow'
+
+  ✓ Logged in to github.com account wilmartin_microsoft (keyring)
+
+  ✓ Logged in to github.com account wilmartin_microsoft (keyring)
+  - Active account: false
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+However, what happens if I try to remove the `workflow` scope from my active user `williammartin` but proceed through
+the OAuth browser flow as `wilmartin_microsoft`?
+
+```
+➜ gh auth refresh -r workflow
+
+! First copy your one-time code: EEA3-091C
+Press Enter to open github.com in your browser...
+error refreshing credentials for williammartin, received credentials for wilmartin_microsoft, did you use the correct account in the browser?
+```
+
+When adding or removing scopes for a user, the CLI gets the scopes for the current token and then requests a new token with the requested amended scopes. Unfortunately, when we go through the account switcher flow as a different user, we end up getting a token for the wrong user with surprising scopes. We don't believe that starting and ending a `refresh` as different accounts is
+a use case we wish to support and has the potential for misuse. As such, we have begun erroring in this case.
+
+Note that a token has still been minted on the platform but `gh` will refuse to store it. We are investigating
+alternative approaches with the platform team to put some better guardrails in place earlier in the flow.
+
+### Account Switcher on GitHub Enterprise
+
+When using `auth login` with github.com, if a user has multiple accounts in the browser, they should be presented
+with an interstitial page that allows for proceeding as any of their accounts. However, for Device Control Flow OAuth
+flows, this feature has not yet made it into GHES.
+
+For the moment, if you have multiple accounts on GHES that you wish to log in as, you will need to ensure that you
+are authenticated as the correct user in the browser before running `auth login`.
+
+
+# FILE: docs/license-compliance.md
+# License Compliance
+
+GitHub CLI complies with the software licenses of its dependencies. This document explains how license compliance is maintained.
+
+## Overview
+
+Third-party license information is embedded into the `gh` binary at build time using [`google/go-licenses`](https://github.com/google/go-licenses). Each release binary contains the correct license listing for its target platform (GOOS/GOARCH), since the set of dependencies can vary by platform.
+
+## Viewing License Information
+
+Users can view the third-party license information for their installed binary:
+
+```shell
+gh licenses
+```
+
+This opens a pager displaying all Go dependencies and their licenses, with links to the source code of each dependency.
+
+## How It Works
+
+1. The `script/licenses` script accepts a GOOS and GOARCH and generates a license report using `go-licenses report`
+2. The report is written to `internal/licenses/embed/third-party-licenses.md`
+3. This file is embedded into the binary via `go:embed` in `internal/licenses/licenses.go`
+4. Goreleaser pre-build hooks call `script/licenses` with the correct platform before each build
+
+## Local Development
+
+During local development (`go build`), the embedded file contains a placeholder message. To generate real license information for your current platform:
+
+```shell
+make licenses
+```
+
+This runs `go-licenses report` for your host GOOS/GOARCH and writes the output to the embed path.
+
+
+# FILE: docs/install_windows.md
+# Installing gh on Windows
+
+## Recommended _(Official)_
+
+### WinGet
+
+[WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/) is a command line tool enabling users to discover, install, upgrade, remove and configure applications on Windows 10, Windows 11, and Windows Server 2025 computers. This tool is the client interface to the Windows Package Manager service.
+
+The [GitHub CLI package](https://winget.run/pkg/GitHub/cli) is supported by Microsoft with updates powered by [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs/tree/master/manifests/g/GitHub/cli/).
+
+To install:
+
+```pwsh
+winget install --id GitHub.cli
+```
+
+To upgrade:
+
+```pwsh
+winget upgrade --id GitHub.cli
+```
+
+> [!NOTE]
+> The Windows installer modifies your PATH. When using Windows Terminal, you will need to **open a new window** for the changes to take effect. (Simply opening a new tab will _not_ be sufficient.)
+
+### Precompiled binaries
+
+[GitHub CLI releases](https://github.com/cli/cli/releases/latest) contain precompiled `exe` and `msi` binaries for `386`, `amd64` and `arm64` architectures.
+
+## Community _(Unofficial)_
+
+> [!IMPORTANT]
+> The GitHub CLI team does not maintain the following packages or repositories. We are unable to provide support for these installation methods or any guarantees of stability, security, or availability for these installation methods.
+
+### Chocolatey
+
+The [GitHub CLI package](https://community.chocolatey.org/packages/gh) is supported by the Chocolatey community with updates powered by [pauby/ChocoPackages](https://github.com/pauby/ChocoPackages/tree/master/automatic/gh).
+
+To install:
+
+```pwsh
+choco install gh
+```
+
+To upgrade:
+
+```pwsh
+choco upgrade gh
+```
+
+### Conda
+
+[Conda](https://docs.conda.io/en/latest/) is an open source package management system and environment management system for installing multiple versions of software packages and their dependencies and switching easily between them. It works on Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
+
+The [GitHub CLI package](https://anaconda.org/conda-forge/gh) is supported by the Conda community with updates powered by [conda-forge/gh-feedstock](https://github.com/conda-forge/gh-feedstock#installing-gh).
+
+To install:
+
+```shell
+conda install gh --channel conda-forge
+```
+
+To upgrade:
+
+```shell
+conda update gh --channel conda-forge
+```
+
+### Scoop
+
+The [GitHub CLI bucket](https://scoop.sh/#/apps?q=gh) is supported by the Scoop community with updated powered by [ScoopInstaller/Main](https://github.com/ScoopInstaller/Main/blob/master/bucket/gh.json).
+
+To install:
+
+```pwsh
+scoop install gh
+```
+
+To upgrade:
+
+```pwsh
+scoop update gh
+```
+
+### Webi
+
+[Webi](https://webinstall.dev/) is a tool that aims to effortlessly install developer tools with easy-to-remember URLs from official builds quickly, without sudo or Admin, without a package manager, and without changing system file permissions.
+
+The [GitHub CLI package](https://webinstall.dev/gh/) is supported by the Webi community with updates powered by [webinstall/webi-installers](https://github.com/webinstall/webi-installers/tree/main/gh).
+
+To install:
+
+```shell
+curl -sS https://webi.sh/gh \| sh
+```
+
+To upgrade:
+
+```shell
+webi gh@stable
+```
+
+
+# FILE: docs/install_source.md
+# Installation from source
+
+1. Verify that you have Go 1.26+ installed
+
+   ```sh
+   $ go version
+   ```
+
+   If `go` is not installed, follow instructions on [the Go website](https://golang.org/doc/install).
+
+2. Clone this repository
+
+   ```sh
+   $ git clone https://github.com/cli/cli.git gh-cli
+   $ cd gh-cli
+   ```
+
+3. Build and install
+
+   **Unix-like systems**
+
+   ```sh
+   # installs to '/usr/local' by default; sudo may be required, or sudo -E for configured go environments
+   $ make install
+
+   # or, install to a different location
+   $ make install prefix=/path/to/gh
+   ```
+
+   **Windows**
+
+   ```pwsh
+   # build the `bin\gh.exe` binary
+   > go run script\build.go
+   ```
+
+   There is no install step available on Windows.
+
+4. Run `gh version` to check if it worked.
+
+   **Windows**
+
+   Run `bin\gh version` to check if it worked.
+
+## Cross-compiling binaries for different platforms
+
+You can use any platform with Go installed to build a binary that is intended for another platform
+or CPU architecture. This is achieved by setting environment variables such as GOOS and GOARCH.
+
+For example, to compile the `gh` binary for the 32-bit Raspberry Pi OS:
+
+```sh
+# on a Unix-like system:
+$ GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 make clean bin/gh
+```
+
+```pwsh
+# on Windows, pass environment variables as arguments to the build script:
+> go run script\build.go clean bin\gh GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0
+```
+
+Run `go tool dist list` to list all supported values of GOOS/GOARCH.
+
+Tip: to reduce the size of the resulting binary, you can use `GO_LDFLAGS="-s -w"`. This omits
+symbol tables used for debugging. See the list of [supported linker flags](https://golang.org/cmd/link/).
+
+
+# FILE: docs/install_macos.md
+# Installing gh on macOS
+
+## Recommended _(Official)_
+
+### Homebrew
+
+[Homebrew](https://brew.sh/) is a free and open-source software package management system that simplifies the installation of software on Apple's operating system, macOS, as well as Linux.
+
+The [GitHub CLI formulae](https://formulae.brew.sh/formula/gh) is supported by the GitHub CLI maintainers with help from our friends at Homebrew with updated powered by [homebrew/homebrew-core](https://github.com/Homebrew/homebrew-core/blob/main/Formula/g/gh.rb).
+
+To install:
+
+```shell
+brew install gh
+```
+
+To upgrade:
+
+```shell
+brew upgrade gh
+```
+
+### Precompiled binaries
+
+[GitHub CLI releases](https://github.com/cli/cli/releases/latest) contain precompiled binaries for `amd64` and `arm64` architectures along with a universal installer.
+
+> [!NOTE]
+> As of May 29th, Mac OS installer `.pkg` are unsigned with efforts prioritized in [`cli/cli#9139`](https://github.com/cli/cli/issues/9139) to support signing them.
+
+## Community _(Unofficial)_
+
+> [!IMPORTANT]
+> The GitHub CLI team does not maintain the following packages or repositories. We are unable to provide support for these installation methods or any guarantees of stability, security, or availability for these installation methods.
+
+### Conda
+
+[Conda](https://docs.conda.io/en/latest/) is an open source package management system and environment management system for installing multiple versions of software packages and their dependencies and switching easily between them. It works on Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
+
+The [GitHub CLI package](https://anaconda.org/conda-forge/gh) is supported by the Conda community with updates powered by [conda-forge/gh-feedstock](https://github.com/conda-forge/gh-feedstock#installing-gh).
+
+To install:
+
+```shell
+conda install gh --channel conda-forge
+```
+
+To upgrade:
+
+```shell
+conda update gh --channel conda-forge
+```
+
+### Flox
+
+[Flox](https://flox.dev/) is a virtual environment and package manager all in one. With Flox you create environments that layer and replace dependencies just where it matters, making them portable across the full software lifecycle.
+
+Flox relies upon the [GitHub CLI package](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/gh/gh/) supported by the [NixOS community](https://nixos.org/)
+
+To install:
+
+```shell
+flox install gh
+```
+
+To upgrade:
+
+```shell
+flox upgrade toplevel
+```
+
+### MacPorts
+
+[MacPorts](https://www.macports.org/) is an open-source community initiative to design an easy-to-use system for compiling, installing, and upgrading either command-line, X11 or Aqua based open-source software on the Mac operating system.
+
+The [GitHub CLI port](https://ports.macports.org/port/gh/) is supported by the MacPorts community with updates powered by [macports/macports-ports](https://github.com/macports/macports-ports/blob/master/devel/gh/Portfile).
+
+To install:
+
+```shell
+sudo port install gh
+```
+
+To upgrade:
+
+```shell
+sudo port selfupdate && sudo port upgrade gh
+```
+
+### Spack
+
+[Spack](https://spack.io/) is a flexible package manager supporting multiple versions, configurations, platforms, and compilers for supercomputers, Linux, and macOS.
+
+The [GitHub CLI package](https://packages.spack.io/package.html?name=gh) is supported by the Spack community with updates powered by [spack/spack-packages](https://github.com/spack/spack-packages/tree/develop/repos/spack_repo/builtin/packages/gh).
+
+To install:
+
+```shell
+spack install gh
+```
+
+To upgrade:
+
+```shell
+spack uninstall gh && spack install gh
+```
+
+### Webi
+
+[Webi](https://webinstall.dev/) is a tool that aims to effortlessly install developer tools with easy-to-remember URLs from official builds quickly, without sudo or Admin, without a package manager, and without changing system file permissions.
+
+The [GitHub CLI package](https://webinstall.dev/gh/) is supported by the Webi community with updates powered by [webinstall/webi-installers](https://github.com/webinstall/webi-installers/tree/main/gh).
+
+To install:
+
+```shell
+curl -sS https://webi.sh/gh \| sh
+```
+
+To upgrade:
+
+```shell
+webi gh@stable
+```
+
+
+# FILE: docs/install_linux.md
+# Installing gh on Linux and BSD
+
+## Recommended _(Official)_
+
+### Debian
+
+Debian packages are hosted on the [GitHub CLI marketing site](https://cli.github.com/) for various operating systems including:
+
+- [Debian](https://www.debian.org/)
+- [Raspberry Pi](https://www.raspberrypi.com/)
+- [Ubuntu Linux](https://ubuntu.com/)
+
+These packages are supported by the GitHub CLI maintainers with updates powered by [GitHub CLI deployment workflow](https://github.com/cli/cli/actions/workflows/deployment.yml).
+
+To install:
+
+```bash
+(type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
+	&& sudo mkdir -p -m 755 /etc/apt/keyrings \
+	&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+	&& cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+	&& sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+	&& sudo mkdir -p -m 755 /etc/apt/sources.list.d \
+	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+	&& sudo apt update \
+	&& sudo apt install gh -y
+```
+
+To upgrade:
+
+```bash
+sudo apt update
+sudo apt install gh
+```
+
+### RPM
+
+RPM packages are hosted on the [GitHub CLI marketing site](https://cli.github.com) for various operating systems including:
+
+- [Amazon Linux 2](https://aws.amazon.com/amazon-linux-2/)
+- [CentOS](https://www.centos.org/)
+- [Fedora](https://fedoraproject.org/)
+- [Red Hat Enterprise Linux](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux)
+- [openSUSE](https://www.opensuse.org/)
+- [SUSE](https://www.suse.com/)
+
+These packages are supported by the GitHub CLI maintainers with updates powered by [GitHub CLI deployment workflow](https://github.com/cli/cli/actions/workflows/deployment.yml).
+
+#### DNF5
+
+> [!IMPORTANT]
+> **These commands apply to DNF5 only**. If you're using DNF4, please use [the DNF4 instructions](#dnf4).
+
+To install:
+
+```bash
+sudo dnf install dnf5-plugins
+sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+sudo dnf install gh --repo gh-cli
+```
+
+To upgrade:
+
+```bash
+sudo dnf update gh
+```
+
+#### DNF4
+
+> [!IMPORTANT]
+> **These commands apply to DNF4 only**. If you're using DNF5, please use [the DNF5 instructions](#dnf5).
+
+To install:
+
+```bash
+sudo dnf install 'dnf-command(config-manager)'
+sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo dnf install gh --repo gh-cli
+```
+
+To upgrade:
+
+```bash
+sudo dnf update gh
+```
+
+#### Amazon Linux 2 (yum)
+
+To install:
+
+```bash
+type -p yum-config-manager >/dev/null || sudo yum install yum-utils
+sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo yum install gh
+```
+
+To upgrade:
+
+```bash
+sudo yum update gh
+```
+
+#### openSUSE/SUSE Linux (zypper)
+
+To install:
+
+```bash
+sudo zypper addrepo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo zypper ref
+sudo zypper install gh
+```
+
+To upgrade:
+
+```bash
+sudo zypper ref
+sudo zypper update gh
+```
+
+### Homebrew
+
+[Homebrew](https://brew.sh/) is a free and open-source software package management system that simplifies the installation of software on Apple's operating system, macOS, as well as Linux.
+
+The [GitHub CLI formulae](https://formulae.brew.sh/formula/gh) is supported by the GitHub CLI maintainers with help from our friends at Homebrew with updated powered by [homebrew/hoomebrew-core](https://github.com/Homebrew/homebrew-core/blob/main/Formula/g/gh.rb).
+
+To install:
+
+```shell
+brew install gh
+```
+
+To upgrade:
+
+```shell
+brew upgrade gh
+```
+
+### Precompiled binaries
+
+[GitHub CLI releases](https://github.com/cli/cli/releases/latest) contain precompiled binaries for `386`, `amd64`, `arm64`, and `armv6` architectures.
+
+## Community _(Unofficial)_
+
+> [!IMPORTANT]
+> The GitHub CLI team does not maintain the following packages or repositories. We are unable to provide support for these installation methods or any guarantees of stability, security, or availability for these installation methods.
+
+### Alpine Linux
+
+The [GitHub CLI package](https://pkgs.alpinelinux.org/package/edge/community/x86_64/github-cli) is supported by the Alpine Linux community with updates powered by [alpine/aports](https://gitlab.alpinelinux.org/alpine/aports/-/tree/master/community/github-cli).
+
+To install stable release:
+
+```bash
+apk add github-cli
+```
+
+To install edge release:
+
+```bash
+echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+apk add github-cli@community
+```
+
+### Android
+
+The [GitHub CLI package](https://packages.termux.dev/apt/termux-main/pool/main/g/gh/) is supported by the Termux community with updates powered by [termux/termux-packages](https://github.com/termux/termux-packages/tree/master/packages/gh).
+
+To install and upgrade:
+
+```bash
+pkg install gh
+```
+
+### Arch Linux
+
+The [GitHub CLI package](https://www.archlinux.org/packages/extra/x86_64/github-cli) is supported by the Arch Linux community with updates powered by [Arch Linux packaging](https://gitlab.archlinux.org/archlinux/packaging/packages/github-cli).
+
+To install:
+
+```bash
+sudo pacman -S github-cli
+```
+
+To upgrade all packages:
+
+```bash
+sudo pacman -Syu
+```
+
+Alternatively, use the [unofficial AUR package](https://aur.archlinux.org/packages/github-cli-git) to build GitHub CLI from source.
+
+### Conda
+
+[Conda](https://docs.conda.io/en/latest/) is an open source package management system and environment management system for installing multiple versions of software packages and their dependencies and switching easily between them. It works on Linux, OS X and Windows, and was created for Python programs but can package and distribute any software.
+
+The [GitHub CLI package](https://anaconda.org/conda-forge/gh) is supported by the Conda community with updates powered by [conda-forge/gh-feedstock](https://github.com/conda-forge/gh-feedstock#installing-gh).
+
+To install:
+
+```shell
+conda install gh --channel conda-forge
+```
+
+To upgrade:
+
+```shell
+conda update gh --channel conda-forge
+```
+
+### Debian Community
+
+The [GitHub CLI package](https://packages.debian.org/stable/gh) is supported by the Debian community with updates powered by [Debian Go Packaging Team](https://salsa.debian

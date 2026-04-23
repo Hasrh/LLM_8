@@ -1,0 +1,57 @@
+[
+  {
+    "id": "ISO-ISOIEC270012022e-002",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 2",
+    "text": "-- ISO/IEC 27001:2022(E) Foreword........................................................................................................................................................................................................................................iv Introduction .................................................................................................................................................................................................................................v 1 Scope ................................................................................................................................................................................................................................. 1 2 Normative references ..................................................................................................................................................................................... 1 3 Terms and definitions .................................................................................................................................................................................... 1 4 Context of the organization ...................................................................................................................................................................... 1 4.1 Understanding the organization and its",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.18495099246501923
+  },
+  {
+    "id": "ISO-ISO27001pdf-012",
+    "title": "ISO27001.pdf snippet 12",
+    "text": "7 10.1.3 Segregation of duties .................................................................................................................... 38 10.1.4 Separation of development, test, and operational facilities.......................................................... 38 10.2 THIRD PARTY SERVICE DELIVERY MANAGEMENT .................................................................................. 39 10.2.1 Service delivery............................................................................................................................. 39 10.2.2 Monitoring and review of third party services.............................................................................. 40 10.2.3 Managing changes to third party services.................................................................................... 40 10.3 S YSTEM PLANNING AND ACCEPTANCE ................................................................................................... 41 10.3.1 Capacity management .................................................................................................................. 41 10.3.2 System acceptance ........................................................................................................................ 41 10.4 P ROTECTION AGAINST MALICIOUS AND MOBILE CODE ........................................................................... 42 10.4.",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.14748133718967438
+  },
+  {
+    "id": "ISO-ISOIEC270012022e-003",
+    "title": "ISO_IEC-270012022-ed.3.pdf snippet 3",
+    "text": "context ..................................................................................................... 1 4.2 Understanding the needs and expectations of interested parties ........................................................... 1 4.3 Determining the scope of the information security management system ....................................... 2 4.4 Information security management system................................................................................................................... 2 5 Leadership .................................................................................................................................................................................................................. 2 5.1 Leadership and commitment ..................................................................................................................................................... 2 5.2 Policy ............................................................................................................................................................................................................... 3 5.3 Organizational roles, responsibilities and authorities ....................................................................................... 3 6 Planning ................................................................................................",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.14621037244796753
+  },
+  {
+    "id": "ISO-ISO27001pdf-001",
+    "title": "ISO27001.pdf snippet 1",
+    "text": "Reference number ISO/IEC 27002:2005(E) © ISO/IEC 2005 INTERNATIONAL STANDARD ISO/IEC 27002 First edition 2005-06-15 Information technology — Security techniques — Code of practice for information security management Technologies de l'information — Techniques de sécurité — Code de bonne pratique pour la gestion de la sécurité de l'information -- 1 of 128 -- ISO/IEC 27002:2005(E) © ISO/IEC 2005 – All rights reserved iii Foreword ISO (the International Organization for Standardization) and IEC (the International Electrotechnical Commission) form the specialized system for worldwide standardization. National bodies that are members of ISO or IEC participate in the development of International Standards through technical committees established by the respective organization to deal with particular fields of technical activity. ISO and IEC technical committees collaborate in fields of mutual interest. Other international organizations, governmental and non-governmental, in liaison with ISO and IEC, also take part in the work. In the field of information technology, ISO and IEC have established a joint technical committee, ISO/IEC JTC 1. International Standards are drafted in accordance with the rules given in the ISO/IEC Directives, Part 2. The main task of the joint technical committee is to prepare International Standards. Draft International Standards adopted by the joint technica",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1446915715932846
+  },
+  {
+    "id": "ISO-NQAISO27001Imple-001",
+    "title": "NQA-ISO-27001-Implementation-Guide.pdf snippet 1",
+    "text": "ISO 27001:2022INFORMATION SECURITY IMPLEMENTATION GUIDE 53,000 GLOBALLY CERTIFICATES 100 TRANSPARENT -- 1 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 2 > ISO 27001:2022 IMPLEMENTATION GUIDE *UK and Ireland only -- 2 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 3 Contents Introduction to the standard P04 Benefits of implementation P05 Key principles and terminology P06 PDCA cycle P07 Risk based thinking / audits P08 Process based thinking / audit P09 Annex SL P10 SECTION 1: Scope P11 SECTION 2: Normative references P12 SECTION 3: Terms and definitions P13 SECTION 4: Context of the organisation P14 SECTION 5: Leadership P16 SECTION 6: Planning P18 SECTION 7: Support P22 SECTION 8: Operation P24 SECTION 9: Performance evaluation P26 SECTION 10: Improvement P28 Get the most from your management P30 Next steps once implemented P31 Information Security Management Training P32 -- 3 of 34 -- ISO 27001:2022 IMPLEMENTATION GUIDE 4 INTRODUCTION TO THE STANDARD ISO 27001:2022 IMPLEMENTATION GUIDE 4 The 27000 Family The 27000 series of standards started life in 1995 as BS 7799 and was written by the UK’s Department of Trade and Industry (DTI). The standards correctly go by the title “ISO/ IEC” because they are developed and maintained jointly by two international standards bodies: ISO (the International Organisation for Standardisation) and the IEC (the International Electrotechnical Commi",
+    "tags": [
+      "iso",
+      "security",
+      "control"
+    ],
+    "score": 0.1444387286901474
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:52:37.307Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296ed0308ffeZm8yb6mtI0BBoB",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/opa/wasm/Dockerfile\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\nFROM ubuntu:24.04@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab\n\nARG WABT_VERSION=1.0.39\nARG BINARYEN_VERSION=version_125\n\nARG DEBIAN_FRONTEND=noninteractive\nRUN apt-get update && apt-get install -y curl git build-essential python3 python-is-python3\n\nRUN bash -c 'echo -ne \"deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main\\ndeb-src http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main\" > /etc/apt/sources.list.d/llvm.list'\n\nRUN curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -\n\nRUN apt-get update && \\\n    apt-get install -y \\\n      cmake \\\n      ninja-build \\\n      clang-21 \\\n      clang-format-21 \\\n      libc++-21-dev \\\n      libc++abi-21-dev \\\n      lld-21 && \\\n    update-alternatives --install /usr/bin/ld ld /usr/bin/lld-21 90 && \\\n    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-21 90 && \\\n    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-21 90\n\nRUN ln -s /usr/bin/clang-21 /usr/bin/clang && \\\n    ln -s /usr/bin/clang++-21 /usr/bin/clang++ && \\\n    ln -s /usr/bin/clang-format-21 /usr/bin/clang-format && \\\n    ln -s /usr/bin/wasm-ld-21 /usr/bin/wasm-ld && \\\n    ln -s /usr/bin/clang-cpp-21 /usr/bin/clang-cpp\n\nRUN git clone https://github.com/WebAssembly/wabt && \\\n    cd wabt && \\\n    git checkout $WABT_VERSION && \\\n    git submodule update --init && \\\n    make\n\nRUN git clone https://github.com/WebAssembly/binaryen && \\\n    cd binaryen && \\\n    git checkout $BINARYEN_VERSION && \\\n    git submodule update --init && \\\n    cmake . -DBUILD_TESTS=OFF && \\\n    make wasm-opt wasm-dis wasm-as\n\nENV PATH=\"/binaryen/bin:/wabt/out/clang/Debug:${PATH}\"\n\nENV CC=clang-21\nENV CXX=clang++-21\n\nWORKDIR /src\n\n```"
+}

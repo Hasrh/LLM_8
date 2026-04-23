@@ -1,0 +1,3755 @@
+
+
+# FILE: release.py
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
+
+# /// script
+# dependencies = [
+#     "click",
+#     "packaging",
+# ]
+# ///
+
+import pathlib
+import re
+import subprocess
+import sys
+
+import click
+from packaging.version import Version
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
+
+def run(*args: str) -> None:
+    print(f"[running] {list(args)}")
+    subprocess.check_call(list(args))
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+def release() -> None:
+    base_dir = pathlib.Path(__file__).parent
+    with (base_dir / "pyproject.toml").open("rb") as f:
+        pyproject = tomllib.load(f)
+        version = pyproject["project"]["version"]
+
+    if Version(version).is_prerelease:
+        raise RuntimeError(
+            f"Can't release, pyproject.toml version is pre-release: {version}"
+        )
+
+    # Tag and push the tag (this will trigger the wheel builder in Actions)
+    run("git", "tag", "-s", version, "-m", f"{version} release")
+    run("git", "push", "--tags", "git@github.com:pyca/cryptography.git")
+
+
+def replace_pattern(p: pathlib.Path, pattern: str, replacement: str) -> None:
+    content = p.read_text()
+    match = re.search(pattern, content, re.MULTILINE)
+    assert match is not None
+
+    start, end = match.span()
+    new_content = content[:start] + replacement + content[end:]
+    p.write_text(new_content)
+
+
+def replace_version(
+    p: pathlib.Path, variable_name: str, new_version: str
+) -> None:
+    replace_pattern(
+        p, rf"^{variable_name}\s*=\s*.*$", f'{variable_name} = "{new_version}"'
+    )
+
+
+@cli.command()
+@click.argument("new_version")
+def bump_version(new_version: str) -> None:
+    base_dir = pathlib.Path(__file__).parent
+
+    replace_version(base_dir / "pyproject.toml", "version", new_version)
+    replace_version(
+        base_dir / "src/cryptography/__about__.py", "__version__", new_version
+    )
+    replace_version(
+        base_dir / "vectors/pyproject.toml",
+        "version",
+        new_version,
+    )
+    replace_version(
+        base_dir / "vectors/cryptography_vectors/__about__.py",
+        "__version__",
+        new_version,
+    )
+
+    if Version(new_version).is_prerelease:
+        replace_pattern(
+            base_dir / "pyproject.toml",
+            r'"cryptography_vectors(==.*?)?"',
+            '"cryptography_vectors"',
+        )
+    else:
+        replace_pattern(
+            base_dir / "pyproject.toml",
+            r'"cryptography_vectors(==.*?)?"',
+            f'"cryptography_vectors=={new_version}"',
+        )
+
+
+if __name__ == "__main__":
+    cli()
+
+
+# FILE: pyproject.toml
+[build-system]
+# These requirements must be kept sync with the requirements in
+# ./.github/requirements/build-requirements.{in,txt}
+requires = [
+    "maturin>=1.9.4,<2,!=1.12.0",
+
+    # Must be kept in sync with `project.dependencies`
+    "cffi>=1.14; platform_python_implementation != 'PyPy' and python_version == '3.8'",
+    "cffi>=2.0.0; platform_python_implementation != 'PyPy' and python_version >= '3.9'",
+    # Used by cffi (which import distutils, and in Python 3.12, distutils has
+    # been removed from the stdlib, but installing setuptools puts it back) as
+    # well as our build.rs for the rust/cffi bridge.
+    "setuptools!=74.0.0,!=74.1.0,!=74.1.1,!=74.1.2",
+]
+build-backend = "maturin"
+
+[project]
+name = "cryptography"
+version = "47.0.0.dev1"
+authors = [
+    { name = "The Python Cryptographic Authority and individual contributors", email = "cryptography-dev@python.org" },
+]
+description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
+readme = "README.rst"
+license = "Apache-2.0 OR BSD-3-Clause"
+license-files = [ "LICENSE", "LICENSE.APACHE", "LICENSE.BSD" ]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Operating System :: POSIX :: BSD",
+    "Operating System :: POSIX :: Linux",
+    'Operating System :: Microsoft :: Windows',
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: Free Threading :: 3 - Stable",
+    "Topic :: Security :: Cryptography",
+]
+requires-python = ">=3.8,!=3.9.0,!=3.9.1"
+dependencies = [
+    # Must be kept in sync with `build-system.requires`
+    "cffi>=1.14; platform_python_implementation != 'PyPy' and python_version == '3.8'",
+    "cffi>=2.0.0; platform_python_implementation != 'PyPy' and python_version >= '3.9'",
+    # Must be kept in sync with ./.github/requirements/build-requirements.{in,txt}
+    "typing-extensions>=4.13.2; python_version < '3.11'",
+]
+
+[project.urls]
+homepage = "https://github.com/pyca/cryptography"
+documentation = "https://cryptography.io/"
+source = "https://github.com/pyca/cryptography/"
+issues = "https://github.com/pyca/cryptography/issues"
+changelog = "https://cryptography.io/en/latest/changelog/"
+
+[project.optional-dependencies]
+ssh = ["bcrypt >=3.1.5"]
+
+# All the following are used for our own testing.
+nox = ["nox[uv] >=2024.04.15"]
+test = [
+    "cryptography_vectors",
+    "pytest >=7.4.0",
+    "pytest-benchmark >=4.0",
+    "pytest-cov >=2.10.1",
+    "pytest-xdist >=3.5.0",
+    "pretend >=0.7",
+    "certifi >=2024",
+]
+test-randomorder = ["pytest-randomly"]
+docs = [
+    "sphinx >=5.3.0",
+    "sphinx-rtd-theme >=3.0.0",
+    "sphinx-inline-tabs",
+]
+docstest = [
+    "pyenchant >=3",
+    "readme-renderer >=30.0",
+    "sphinxcontrib-spelling >=7.3.1",
+]
+sdist = ["build >=1.0.0"]
+# `click` included because its needed to type check `release.py`
+pep8test = [
+    "ruff >=0.11.11",
+    "mypy >=1.14",
+    "check-sdist",
+    "click >=8.0.1",
+]
+
+[tool.maturin]
+python-source = "src"
+python-packages = ["cryptography"]
+manifest-path = "src/rust/Cargo.toml"
+module-name = "cryptography.hazmat.bindings._rust"
+locked = true
+sdist-generator = "git"
+include = [
+    { path = "CHANGELOG.rst", format = "sdist" },
+    { path = "CONTRIBUTING.rst", format = "sdist" },
+
+    { path = "docs/**/*", format = "sdist" },
+
+    { path = "src/_cffi_src/**/*.py", format = "sdist" },
+    { path = "src/_cffi_src/**/*.c", format = "sdist" },
+    { path = "src/_cffi_src/**/*.h", format = "sdist" },
+
+    { path = "Cargo.toml", format = "sdist" },
+    { path = "Cargo.lock", format = "sdist" },
+    { path = "src/rust/**/Cargo.toml", format = "sdist" },
+    { path = "src/rust/**/Cargo.lock", format = "sdist" },
+    { path = "src/rust/**/*.rs", format = "sdist" },
+
+    { path = "tests/**/*.py", format = "sdist" },
+]
+exclude = [
+    "vectors/**/*",
+    "target/**/*",
+    "docs/_build/**/*",
+    ".github/**/*",
+    ".readthedocs.yml",
+    "ci-constraints-requirements.txt",
+    "mypy.ini",
+]
+
+[tool.pytest.ini_options]
+addopts = "-r s --capture=no --strict-markers --benchmark-disable"
+console_output_style = "progress-even-when-capture-no"
+markers = [
+    "skip_fips: this test is not executed in FIPS mode",
+    "supported: parametrized test requiring only_if and skip_message",
+]
+
+[tool.mypy]
+show_error_codes = true
+check_untyped_defs = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+strict_equality = true
+strict_bytes = true
+
+[[tool.mypy.overrides]]
+module = ["pretend"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["cryptography", "tests/"]
+
+[tool.coverage.paths]
+source = [
+    "src/cryptography",
+    "*.nox/*/lib*/python*/site-packages/cryptography",
+    "*.nox\\*\\Lib\\site-packages\\cryptography",
+    "*.nox/pypy/site-packages/cryptography",
+]
+tests = ["tests/", "*tests\\"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "@abc.abstractmethod",
+    "@typing.overload",
+    "if typing.TYPE_CHECKING",
+]
+
+[tool.ruff]
+line-length = 79
+
+lint.ignore = ['N818']
+lint.select = ['E', 'F', 'I', 'N', 'W', 'UP', 'RUF']
+
+[tool.ruff.per-file-target-version]
+".github/bin/merge_rust_coverage.py" = "py313"
+
+[tool.ruff.lint.isort]
+known-first-party = ["cryptography", "cryptography_vectors", "tests"]
+
+[tool.check-sdist]
+git-only = [
+    "vectors/*",
+    "release.py",
+    "ci-constraints-requirements.txt",
+    ".gitattributes",
+    ".gitignore",
+]
+
+
+# FILE: noxfile.py
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
+
+from __future__ import annotations
+
+import glob
+import itertools
+import json
+import os
+import pathlib
+import re
+import sys
+import uuid
+
+import nox
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
+nox.options.reuse_existing_virtualenvs = True
+nox.options.default_venv_backend = "uv"
+
+
+def install(
+    session: nox.Session,
+    *args: str,
+    verbose: bool = True,
+) -> None:
+    if verbose:
+        args += ("-v",)
+    session.install(
+        "-c",
+        "ci-constraints-requirements.txt",
+        *args,
+        silent=False,
+    )
+
+
+def load_pyproject_toml() -> dict:
+    with (pathlib.Path(__file__).parent / "pyproject.toml").open("rb") as f:
+        return tomllib.load(f)
+
+
+@nox.session
+@nox.session(name="tests-ssh")
+@nox.session(name="tests-randomorder")
+@nox.session(name="tests-nocoverage")
+@nox.session(name="tests-rust-debug")
+def tests(session: nox.Session) -> None:
+    extras = "test"
+    if session.name == "tests-ssh":
+        extras += ",ssh"
+    if session.name == "tests-randomorder":
+        extras += ",test-randomorder"
+
+    prof_location = (
+        pathlib.Path(".") / ".rust-cov" / str(uuid.uuid4())
+    ).absolute()
+    if session.name != "tests-nocoverage":
+        rustflags = os.environ.get("RUSTFLAGS", "")
+        assert rustflags is not None
+        session.env.update(
+            {
+                "RUSTFLAGS": f"-Cinstrument-coverage {rustflags}",
+                "LLVM_PROFILE_FILE": str(prof_location / "cov-%p.profraw"),
+            }
+        )
+
+    install(session, "-e", "./vectors")
+    if session.name == "tests-rust-debug":
+        install(
+            session,
+            "--config-settings-package=cryptography:build-args=--profile=dev",
+            f".[{extras}]",
+        )
+    else:
+        install(session, f".[{extras}]")
+
+    session.run("uv", "pip", "list")
+
+    if session.name != "tests-nocoverage":
+        cov_args = [
+            "--cov=cryptography",
+            "--cov=tests",
+        ]
+    else:
+        cov_args = []
+
+    if session.posargs:
+        tests = session.posargs
+    else:
+        tests = ["tests/"]
+
+    session.run(
+        "pytest",
+        "-n",
+        "auto",
+        "--dist=worksteal",
+        *cov_args,
+        "--durations=10",
+        *tests,
+    )
+
+    if session.name != "tests-nocoverage":
+        [rust_so] = glob.glob(
+            f"{session.virtualenv.location}/lib/**/cryptography/hazmat/bindings/_rust.*",
+            recursive=True,
+        )
+        process_rust_coverage(session, [rust_so], prof_location)
+
+
+@nox.session
+def docs(session: nox.Session) -> None:
+    install(session, ".[docs,docstest,sdist,ssh]")
+
+    temp_dir = session.create_tmp()
+    session.run(
+        "sphinx-build",
+        "-T",
+        "-W",
+        "-b",
+        "html",
+        "-d",
+        f"{temp_dir}/doctrees",
+        "docs",
+        "docs/_build/html",
+    )
+    session.run(
+        "sphinx-build",
+        "-T",
+        "-W",
+        "-b",
+        "latex",
+        "-d",
+        f"{temp_dir}/doctrees",
+        "docs",
+        "docs/_build/latex",
+    )
+
+    session.run(
+        "sphinx-build",
+        "-T",
+        "-W",
+        "-b",
+        "doctest",
+        "-d",
+        f"{temp_dir}/doctrees",
+        "docs",
+        "docs/_build/html",
+    )
+    session.run(
+        "sphinx-build",
+        "-T",
+        "-W",
+        "-b",
+        "spelling",
+        "docs",
+        "docs/_build/html",
+    )
+
+    session.run(
+        "python3", "-m", "readme_renderer", "README.rst", "-o", "/dev/null"
+    )
+    session.run(
+        "python3",
+        "-m",
+        "readme_renderer",
+        "vectors/README.rst",
+        "-o",
+        "/dev/null",
+    )
+
+
+@nox.session(name="docs-linkcheck")
+def docs_linkcheck(session: nox.Session) -> None:
+    install(session, ".[docs]")
+
+    session.run(
+        "sphinx-build", "-W", "-b", "linkcheck", "docs", "docs/_build/html"
+    )
+
+
+@nox.session
+def flake(session: nox.Session) -> None:
+    # TODO: Ideally there'd be a pip flag to install just our dependencies,
+    # but not install us.
+    pyproject_data = load_pyproject_toml()
+    install(session, "-e", "vectors/")
+    install(
+        session,
+        *pyproject_data["build-system"]["requires"],
+        *pyproject_data["project"]["optional-dependencies"]["pep8test"],
+        *pyproject_data["project"]["optional-dependencies"]["test"],
+        *pyproject_data["project"]["optional-dependencies"]["ssh"],
+        *pyproject_data["project"]["optional-dependencies"]["nox"],
+    )
+
+    session.run("ruff", "check")
+    session.run("ruff", "format", "--check")
+    session.run(
+        "mypy",
+        "src/cryptography/",
+        "vectors/cryptography_vectors/",
+        "tests/",
+        "release.py",
+        "noxfile.py",
+    )
+    session.run("check-sdist", "--no-isolation")
+
+
+@nox.session
+@nox.session(name="rust-noclippy")
+def rust(session: nox.Session) -> None:
+    prof_location = (
+        pathlib.Path(".") / ".rust-cov" / str(uuid.uuid4())
+    ).absolute()
+    rustflags = os.environ.get("RUSTFLAGS", "")
+    assert rustflags is not None
+    session.env.update(
+        {
+            "RUSTFLAGS": f"-Cinstrument-coverage  {rustflags}",
+            "LLVM_PROFILE_FILE": str(prof_location / "cov-%p.profraw"),
+        }
+    )
+
+    # TODO: Ideally there'd be a pip flag to install just our dependencies,
+    # but not install us.
+    pyproject_data = load_pyproject_toml()
+    install(session, *pyproject_data["build-system"]["requires"])
+
+    session.run("cargo", "fmt", "--all", "--", "--check", external=True)
+    if session.name != "rust-noclippy":
+        session.run(
+            "cargo",
+            "clippy",
+            "--all",
+            "--",
+            "-D",
+            "warnings",
+            external=True,
+        )
+
+    build_output = session.run(
+        "cargo",
+        "test",
+        "--all",
+        "--no-run",
+        "-q",
+        "--message-format=json",
+        external=True,
+        silent=True,
+    )
+    session.run("cargo", "test", "--all", external=True)
+
+    # It's None on install-only invocations
+    if build_output is not None:
+        assert isinstance(build_output, str)
+        rust_tests = []
+        for line in build_output.splitlines():
+            data = json.loads(line)
+            if data.get("profile", {}).get("test", False):
+                rust_tests.extend(data["filenames"])
+
+        process_rust_coverage(session, rust_tests, prof_location)
+
+
+@nox.session
+def local(session: nox.Session):
+    if "CARGO_INCREMENTAL" not in os.environ:
+        session.env["CARGO_INCREMENTAL"] = "1"
+
+    pyproject_data = load_pyproject_toml()
+    install(session, "-e", "./vectors", verbose=False)
+    install(
+        session,
+        *pyproject_data["build-system"]["requires"],
+        *pyproject_data["project"]["optional-dependencies"]["pep8test"],
+        *pyproject_data["project"]["optional-dependencies"]["test"],
+        *pyproject_data["project"]["optional-dependencies"]["ssh"],
+        *pyproject_data["project"]["optional-dependencies"]["nox"],
+        verbose=False,
+    )
+
+    session.run("ruff", "format")
+    session.run("ruff", "check")
+
+    session.run("cargo", "fmt", "--all", external=True)
+    session.run("cargo", "check", "--all", "--tests", external=True)
+    session.run(
+        "cargo",
+        "clippy",
+        "--all",
+        "--",
+        "-D",
+        "warnings",
+        external=True,
+    )
+
+    session.run(
+        "mypy",
+        "src/cryptography/",
+        "vectors/cryptography_vectors/",
+        "tests/",
+        "release.py",
+        "noxfile.py",
+    )
+
+    session.run(
+        "maturin",
+        "develop",
+        "--release",
+        "--uv",
+    )
+
+    if session.posargs:
+        tests = session.posargs
+    else:
+        tests = ["tests/"]
+
+    session.run(
+        "pytest",
+        "-n",
+        "auto",
+        "--dist=worksteal",
+        "--durations=10",
+        *tests,
+    )
+
+    session.run("cargo", "test", "--all", external=True)
+
+
+LCOV_SOURCEFILE_RE = re.compile(
+    r"^SF:.*[\\/]src[\\/]rust[\\/](.*)$", flags=re.MULTILINE
+)
+BIN_EXT = ".exe" if sys.platform == "win32" else ""
+
+
+def process_rust_coverage(
+    session: nox.Session,
+    rust_binaries: list[str],
+    prof_raw_location: pathlib.Path,
+) -> None:
+    target_libdir = session.run(
+        "rustc", "--print", "target-libdir", external=True, silent=True
+    )
+    if target_libdir is not None:
+        target_bindir = pathlib.Path(target_libdir).parent / "bin"
+
+        profraws = [
+            str(prof_raw_location / p)
+            for p in prof_raw_location.glob("*.profraw")
+        ]
+        session.run(
+            str(target_bindir / ("llvm-profdata" + BIN_EXT)),
+            "merge",
+            "-sparse",
+            *profraws,
+            "-o",
+            "rust-cov.profdata",
+            external=True,
+        )
+
+        lcov_data = session.run(
+            str(target_bindir / ("llvm-cov" + BIN_EXT)),
+            "export",
+            rust_binaries[0],
+            *itertools.chain.from_iterable(
+                ["-object", b] for b in rust_binaries[1:]
+            ),
+            "-instr-profile=rust-cov.profdata",
+            "--ignore-filename-regex=[/\\].cargo[/\\]",
+            "--ignore-filename-regex=[/\\]rustc[/\\]",
+            "--ignore-filename-regex=[/\\].rustup[/\\]toolchains[/\\]",
+            "--ignore-filename-regex=[/\\]target[/\\]",
+            "--format=lcov",
+            silent=True,
+            external=True,
+        )
+        assert isinstance(lcov_data, str)
+        lcov_data = LCOV_SOURCEFILE_RE.sub(
+            lambda m: "SF:src/rust/" + m.group(1).replace("\\", "/"),
+            lcov_data.replace("\r\n", "\n"),
+        )
+        with open(f"{uuid.uuid4()}.lcov", "w") as f:
+            f.write(lcov_data)
+
+
+# FILE: ci-constraints-requirements.txt
+# This file was autogenerated by uv via the following command:
+#    uv pip compile --universal --python-version 3.8 --all-extras --unsafe-package=cffi --unsafe-package=pycparser --unsafe-package=setuptools --unsafe-package=cryptography-vectors --unsafe-package=bcrypt --refresh pyproject.toml -o ci-constraints-requirements.txt
+alabaster==0.7.13 ; python_full_version < '3.9'
+    # via sphinx
+alabaster==0.7.16 ; python_full_version == '3.9.*'
+    # via sphinx
+alabaster==1.0.0 ; python_full_version >= '3.10'
+    # via sphinx
+argcomplete==3.6.3
+    # via nox
+attrs==25.3.0 ; python_full_version < '3.9'
+    # via nox
+attrs==26.1.0 ; python_full_version >= '3.9'
+    # via nox
+babel==2.18.0
+    # via sphinx
+build==1.2.2.post1 ; python_full_version < '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   check-sdist
+build==1.4.2 ; python_full_version >= '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   check-sdist
+certifi==2026.2.25
+    # via
+    #   cryptography (pyproject.toml)
+    #   requests
+charset-normalizer==3.4.7
+    # via requests
+check-sdist==1.2.0 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+check-sdist==1.4.0 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+click==8.1.8 ; python_full_version < '3.10'
+    # via cryptography (pyproject.toml)
+click==8.3.1 ; python_full_version >= '3.10'
+    # via cryptography (pyproject.toml)
+colorama==0.4.6 ; os_name == 'nt' or sys_platform == 'win32'
+    # via
+    #   build
+    #   click
+    #   colorlog
+    #   pytest
+    #   sphinx
+colorlog==6.10.1
+    # via nox
+coverage==7.6.1 ; python_full_version < '3.9'
+    # via pytest-cov
+coverage==7.10.7 ; python_full_version == '3.9.*'
+    # via pytest-cov
+coverage==7.13.4 ; python_full_version >= '3.10'
+    # via pytest-cov
+dependency-groups==1.3.1
+    # via nox
+distlib==0.4.0
+    # via virtualenv
+docutils==0.20.1 ; python_full_version < '3.9'
+    # via
+    #   readme-renderer
+    #   sphinx
+    #   sphinx-rtd-theme
+docutils==0.21.2 ; python_full_version >= '3.9' and python_full_version < '3.11'
+    # via
+    #   readme-renderer
+    #   sphinx
+    #   sphinx-rtd-theme
+docutils==0.22.4 ; python_full_version >= '3.11'
+    # via
+    #   readme-renderer
+    #   sphinx
+    #   sphinx-rtd-theme
+exceptiongroup==1.3.1 ; python_full_version < '3.11'
+    # via pytest
+execnet==2.1.2
+    # via pytest-xdist
+filelock==3.16.1 ; python_full_version < '3.9'
+    # via
+    #   python-discovery
+    #   virtualenv
+filelock==3.19.1 ; python_full_version == '3.9.*'
+    # via
+    #   python-discovery
+    #   virtualenv
+filelock==3.25.0 ; python_full_version >= '3.10'
+    # via
+    #   python-discovery
+    #   virtualenv
+humanize==4.10.0 ; python_full_version < '3.9'
+    # via nox
+humanize==4.13.0 ; python_full_version == '3.9.*'
+    # via nox
+humanize==4.15.0 ; python_full_version >= '3.10'
+    # via nox
+idna==3.11
+    # via requests
+imagesize==1.5.0 ; python_full_version < '3.10'
+    # via sphinx
+imagesize==2.0.0 ; python_full_version >= '3.10'
+    # via sphinx
+importlib-metadata==8.5.0 ; python_full_version < '3.9'
+    # via
+    #   build
+    #   pytest-randomly
+    #   sphinx
+importlib-metadata==8.7.1 ; python_full_version >= '3.9' and python_full_version < '3.10.2'
+    # via
+    #   build
+    #   pytest-randomly
+    #   sphinx
+importlib-resources==6.4.5 ; python_full_version < '3.9'
+    # via check-sdist
+iniconfig==2.1.0 ; python_full_version < '3.10'
+    # via pytest
+iniconfig==2.3.0 ; python_full_version >= '3.10'
+    # via pytest
+jinja2==3.1.6
+    # via sphinx
+librt==0.8.1 ; python_full_version >= '3.9' and platform_python_implementation != 'PyPy'
+    # via mypy
+markupsafe==2.1.5 ; python_full_version < '3.9'
+    # via jinja2
+markupsafe==3.0.3 ; python_full_version >= '3.9'
+    # via jinja2
+mypy==1.14.1 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+mypy==1.19.1 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+mypy-extensions==1.1.0
+    # via mypy
+nh3==0.3.4
+    # via readme-renderer
+nox==2026.2.9
+    # via cryptography (pyproject.toml)
+packaging==26.0
+    # via
+    #   build
+    #   dependency-groups
+    #   nox
+    #   pytest
+    #   sphinx
+pathspec==0.12.1 ; python_full_version < '3.9'
+    # via check-sdist
+pathspec==1.0.4 ; python_full_version >= '3.9'
+    # via
+    #   check-sdist
+    #   mypy
+platformdirs==4.3.6 ; python_full_version < '3.9'
+    # via
+    #   python-discovery
+    #   virtualenv
+platformdirs==4.4.0 ; python_full_version == '3.9.*'
+    # via
+    #   python-discovery
+    #   virtualenv
+platformdirs==4.9.4 ; python_full_version >= '3.10'
+    # via
+    #   python-discovery
+    #   virtualenv
+pluggy==1.5.0 ; python_full_version < '3.9'
+    # via pytest
+pluggy==1.6.0 ; python_full_version >= '3.9'
+    # via
+    #   pytest
+    #   pytest-cov
+pretend==1.0.9
+    # via cryptography (pyproject.toml)
+py-cpuinfo==9.0.0
+    # via pytest-benchmark
+pyenchant==3.2.2 ; python_full_version < '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinxcontrib-spelling
+pyenchant==3.3.0 ; python_full_version >= '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinxcontrib-spelling
+pygments==2.20.0
+    # via
+    #   pytest
+    #   readme-renderer
+    #   sphinx
+pyproject-hooks==1.2.0
+    # via build
+pytest==8.3.5 ; python_full_version < '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   pytest-benchmark
+    #   pytest-cov
+    #   pytest-randomly
+    #   pytest-xdist
+pytest==8.4.2 ; python_full_version == '3.9.*'
+    # via
+    #   cryptography (pyproject.toml)
+    #   pytest-benchmark
+    #   pytest-cov
+    #   pytest-randomly
+    #   pytest-xdist
+pytest==9.0.2 ; python_full_version >= '3.10'
+    # via
+    #   cryptography (pyproject.toml)
+    #   pytest-benchmark
+    #   pytest-cov
+    #   pytest-randomly
+    #   pytest-xdist
+pytest-benchmark==4.0.0 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+pytest-benchmark==5.2.3 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+pytest-cov==5.0.0 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+pytest-cov==7.1.0 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+pytest-randomly==3.15.0 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+pytest-randomly==4.0.1 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+pytest-xdist==3.6.1 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+pytest-xdist==3.8.0 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+python-discovery==1.2.1
+    # via virtualenv
+pytz==2026.1.post1 ; python_full_version < '3.9'
+    # via babel
+readme-renderer==43.0 ; python_full_version < '3.9'
+    # via cryptography (pyproject.toml)
+readme-renderer==44.0 ; python_full_version >= '3.9'
+    # via cryptography (pyproject.toml)
+requests==2.32.4 ; python_full_version < '3.9'
+    # via sphinx
+requests==2.32.5 ; python_full_version >= '3.9'
+    # via
+    #   sphinx
+    #   sphinxcontrib-spelling
+roman-numerals==4.1.0 ; python_full_version >= '3.11'
+    # via sphinx
+ruff==0.15.9
+    # via cryptography (pyproject.toml)
+snowballstemmer==3.0.1
+    # via sphinx
+sphinx==7.1.2 ; python_full_version < '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinx-inline-tabs
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
+    #   sphinxcontrib-spelling
+sphinx==7.4.7 ; python_full_version == '3.9.*'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinx-inline-tabs
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
+    #   sphinxcontrib-spelling
+sphinx==8.1.3 ; python_full_version == '3.10.*'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinx-inline-tabs
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
+    #   sphinxcontrib-spelling
+sphinx==9.0.4 ; python_full_version == '3.11.*'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinx-inline-tabs
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
+    #   sphinxcontrib-spelling
+sphinx==9.1.0 ; python_full_version >= '3.12'
+    # via
+    #   cryptography (pyproject.toml)
+    #   sphinx-inline-tabs
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
+    #   sphinxcontrib-spelling
+sphinx-inline-tabs==2025.12.21.14
+    # via cryptography (pyproject.toml)
+sphinx-rtd-theme==3.1.0
+    # via cryptography (pyproject.toml)
+sphinxcontrib-applehelp==1.0.4 ; python_full_version < '3.9'
+    # via sphinx
+sphinxcontrib-applehelp==2.0.0 ; python_full_version >= '3.9'
+    # via sphinx
+sphinxcontrib-devhelp==1.0.2 ; python_full_version < '3.9'
+    # via sphinx
+sphinxcontrib-devhelp==2.0.0 ; python_full_version >= '3.9'
+    # via sphinx
+sphinxcontrib-htmlhelp==2.0.1 ; python_full_version < '3.9'
+    # via sphinx
+sphinxcontrib-htmlhelp==2.1.0 ; python_full_version >= '3.9'
+    # via sphinx
+sphinxcontrib-jquery==4.1
+    # via sphinx-rtd-theme
+sphinxcontrib-jsmath==1.0.1
+    # via sphinx
+sphinxcontrib-qthelp==1.0.3 ; python_full_version < '3.9'
+    # via sphinx
+sphinxcontrib-qthelp==2.0.0 ; python_full_version >= '3.9'
+    # via sphinx
+sphinxcontrib-serializinghtml==1.1.5 ; python_full_version < '3.9'
+    # via sphinx
+sphinxcontrib-serializinghtml==2.0.0 ; python_full_version >= '3.9'
+    # via sphinx
+sphinxcontrib-spelling==8.0.0 ; python_full_version < '3.10'
+    # via cryptography (pyproject.toml)
+sphinxcontrib-spelling==8.0.2 ; python_full_version >= '3.10'
+    # via cryptography (pyproject.toml)
+tomli==2.4.0 ; python_full_version <= '3.11'
+    # via
+    #   build
+    #   check-sdist
+    #   coverage
+    #   dependency-groups
+    #   mypy
+    #   nox
+    #   pytest
+    #   sphinx
+typing-extensions==4.13.2 ; python_full_version < '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   exceptiongroup
+    #   mypy
+    #   virtualenv
+typing-extensions==4.15.0 ; python_full_version >= '3.9'
+    # via
+    #   cryptography (pyproject.toml)
+    #   exceptiongroup
+    #   mypy
+    #   virtualenv
+urllib3==2.2.3 ; python_full_version < '3.9'
+    # via requests
+urllib3==2.6.3 ; python_full_version >= '3.9'
+    # via requests
+uv==0.11.3
+    # via nox
+virtualenv==21.2.0
+    # via nox
+zipp==3.20.2 ; python_full_version < '3.9'
+    # via
+    #   importlib-metadata
+    #   importlib-resources
+zipp==3.23.0 ; python_full_version >= '3.9' and python_full_version < '3.10.2'
+    # via importlib-metadata
+
+# The following packages were excluded from the output:
+# cffi
+# pycparser
+# cryptography-vectors
+# bcrypt
+
+
+# FILE: LICENSE
+This software is made available under the terms of *either* of the licenses
+found in LICENSE.APACHE or LICENSE.BSD. Contributions to cryptography are made
+under the terms of *both* these licenses.
+
+
+# FILE: Cargo.toml
+[workspace]
+resolver = "2"
+members = [
+    "src/rust/",
+    "src/rust/cryptography-cffi",
+    "src/rust/cryptography-crypto",
+    "src/rust/cryptography-keepalive",
+    "src/rust/cryptography-key-parsing",
+    "src/rust/cryptography-openssl",
+    "src/rust/cryptography-x509",
+    "src/rust/cryptography-x509-verification",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["The cryptography developers <cryptography-dev@python.org>"]
+edition = "2021"
+publish = false
+# This specifies the MSRV
+rust-version = "1.83.0"
+license = "Apache-2.0 OR BSD-3-Clause"
+
+[workspace.dependencies]
+asn1 = { version = "0.24.1", default-features = false }
+base64 = "0.22"
+cc = "1.2.59"
+cfg-if = "1"
+foreign-types = "0.3"
+foreign-types-shared = "0.1"
+openssl = "0.10.76"
+openssl-sys = "0.9.111"
+pem = { version = "3", default-features = false }
+pyo3 = { version = "0.28", features = ["abi3"] }
+pyo3-build-config = { version = "0.28" }
+self_cell = "1"
+
+[profile.release]
+overflow-checks = true
+
+
+# FILE: vectors/pyproject.toml
+[build-system]
+# These requirements must be kept sync with the requirements in
+# ./.github/requirements/build-requirements.{in,txt}
+requires = ["uv_build>=0.7.19,<0.11.0"]
+build-backend = "uv_build"
+
+[project]
+name = "cryptography_vectors"
+version = "47.0.0.dev1"
+authors = [
+    {name = "The Python Cryptographic Authority and individual contributors", email = "cryptography-dev@python.org"}
+]
+description = "Test vectors for the cryptography package."
+readme = "README.rst"
+license = {text = "Apache-2.0 OR BSD-3-Clause"}
+
+[project.urls]
+homepage = "https://github.com/pyca/cryptography"
+
+[tool.uv.build-backend]
+module-root = ""
+source-include = ["LICENSE", "LICENSE.APACHE", "LICENSE.BSD"]
+
+
+# FILE: vectors/LICENSE
+This software is made available under the terms of *either* of the licenses
+found in LICENSE.APACHE or LICENSE.BSD. Contributions to cryptography are made
+under the terms of *both* these licenses.
+
+
+# FILE: tests/utils.py
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
+
+from __future__ import annotations
+
+import binascii
+import collections
+import json
+import os
+import re
+import typing
+from contextlib import contextmanager
+
+import pytest
+
+import cryptography_vectors
+from cryptography.exceptions import UnsupportedAlgorithm
+
+HashVector = collections.namedtuple("HashVector", ["message", "digest"])
+KeyedHashVector = collections.namedtuple(
+    "KeyedHashVector", ["message", "digest", "key"]
+)
+
+
+def check_backend_support(backend, item):
+    for mark in item.node.iter_markers("supported"):
+        if not mark.kwargs["only_if"](backend):
+            pytest.skip("{} ({})".format(mark.kwargs["skip_message"], backend))
+
+
+@contextmanager
+def raises_unsupported_algorithm(reason):
+    with pytest.raises(UnsupportedAlgorithm) as exc_info:
+        yield exc_info
+
+    assert exc_info.value._reason == reason
+
+
+T = typing.TypeVar("T")
+
+
+def load_vectors_from_file(
+    filename: str, loader: typing.Callable[..., T], mode: str = "r"
+) -> T:
+    with cryptography_vectors.open_vector_file(filename, mode) as vector_file:
+        return loader(vector_file)
+
+
+def load_nist_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    test_data: dict[str, typing.Any] = {}
+    data = []
+
+    for line in vector_data:
+        line = line.strip()
+
+        # Blank lines, comments, and section headers are ignored
+        if (
+            not line
+            or line.startswith("#")
+            or (line.startswith("[") and line.endswith("]"))
+        ):
+            continue
+
+        if line.strip() == "FAIL":
+            test_data["fail"] = True
+            continue
+
+        # Build our data using a simple Key = Value format
+        name, value = (c.strip() for c in line.split("="))
+
+        # Some tests (PBKDF2) contain \0, which should be interpreted as a
+        # null character rather than literal.
+        value = value.replace("\\0", "\0")
+
+        # COUNT is a special token that indicates a new block of data
+        if name.upper() == "COUNT":
+            test_data = {}
+            data.append(test_data)
+            continue
+        # For all other tokens we simply want the name, value stored in
+        # the dictionary
+        else:
+            test_data[name.lower()] = value.encode("ascii")
+
+    return data
+
+
+def load_cryptrec_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    cryptrec_list = []
+    key = None
+    pt = None
+
+    for line in vector_data:
+        line = line.strip()
+
+        # Blank lines and comments are ignored
+        if not line or line.startswith("#"):
+            continue
+
+        if line.startswith("K"):
+            key = line.split(" : ")[1].replace(" ", "").encode("ascii")
+        elif line.startswith("P"):
+            pt = line.split(" : ")[1].replace(" ", "").encode("ascii")
+        elif line.startswith("C"):
+            ct = line.split(" : ")[1].replace(" ", "").encode("ascii")
+            # after a C is found the K+P+C tuple is complete
+            # there are many P+C pairs for each K
+            cryptrec_list.append(
+                {"key": key, "plaintext": pt, "ciphertext": ct}
+            )
+        else:
+            raise ValueError(f"Invalid line in file '{line}'")
+    return cryptrec_list
+
+
+def load_hash_vectors(vector_data):
+    vectors: list[KeyedHashVector | HashVector] = []
+    key = None
+    msg = None
+    md = None
+    length = None
+
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith(("#", "[")):
+            continue
+
+        if line.startswith("Len"):
+            length = int(line.split(" = ")[1])
+        elif line.startswith("Key"):
+            # HMAC vectors contain a key attribute. Hash vectors do not.
+            key = line.split(" = ")[1].encode("ascii")
+        elif line.startswith("Msg"):
+            # In the NIST vectors they have chosen to represent an empty
+            # string as hex 00, which is of course not actually an empty
+            # string. So we parse the provided length and catch this edge case.
+            assert length is not None
+            msg = line.split(" = ")[1].encode("ascii") if length > 0 else b""
+        elif line.startswith(("MD", "Output")):
+            md = line.split(" = ")[1]
+            # after MD is found the Msg+MD (+ potential key) tuple is complete
+            if key is not None:
+                vectors.append(KeyedHashVector(msg, md, key))
+                key = None
+                msg = None
+                md = None
+            else:
+                vectors.append(HashVector(msg, md))
+                msg = None
+                md = None
+        else:
+            raise ValueError("Unknown line in hash vector")
+    return vectors
+
+
+def load_pkcs1_vectors(
+    vector_data: typing.Iterable[str],
+) -> list[tuple[dict, dict]]:
+    """
+    Loads data out of RSA PKCS #1 vector files.
+    """
+    private_key_vector: dict[str, typing.Any] | None = None
+    public_key_vector: dict[str, typing.Any] | None = None
+    attr = None
+    key: typing.Any = None
+    example_vector: dict[str, typing.Any] | None = None
+    examples = []
+    vectors = []
+    for line in vector_data:
+        if line.startswith(
+            ("# PSS Example", "# OAEP Example", "# PKCS#1 v1.5")
+        ):
+            if example_vector:
+                for k, value in example_vector.items():
+                    hex_bytes = "".join(value).replace(" ", "").encode("ascii")
+                    example_vector[k] = hex_bytes
+                examples.append(example_vector)
+
+            attr = None
+            example_vector = collections.defaultdict(list)
+
+        if line.startswith("# Message"):
+            attr = "message"
+            continue
+        elif line.startswith("# Salt"):
+            attr = "salt"
+            continue
+        elif line.startswith("# Seed"):
+            attr = "seed"
+            continue
+        elif line.startswith("# Signature"):
+            attr = "signature"
+            continue
+        elif line.startswith("# Encryption"):
+            attr = "encryption"
+            continue
+        elif example_vector and line.startswith(
+            "# ============================================="
+        ):
+            for k, value in example_vector.items():
+                hex_bytes = "".join(value).replace(" ", "").encode("ascii")
+                example_vector[k] = hex_bytes
+            examples.append(example_vector)
+            example_vector = None
+            attr = None
+        elif example_vector and line.startswith("#"):
+            continue
+        elif attr is not None and example_vector is not None:
+            example_vector[attr].append(line.strip())
+            continue
+
+        if line.startswith(
+            ("# Example", "# =============================================")
+        ):
+            if key:
+                assert private_key_vector
+                assert public_key_vector
+
+                for key, value in public_key_vector.items():
+                    hex_str = "".join(value).replace(" ", "")
+                    public_key_vector[key] = int(hex_str, 16)
+
+                for key, value in private_key_vector.items():
+                    hex_str = "".join(value).replace(" ", "")
+                    private_key_vector[key] = int(hex_str, 16)
+
+                private_key_vector["examples"] = examples
+                examples = []
+
+                assert (
+                    private_key_vector["public_exponent"]
+                    == public_key_vector["public_exponent"]
+                )
+
+                assert (
+                    private_key_vector["modulus"]
+                    == public_key_vector["modulus"]
+                )
+
+                vectors.append((private_key_vector, public_key_vector))
+
+            public_key_vector = collections.defaultdict(list)
+            private_key_vector = collections.defaultdict(list)
+            key = None
+            attr = None
+
+        if private_key_vector is None or public_key_vector is None:
+            continue
+
+        if line.startswith("# Private key"):
+            key = private_key_vector
+        elif line.startswith("# Public key"):
+            key = public_key_vector
+        elif line.startswith("# Modulus:"):
+            attr = "modulus"
+        elif line.startswith("# Public exponent:"):
+            attr = "public_exponent"
+        elif line.startswith("# Exponent:"):
+            if key is public_key_vector:
+                attr = "public_exponent"
+            else:
+                assert key is private_key_vector
+                attr = "private_exponent"
+        elif line.startswith("# Prime 1:"):
+            attr = "p"
+        elif line.startswith("# Prime 2:"):
+            attr = "q"
+        elif line.startswith("# Prime exponent 1:"):
+            attr = "dmp1"
+        elif line.startswith("# Prime exponent 2:"):
+            attr = "dmq1"
+        elif line.startswith("# Coefficient:"):
+            attr = "iqmp"
+        elif line.startswith("#"):
+            attr = None
+        elif key is not None and attr is not None:
+            key[attr].append(line.strip())
+    return vectors
+
+
+def load_rsa_nist_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    test_data: dict[str, typing.Any] = {}
+    p = None
+    salt_length = None
+    data = []
+    n = None
+    e = None
+
+    for line in vector_data:
+        line = line.strip()
+
+        # Blank lines and section headers are ignored
+        if not line or line.startswith("["):
+            continue
+
+        if line.startswith("# Salt len:"):
+            salt_length = int(line.split(":")[1].strip())
+            continue
+        elif line.startswith("#"):
+            continue
+
+        # Build our data using a simple Key = Value format
+        name, value = (c.strip() for c in line.split("="))
+
+        if name == "n":
+            n = int(value, 16)
+        elif name == "e" and p is None:
+            e = int(value, 16)
+        elif name == "p":
+            p = int(value, 16)
+        elif name == "q":
+            q = int(value, 16)
+        elif name == "SHAAlg":
+            if p is None:
+                test_data = {
+                    "modulus": n,
+                    "public_exponent": e,
+                    "salt_length": salt_length,
+                    "algorithm": value,
+                    "fail": False,
+                }
+            else:
+                test_data = {"modulus": n, "p": p, "q": q, "algorithm": value}
+                if salt_length is not None:
+                    test_data["salt_length"] = salt_length
+            data.append(test_data)
+        elif name == "e" and p is not None:
+            test_data["public_exponent"] = int(value, 16)
+        elif name == "d":
+            test_data["private_exponent"] = int(value, 16)
+        elif name == "Result":
+            test_data["fail"] = value.startswith("F")
+        # For all other tokens we simply want the name, value stored in
+        # the dictionary
+        else:
+            test_data[name.lower()] = value.encode("ascii")
+
+    return data
+
+
+def load_fips_dsa_key_pair_vectors(
+    vector_data: typing.Iterable[str],
+) -> list[dict]:
+    """
+    Loads data out of the FIPS DSA KeyPair vector files.
+    """
+    vectors = []
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith(("#", "[mod")):
+            continue
+
+        if line.startswith("P"):
+            vectors.append({"p": int(line.split("=")[1], 16)})
+        elif line.startswith("Q"):
+            vectors[-1]["q"] = int(line.split("=")[1], 16)
+        elif line.startswith("G"):
+            vectors[-1]["g"] = int(line.split("=")[1], 16)
+        elif line.startswith("X") and "x" not in vectors[-1]:
+            vectors[-1]["x"] = int(line.split("=")[1], 16)
+        elif line.startswith("X") and "x" in vectors[-1]:
+            vectors.append(
+                {
+                    "p": vectors[-1]["p"],
+                    "q": vectors[-1]["q"],
+                    "g": vectors[-1]["g"],
+                    "x": int(line.split("=")[1], 16),
+                }
+            )
+        elif line.startswith("Y"):
+            vectors[-1]["y"] = int(line.split("=")[1], 16)
+
+    return vectors
+
+
+FIPS_SHA_REGEX = re.compile(
+    r"\[mod = L=...., N=..., SHA-(?P<sha>1|224|256|384|512)\]"
+)
+
+
+def load_fips_dsa_sig_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Loads data out of the FIPS DSA SigVer vector files.
+    """
+    vectors = []
+
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        sha_match = FIPS_SHA_REGEX.match(line)
+        if sha_match:
+            digest_algorithm = "SHA-{}".format(sha_match.group("sha"))
+
+        if line.startswith("[mod"):
+            continue
+
+        name, value = (c.strip() for c in line.split("="))
+
+        if name == "P":
+            vectors.append(
+                {"p": int(value, 16), "digest_algorithm": digest_algorithm}
+            )
+        elif name == "Q":
+            vectors[-1]["q"] = int(value, 16)
+        elif name == "G":
+            vectors[-1]["g"] = int(value, 16)
+        elif name == "Msg" and "msg" not in vectors[-1]:
+            hexmsg = value.strip().encode("ascii")
+            vectors[-1]["msg"] = binascii.unhexlify(hexmsg)
+        elif name == "Msg" and "msg" in vectors[-1]:
+            hexmsg = value.strip().encode("ascii")
+            vectors.append(
+                {
+                    "p": vectors[-1]["p"],
+                    "q": vectors[-1]["q"],
+                    "g": vectors[-1]["g"],
+                    "digest_algorithm": vectors[-1]["digest_algorithm"],
+                    "msg": binascii.unhexlify(hexmsg),
+                }
+            )
+        elif name == "X":
+            vectors[-1]["x"] = int(value, 16)
+        elif name == "Y":
+            vectors[-1]["y"] = int(value, 16)
+        elif name == "R":
+            vectors[-1]["r"] = int(value, 16)
+        elif name == "S":
+            vectors[-1]["s"] = int(value, 16)
+        elif name == "Result":
+            vectors[-1]["result"] = value.split("(")[0].strip()
+
+    return vectors
+
+
+# https://tools.ietf.org/html/rfc4492#appendix-A
+_ECDSA_CURVE_NAMES = {
+    "P-192": "secp192r1",
+    "P-224": "secp224r1",
+    "P-256": "secp256r1",
+    "P-384": "secp384r1",
+    "P-521": "secp521r1",
+    "K-163": "sect163k1",
+    "K-233": "sect233k1",
+    "K-256": "secp256k1",
+    "K-283": "sect283k1",
+    "K-409": "sect409k1",
+    "K-571": "sect571k1",
+    "B-163": "sect163r2",
+    "B-233": "sect233r1",
+    "B-283": "sect283r1",
+    "B-409": "sect409r1",
+    "B-571": "sect571r1",
+}
+
+
+def load_fips_ecdsa_key_pair_vectors(
+    vector_data: typing.Iterable[str],
+) -> list[dict]:
+    """
+    Loads data out of the FIPS ECDSA KeyPair vector files.
+    """
+    vectors = []
+    key_data = None
+    curve_name = None
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if line[1:-1] in _ECDSA_CURVE_NAMES:
+            curve_name = _ECDSA_CURVE_NAMES[line[1:-1]]
+
+        elif line.startswith("d = "):
+            if key_data is not None:
+                vectors.append(key_data)
+
+            key_data = {"curve": curve_name, "d": int(line.split("=")[1], 16)}
+
+        elif key_data is not None:
+            if line.startswith("Qx = "):
+                key_data["x"] = int(line.split("=")[1], 16)
+            elif line.startswith("Qy = "):
+                key_data["y"] = int(line.split("=")[1], 16)
+
+    assert key_data is not None
+    vectors.append(key_data)
+
+    return vectors
+
+
+CURVE_REGEX = re.compile(
+    r"\[(?P<curve>[PKB]-[0-9]{3}),SHA-(?P<sha>1|224|256|384|512)\]"
+)
+
+
+def load_fips_ecdsa_signing_vectors(
+    vector_data: typing.Iterable[str],
+) -> list[dict]:
+    """
+    Loads data out of the FIPS ECDSA SigGen vector files.
+    """
+    vectors = []
+    curve_name: str | None = None
+    digest_name: str | None = None
+
+    data: dict[str, object] | None = None
+    for line in vector_data:
+        line = line.strip()
+
+        curve_match = CURVE_REGEX.match(line)
+        if curve_match:
+            curve_name = _ECDSA_CURVE_NAMES[curve_match.group("curve")]
+            digest_name = "SHA-{}".format(curve_match.group("sha"))
+
+        elif line.startswith("Msg = "):
+            if data is not None:
+                vectors.append(data)
+
+            hexmsg = line.split("=")[1].strip().encode("ascii")
+
+            data = {
+                "curve": curve_name,
+                "digest_algorithm": digest_name,
+                "message": binascii.unhexlify(hexmsg),
+            }
+
+        elif data is not None:
+            if line.startswith("Qx = "):
+                data["x"] = int(line.split("=")[1], 16)
+            elif line.startswith("Qy = "):
+                data["y"] = int(line.split("=")[1], 16)
+            elif line.startswith("R = "):
+                data["r"] = int(line.split("=")[1], 16)
+            elif line.startswith("S = "):
+                data["s"] = int(line.split("=")[1], 16)
+            elif line.startswith("d = "):
+                data["d"] = int(line.split("=")[1], 16)
+            elif line.startswith("Result = "):
+                data["fail"] = line.split("=")[1].strip()[0] == "F"
+
+    assert data is not None
+    vectors.append(data)
+    return vectors
+
+
+KASVS_RESULT_REGEX = re.compile(r"([FP]) \(([0-9]+) -")
+
+
+def load_kasvs_dh_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Loads data out of the KASVS key exchange vector data
+    """
+
+    vectors = []
+    data: dict[str, typing.Any] = {"fail_z": False, "fail_agree": False}
+
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if line.startswith("P = "):
+            data["p"] = int(line.split("=")[1], 16)
+        elif line.startswith("Q = "):
+            data["q"] = int(line.split("=")[1], 16)
+        elif line.startswith("G = "):
+            data["g"] = int(line.split("=")[1], 16)
+        elif line.startswith("Z = "):
+            z_hex = line.split("=")[1].strip().encode("ascii")
+            data["z"] = binascii.unhexlify(z_hex)
+        elif line.startswith("XstatCAVS = "):
+            data["x1"] = int(line.split("=")[1], 16)
+        elif line.startswith("YstatCAVS = "):
+            data["y1"] = int(line.split("=")[1], 16)
+        elif line.startswith("XstatIUT = "):
+            data["x2"] = int(line.split("=")[1], 16)
+        elif line.startswith("YstatIUT = "):
+            data["y2"] = int(line.split("=")[1], 16)
+        elif line.startswith("Result = "):
+            result_str = line.split("=")[1].strip()
+            match = KASVS_RESULT_REGEX.match(result_str)
+            assert match is not None
+
+            if match.group(1) == "F":
+                if int(match.group(2)) in (5, 10):
+                    data["fail_z"] = True
+                else:
+                    data["fail_agree"] = True
+
+            vectors.append(data)
+
+            data = {
+                "p": data["p"],
+                "q": data["q"],
+                "g": data["g"],
+                "fail_z": False,
+                "fail_agree": False,
+            }
+
+    return vectors
+
+
+def load_kasvs_ecdh_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Loads data out of the KASVS key exchange vector data
+    """
+
+    curve_name_map = {
+        "P-192": "secp192r1",
+        "P-224": "secp224r1",
+        "P-256": "secp256r1",
+        "P-384": "secp384r1",
+        "P-521": "secp521r1",
+    }
+
+    tags: list[str] = []
+    sets = {}
+    vectors = []
+
+    # find info in header
+    for line in vector_data:
+        line = line.strip()
+
+        if line.startswith("#"):
+            parm = line.split("Parameter set(s) supported:")
+            if len(parm) == 2:
+                names = parm[1].strip().split()
+                for n in names:
+                    tags.append(f"[{n}]")
+                break
+
+    # Sets Metadata
+    tag = None
+    curve = None
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if line in tags:
+            tag = line
+            curve = None
+        elif line.startswith("[Curve selected:"):
+            curve = curve_name_map[line.split(":")[1].strip()[:-1]]
+
+        if tag is not None and curve is not None:
+            sets[tag.strip("[]")] = curve
+            tag = None
+        if len(tags) == len(sets):
+            break
+
+    # Data
+    data: dict[str, typing.Any] = {
+        "CAVS": {},
+        "IUT": {},
+    }
+    tag = None
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if line.startswith("["):
+            tag = line.split()[0][1:]
+        elif line.startswith("COUNT = "):
+            data["COUNT"] = int(line.split("=")[1])
+        elif line.startswith("dsCAVS = "):
+            data["CAVS"]["d"] = int(line.split("=")[1], 16)
+        elif line.startswith("QsCAVSx = "):
+            data["CAVS"]["x"] = int(line.split("=")[1], 16)
+        elif line.startswith("QsCAVSy = "):
+            data["CAVS"]["y"] = int(line.split("=")[1], 16)
+        elif line.startswith("dsIUT = "):
+            data["IUT"]["d"] = int(line.split("=")[1], 16)
+        elif line.startswith("QsIUTx = "):
+            data["IUT"]["x"] = int(line.split("=")[1], 16)
+        elif line.startswith("QsIUTy = "):
+            data["IUT"]["y"] = int(line.split("=")[1], 16)
+        elif line.startswith("OI = "):
+            data["OI"] = int(line.split("=")[1], 16)
+        elif line.startswith("Z = "):
+            data["Z"] = int(line.split("=")[1], 16)
+        elif line.startswith("DKM = "):
+            data["DKM"] = int(line.split("=")[1], 16)
+        elif line.startswith("Result = "):
+            result_str = line.split("=")[1].strip()
+            match = KASVS_RESULT_REGEX.match(result_str)
+            assert match is not None
+
+            if match.group(1) == "F":
+                data["fail"] = True
+            else:
+                data["fail"] = False
+            data["errno"] = int(match.group(2))
+
+            assert tag is not None
+            data["curve"] = sets[tag]
+
+            vectors.append(data)
+
+            data = {
+                "CAVS": {},
+                "IUT": {},
+            }
+
+    return vectors
+
+
+def load_rfc6979_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Loads data out of the ECDSA and DSA RFC6979 vector files.
+    """
+    vectors = []
+    keys: dict[str, list[str]] = dict()
+    reading_key = False
+    current_key_name = None
+
+    data: dict[str, object] = dict()
+    for line in vector_data:
+        line = line.strip()
+
+        if reading_key and current_key_name:
+            keys[current_key_name].append(line)
+            if line.startswith("-----END"):
+                reading_key = False
+                current_key_name = None
+
+        if line.startswith(("PrivateKey=", "PublicKey=")):
+            reading_key = True
+            current_key_name = line.split("=")[1].strip()
+            keys[current_key_name] = []
+        elif line.startswith("DigestSign = "):
+            data["digest_sign"] = line.split("=")[1].strip()
+            data["deterministic_nonce"] = False
+        elif line.startswith("DigestVerify = "):
+            data["digest_verify"] = line.split("=")[1].strip()
+            data["verify_error"] = False
+        elif line.startswith("Key = "):
+            key_name = line.split("=")[1].strip()
+            assert key_name in keys
+            data["key"] = keys[key_name]
+            data["key_name"] = key_name
+        elif line.startswith("NonceType = "):
+            nonce_type = line.split("=")[1].strip()
+            data["deterministic_nonce"] = nonce_type == "deterministic"
+        elif line.startswith("Input = "):
+            data["input"] = line.split("=")[1].strip(' "')
+        elif line.startswith("Output = "):
+            data["output"] = line.split("=")[1].strip()
+        elif line.startswith("Result = "):
+            data["verify_error"] = line.split("=")[1].strip() == "VERIFY_ERROR"
+
+        elif not line:
+            if data:
+                vectors.append(data)
+                data = {}
+
+    return vectors
+
+
+def load_x963_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Loads data out of the X9.63 vector data
+    """
+
+    vectors = []
+
+    # Sets Metadata
+    hashname = None
+    vector: dict[str, typing.Any] = {}
+    shared_secret_len: int | None = None
+    shared_info_len: int | None = None
+    key_data_len: int | None = None
+    for line in vector_data:
+        line = line.strip()
+
+        if line.startswith("[SHA"):
+            hashname = line[1:-1]
+            shared_secret_len = 0
+            shared_info_len = 0
+            key_data_len = 0
+        elif line.startswith("[shared secret length"):
+            shared_secret_len = int(line[1:-1].split("=")[1].strip())
+        elif line.startswith("[SharedInfo length"):
+            shared_info_len = int(line[1:-1].split("=")[1].strip())
+        elif line.startswith("[key data length"):
+            key_data_len = int(line[1:-1].split("=")[1].strip())
+        elif line.startswith("COUNT"):
+            count = int(line.split("=")[1].strip())
+            vector["hash"] = hashname
+            vector["count"] = count
+            vector["shared_secret_length"] = shared_secret_len
+            vector["sharedinfo_length"] = shared_info_len
+            vector["key_data_length"] = key_data_len
+        elif line.startswith("Z"):
+            vector["Z"] = line.split("=")[1].strip()
+            assert vector["Z"] is not None
+            assert shared_secret_len is not None
+            assert ((shared_secret_len + 7) // 8) * 2 == len(vector["Z"])
+        elif line.startswith("SharedInfo"):
+            if shared_info_len != 0:
+                vector["sharedinfo"] = line.split("=")[1].strip()
+                assert vector["sharedinfo"] is not None
+                silen = len(vector["sharedinfo"])
+                assert shared_info_len is not None
+                assert ((shared_info_len + 7) // 8) * 2 == silen
+        elif line.startswith("key_data"):
+            vector["key_data"] = line.split("=")[1].strip()
+            assert vector["key_data"] is not None
+            assert key_data_len is not None
+            assert ((key_data_len + 7) // 8) * 2 == len(vector["key_data"])
+            vectors.append(vector)
+            vector = {}
+
+    return vectors
+
+
+def load_nist_kbkdf_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    """
+    Load NIST SP 800-108 KDF Vectors
+    """
+    vectors = []
+    test_data: dict[str, typing.Any] = {}
+    tag: dict[str, typing.Any] = {}
+
+    for line in vector_data:
+        line = line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if line.startswith("[") and line.endswith("]"):
+            tag_data = line[1:-1]
+            name, value = (c.strip() for c in tag_data.split("="))
+            if value.endswith("_BITS"):
+                tag[name.lower()] = int(value.split("_")[0])
+                continue
+
+            tag[name.lower()] = value.lower()
+        elif line.startswith("COUNT="):
+            test_data = {}
+            test_data.update(tag)
+            vectors.append(test_data)
+        elif line.startswith(("L", "DataBeforeCtrLen", "DataAfterCtrLen")):
+            name, value = (c.strip() for c in line.split("="))
+            test_data[name.lower()] = int(value)
+        else:
+            name, value = (c.strip() for c in line.split("="))
+            test_data[name.lower()] = value.encode("ascii")
+
+    return vectors
+
+
+def load_ed25519_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    data = []
+    for line in vector_data:
+        secret_key, public_key, message, signature, _ = line.split(":")
+        # In the vectors the first element is secret key + public key
+        secret_key = secret_key[0:64]
+        # In the vectors the signature section is signature + message
+        signature = signature[0:128]
+        data.append(
+            {
+                "secret_key": secret_key,
+                "public_key": public_key,
+                "message": message,
+                "signature": signature,
+            }
+        )
+    return data
+
+
+def load_nist_ccm_vectors(vector_data: typing.Iterable[str]) -> list[dict]:
+    test_data: dict[str, typing.Any] = {}
+    section_data: dict[str, typing.Any] = {}
+    global_data: dict[str, typing.Any] = {}
+    new_section = False
+    data = []
+
+    for line in vector_data:
+        line = line.strip()
+
+        # Blank lines and comments should be ignored
+        if not line or line.startswith("#"):
+            continue
+
+        # Some of the CCM vectors have global values for this. They are always
+        # at the top before the first section header (see: VADT, VNT, VPT)
+        if line.startswith(("Alen", "Plen", "Nlen", "Tlen")):
+            name, value = (c.strip() for c in line.split("="))
+            global_data[name.lower()] = int(value)
+            continue
+
+        # section headers contain length data we might care about
+        if line.startswith("["):
+            new_section = True
+            section_data = {}
+            section = line[1:-1]
+            items = [c.strip() for c in section.split(",")]
+            for item in items:
+                name, value = (c.strip() for c in item.split("="))
+                section_data[name.lower()] = int(value)
+            continue
+
+        name, value = (c.strip() for c in line.split("="))
+
+        if name.lower() in ("key", "nonce") and new_section:
+            section_data[name.lower()] = value.encode("ascii")
+            continue
+
+        new_section = False
+
+        # Payload is sometimes special because these vectors are absurd. Each
+        # example may or may not have a payload. If it does not then the
+        # previous example's payload should be used. We accomplish this by
+        # writing it into the section_data. Because we update each example
+        # with the section data it will be overwritten if a new payload value
+        # is present. NIST should be ashamed of their vector creation.
+        if name.lower() == "payload":
+            section_data[name.lower()] = value.encode("ascii")
+
+        # Result is a special token telling us if the test should pass/fail.
+        # This is only present in the DVPT CCM tests
+        if name.lower() == "result":
+            if value.lower() == "pass":
+                test_data["fail"] = False
+            else:
+                test_data["fail"] = True
+            continue
+
+        # COUNT is a special token that indicates a new block of data
+        if name.lower() == "count":
+            test_data = {}
+            test_data.update(global_data)
+            test_data.update(section_data)
+            data.append(test_data)
+            continue
+        # For all other tokens we simply want the name, value stored in
+        # the dictionary
+        else:
+            test_data[name.lower()] = value.encode("ascii")
+
+    return data
+
+
+class WycheproofTest:
+    def __init__(self, testfiledata, testgroup, testcase):
+        self.testfiledata = testfiledata
+        self.testgroup = testgroup
+        self.testcase = testcase
+
+    def __repr__(self):
+        return "<WycheproofTest({!r}, {!r}, {!r}, tcId={})>".format(
+            self.testfiledata,
+            self.testgroup,
+            self.testcase,
+            self.testcase["tcId"],
+        )
+
+    @property
+    def valid(self) -> bool:
+        return self.testcase["result"] == "valid"
+
+    @property
+    def acceptable(self) -> bool:
+        return self.testcase["result"] == "acceptable"
+
+    @property
+    def invalid(self) -> bool:
+        return self.testcase["result"] == "invalid"
+
+    def has_flag(self, flag: str) -> bool:
+        return flag in self.testcase["flags"]
+
+    def cache_value_to_group(self, cache_key: str, func):
+        cache_val = self.testgroup.get(cache_key)
+        if cache_val is not None:
+            return cache_val
+        self.testgroup[cache_key] = cache_val = func()
+        return cache_val
+
+
+def load_wycheproof_tests(wycheproof: str, test_file: str, subdir: str):
+    path = os.path.join(wycheproof, subdir, test_file)
+    with open(path) as f:
+        data = json.load(f)
+        for group in data.pop("testGroups"):
+            cases = group.pop("tests")
+            for c in cases:
+                yield WycheproofTest(data, group, c)
+
+
+# FILE: tests/test_warnings.py
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
+
+
+import sys
+import types
+import typing
+import warnings
+
+import pytest
+
+from cryptography.utils import deprecated
+
+
+class TestDeprecated:
+    @typing.no_type_check
+    def test_deprecated(self, monkeypatch):
+        mod = types.ModuleType("TestDeprecated/test_deprecated")
+        monkeypatch.setitem(sys.modules, mod.__name__, mod)
+        deprecated(
+            name="X",
+            value=1,
+            module_name=mod.__name__,
+            message="deprecated message text",
+            warning_class=DeprecationWarning,
+        )
+        mod.Y = deprecated(
+            value=2,
+            module_name=mod.__name__,
+            message="more deprecated text",
+            warning_class=PendingDeprecationWarning,
+        )
+        mod = sys.modules[mod.__name__]
+        mod.Z = 3
+
+        with warnings.catch_warnings(record=True) as log:
+            warnings.simplefilter("always", PendingDeprecationWarning)
+            warnings.simplefilter("always", DeprecationWarning)
+            assert mod.X == 1
+            assert mod.Y == 2
+            assert mod.Z == 3
+
+        [msg1, msg2] = log
+        assert msg1.category is DeprecationWarning
+        assert msg1.message.args == ("deprecated message text",)
+
+        assert msg2.category is PendingDeprecationWarning
+        assert msg2.message.args == ("more deprecated text",)
+
+        assert "Y" in dir(mod)
+
+    @typing.no_type_check
+    def test_deleting_deprecated_members(self, monkeypatch):
+        mod = types.ModuleType("TestDeprecated/test_deprecated")
+        monkeypatch.setitem(sys.modules, mod.__name__, mod)
+        deprecated(
+            name="X",
+            value=1,
+            module_name=mod.__name__,
+            message="deprecated message text",
+            warning_class=DeprecationWarning,
+        )
+        mod.Y = deprecated(
+            value=2,
+            module_name=mod.__name__,
+            message="more deprecated text",
+            warning_class=PendingDeprecationWarning,
+        )
+        mod = sys.modules[mod.__name__]
+        mod.Z = 3
+
+        with warnings.catch_warnings(record=True) as log:
+            warnings.simplefilter("always", PendingDeprecationWarning)
+            warnings.simplefilter("always", DeprecationWarning)
+            del mod.X
+            del mod.Y
+            del mod.Z
+
+        [msg1, msg2] = log
+        assert msg1.category is DeprecationWarning
+        assert msg1.message.args == ("deprecated message text",)
+
+        assert msg2.category is PendingDeprecationWarning
+        assert msg2.message.args == ("more deprecated text",)
+
+        assert "X" not in dir(mod)
+        assert "Y" not in dir(mod)
+        assert "Z" not in dir(mod)
+
+        with pytest.raises(AttributeError):
+            del mod.X
+
+
+# FILE: tests/test_utils.py
+# This file is dual licensed under the terms of the Apache License, Version
+# 2.0, and the BSD License. See the LICENSE file in the root of this repository
+# for complete details.
+
+
+import binascii
+import inspect
+import os
+import textwrap
+
+import pretend
+import pytest
+
+import cryptography
+import cryptography.utils
+import cryptography_vectors
+from cryptography.exceptions import UnsupportedAlgorithm, _Reasons
+
+from . import deprecated_module
+from .utils import (
+    check_backend_support,
+    load_cryptrec_vectors,
+    load_ed25519_vectors,
+    load_fips_dsa_key_pair_vectors,
+    load_fips_dsa_sig_vectors,
+    load_fips_ecdsa_key_pair_vectors,
+    load_fips_ecdsa_signing_vectors,
+    load_hash_vectors,
+    load_kasvs_dh_vectors,
+    load_kasvs_ecdh_vectors,
+    load_nist_ccm_vectors,
+    load_nist_kbkdf_vectors,
+    load_nist_vectors,
+    load_pkcs1_vectors,
+    load_rsa_nist_vectors,
+    load_vectors_from_file,
+    load_x963_vectors,
+    raises_unsupported_algorithm,
+)
+
+
+def test_int_to_bytes_rejects_zero_length():
+    with pytest.raises(ValueError):
+        cryptography.utils.int_to_bytes(123, 0)
+    with pytest.raises(ValueError):
+        cryptography.utils.int_to_bytes(0, 0)
+
+
+def test_check_backend_support_skip():
+    supported = pretend.stub(
+        kwargs={"only_if": lambda backend: False, "skip_message": "Nope"}
+    )
+    node = pretend.stub(iter_markers=lambda x: [supported])
+    item = pretend.stub(node=node)
+    with pytest.raises(pytest.skip.Exception) as exc_info:
+        check_backend_support(True, item)
+    assert exc_info.value.args[0] == "Nope (True)"
+
+
+def test_check_backend_support_no_skip():
+    supported = pretend.stub(
+        kwargs={"only_if": lambda backend: True, "skip_message": "Nope"}
+    )
+    node = pretend.stub(iter_markers=lambda x: [supported])
+    item = pretend.stub(node=node)
+    assert check_backend_support(None, item) is None
+
+
+def test_load_nist_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # CAVS 11.1
+    # Config info for aes_values
+    # AESVS GFSbox test data for CBC
+    # State : Encrypt and Decrypt
+    # Key Length : 128
+    # Generated on Fri Apr 22 15:11:33 2011
+
+    [ENCRYPT]
+
+    COUNT = 0
+    KEY = 00000000000000000000000000000000
+    IV = 00000000000000000000000000000000
+    PLAINTEXT = f34481ec3cc627bacd5dc3fb08f273e6
+    CIPHERTEXT = 0336763e966d92595a567cc9ce537f5e
+
+    COUNT = 1
+    KEY = 00000000000000000000000000000000
+    IV = 00000000000000000000000000000000
+    PLAINTEXT = 9798c4640bad75c7c3227db910174e72
+    CIPHERTEXT = a9a1631bf4996954ebc093957b234589
+
+    [DECRYPT]
+
+    COUNT = 0
+    KEY = 00000000000000000000000000000000
+    IV = 00000000000000000000000000000000
+    CIPHERTEXT = 0336763e966d92595a567cc9ce537f5e
+    PLAINTEXT = f34481ec3cc627bacd5dc3fb08f273e6
+
+    COUNT = 1
+    KEY = 00000000000000000000000000000000
+    IV = 00000000000000000000000000000000
+    CIPHERTEXT = a9a1631bf4996954ebc093957b234589
+    PLAINTEXT = 9798c4640bad75c7c3227db910174e72
+    """
+    ).splitlines()
+
+    assert load_nist_vectors(vector_data) == [
+        {
+            "key": b"00000000000000000000000000000000",
+            "iv": b"00000000000000000000000000000000",
+            "plaintext": b"f34481ec3cc627bacd5dc3fb08f273e6",
+            "ciphertext": b"0336763e966d92595a567cc9ce537f5e",
+        },
+        {
+            "key": b"00000000000000000000000000000000",
+            "iv": b"00000000000000000000000000000000",
+            "plaintext": b"9798c4640bad75c7c3227db910174e72",
+            "ciphertext": b"a9a1631bf4996954ebc093957b234589",
+        },
+        {
+            "key": b"00000000000000000000000000000000",
+            "iv": b"00000000000000000000000000000000",
+            "plaintext": b"f34481ec3cc627bacd5dc3fb08f273e6",
+            "ciphertext": b"0336763e966d92595a567cc9ce537f5e",
+        },
+        {
+            "key": b"00000000000000000000000000000000",
+            "iv": b"00000000000000000000000000000000",
+            "plaintext": b"9798c4640bad75c7c3227db910174e72",
+            "ciphertext": b"a9a1631bf4996954ebc093957b234589",
+        },
+    ]
+
+
+def test_load_nist_vectors_with_null_chars():
+    vector_data = textwrap.dedent(
+        """
+    COUNT = 0
+    KEY = thing\\0withnulls
+
+    COUNT = 1
+    KEY = 00000000000000000000000000000000
+    """
+    ).splitlines()
+
+    assert load_nist_vectors(vector_data) == [
+        {"key": b"thing\x00withnulls"},
+        {"key": b"00000000000000000000000000000000"},
+    ]
+
+
+def test_load_ed25519_vectors():
+    vector_data = (
+        "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60d75a9"
+        "80182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a:d75a98018"
+        "2b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a::e5564300c360"
+        "ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc"
+        "61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b:\n"
+        "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb3d401"
+        "7c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c:3d4017c3e"
+        "843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c:72:92a009a9f0"
+        "d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996"
+        "e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c0072:\n"
+        "c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b4458f7fc51c"
+        "d8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025:fc51cd8e6"
+        "218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025:af82:6291d657"
+        "deec24024827e69c3abe01a30ce548a284743a445e3680d7db5ac3ac18ff9b538d16f"
+        "290ae67f760984dc6594a7c15e9716ed28dc027beceea1ec40aaf82:\n"
+        "0d4a05b07352a5436e180356da0ae6efa0345ff7fb1572575772e8005ed978e9e61a1"
+        "85bcef2613a6c7cb79763ce945d3b245d76114dd440bcf5f2dc1aa57057:e61a185bc"
+        "ef2613a6c7cb79763ce945d3b245d76114dd440bcf5f2dc1aa57057:cbc77b:d9868d"
+        "52c2bebce5f3fa5a79891970f309cb6591e3e1702a70276fa97c24b3a8e58606c38c9"
+        "758529da50ee31b8219cba45271c689afa60b0ea26c99db19b00ccbc77b:\n"
+    ).splitlines()
+
+    assert load_ed25519_vectors(vector_data) == [
+        {
+            "secret_key": (
+                "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7"
+                "f60"
+            ),
+            "public_key": (
+                "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f7075"
+                "11a"
+            ),
+            "message": "",
+            "signature": (
+                "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490"
+                "1555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e"
+                "7a100b"
+            ),
+        },
+        {
+            "secret_key": (
+                "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a"
+                "6fb"
+            ),
+            "public_key": (
+                "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af46"
+                "60c"
+            ),
+            "message": "72",
+            "signature": (
+                "92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb6"
+                "9da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612"
+                "bb0c00"
+            ),
+        },
+        {
+            "secret_key": (
+                "c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b445"
+                "8f7"
+            ),
+            "public_key": (
+                "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908"
+                "025"
+            ),
+            "message": "af82",
+            "signature": (
+                "6291d657deec24024827e69c3abe01a30ce548a284743a445e3680d7db5ac"
+                "3ac18ff9b538d16f290ae67f760984dc6594a7c15e9716ed28dc027beceea"
+                "1ec40a"
+            ),
+        },
+        {
+            "secret_key": (
+                "0d4a05b07352a5436e180356da0ae6efa0345ff7fb1572575772e8005ed97"
+                "8e9"
+            ),
+            "public_key": (
+                "e61a185bcef2613a6c7cb79763ce945d3b245d76114dd440bcf5f2dc1aa57"
+                "057"
+            ),
+            "message": "cbc77b",
+            "signature": (
+                "d9868d52c2bebce5f3fa5a79891970f309cb6591e3e1702a70276fa97c24b"
+                "3a8e58606c38c9758529da50ee31b8219cba45271c689afa60b0ea26c99db"
+                "19b00c"
+            ),
+        },
+    ]
+
+
+def test_load_cryptrec_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # Vectors taken from https://info.isl.ntt.co.jp/crypt/eng/camellia/
+    # Download is t_camelia.txt
+
+    # Camellia with 128-bit key
+
+    K No.001 : 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+    P No.001 : 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    C No.001 : 07 92 3A 39 EB 0A 81 7D 1C 4D 87 BD B8 2D 1F 1C
+
+    P No.002 : 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    C No.002 : 48 CD 64 19 80 96 72 D2 34 92 60 D8 9A 08 D3 D3
+
+    K No.002 : 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+    P No.001 : 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    C No.001 : 07 92 3A 39 EB 0A 81 7D 1C 4D 87 BD B8 2D 1F 1C
+    """
+    ).splitlines()
+
+    assert load_cryptrec_vectors(vector_data) == [
+        {
+            "key": b"00000000000000000000000000000000",
+            "plaintext": b"80000000000000000000000000000000",
+            "ciphertext": b"07923A39EB0A817D1C4D87BDB82D1F1C",
+        },
+        {
+            "key": b"00000000000000000000000000000000",
+            "plaintext": b"40000000000000000000000000000000",
+            "ciphertext": b"48CD6419809672D2349260D89A08D3D3",
+        },
+        {
+            "key": b"10000000000000000000000000000000",
+            "plaintext": b"80000000000000000000000000000000",
+            "ciphertext": b"07923A39EB0A817D1C4D87BDB82D1F1C",
+        },
+    ]
+
+
+def test_load_cryptrec_vectors_invalid():
+    vector_data = textwrap.dedent(
+        """
+    # Vectors taken from https://info.isl.ntt.co.jp/crypt/eng/camellia/
+    # Download is t_camelia.txt
+
+    # Camellia with 128-bit key
+
+    E No.001 : 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+    """
+    ).splitlines()
+
+    with pytest.raises(ValueError):
+        load_cryptrec_vectors(vector_data)
+
+
+def test_load_hash_vectors():
+    vector_data = textwrap.dedent(
+        """
+
+        # https://tools.ietf.org/html/rfc1321
+        [irrelevant]
+
+        Len = 0
+        Msg = 00
+        MD = d41d8cd98f00b204e9800998ecf8427e
+
+        Len = 8
+        Msg = 61
+        MD = 0cc175b9c0f1b6a831c399e269772661
+
+        Len = 24
+        Msg = 616263
+        MD = 900150983cd24fb0d6963f7d28e17f72
+
+        Len = 112
+        Msg = 6d65737361676520646967657374
+        MD = f96b697d7cb7938d525a2f31aaf161d0
+    """
+    ).splitlines()
+    assert load_hash_vectors(vector_data) == [
+        (b"", "d41d8cd98f00b204e9800998ecf8427e"),
+        (b"61", "0cc175b9c0f1b6a831c399e269772661"),
+        (b"616263", "900150983cd24fb0d6963f7d28e17f72"),
+        (b"6d65737361676520646967657374", "f96b697d7cb7938d525a2f31aaf161d0"),
+    ]
+
+
+def test_load_hmac_vectors():
+    vector_data = textwrap.dedent(
+        """
+Len = 224
+# "Jefe"
+Key = 4a656665
+# "what do ya want for nothing?"
+Msg = 7768617420646f2079612077616e7420666f72206e6f7468696e673f
+MD = 750c783e6ab0b503eaa86e310a5db738
+    """
+    ).splitlines()
+    assert load_hash_vectors(vector_data) == [
+        (
+            b"7768617420646f2079612077616e7420666f72206e6f7468696e673f",
+            "750c783e6ab0b503eaa86e310a5db738",
+            b"4a656665",
+        ),
+    ]
+
+
+def test_load_hash_vectors_bad_data():
+    vector_data = textwrap.dedent(
+        """
+        # https://tools.ietf.org/html/rfc1321
+
+        Len = 0
+        Msg = 00
+        UNKNOWN=Hello World
+    """
+    ).splitlines()
+    with pytest.raises(ValueError):
+        load_hash_vectors(vector_data)
+
+
+def test_load_vectors_from_file():
+    vectors = load_vectors_from_file(
+        os.path.join("ciphers", "Blowfish", "bf-cfb.txt"),
+        load_nist_vectors,
+    )
+    assert vectors == [
+        {
+            "key": b"0123456789ABCDEFF0E1D2C3B4A59687",
+            "iv": b"FEDCBA9876543210",
+            "plaintext": (
+                b"37363534333231204E6F77206973207468652074696D6520666F722000"
+            ),
+            "ciphertext": (
+                b"E73214A2822139CAF26ECF6D2EB9E76E3DA3DE04D1517200519D57A6C3"
+            ),
+        }
+    ]
+
+
+def test_load_nist_gcm_vectors():
+    vector_data = textwrap.dedent(
+        """
+        [Keylen = 128]
+        [IVlen = 96]
+        [PTlen = 0]
+        [AADlen = 0]
+        [Taglen = 128]
+
+        Count = 0
+        Key = 11754cd72aec309bf52f7687212e8957
+        IV = 3c819d9a9bed087615030b65
+        PT =
+        AAD =
+        CT =
+        Tag = 250327c674aaf477aef2675748cf6971
+
+        Count = 1
+        Key = 272f16edb81a7abbea887357a58c1917
+        IV = 794ec588176c703d3d2a7a07
+        PT =
+        AAD =
+        CT =
+        Tag = b6e6f197168f5049aeda32dafbdaeb
+
+        Count = 2
+        Key = a49a5e26a2f8cb63d05546c2a62f5343
+        IV = 907763b19b9b4ab6bd4f0281
+        CT =
+        AAD =
+        Tag = a2be08210d8c470a8df6e8fbd79ec5cf
+        FAIL
+
+        Count = 3
+        Key = 5c1155084cc0ede76b3bc22e9f7574ef
+        IV = 9549e4ba69a61cad7856efc1
+        PT = d1448fa852b84408e2dad8381f363de7
+        AAD = e98e9d9c618e46fef32660976f854ee3
+        CT = f78b60ca125218493bea1c50a2e12ef4
+        Tag = d72da7f5c6cf0bca7242c71835809449
+
+        [Keylen = 128]
+        [IVlen = 96]
+        [PTlen = 0]
+        [AADlen = 0]
+        [Taglen = 120]
+
+        Count = 0
+        Key = eac258e99c55e6ae8ef1da26640613d7
+        IV = 4e8df20faaf2c8eebe922902
+        CT =
+        AAD =
+        Tag = e39aeaebe86aa309a4d062d6274339
+        PT =
+
+        Count = 1
+        Key = 3726cf02fcc6b8639a5497652c94350d
+        IV = 55fef82cde693ce76efcc193
+        CT =
+        AAD =
+        Tag = 3d68111a81ed22d2ef5bccac4fc27f
+        FAIL
+
+        Count = 2
+        Key = f202299d5fd74f03b12d2119a6c4c038
+        IV = eec51e7958c3f20a1bb71815
+        CT =
+        AAD =
+        Tag = a81886b3fb26e51fca87b267e1e157
+        FAIL
+
+        Count = 3
+        Key = fd52925f39546b4c55ffb6b20c59898c
+        IV = f5cf3227444afd905a5f6dba
+        CT =
+        AAD =
+        Tag = 1665b0f1a0b456e1664cfd3de08ccd
+        PT =
+
+        [Keylen = 128]
+        [IVlen = 8]
+        [PTlen = 104]
+        [AADlen = 0]
+        [Taglen = 128]
+
+        Count = 0
+        Key = 58fab7632bcf10d2bcee58520bf37414
+        IV = 3c
+        CT = 15c4db4cbb451211179d57017f
+        AAD =
+        Tag = eae841d4355feeb3f786bc86625f1e5b
+        FAIL
+    """
+    ).splitlines()
+    assert load_nist_vectors(vector_data) == [
+        {
+            "aad": b"",
+            "pt": b"",
+            "iv": b"3c819d9a9bed087615030b65",
+            "tag": b"250327c674aaf477aef2675748cf6971",
+            "key": b"11754cd72aec309bf52f7687212e8957",
+            "ct": b"",
+        },
+        {
+            "aad": b"",
+            "pt": b"",
+            "iv": b"794ec588176c703d3d2a7a07",
+            "tag": b"b6e6f197168f5049aeda32dafbdaeb",
+            "key": b"272f16edb81a7abbea887357a58c1917",
+            "ct": b"",
+        },
+        {
+            "aad": b"",
+            "iv": b"907763b19b9b4ab6bd4f0281",
+            "tag": b"a2be08210d8c470a8df6e8fbd79ec5cf",
+            "key": b"a49a5e26a2f8cb63d05546c2a62f5343",
+            "ct": b"",
+            "fail": True,
+        },
+        {
+            "aad": b"e98e9d9c618e46fef32660976f854ee3",
+            "pt": b"d1448fa852b84408e2dad8381f363de7",
+            "iv": b"9549e4ba69a61cad7856efc1",
+            "tag": b"d72da7f5c6cf0bca7242c71835809449",
+            "key": b"5c1155084cc0ede76b3bc22e9f7574ef",
+            "ct": b"f78b60ca125218493bea1c50a2e12ef4",
+        },
+        {
+            "aad": b"",
+            "pt": b"",
+            "iv": b"4e8df20faaf2c8eebe922902",
+            "tag": b"e39aeaebe86aa309a4d062d6274339",
+            "key": b"eac258e99c55e6ae8ef1da26640613d7",
+            "ct": b"",
+        },
+        {
+            "aad": b"",
+            "iv": b"55fef82cde693ce76efcc193",
+            "tag": b"3d68111a81ed22d2ef5bccac4fc27f",
+            "key": b"3726cf02fcc6b8639a5497652c94350d",
+            "ct": b"",
+            "fail": True,
+        },
+        {
+            "aad": b"",
+            "iv": b"eec51e7958c3f20a1bb71815",
+            "tag": b"a81886b3fb26e51fca87b267e1e157",
+            "key": b"f202299d5fd74f03b12d2119a6c4c038",
+            "ct": b"",
+            "fail": True,
+        },
+        {
+            "aad": b"",
+            "pt": b"",
+            "iv": b"f5cf3227444afd905a5f6dba",
+            "tag": b"1665b0f1a0b456e1664cfd3de08ccd",
+            "key": b"fd52925f39546b4c55ffb6b20c59898c",
+            "ct": b"",
+        },
+        {
+            "aad": b"",
+            "iv": b"3c",
+            "tag": b"eae841d4355feeb3f786bc86625f1e5b",
+            "key": b"58fab7632bcf10d2bcee58520bf37414",
+            "ct": b"15c4db4cbb451211179d57017f",
+            "fail": True,
+        },
+    ]
+
+
+def test_load_pkcs1_vectors():
+    vector_data = textwrap.dedent(
+        """
+    Test vectors for RSA-PSS
+    ========================
+
+    This file contains an extract of the original pss-vect.txt
+
+    Key lengths:
+
+    Key  8: 1031 bits
+    Key  9: 1536 bits
+    ===========================================================================
+
+    <snip>
+
+    # Example 8: A 1031-bit RSA key pair
+    # -----------------------------------
+
+
+    # Public key
+    # ----------
+
+    # Modulus:
+    49 53 70 a1 fb 18 54 3c 16 d3 63 1e 31 63 25 5d
+    f6 2b e6 ee e8 90 d5 f2 55 09 e4 f7 78 a8 ea 6f
+    bb bc df 85 df f6 4e 0d 97 20 03 ab 36 81 fb ba
+    6d d4 1f d5 41 82 9b 2e 58 2d e9 f2 a4 a4 e0 a2
+    d0 90 0b ef 47 53 db 3c ee 0e e0 6c 7d fa e8 b1
+    d5 3b 59 53 21 8f 9c ce ea 69 5b 08 66 8e de aa
+    dc ed 94 63 b1 d7 90 d5 eb f2 7e 91 15 b4 6c ad
+    4d 9a 2b 8e fa b0 56 1b 08 10 34 47 39 ad a0 73
+    3f
+
+    # Exponent:
+    01 00 01
+
+    # Private key
+    # -----------
+
+    # Modulus:
+    49 53 70 a1 fb 18 54 3c 16 d3 63 1e 31 63 25 5d
+    f6 2b e6 ee e8 90 d5 f2 55 09 e4 f7 78 a8 ea 6f
+    bb bc df 85 df f6 4e 0d 97 20 03 ab 36 81 fb ba
+    6d d4 1f d5 41 82 9b 2e 58 2d e9 f2 a4 a4 e0 a2
+    d0 90 0b ef 47 53 db 3c ee 0e e0 6c 7d fa e8 b1
+    d5 3b 59 53 21 8f 9c ce ea 69 5b 08 66 8e de aa
+    dc ed 94 63 b1 d7 90 d5 eb f2 7e 91 15 b4 6c ad
+    4d 9a 2b 8e fa b0 56 1b 08 10 34 47 39 ad a0 73
+    3f
+
+    # Public exponent:
+    01 00 01
+
+    # Exponent:
+    6c 66 ff e9 89 80 c3 8f cd ea b5 15 98 98 83 61
+    65 f4 b4 b8 17 c4 f6 a8 d4 86 ee 4e a9 13 0f e9
+    b9 09 2b d1 36 d1 84 f9 5f 50 4a 60 7e ac 56 58
+    46 d2 fd d6 59 7a 89 67 c7 39 6e f9 5a 6e ee bb
+    45 78 a6 43 96 6d ca 4d 8e e3 de 84 2d e6 32 79
+    c6 18 15 9c 1a b5 4a 89 43 7b 6a 61 20 e4 93 0a
+    fb 52 a4 ba 6c ed 8a 49 47 ac 64 b3 0a 34 97 cb
+    e7 01 c2 d6 26 6d 51 72 19 ad 0e c6 d3 47 db e9
+
+    # Prime 1:
+    08 da d7 f1 13 63 fa a6 23 d5 d6 d5 e8 a3 19 32
+    8d 82 19 0d 71 27 d2 84 6c 43 9b 0a b7 26 19 b0
+    a4 3a 95 32 0e 4e c3 4f c3 a9 ce a8 76 42 23 05
+    bd 76 c5 ba 7b e9 e2 f4 10 c8 06 06 45 a1 d2 9e
+    db
+
+    # Prime 2:
+    08 47 e7 32 37 6f c7 90 0f 89 8e a8 2e b2 b0 fc
+    41 85 65 fd ae 62 f7 d9 ec 4c e2 21 7b 97 99 0d
+    d2 72 db 15 7f 99 f6 3c 0d cb b9 fb ac db d4 c4
+    da db 6d f6 77 56 35 8c a4 17 48 25 b4 8f 49 70
+    6d
+
+    # Prime exponent 1:
+    05 c2 a8 3c 12 4b 36 21 a2 aa 57 ea 2c 3e fe 03
+    5e ff 45 60 f3 3d de bb 7a da b8 1f ce 69 a0 c8
+    c2 ed c1 65 20 dd a8 3d 59 a2 3b e8 67 96 3a c6
+    5f 2c c7 10 bb cf b9 6e e1 03 de b7 71 d1 05 fd
+    85
+
+    # Prime exponent 2:
+    04 ca e8 aa 0d 9f aa 16 5c 87 b6 82 ec 14 0b 8e
+    d3 b5 0b 24 59 4b 7a 3b 2c 22 0b 36 69 bb 81 9f
+    98 4f 55 31 0a 1a e7 82 36 51 d4 a0 2e 99 44 79
+    72 59 51 39 36 34 34 e5 e3 0a 7e 7d 24 15 51 e1
+    b9
+
+    # Coefficient:
+    07 d3 e4 7b f6 86 60 0b 11 ac 28 3c e8 8d bb 3f
+    60 51 e8 ef d0 46 80 e4 4c 17 1e f5 31 b8 0b 2b
+    7c 39 fc 76 63 20 e2 cf 15 d8 d9 98 20 e9 6f f3
+    0d c6 96 91 83 9c 4b 40 d7 b0 6e 45 30 7d c9 1f
+    3f
+
+    # RSA-PSS signing of 6 random messages with random salts
+    # -------------------------------------------------------
+    # PSS Example 8.1
+
+    # -----------------
+
+    # Message to be signed:
+    81 33 2f 4b e6 29 48 41 5e a1 d8 99 79 2e ea cf
+    6c 6e 1d b1 da 8b e1 3b 5c ea 41 db 2f ed 46 70
+    92 e1 ff 39 89 14 c7 14 25 97 75 f5 95 f8 54 7f
+    73 56 92 a5 75 e6 92 3a f7 8f 22 c6 99 7d db 90
+    fb 6f 72 d7 bb 0d d5 74 4a 31 de cd 3d c3 68 58
+    49 83 6e d3 4a ec 59 63 04 ad 11 84 3c 4f 88 48
+    9f 20 97 35 f5 fb 7f da f7 ce c8 ad dc 58 18 16
+    8f 88 0a cb f4 90 d5 10 05 b7 a8 e8 4e 43 e5 42
+    87 97 75 71 dd 99 ee a4 b1 61 eb 2d f1 f5 10 8f
+    12 a4 14 2a 83 32 2e db 05 a7 54 87 a3 43 5c 9a
+    78 ce 53 ed 93 bc 55 08 57 d7 a9 fb
+
+    # Salt:
+    1d 65 49 1d 79 c8 64 b3 73 00 9b e6 f6 f2 46 7b
+    ac 4c 78 fa
+
+    # Signature:
+    02 62 ac 25 4b fa 77 f3 c1 ac a2 2c 51 79 f8 f0
+    40 42 2b 3c 5b af d4 0a 8f 21 cf 0f a5 a6 67 cc
+    d5 99 3d 42 db af b4 09 c5 20 e2 5f ce 2b 1e e1
+    e7 16 57 7f 1e fa 17 f3 da 28 05 2f 40 f0 41 9b
+    23 10 6d 78 45 aa f0 11 25 b6 98 e7 a4 df e9 2d
+    39 67 bb 00 c4 d0 d3 5b a3 55 2a b9 a8 b3 ee f0
+    7c 7f ec db c5 42 4a c4 db 1e 20 cb 37 d0 b2 74
+    47 69 94 0e a9 07 e1 7f bb ca 67 3b 20 52 23 80
+    c5
+
+    # PSS Example 8.2
+
+    # -----------------
+
+    # Message to be signed:
+    e2 f9 6e af 0e 05 e7 ba 32 6e cc a0 ba 7f d2 f7
+    c0 23 56 f3 ce de 9d 0f aa bf 4f cc 8e 60 a9 73
+    e5 59 5f d9 ea 08
+
+    # Salt:
+    43 5c 09 8a a9 90 9e b2 37 7f 12 48 b0 91 b6 89
+    87 ff 18 38
+
+    # Signature:
+    27 07 b9 ad 51 15 c5 8c 94 e9 32 e8 ec 0a 28 0f
+    56 33 9e 44 a1 b5 8d 4d dc ff 2f 31 2e 5f 34 dc
+    fe 39 e8 9c 6a 94 dc ee 86 db bd ae 5b 79 ba 4e
+    08 19 a9 e7 bf d9 d9 82 e7 ee 6c 86 ee 68 39 6e
+    8b 3a 14 c9 c8 f3 4b 17 8e b7 41 f9 d3 f1 21 10
+    9b f5 c8 17 2f ad a2 e7 68 f9 ea 14 33 03 2c 00
+    4a 8a a0 7e b9 90 00 0a 48 dc 94 c8 ba c8 aa be
+    2b 09 b1 aa 46 c0 a2 aa 0e 12 f6 3f bb a7 75 ba
+    7e
+
+    # <snip>
+
+    # =============================================
+
+    # Example 9: A 1536-bit RSA key pair
+    # -----------------------------------
+
+
+    # Public key
+    # ----------
+
+    # Modulus:
+    e6 bd 69 2a c9 66 45 79 04 03 fd d0 f5 be b8 b9
+    bf 92 ed 10 00 7f c3 65 04 64 19 dd 06 c0 5c 5b
+    5b 2f 48 ec f9 89 e4 ce 26 91 09 97 9c bb 40 b4
+    a0 ad 24 d2 24 83 d1 ee 31 5a d4 cc b1 53 42 68
+    35 26 91 c5 24 f6 dd 8e 6c 29 d2 24 cf 24 69 73
+    ae c8 6c 5b f6 b1 40 1a 85 0d 1b 9a d1 bb 8c bc
+    ec 47 b0 6f 0f 8c 7f 45 d3 fc 8f 31 92 99 c5 43
+    3d db c2 b3 05 3b 47 de d2 ec d4 a4 ca ef d6 14
+    83 3d c8 bb 62 2f 31 7e d0 76 b8 05 7f e8 de 3f
+    84 48 0a d5 e8 3e 4a 61 90 4a 4f 24 8f b3 97 02
+    73 57 e1 d3 0e 46 31 39 81 5c 6f d4 fd 5a c5 b8
+    17 2a 45 23 0e cb 63 18 a0 4f 14 55 d8 4e 5a 8b
+
+    # Exponent:
+    01 00 01
+
+    # Private key
+    # -----------
+
+    # Modulus:
+    e6 bd 69 2a c9 66 45 79 04 03 fd d0 f5 be b8 b9
+    bf 92 ed 10 00 7f c3 65 04 64 19 dd 06 c0 5c 5b
+    5b 2f 48 ec f9 89 e4 ce 26 91 09 97 9c bb 40 b4
+    a0 ad 24 d2 24 83 d1 ee 31 5a d4 cc b1 53 42 68
+    35 26 91 c5 24 f6 dd 8e 6c 29 d2 24 cf 24 69 73
+    ae c8 6c 5b f6 b1 40 1a 85 0d 1b 9a d1 bb 8c bc
+    ec 47 b0 6f 0f 8c 7f 45 d3 fc 8f 31 92 99 c5 43
+    3d db c2 b3 05 3b 47 de d2 ec d4 a4 ca ef d6 14
+    83 3d c8 bb 62 2f 31 7e d0 76 b8 05 7f e8 de 3f
+    84 48 0a d5 e8 3e 4a 61 90 4a 4f 24 8f b3 97 02
+    73 57 e1 d3 0e 46 31 39 81 5c 6f d4 fd 5a c5 b8
+    17 2a 45 23 0e cb 63 18 a0 4f 14 55 d8 4e 5a 8b
+
+    # Public exponent:
+    01 00 01
+
+    # Exponent:
+    6a 7f d8 4f b8 5f ad 07 3b 34 40 6d b7 4f 8d 61
+    a6 ab c1 21 96 a9 61 dd 79 56 5e 9d a6 e5 18 7b
+    ce 2d 98 02 50 f7 35 95 75 35 92 70 d9 15 90 bb
+    0e 42 7c 71 46 0b 55 d5 14 10 b1 91 bc f3 09 fe
+    a1 31 a9 2c 8e 70 27 38 fa 71 9f 1e 00 41 f5 2e
+    40 e9 1f 22 9f 4d 96 a1 e6 f1 72 e1 55 96 b4 51
+    0a 6d ae c2 61 05 f2 be bc 53 31 6b 87 bd f2 13
+    11 66 60 70 e8 df ee 69 d5 2c 71 a9 76 ca ae 79
+    c7 2b 68 d2 85 80 dc 68 6d 9f 51 29 d2 25 f8 2b
+    3d 61 55 13 a8 82 b3 db 91 41 6b 48 ce 08 88 82
+    13 e3 7e eb 9a f8 00 d8 1c ab 32 8c e4 20 68 99
+    03 c0 0c 7b 5f d3 1b 75 50 3a 6d 41 96 84 d6 29
+
+    # Prime 1:
+    f8 eb 97 e9 8d f1 26 64 ee fd b7 61 59 6a 69 dd
+    cd 0e 76 da ec e6 ed 4b f5 a1 b5 0a c0 86 f7 92
+    8a 4d 2f 87 26 a7 7e 51 5b 74 da 41 98 8f 22 0b
+    1c c8 7a a1 fc 81 0c e9 9a 82 f2 d1 ce 82 1e dc
+    ed 79 4c 69 41 f4 2c 7a 1a 0b 8c 4d 28 c7 5e c6
+    0b 65 22 79 f6 15 4a 76 2a ed 16 5d 47 de e3 67
+
+    # Prime 2:
+    ed 4d 71 d0 a6 e2 4b 93 c2 e5 f6 b4 bb e0 5f 5f
+    b0 af a0 42 d2 04 fe 33 78 d3 65 c2 f2 88 b6 a8
+    da d7 ef e4 5d 15 3e ef 40 ca cc 7b 81 ff 93 40
+    02 d1 08 99 4b 94 a5 e4 72 8c d9 c9 63 37 5a e4
+    99 65 bd a5 5c bf 0e fe d8 d6 55 3b 40 27 f2 d8
+    62 08 a6 e6 b4 89 c1 76 12 80 92 d6 29 e4 9d 3d
+
+    # Prime exponent 1:
+    2b b6 8b dd fb 0c 4f 56 c8 55 8b ff af 89 2d 80
+    43 03 78 41 e7 fa 81 cf a6 1a 38 c5 e3 9b 90 1c
+    8e e7 11 22 a5 da 22 27 bd 6c de eb 48 14 52 c1
+    2a d3 d6 1d 5e 4f 77 6a 0a b5 56 59 1b ef e3 e5
+    9e 5a 7f dd b8 34 5e 1f 2f 35 b9 f4 ce e5 7c 32
+    41 4c 08 6a ec 99 3e 93 53 e4 80 d9 ee c6 28 9f
+
+    # Prime exponent 2:
+    4f f8 97 70 9f ad 07 97 46 49 45 78 e7 0f d8 54
+    61 30 ee ab 56 27 c4 9b 08 0f 05 ee 4a d9 f3 e4
+    b7 cb a9 d6 a5 df f1 13 a4 1c 34 09 33 68 33 f1
+    90 81 6d 8a 6b c4 2e 9b ec 56 b7 56 7d 0f 3c 9c
+    69 6d b6 19 b2 45 d9 01 dd 85 6d b7 c8 09 2e 77
+    e9 a1 cc cd 56 ee 4d ba 42 c5 fd b6 1a ec 26 69
+
+    # Coefficient:
+    77 b9 d1 13 7b 50 40 4a 98 27 29 31 6e fa fc 7d
+    fe 66 d3 4e 5a 18 26 00 d5 f3 0a 0a 85 12 05 1c
+    56 0d 08 1d 4d 0a 18 35 ec 3d 25 a6 0f 4e 4d 6a
+    a9 48 b2 bf 3d bb 5b 12 4c bb c3 48 92 55 a3 a9
+    48 37 2f 69 78 49 67 45 f9 43 e1 db 4f 18 38 2c
+    ea a5 05 df c6 57 57 bb 3f 85 7a 58 dc e5 21 56
+
+    # PKCS#1 v1.5 Signature Example 2.17
+
+    # -----------------
+
+    # Message to be signed:
+    06 ad d7 5a b6 89 de 06 77 44 e6 9a 2e bd 4b 90
+    fa 93 83 00 3c d0 5f f5 36 cb f2 94 cd 21 5f 09
+    23 b7 fc 90 04 f0 aa 18 52 71 a1 d0 06 1f d0 e9
+    77 7a d1 ec 0c 71 59 1f 57 8b f7 b8 e5 a1
+
+    # Signature:
+    45 14 21 0e 54 1d 5b ad 7d d6 0a e5 49 b9 43 ac
+    c4 4f 21 39 0d f5 b6 13 18 45 5a 17 61 0d f5 b7
+    4d 84 ae d2 32 f1 7e 59 d9 1d d2 65 99 22 f8 12
+    db d4 96 81 69 03 84 b9 54 e9 ad fb 9b 1a 96 8c
+    0c bf f7 63 ec ee d6 27 50 c5 91 64 b5 e0 80 a8
+    fe f3 d5 5b fe 2a cf ad 27 52 a6 a8 45 9f a1 fa
+    b4 9a d3 78 c6 96 4b 23 ee 97 fd 10 34 61 0c 5c
+    c1 4c 61 e0 eb fb 17 11 f8 ad e9 6f e6 55 7b 38
+
+    # <snip>
+
+    # =============================================
+
+    # <snip>
+    """
+    ).splitlines()
+
+    vectors = tuple(load_pkcs1_vectors(vector_data))
+    expected = (
+        (
+            {
+                "modulus": int(
+                    "495370a1fb18543c16d3631e3163255df62be6eee890d5f25509e4f77"
+                    "8a8ea6fbbbcdf85dff64e0d972003ab3681fbba6dd41fd541829b2e58"
+                    "2de9f2a4a4e0a2d0900bef4753db3cee0ee06c7dfae8b1d53b5953218"
+                    "f9cceea695b08668edeaadced9463b1d790d5ebf27e9115b46cad4d9a"
+                    "2b8efab0561b0810344739ada0733f",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+                "private_exponent": int(
+                    "6c66ffe98980c38fcdeab5159898836165f4b4b817c4f6a8d486ee4ea"
+                    "9130fe9b9092bd136d184f95f504a607eac565846d2fdd6597a8967c7"
+                    "396ef95a6eeebb4578a643966dca4d8ee3de842de63279c618159c1ab"
+                    "54a89437b6a6120e4930afb52a4ba6ced8a4947ac64b30a3497cbe701"
+                    "c2d6266d517219ad0ec6d347dbe9",
+                    16,
+                ),
+                "p": int(
+                    "8dad7f11363faa623d5d6d5e8a319328d82190d7127d2846c439b0ab7"
+                    "2619b0a43a95320e4ec34fc3a9cea876422305bd76c5ba7be9e2f410c"
+                    "8060645a1d29edb",
+                    16,
+                ),
+                "q": int(
+                    "847e732376fc7900f898ea82eb2b0fc418565fdae62f7d9ec4ce2217b"
+                    "97990dd272db157f99f63c0dcbb9fbacdbd4c4dadb6df67756358ca41"
+                    "74825b48f49706d",
+                    16,
+                ),
+                "dmp1": int(
+                    "05c2a83c124b3621a2aa57ea2c3efe035eff4560f33ddebb7adab81fc"
+                    "e69a0c8c2edc16520dda83d59a23be867963ac65f2cc710bbcfb96ee1"
+                    "03deb771d105fd85",
+                    16,
+                ),
+                "dmq1": int(
+                    "04cae8aa0d9faa165c87b682ec140b8ed3b50b24594b7a3b2c220b366"
+                    "9bb819f984f55310a1ae7823651d4a02e99447972595139363434e5e3"
+                    "0a7e7d241551e1b9",
+                    16,
+                ),
+                "iqmp": int(
+                    "07d3e47bf686600b11ac283ce88dbb3f6051e8efd04680e44c171ef53"
+                    "1b80b2b7c39fc766320e2cf15d8d99820e96ff30dc69691839c4b40d7"
+                    "b06e45307dc91f3f",
+                    16,
+                ),
+                "examples": [
+                    {
+                        "message": b"81332f4be62948415ea1d899792eeacf6c6e1db1d"
+                        b"a8be13b5cea41db2fed467092e1ff398914c71425"
+                        b"9775f595f8547f735692a575e6923af78f22c6997"
+                        b"ddb90fb6f72d7bb0dd5744a31decd3dc368584983"
+                        b"6ed34aec596304ad11843c4f88489f209735f5fb7"
+                        b"fdaf7cec8addc5818168f880acbf490d51005b7a8"
+                        b"e84e43e54287977571dd99eea4b161eb2df1f5108"
+                        b"f12a4142a83322edb05a75487a3435c9a78ce53ed"
+                        b"93bc550857d7a9fb",
+                        "salt": b"1d65491d79c864b373009be6f6f2467bac4c78fa",
+                        "signature": b"0262ac254bfa77f3c1aca22c5179f8f040422b3"
+                        b"c5bafd40a8f21cf0fa5a667ccd5993d42dbafb4"
+                        b"09c520e25fce2b1ee1e716577f1efa17f3da280"
+                        b"52f40f0419b23106d7845aaf01125b698e7a4df"
+                        b"e92d3967bb00c4d0d35ba3552ab9a8b3eef07c7"
+                        b"fecdbc5424ac4db1e20cb37d0b2744769940ea9"
+                        b"07e17fbbca673b20522380c5",
+                    },
+                    {
+                        "message": b"e2f96eaf0e05e7ba326ecca0ba7fd2f7c02356f3c"
+                        b"ede9d0faabf4fcc8e60a973e5595fd9ea08",
+                        "salt": b"435c098aa9909eb2377f1248b091b68987ff1838",
+                        "signature": b"2707b9ad5115c58c94e932e8ec0a280f56339e4"
+                        b"4a1b58d4ddcff2f312e5f34dcfe39e89c6a94dc"
+                        b"ee86dbbdae5b79ba4e0819a9e7bfd9d982e7ee6"
+                        b"c86ee68396e8b3a14c9c8f34b178eb741f9d3f1"
+                        b"21109bf5c8172fada2e768f9ea1433032c004a8"
+                        b"aa07eb990000a48dc94c8bac8aabe2b09b1aa46"
+                        b"c0a2aa0e12f63fbba775ba7e",
+                    },
+                ],
+            },
+            {
+                "modulus": int(
+                    "495370a1fb18543c16d3631e3163255df62be6eee890d5f25509e4f77"
+                    "8a8ea6fbbbcdf85dff64e0d972003ab3681fbba6dd41fd541829b2e58"
+                    "2de9f2a4a4e0a2d0900bef4753db3cee0ee06c7dfae8b1d53b5953218"
+                    "f9cceea695b08668edeaadced9463b1d790d5ebf27e9115b46cad4d9a"
+                    "2b8efab0561b0810344739ada0733f",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+            },
+        ),
+        (
+            {
+                "modulus": int(
+                    "e6bd692ac96645790403fdd0f5beb8b9bf92ed10007fc365046419dd0"
+                    "6c05c5b5b2f48ecf989e4ce269109979cbb40b4a0ad24d22483d1ee31"
+                    "5ad4ccb1534268352691c524f6dd8e6c29d224cf246973aec86c5bf6b"
+                    "1401a850d1b9ad1bb8cbcec47b06f0f8c7f45d3fc8f319299c5433ddb"
+                    "c2b3053b47ded2ecd4a4caefd614833dc8bb622f317ed076b8057fe8d"
+                    "e3f84480ad5e83e4a61904a4f248fb397027357e1d30e463139815c6f"
+                    "d4fd5ac5b8172a45230ecb6318a04f1455d84e5a8b",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+                "private_exponent": int(
+                    "6a7fd84fb85fad073b34406db74f8d61a6abc12196a961dd79565e9da"
+                    "6e5187bce2d980250f7359575359270d91590bb0e427c71460b55d514"
+                    "10b191bcf309fea131a92c8e702738fa719f1e0041f52e40e91f229f4"
+                    "d96a1e6f172e15596b4510a6daec26105f2bebc53316b87bdf2131166"
+                    "6070e8dfee69d52c71a976caae79c72b68d28580dc686d9f5129d225f"
+                    "82b3d615513a882b3db91416b48ce08888213e37eeb9af800d81cab32"
+                    "8ce420689903c00c7b5fd31b75503a6d419684d629",
+                    16,
+                ),
+                "p": int(
+                    "f8eb97e98df12664eefdb761596a69ddcd0e76daece6ed4bf5a1b50ac"
+                    "086f7928a4d2f8726a77e515b74da41988f220b1cc87aa1fc810ce99a"
+                    "82f2d1ce821edced794c6941f42c7a1a0b8c4d28c75ec60b652279f61"
+                    "54a762aed165d47dee367",
+                    16,
+                ),
+                "q": int(
+                    "ed4d71d0a6e24b93c2e5f6b4bbe05f5fb0afa042d204fe3378d365c2f"
+                    "288b6a8dad7efe45d153eef40cacc7b81ff934002d108994b94a5e472"
+                    "8cd9c963375ae49965bda55cbf0efed8d6553b4027f2d86208a6e6b48"
+                    "9c176128092d629e49d3d",
+                    16,
+                ),
+                "dmp1": int(
+                    "2bb68bddfb0c4f56c8558bffaf892d8043037841e7fa81cfa61a38c5e"
+                    "39b901c8ee71122a5da2227bd6cdeeb481452c12ad3d61d5e4f776a0a"
+                    "b556591befe3e59e5a7fddb8345e1f2f35b9f4cee57c32414c086aec9"
+                    "93e9353e480d9eec6289f",
+                    16,
+                ),
+                "dmq1": int(
+                    "4ff897709fad079746494578e70fd8546130eeab5627c49b080f05ee4"
+                    "ad9f3e4b7cba9d6a5dff113a41c3409336833f190816d8a6bc42e9bec"
+                    "56b7567d0f3c9c696db619b245d901dd856db7c8092e77e9a1cccd56e"
+                    "e4dba42c5fdb61aec2669",
+                    16,
+                ),
+                "iqmp": int(
+                    "77b9d1137b50404a982729316efafc7dfe66d34e5a182600d5f30a0a8"
+                    "512051c560d081d4d0a1835ec3d25a60f4e4d6aa948b2bf3dbb5b124c"
+                    "bbc3489255a3a948372f6978496745f943e1db4f18382ceaa505dfc65"
+                    "757bb3f857a58dce52156",
+                    16,
+                ),
+                "examples": [
+                    {
+                        "message": b"06add75ab689de067744e69a2ebd4b90fa9383003"
+                        b"cd05ff536cbf294cd215f0923b7fc9004f0aa1852"
+                        b"71a1d0061fd0e9777ad1ec0c71591f578bf7b8e5a"
+                        b"1",
+                        "signature": b"4514210e541d5bad7dd60ae549b943acc44f213"
+                        b"90df5b61318455a17610df5b74d84aed232f17e"
+                        b"59d91dd2659922f812dbd49681690384b954e9a"
+                        b"dfb9b1a968c0cbff763eceed62750c59164b5e0"
+                        b"80a8fef3d55bfe2acfad2752a6a8459fa1fab49"
+                        b"ad378c6964b23ee97fd1034610c5cc14c61e0eb"
+                        b"fb1711f8ade96fe6557b38",
+                    }
+                ],
+            },
+            {
+                "modulus": int(
+                    "e6bd692ac96645790403fdd0f5beb8b9bf92ed10007fc365046419dd0"
+                    "6c05c5b5b2f48ecf989e4ce269109979cbb40b4a0ad24d22483d1ee31"
+                    "5ad4ccb1534268352691c524f6dd8e6c29d224cf246973aec86c5bf6b"
+                    "1401a850d1b9ad1bb8cbcec47b06f0f8c7f45d3fc8f319299c5433ddb"
+                    "c2b3053b47ded2ecd4a4caefd614833dc8bb622f317ed076b8057fe8d"
+                    "e3f84480ad5e83e4a61904a4f248fb397027357e1d30e463139815c6f"
+                    "d4fd5ac5b8172a45230ecb6318a04f1455d84e5a8b",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+            },
+        ),
+    )
+    assert vectors == expected
+
+
+def test_load_pkcs1_oaep_vectors():
+    vector_data = textwrap.dedent(
+        """
+    Test vectors for RSA-OAEP
+    =========================
+
+    This file contains test vectors for the RSA-OAEP encryption
+
+    Key lengths:
+
+    Key  1: 1024 bits
+    # <snip>
+    ===========================================================================
+    # Example 1: A 1024-bit RSA key pair
+    # -----------------------------------
+
+
+    # Public key
+    # ----------
+
+    # Modulus:
+    a8 b3 b2 84 af 8e b5 0b 38 70 34 a8 60 f1 46 c4
+    91 9f 31 87 63 cd 6c 55 98 c8 ae 48 11 a1 e0 ab
+    c4 c7 e0 b0 82 d6 93 a5 e7 fc ed 67 5c f4 66 85
+    12 77 2c 0c bc 64 a7 42 c6 c6 30 f5 33 c8 cc 72
+    f6 2a e8 33 c4 0b f2 58 42 e9 84 bb 78 bd bf 97
+    c0 10 7d 55 bd b6 62 f5 c4 e0 fa b9 84 5c b5 14
+    8e f7 39 2d d3 aa ff 93 ae 1e 6b 66 7b b3 d4 24
+    76 16 d4 f5 ba 10 d4 cf d2 26 de 88 d3 9f 16 fb
+
+    # Exponent:
+    01 00 01
+
+    # Private key
+    # -----------
+
+    # Modulus:
+    a8 b3 b2 84 af 8e b5 0b 38 70 34 a8 60 f1 46 c4
+    91 9f 31 87 63 cd 6c 55 98 c8 ae 48 11 a1 e0 ab
+    c4 c7 e0 b0 82 d6 93 a5 e7 fc ed 67 5c f4 66 85
+    12 77 2c 0c bc 64 a7 42 c6 c6 30 f5 33 c8 cc 72
+    f6 2a e8 33 c4 0b f2 58 42 e9 84 bb 78 bd bf 97
+    c0 10 7d 55 bd b6 62 f5 c4 e0 fa b9 84 5c b5 14
+    8e f7 39 2d d3 aa ff 93 ae 1e 6b 66 7b b3 d4 24
+    76 16 d4 f5 ba 10 d4 cf d2 26 de 88 d3 9f 16 fb
+
+    # Public exponent:
+    01 00 01
+
+    # Exponent:
+    53 33 9c fd b7 9f c8 46 6a 65 5c 73 16 ac a8 5c
+    55 fd 8f 6d d8 98 fd af 11 95 17 ef 4f 52 e8 fd
+    8e 25 8d f9 3f ee 18 0f a0 e4 ab 29 69 3c d8 3b
+    15 2a 55 3d 4a c4 d1 81 2b 8b 9f a5 af 0e 7f 55
+    fe 73 04 df 41 57 09 26 f3 31 1f 15 c4 d6 5a 73
+    2c 48 31 16 ee 3d 3d 2d 0a f3 54 9a d9 bf 7c bf
+    b7 8a d8 84 f8 4d 5b eb 04 72 4d c7 36 9b 31 de
+    f3 7d 0c f5 39 e9 cf cd d3 de 65 37 29 ea d5 d1
+
+    # Prime 1:
+    d3 27 37 e7 26 7f fe 13 41 b2 d5 c0 d1 50 a8 1b
+    58 6f b3 13 2b ed 2f 8d 52 62 86 4a 9c b9 f3 0a
+    f3 8b e4 48 59 8d 41 3a 17 2e fb 80 2c 21 ac f1
+    c1 1c 52 0c 2f 26 a4 71 dc ad 21 2e ac 7c a3 9d
+
+    # Prime 2:
+    cc 88 53 d1 d5 4d a6 30 fa c0 04 f4 71 f2 81 c7
+    b8 98 2d 82 24 a4 90 ed be b3 3d 3e 3d 5c c9 3c
+    47 65 70 3d 1d d7 91 64 2f 1f 11 6a 0d d8 52 be
+    24 19 b2 af 72 bf e9 a0 30 e8 60 b0 28 8b 5d 77
+
+    # Prime exponent 1:
+    0e 12 bf 17 18 e9 ce f5 59 9b a1 c3 88 2f e8 04
+    6a 90 87 4e ef ce 8f 2c cc 20 e4 f2 74 1f b0 a3
+    3a 38 48 ae c9 c9 30 5f be cb d2 d7 68 19 96 7d
+    46 71 ac c6 43 1e 40 37 96 8d b3 78 78 e6 95 c1
+
+    # Prime exponent 2:
+    95 29 7b 0f 95 a2 fa 67 d0 07 07 d6 09 df d4 fc
+    05 c8 9d af c2 ef 6d 6e a5 5b ec 77 1e a3 33 73
+    4d 92 51 e7 90 82 ec da 86 6e fe f1 3c 45 9e 1a
+    63 13 86 b7 e3 54 c8 99 f5 f1 12 ca 85 d7 15 83
+
+    # Coefficient:
+    4f 45 6c 50 24 93 bd c0 ed 2a b7 56 a3 a6 ed 4d
+    67 35 2a 69 7d 42 16 e9 32 12 b1 27 a6 3d 54 11
+    ce 6f a9 8d 5d be fd 73 26 3e 37 28 14 27 43 81
+    81 66 ed 7d d6 36 87 dd 2a 8c a1 d2 f4 fb d8 e1
+
+    # RSA-OAEP encryption of 6 random messages with random seeds
+    # -----------------------------------------------------------
+
+    # OAEP Example 1.1
+    # ------------------
+
+    # Message:
+    66 28 19 4e 12 07 3d b0 3b a9 4c da 9e f9 53 23
+    97 d5 0d ba 79 b9 87 00 4a fe fe 34
+
+    # Seed:
+    18 b7 76 ea 21 06 9d 69 77 6a 33 e9 6b ad 48 e1
+    dd a0 a5 ef
+
+    # Encryption:
+    35 4f e6 7b 4a 12 6d 5d 35 fe 36 c7 77 79 1a 3f
+    7b a1 3d ef 48 4e 2d 39 08 af f7 22 fa d4 68 fb
+    21 69 6d e9 5d 0b e9 11 c2 d3 17 4f 8a fc c2 01
+    03 5f 7b 6d 8e 69 40 2d e5 45 16 18 c2 1a 53 5f
+    a9 d7 bf c5 b8 dd 9f c2 43 f8 cf 92 7d b3 13 22
+    d6 e8 81 ea a9 1a 99 61 70 e6 57 a0 5a 26 64 26
+    d9 8c 88 00 3f 84 77 c1 22 70 94 a0 d9 fa 1e 8c
+    40 24 30 9c e1 ec cc b5 21 00 35 d4 7a c7 2e 8a
+
+    # OAEP Example 1.2
+    # ------------------
+
+    # Message:
+    75 0c 40 47 f5 47 e8 e4 14 11 85 65 23 29 8a c9
+    ba e2 45 ef af 13 97 fb e5 6f 9d d5
+
+    # Seed:
+    0c c7 42 ce 4a 9b 7f 32 f9 51 bc b2 51 ef d9 25
+    fe 4f e3 5f
+
+    # Encryption:
+    64 0d b1 ac c5 8e 05 68 fe 54 07 e5 f9 b7 01 df
+    f8 c3 c9 1e 71 6c 53 6f c7 fc ec 6c b5 b7 1c 11
+    65 98 8d 4a 27 9e 15 77 d7 30 fc 7a 29 93 2e 3f
+    00 c8 15 15 23 6d 8d 8e 31 01 7a 7a 09 df 43 52
+    d9 04 cd eb 79 aa 58 3a dc c3 1e a6 98 a4 c0 52
+    83 da ba 90 89 be 54 91 f6 7c 1a 4e e4 8d c7 4b
+    bb e6 64 3a ef 84 66 79 b4 cb 39 5a 35 2d 5e d1
+    15 91 2d f6 96 ff e0 70 29 32 94 6d 71 49 2b 44
+
+    # =============================================
+    """
+    ).splitlines()
+
+    vectors = load_pkcs1_vectors(vector_data)
+    expected = [
+        (
+            {
+                "modulus": int(
+                    "a8b3b284af8eb50b387034a860f146c4919f318763cd6c5598c8ae481"
+                    "1a1e0abc4c7e0b082d693a5e7fced675cf4668512772c0cbc64a742c6"
+                    "c630f533c8cc72f62ae833c40bf25842e984bb78bdbf97c0107d55bdb"
+                    "662f5c4e0fab9845cb5148ef7392dd3aaff93ae1e6b667bb3d4247616"
+                    "d4f5ba10d4cfd226de88d39f16fb",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+                "private_exponent": int(
+                    "53339cfdb79fc8466a655c7316aca85c55fd8f6dd898fdaf119517ef4"
+                    "f52e8fd8e258df93fee180fa0e4ab29693cd83b152a553d4ac4d1812b"
+                    "8b9fa5af0e7f55fe7304df41570926f3311f15c4d65a732c483116ee3"
+                    "d3d2d0af3549ad9bf7cbfb78ad884f84d5beb04724dc7369b31def37d"
+                    "0cf539e9cfcdd3de653729ead5d1",
+                    16,
+                ),
+                "p": int(
+                    "d32737e7267ffe1341b2d5c0d150a81b586fb3132bed2f8d5262864a9"
+                    "cb9f30af38be448598d413a172efb802c21acf1c11c520c2f26a471dc"
+                    "ad212eac7ca39d",
+                    16,
+                ),
+                "q": int(
+                    "cc8853d1d54da630fac004f471f281c7b8982d8224a490edbeb33d3e3"
+                    "d5cc93c4765703d1dd791642f1f116a0dd852be2419b2af72bfe9a030"
+                    "e860b0288b5d77",
+                    16,
+                ),
+                "dmp1": int(
+                    "0e12bf1718e9cef5599ba1c3882fe8046a90874eefce8f2ccc20e4f27"
+                    "41fb0a33a3848aec9c9305fbecbd2d76819967d4671acc6431e403796"
+                    "8db37878e695c1",
+                    16,
+                ),
+                "dmq1": int(
+                    "95297b0f95a2fa67d00707d609dfd4fc05c89dafc2ef6d6ea55bec771"
+                    "ea333734d9251e79082ecda866efef13c459e1a631386b7e354c899f5"
+                    "f112ca85d71583",
+                    16,
+                ),
+                "iqmp": int(
+                    "4f456c502493bdc0ed2ab756a3a6ed4d67352a697d4216e93212b127a"
+                    "63d5411ce6fa98d5dbefd73263e3728142743818166ed7dd63687dd2a"
+                    "8ca1d2f4fbd8e1",
+                    16,
+                ),
+                "examples": [
+                    {
+                        "message": b"6628194e12073db03ba94cda9ef9532397d50dba7"
+                        b"9b987004afefe34",
+                        "seed": b"18b776ea21069d69776a33e96bad48e1dda0a5ef",
+                        "encryption": b"354fe67b4a126d5d35fe36c777791a3f7ba13d"
+                        b"ef484e2d3908aff722fad468fb21696de95d0b"
+                        b"e911c2d3174f8afcc201035f7b6d8e69402de5"
+                        b"451618c21a535fa9d7bfc5b8dd9fc243f8cf92"
+                        b"7db31322d6e881eaa91a996170e657a05a2664"
+                        b"26d98c88003f8477c1227094a0d9fa1e8c4024"
+                        b"309ce1ecccb5210035d47ac72e8a",
+                    },
+                    {
+                        "message": b"750c4047f547e8e41411856523298ac9bae245efa"
+                        b"f1397fbe56f9dd5",
+                        "seed": b"0cc742ce4a9b7f32f951bcb251efd925fe4fe35f",
+                        "encryption": b"640db1acc58e0568fe5407e5f9b701dff8c3c9"
+                        b"1e716c536fc7fcec6cb5b71c1165988d4a279e"
+                        b"1577d730fc7a29932e3f00c81515236d8d8e31"
+                        b"017a7a09df4352d904cdeb79aa583adcc31ea6"
+                        b"98a4c05283daba9089be5491f67c1a4ee48dc7"
+                        b"4bbbe6643aef846679b4cb395a352d5ed11591"
+                        b"2df696ffe0702932946d71492b44",
+                    },
+                ],
+            },
+            {
+                "modulus": int(
+                    "a8b3b284af8eb50b387034a860f146c4919f318763cd6c5598c8ae481"
+                    "1a1e0abc4c7e0b082d693a5e7fced675cf4668512772c0cbc64a742c6"
+                    "c630f533c8cc72f62ae833c40bf25842e984bb78bdbf97c0107d55bdb"
+                    "662f5c4e0fab9845cb5148ef7392dd3aaff93ae1e6b667bb3d4247616"
+                    "d4f5ba10d4cfd226de88d39f16fb",
+                    16,
+                ),
+                "public_exponent": int("10001", 16),
+            },
+        )
+    ]
+    assert vectors == expected
+
+
+def test_load_hotp_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # HOTP Test Vectors
+    # RFC 4226 Appendix D
+
+    COUNT = 0
+    COUNTER = 0
+    INTERMEDIATE = cc93cf18508d94934c64b65d8ba7667fb7cde4b0
+    TRUNCATED = 4c93cf18
+    HOTP = 755224
+    SECRET = 12345678901234567890
+
+    COUNT = 1
+    COUNTER = 1
+    INTERMEDIATE = 75a48a19d4cbe100644e8ac1397eea747a2d33ab
+    TRUNCATED = 41397eea
+    HOTP = 287082
+    SECRET = 12345678901234567890
+
+
+    COUNT = 2
+    COUNTER = 2
+    INTERMEDIATE = 0bacb7fa082fef30782211938bc1c5e70416ff44
+    TRUNCATED = 82fef30
+    HOTP = 359152
+    SECRET = 12345678901234567890
+
+
+    COUNT = 3
+    COUNTER = 3
+    INTERMEDIATE = 66c28227d03a2d5529262ff016a1e6ef76557ece
+    TRUNCATED = 66ef7655
+    HOTP = 969429
+    SECRET = 12345678901234567890
+    """
+    ).splitlines()
+
+    assert load_nist_vectors(vector_data) == [
+        {
+            "counter": b"0",
+            "intermediate": b"cc93cf18508d94934c64b65d8ba7667fb7cde4b0",
+            "truncated": b"4c93cf18",
+            "hotp": b"755224",
+            "secret": b"12345678901234567890",
+        },
+        {
+            "counter": b"1",
+            "intermediate": b"75a48a19d4cbe100644e8ac1397eea747a2d33ab",
+            "truncated": b"41397eea",
+            "hotp": b"287082",
+            "secret": b"12345678901234567890",
+        },
+        {
+            "counter": b"2",
+            "intermediate": b"0bacb7fa082fef30782211938bc1c5e70416ff44",
+            "truncated": b"82fef30",
+            "hotp": b"359152",
+            "secret": b"12345678901234567890",
+        },
+        {
+            "counter": b"3",
+            "intermediate": b"66c28227d03a2d5529262ff016a1e6ef76557ece",
+            "truncated": b"66ef7655",
+            "hotp": b"969429",
+            "secret": b"12345678901234567890",
+        },
+    ]
+
+
+def test_load_totp_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # TOTP Test Vectors
+    # RFC 6238 Appendix B
+
+    COUNT = 0
+    TIME = 59
+    TOTP = 94287082
+    MODE = SHA1
+    SECRET = 12345678901234567890
+
+    COUNT = 1
+    TIME = 59
+    TOTP = 46119246
+    MODE = SHA256
+    SECRET = 12345678901234567890
+
+    COUNT = 2
+    TIME = 59
+    TOTP = 90693936
+    MODE = SHA512
+    SECRET = 12345678901234567890
+    """
+    ).splitlines()
+
+    assert load_nist_vectors(vector_data) == [
+        {
+            "time": b"59",
+            "totp": b"94287082",
+            "mode": b"SHA1",
+            "secret": b"12345678901234567890",
+        },
+        {
+            "time": b"59",
+            "totp": b"46119246",
+            "mode": b"SHA256",
+            "secret": b"12345678901234567890",
+        },
+        {
+            "time": b"59",
+            "totp": b"90693936",
+            "mode": b"SHA512",
+            "secret": b"12345678901234567890",
+        },
+    ]
+
+
+def test_load_rsa_nist_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # CAVS 11.4
+    # "SigGen PKCS#1 RSASSA-PSS" information
+    # Mod sizes selected: 1024 1536 2048 3072 4096
+    # SHA Algorithm selected:SHA1 SHA224 SHA256 SHA384 SHA512
+    # Salt len: 20
+
+    [mod = 1024]
+
+    n = bcb47b2e0dafcba81ff2a2b5cb115ca7e757184c9d72bcdcda707a146b3b4e29989d
+
+    e = 00000000000000000000000000000000000000000000000000000000000000000010001
+    SHAAlg = SHA1
+    Msg = 1248f62a4389f42f7b4bb131053d6c88a994db2075b912ccbe3ea7dc611714f14e
+    S = 682cf53c1145d22a50caa9eb1a9ba70670c5915e0fdfde6457a765de2a8fe12de97
+
+    SHAAlg = SHA384
+    Msg = e511903c2f1bfba245467295ac95413ac4746c984c3750a728c388aa628b0ebf
+    S = 9c748702bbcc1f9468864cd360c8c39d007b2d8aaee833606c70f7593cf0d1519
+
+    [mod = 1024]
+
+    n = 1234567890
+
+    e = 0010001
+
+    SHAAlg = SHA512
+    Msg = 3456781293fab829
+    S = deadbeef0000
+    """
+    ).splitlines()
+
+    vectors = load_rsa_nist_vectors(vector_data)
+    assert vectors == [
+        {
+            "modulus": int(
+                "bcb47b2e0dafcba81ff2a2b5cb115ca7e757184c9d72bcdcda"
+                "707a146b3b4e29989d",
+                16,
+            ),
+            "public_exponent": 65537,
+            "algorithm": "SHA1",
+            "salt_length": 20,
+            "msg": b"1248f62a4389f42f7b4bb131053d6c88a994db2075b912ccbe3ea7dc6"
+            b"11714f14e",
+            "s": b"682cf53c1145d22a50caa9eb1a9ba70670c5915e0fdfde6457a765de2a8"
+            b"fe12de97",
+            "fail": False,
+        },
+        {
+            "modulus": int(
+                "bcb47b2e0dafcba81ff2a2b5cb115ca7e757184c9d72bcdcda"
+                "707a146b3b4e29989d",
+                16,
+            ),
+            "public_exponent": 65537,
+            "algorithm": "SHA384",
+            "salt_length": 20,
+            "msg": b"e511903c2f1bfba245467295ac95413ac4746c984c3750a728c388aa6"
+            b"28b0ebf",
+            "s": b"9c748702bbcc1f9468864cd360c8c39d007b2d8aaee833606c70f7593cf"
+            b"0d1519",
+            "fail": False,
+        },
+        {
+            "modulus": 78187493520,
+            "public_exponent": 65537,
+            "algorithm": "SHA512",
+            "salt_length": 20,
+            "msg": b"3456781293fab829",
+            "s": b"deadbeef0000",
+            "fail": False,
+        },
+    ]
+
+
+def test_load_rsa_nist_pkcs1v15_verification_vectors():
+    vector_data = textwrap.dedent(
+        """
+    # CAVS 11.0
+    # "SigVer PKCS#1 Ver 1.5" information
+    # Mod sizes selected: 1024 1536 2048 3072 4096
+    # SHA Algorithm selected:SHA1 SHA224 SHA256 SHA384 SHA512
+    # Generated on Wed Mar 02 00:13:02 2011
+
+    [mod = 1024]
+
+    n = be499b5e7f06c83fa0293e31465c8eb6b58af920bae52a7b5b9bfeb7aa72db126411
+
+    p = e7a80c5d211c06acb900939495f26d365fc2b4825b75e356f89003eaa5931e6be5c3
+    q = d248aa248000f720258742da67b711940c8f76e1ecd52b67a6ffe1e49354d66ff84f
+
+    SHAAlg = SHA1
+    e = 00000000000000000000000000000000000000000000000000000000000000000011
+    d = 0d0f17362bdad181db4e1fe03e8de1a3208989914e14bf269558826bfa20faf4b68d
+    Msg = 6b9cfac0ba1c7890b13e381ce752195cc1375237db2afcf6a9dcd1f95ec733a80c
+    S = 562d87b5781c01d166fef3972669a0495c145b898a17df4743fbefb0a1582bd6ba9d
+    SaltVal = 11223344555432167890
+    Result = F (3 - Signature changed )
+
+    SHAAlg = SHA1
+    e = 0000000000003
+    d = bfa20faf4b68d
+    Msg = 2a67c70ff14f9b34ddb42e6f89d5971057a0da980fc9ae70c81a84da0c0ac42737
+    S = 2b91c6ae2b3c46ff18d5b7abe239634cb752d0acb53eea0ccd8ea8483036a50e8faf
+    SaltVal = 11223344555432167890
+    Result = P
+    """
+    ).splitlines()
+
+    vectors = load_rsa_nist_vectors(vector_data)
+    assert vectors == [
+        {
+            "modulus": int(
+                "be499b5e7f06c83fa0293e31465c8eb6b58af920bae52a7b5b"
+                "9bfeb7aa72db126411",
+                16,
+            ),
+            "p": int(
+                "e7a80c5d211c06acb900939495f26d365fc2b4825b75e356f89003ea"
+                "a5931e6be5c3",
+                16,
+            ),
+            "q": int(
+                "d248aa248000f720258742da67b711940c8f76e1ecd52b67a6ffe1e4"
+                "9354d66ff84f",
+                16,
+            ),
+            "public_exponent": 17,
+            "algorithm": "SHA1",
+            "private_exponent": int(
+                "0d0f17362bdad181db4e1fe03e8de1a3208989914"
+                "e14bf269558826bfa20faf4b68d",
+                16,
+            ),
+            "msg": b"6b9cfac0ba1c7890b13e381ce752195cc1375237db2

@@ -1,0 +1,219 @@
+
+
+# FILE: code-of-conduct.md
+# Kubernetes Community Code of Conduct
+
+Please refer to our [Kubernetes Community Code of Conduct](https://git.k8s.io/community/code-of-conduct.md)
+
+
+# FILE: SUPPORT.md
+## Support for deploying and using Kubernetes
+
+Welcome to Kubernetes! We use GitHub for tracking bugs and feature requests.
+This isn't the right place to get support for using Kubernetes, but the following
+resources are available below, thanks for understanding.
+
+### Stack Overflow
+
+The Kubernetes Community is active on Stack Overflow, you can post your questions there:
+
+* [Kubernetes on Stack Overflow](https://stackoverflow.com/questions/tagged/kubernetes)
+
+  * Here are some tips for [about how to ask good questions](https://stackoverflow.com/help/how-to-ask).
+  * Don't forget to check to see [what's on topic](https://stackoverflow.com/help/on-topic).
+
+### Documentation
+
+* [User Documentation](https://kubernetes.io/docs/)
+* [Troubleshooting Guide](https://kubernetes.io/docs/tasks/debug/)
+
+### Real-time Chat
+
+* [Slack](https://kubernetes.slack.com) ([registration](https://slack.k8s.io)):
+The `#kubernetes-users` and `#kubernetes-novice` channels are usual places where
+people offer support.
+
+### Forum
+
+* [Kubernetes Official Forum](https://discuss.kubernetes.io)
+
+
+# FILE: README.md
+# Kubernetes (K8s)
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/569/badge)](https://bestpractices.coreinfrastructure.org/projects/569) [![Go Report Card](https://goreportcard.com/badge/github.com/kubernetes/kubernetes)](https://goreportcard.com/report/github.com/kubernetes/kubernetes) ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/kubernetes/kubernetes?sort=semver)
+
+<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png" width="100">
+
+----
+
+Kubernetes, also known as K8s, is an open source system for managing [containerized applications]
+across multiple hosts. It provides basic mechanisms for the deployment, maintenance,
+and scaling of applications.
+
+Kubernetes builds upon a decade and a half of experience at Google running
+production workloads at scale using a system called [Borg],
+combined with best-of-breed ideas and practices from the community.
+
+Kubernetes is hosted by the Cloud Native Computing Foundation ([CNCF]).
+If your company wants to help shape the evolution of
+technologies that are container-packaged, dynamically scheduled,
+and microservices-oriented, consider joining the CNCF.
+For details about who's involved and how Kubernetes plays a role,
+read the CNCF [announcement].
+
+----
+
+## To start using K8s
+
+See our documentation on [kubernetes.io].
+
+Take a free course on [Scalable Microservices with Kubernetes].
+
+To use Kubernetes code as a library in other applications, see the [list of published components](https://git.k8s.io/kubernetes/staging/README.md).
+Use of the `k8s.io/kubernetes` module or `k8s.io/kubernetes/...` packages as libraries is not supported.
+
+## To start developing K8s
+
+The [community repository] hosts all information about
+building Kubernetes from source, how to contribute code
+and documentation, who to contact about what, etc.
+
+If you want to build Kubernetes right away there are two options:
+
+##### You have a working [Go environment].
+
+```
+git clone https://github.com/kubernetes/kubernetes
+cd kubernetes
+make
+```
+
+##### You have a working [Docker environment].
+
+```
+git clone https://github.com/kubernetes/kubernetes
+cd kubernetes
+make quick-release
+```
+
+For the full story, head over to the [developer's documentation].
+
+## Support
+
+If you need support, start with the [troubleshooting guide],
+and work your way through the process that we've outlined.
+
+That said, if you have questions, reach out to us
+[one way or another][communication].
+
+[announcement]: https://cncf.io/news/announcement/2015/07/new-cloud-native-computing-foundation-drive-alignment-among-container
+[Borg]: https://research.google.com/pubs/pub43438.html?authuser=1
+[CNCF]: https://www.cncf.io/about
+[communication]: https://git.k8s.io/community/communication
+[community repository]: https://git.k8s.io/community
+[containerized applications]: https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/
+[developer's documentation]: https://git.k8s.io/community/contributors/devel#readme
+[Docker environment]: https://docs.docker.com/engine
+[Go environment]: https://go.dev/doc/install
+[kubernetes.io]: https://kubernetes.io
+[Scalable Microservices with Kubernetes]: https://www.udacity.com/course/scalable-microservices-with-kubernetes--ud615
+[troubleshooting guide]: https://kubernetes.io/docs/tasks/debug/
+
+## Community Meetings 
+
+The [Calendar](https://www.kubernetes.dev/resources/calendar/) has the list of all the meetings in the Kubernetes community in a single location.
+
+## Adopters
+
+The [User Case Studies](https://kubernetes.io/case-studies/) website has real-world use cases of organizations across industries that are deploying/migrating to Kubernetes.
+
+## Governance 
+
+Kubernetes project is governed by a framework of principles, values, policies and processes to help our community and constituents towards our shared goals.
+
+The [Kubernetes Community](https://github.com/kubernetes/community/blob/master/governance.md) is the launching point for learning about how we organize ourselves.
+
+The [Kubernetes Steering community repo](https://github.com/kubernetes/steering) is used by the Kubernetes Steering Committee, which oversees governance of the Kubernetes project.
+
+## Roadmap 
+
+The [Kubernetes Enhancements repo](https://github.com/kubernetes/enhancements) provides information about Kubernetes releases, as well as feature tracking and backlogs.
+
+
+# FILE: Makefile
+# Copyright 2016 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+DBG_MAKEFILE ?=
+ifeq ($(DBG_MAKEFILE),1)
+    $(warning ***** starting Makefile for goal(s) "$(MAKECMDGOALS)")
+    $(warning ***** $(shell date))
+else
+    # If we're not debugging the Makefile, don't echo recipes.
+    MAKEFLAGS += -s
+endif
+
+
+# Old-skool build tools.
+#
+# Commonly used targets (see each target for more information):
+#   all: Build code.
+#   test: Run tests.
+#   clean: Clean up.
+
+# It's necessary to set this because some environments don't link sh -> bash.
+SHELL := /usr/bin/env bash -o errexit -o pipefail -o nounset
+BASH_ENV := ./hack/lib/logging.sh
+
+# Define optional user-input variables so `make --warn-undefined-variables` works.
+# Usage is described below with each target that respects these
+PRINT_HELP ?=
+WHAT ?=
+TESTS ?=
+BRANCH ?=
+
+# We don't need make's built-in rules.
+MAKEFLAGS += --no-builtin-rules
+# Be pedantic about undefined variables.
+MAKEFLAGS += --warn-undefined-variables
+.SUFFIXES:
+
+# Constants used throughout.
+.EXPORT_ALL_VARIABLES:
+OUT_DIR ?= _output
+BIN_DIR := $(OUT_DIR)/bin
+
+ifdef KUBE_GOFLAGS
+$(info KUBE_GOFLAGS is now deprecated. Please use GOFLAGS instead.)
+ifndef GOFLAGS
+GOFLAGS := $(KUBE_GOFLAGS)
+unexport KUBE_GOFLAGS
+else
+$(error Both KUBE_GOFLAGS and GOFLAGS are set. Please use just GOFLAGS)
+endif
+endif
+
+# This controls the verbosity of the build.  Higher numbers mean more output.
+KUBE_VERBOSE ?= 1
+
+define ALL_HELP_INFO
+# Build code.
+#
+# Args:
+#   WHAT: Directory or Go package names to build.  If any of these directories
+#   has a 'main' package, the build will produce executable files under
+#   $(OUT_DIR)/bin.  If not specified, "everything" will be built.
+#     "vendor/<module>/<path>" is accepted as alias for "<module>/<path>".
+#     "ginkgo"

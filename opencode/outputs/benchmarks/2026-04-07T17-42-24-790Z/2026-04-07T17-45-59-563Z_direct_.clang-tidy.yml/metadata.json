@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-04-07T17:45:59.563Z",
+  "topk": 3,
+  "controls_file": null,
+  "vector_backend": null,
+  "vector_collection": null,
+  "vector_namespace": null,
+  "session_id": "ses_296f31156ffeLMdA5GbNV1vV3Y",
+  "files": 1,
+  "clipped": false,
+  "provider_id": "openai",
+  "model_id": "gpt-5.4-mini",
+  "agent": "build",
+  "mode": "direct",
+  "input_file": "/home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml",
+  "prompt": "You are a security audit assistant for research prototyping.\nGenerate a concise, structured security audit report.\nDo not fabricate evidence not present in the provided input.\nIf evidence is missing, explicitly write \"insufficient evidence\".\nDo not cite external controls unless explicitly grounded in the provided file evidence.\nRequired markdown format:\n## Executive Summary\n## Findings\n### Finding 1\n- Finding ID: <short-id>\n- Observed Issue: <text or insufficient evidence>\n- Severity: <low|medium|high|critical>\n- Evidence: <specific quoted/config evidence or insufficient evidence>\n- Related Control / Principle: <control id/title or insufficient evidence>\n- Recommendation: <specific action>\n## Final Risk Overview\nTarget file path: /home/aggerio/temp/opencode/samples/bench50/curl/.clang-tidy.yml\n\nAdditional user intent:\nAim for up to 10 distinct security findings when the evidence supports that many; if fewer issues are well-supported, report fewer. Do not pad with speculative items.\nTarget file content:\n```\n# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.\n#\n# SPDX-License-Identifier: curl\n---\n# https://clang.llvm.org/extra/clang-tidy/\n\n# https://clang.llvm.org/extra/clang-tidy/checks/list.html\nChecks:\n  - clang-analyzer-*\n  - -clang-analyzer-optin.performance.Padding\n  - -clang-analyzer-security.ArrayBound  # due to false positives with clang-tidy v21.1.0\n  - -clang-analyzer-security.insecureAPI.bzero  # for FD_ZERO() (seen on macOS)\n  - -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling\n  - -clang-diagnostic-nullability-extension\n  - bugprone-assert-side-effect\n  - bugprone-chained-comparison\n  - bugprone-dynamic-static-initializers\n  - bugprone-macro-parentheses\n  - bugprone-macro-repeated-side-effects\n  - bugprone-misplaced-operator-in-strlen-in-alloc\n  - bugprone-misplaced-pointer-arithmetic-in-alloc\n  - bugprone-not-null-terminated-result\n  - bugprone-posix-return\n  - bugprone-redundant-branch-condition\n  - bugprone-signed-char-misuse\n  - bugprone-suspicious-enum-usage\n  - bugprone-suspicious-memset-usage\n  - bugprone-suspicious-missing-comma\n  - bugprone-suspicious-realloc-usage\n  - bugprone-suspicious-semicolon\n  - misc-const-correctness\n  - misc-header-include-cycle\n  - portability-*\n  - readability-duplicate-include\n  - readability-math-missing-parentheses\n  - readability-named-parameter\n  - readability-redundant-control-flow\n  - readability-redundant-declaration\n  - readability-redundant-function-ptr-dereference\n  - readability-redundant-parentheses\n  - readability-redundant-preprocessor\n  - readability-suspicious-call-argument\n  - readability-uppercase-literal-suffix\n\nCheckOptions:\n  misc-header-include-cycle.IgnoredFilesList: 'curl/curl.h'\n\nHeaderFilterRegex: '.*'  # Default in v22.1.0+\n\n```"
+}
