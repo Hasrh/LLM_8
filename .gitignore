@@ -1,0 +1,33 @@
+# Nested upstream clone — use your own `git clone` of OpenCode if needed
+/opencode/
+
+# Dependencies & build
+**/node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runs & env
+analysis-runs/
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Large / generated (optional archives)
+*.zip
+
+# Logs
+*.log
+npm-debug.log*

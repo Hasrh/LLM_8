@@ -1,0 +1,72 @@
+[
+  {
+    "suite": "rag",
+    "target": "/samples/bench50/kubernetes",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks_rag/2026-04-07/rag_kubernetes",
+    "score": 0.6,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/samples/bench50/grafana",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks_rag/2026-04-07/rag_grafana",
+    "score": 0.8,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "rag",
+    "target": "/samples/bench50/rabbitmq-server",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks_rag/2026-04-07/rag_rabbitmq-server",
+    "score": 1.0,
+    "passed": true,
+    "provider_id": "opencode",
+    "model_id": "qwen3.6-plus-free"
+  },
+  {
+    "suite": "baseline",
+    "target": "/samples/bench50/kubernetes",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks/2026-04-07/baseline_kubernetes",
+    "score": 0.55,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen2.5-coder"
+  },
+  {
+    "suite": "baseline",
+    "target": "/samples/bench50/nginx",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks/2026-04-07/baseline_nginx",
+    "score": 0.7,
+    "passed": false,
+    "provider_id": "opencode",
+    "model_id": "qwen2.5-coder"
+  },
+  {
+    "suite": "gpt",
+    "target": "/samples/bench50/nginx",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks_gpt/2026-04-07/gpt_nginx",
+    "score": 0.9,
+    "passed": true,
+    "provider_id": "openrouter",
+    "model_id": "openai/gpt-5.4-mini"
+  },
+  {
+    "suite": "gpt",
+    "target": "/samples/bench50/redis",
+    "ok": true,
+    "run_dir": "/outputs/benchmarks_gpt/2026-04-07/gpt_redis",
+    "score": 0.85,
+    "passed": true,
+    "provider_id": "openrouter",
+    "model_id": "openai/gpt-5.4-mini"
+  }
+]
