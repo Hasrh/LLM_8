@@ -256,6 +256,53 @@
   gap: 12px;
 }
 
+.compare-progress-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.compare-progress-card h3 {
+  margin: 0 0 4px;
+}
+
+.chip-status {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.chip-status-queued {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.chip-status-running {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.chip-status-completed {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.chip-status-failed {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.compare-live-log {
+  margin-top: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .compare-grid {
   display: grid;
   gap: 12px;

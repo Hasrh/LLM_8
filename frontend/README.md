@@ -63,9 +63,28 @@ The UI calls `POST /api/analyze-compare` and the local API runs:
 - `opencode analyze --mode baseline`
 - `opencode analyze --mode rag`
 
+## Live streamed comparison progress
+
+The Analyze button now uses `POST /api/analyze-compare/stream` and receives live Server-Sent Events (SSE) while all three runs execute in parallel.
+
+Events emitted by the API:
+- `job.started`
+- `run.started`
+- `run.stdout`
+- `run.stderr`
+- `run.completed`
+- `job.completed`
+- `job.failed`
+
+The frontend updates lane cards in real time for:
+- GPT Direct (`mode=direct`)
+- OpenCode Baseline (`mode=baseline`)
+- OpenCode + RAG (`mode=rag`)
+
 ### Requirements
 
 - `opencode` command available in PATH (or set `OPENCODE_BIN`)
 - For GPT direct mode, provider/model access configured in your OpenCode setup
 - For RAG mode, a valid controls corpus JSON path
 - If using vector DB in RAG, matching backend configured (Qdrant/Pinecone)
+- If `vector=pinecone`, backend env must include `PINECONE_API_KEY` and `PINECONE_INDEX` (server-side only; not sent from the browser)

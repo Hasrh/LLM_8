@@ -39,6 +39,24 @@ type CompareResponse = {
   error?: string
 }
 
+type AnalysisRunStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+type AnalysisProgressRun = {
+  key: string
+  label: string
+  mode: string
+  status: AnalysisRunStatus
+  startedAt?: string
+  finishedAt?: string
+  latestMessage?: string
+  error?: string | null
+  score?: number | null
+  passed?: boolean | null
+  findingsCount?: number
+}
+
+type StreamEventPayload = Record<string, unknown>
+
 const SCORE_BUCKETS = [
   { label: '0.00 - 0.49', min: 0, max: 0.49 },
   { label: '0.50 - 0.69', min: 0.5, max: 0.69 },
@@ -85,14 +103,15 @@ function App() {
   const [onlyPassing, setOnlyPassing] = useState(false)
   const [minScore, setMinScore] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [repoPath, setRepoPath] = useState('c:\\Users\\harsh\\Desktop\\llm\\sec_policy_auto\\opencode\\samples\\hello-world')
-  const [controlsPath, setControlsPath] = useState('c:\\Users\\harsh\\Desktop\\llm\\sec_policy_auto\\opencode\\data\\security_controls.json')
+  const [repoPath, setRepoPath] = useState('/home/aggerio/temp/LLM_8/opencode/samples/Hello-World')
+  const [controlsPath, setControlsPath] = useState('/home/aggerio/temp/LLM_8/opencode/data/security_controls.json')
   const [gptModel, setGptModel] = useState('openrouter/openai/gpt-5.4-mini')
-  const [vector, setVector] = useState('qdrant')
+  const [vector, setVector] = useState('pinecone')
   const [topk, setTopk] = useState(3)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [compareError, setCompareError] = useState<string | null>(null)
   const [compareResult, setCompareResult] = useState<CompareResponse | null>(null)
+  const [progressRuns, setProgressRuns] = useState<AnalysisProgressRun[]>([])
 
   const suites = useMemo(() => {
     const set = new Set(rows.map((row) => row.suite))
@@ -211,10 +230,108 @@ function App() {
   }
 
   async function analyzeRepoComparison() {
+    const initialRuns: AnalysisProgressRun[] = [
+      {
+        key: 'gpt_direct',
+        label: 'GPT Direct',
+        mode: 'direct',
+        status: 'queued',
+      },
+      {
+        key: 'opencode_baseline',
+        label: 'OpenCode Baseline',
+        mode: 'baseline',
+        status: 'queued',
+      },
+      {
+        key: 'opencode_rag',
+        label: 'OpenCode + RAG',
+        mode: 'rag',
+        status: 'queued',
+      },
+    ]
+
+    const updateProgressRun = (key: string, patch: Partial<AnalysisProgressRun>) => {
+      setProgressRuns((current) => {
+        const index = current.findIndex((run) => run.key === key)
+        if (index === -1) return current
+        const next = [...current]
+        next[index] = {
+          ...next[index],
+          ...patch,
+        }
+        return next
+      })
+    }
+
+    const applyStreamEvent = (eventName: string, payload: StreamEventPayload) => {
+      if (eventName === 'job.started') {
+        const runs = Array.isArray(payload.runs) ? payload.runs : []
+        setProgressRuns(
+          runs.map((run) => {
+            const record = run as Record<string, unknown>
+            return {
+              key: String(record.key ?? ''),
+              label: String(record.label ?? record.key ?? ''),
+              mode: String(record.mode ?? ''),
+              status: (record.status as AnalysisRunStatus) ?? 'queued',
+              latestMessage: 'Waiting to start...',
+            }
+          }),
+        )
+        return
+      }
+      if (eventName === 'run.started') {
+        updateProgressRun(String(payload.key ?? ''), {
+          status: 'running',
+          startedAt: String(payload.startedAt ?? ''),
+          latestMessage: 'Run started...',
+          error: null,
+        })
+        return
+      }
+      if (eventName === 'run.stdout' || eventName === 'run.stderr') {
+        updateProgressRun(String(payload.key ?? ''), {
+          latestMessage: String(payload.message ?? '').slice(0, 500),
+        })
+        return
+      }
+      if (eventName === 'run.completed') {
+        const statusValue = String(payload.status ?? 'failed')
+        const status: AnalysisRunStatus =
+          statusValue === 'completed' ? 'completed' : 'failed'
+        updateProgressRun(String(payload.key ?? ''), {
+          status,
+          finishedAt: String(payload.finishedAt ?? ''),
+          latestMessage:
+            status === 'completed'
+              ? `Completed with ${Number(payload.findingsCount ?? 0)} findings`
+              : 'Run failed',
+          error: payload.error ? String(payload.error) : null,
+          score: typeof payload.score === 'number' ? payload.score : null,
+          passed: typeof payload.passed === 'boolean' ? payload.passed : null,
+          findingsCount:
+            typeof payload.findingsCount === 'number' ? payload.findingsCount : undefined,
+        })
+        return
+      }
+      if (eventName === 'job.completed') {
+        setCompareResult(payload as CompareResponse)
+        return
+      }
+      if (eventName === 'job.failed') {
+        const message = String(payload.error ?? 'Failed to run comparative analysis.')
+        setCompareError(message)
+      }
+    }
+
     try {
       setCompareError(null)
       setIsAnalyzing(true)
-      const response = await fetch('/api/analyze-compare', {
+      setCompareResult(null)
+      setProgressRuns(initialRuns)
+
+      const response = await fetch('/api/analyze-compare/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -227,11 +344,51 @@ function App() {
           topk,
         }),
       })
-      const json = (await response.json()) as CompareResponse
       if (!response.ok) {
-        throw new Error(json.error ?? 'Failed to run comparative analysis.')
+        throw new Error('Failed to connect to analysis stream.')
       }
-      setCompareResult(json)
+      if (!response.body) {
+        throw new Error('Analysis stream is unavailable in this browser.')
+      }
+
+      const decoder = new TextDecoder()
+      const reader = response.body.getReader()
+      let buffered = ''
+
+      while (true) {
+        const { value, done } = await reader.read()
+        buffered += decoder.decode(value ?? new Uint8Array(), { stream: !done })
+
+        let boundary = buffered.indexOf('\n\n')
+        while (boundary !== -1) {
+          const rawEvent = buffered.slice(0, boundary).trim()
+          buffered = buffered.slice(boundary + 2)
+          if (rawEvent) {
+            let eventName = 'message'
+            const dataLines: string[] = []
+            for (const line of rawEvent.split('\n')) {
+              if (line.startsWith('event:')) {
+                eventName = line.slice(6).trim()
+              } else if (line.startsWith('data:')) {
+                dataLines.push(line.slice(5).trimStart())
+              }
+            }
+            if (dataLines.length > 0) {
+              try {
+                const payload = JSON.parse(dataLines.join('\n')) as StreamEventPayload
+                applyStreamEvent(eventName, payload)
+              } catch {
+                // Ignore malformed event payloads to keep stream resilient.
+              }
+            }
+          }
+          boundary = buffered.indexOf('\n\n')
+        }
+
+        if (done) {
+          break
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to run comparative analysis.'
       setCompareError(msg)
@@ -304,6 +461,7 @@ function App() {
             >
               <option value="qdrant">qdrant</option>
               <option value="pinecone">pinecone</option>
+              <option value="lexical">lexical</option>
             </select>
           </div>
           <div>
@@ -328,6 +486,28 @@ function App() {
             </button>
           </div>
         </div>
+        {(isAnalyzing || progressRuns.length > 0) && (
+          <div className="compare-progress-grid">
+            {progressRuns.map((run) => (
+              <article key={run.key} className="card compare-progress-card">
+                <h3>{run.label}</h3>
+                <p className="muted">mode: {run.mode}</p>
+                <p className={`chip chip-status chip-status-${run.status}`}>
+                  status: {run.status}
+                </p>
+                {run.latestMessage && (
+                  <p className="muted compare-live-log">{run.latestMessage}</p>
+                )}
+                {typeof run.score === 'number' && (
+                  <p className="muted">
+                    score: {run.score.toFixed(2)} | passed: {run.passed ? 'yes' : 'no'}
+                  </p>
+                )}
+                {run.error && <p className="chip chip-error">{run.error}</p>}
+              </article>
+            ))}
+          </div>
+        )}
         {compareError && <p className="chip chip-error">{compareError}</p>}
         {compareResult && (
           <div className="compare-output">

@@ -15,8 +15,6 @@ venv/
 
 # Runs & env
 analysis-runs/
-.env
-.env.*
 
 # OS / editor
 .DS_Store
